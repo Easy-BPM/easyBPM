@@ -1,0 +1,2 @@
+ALTER TABLE process_definition
+ADD COLUMN IF NOT EXISTS version BIGINT DEFAULT 1;
