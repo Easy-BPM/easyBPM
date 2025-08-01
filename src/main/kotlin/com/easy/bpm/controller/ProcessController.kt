@@ -26,7 +26,7 @@ SELECT * FROM process_INSTANCE
  */
 
 @RestController
-@RequestMapping("/api/processes")
+@RequestMapping("/processes")
 class ProcessController(
         private val processService: ProcessService
 ) {
@@ -45,6 +45,11 @@ class ProcessController(
     @GetMapping("/instances")
     fun getProcessInstances(pageable: Pageable): Page<ProcessInstance> {
         return processService.getProcessInstances(pageable)
+    }
+
+    @GetMapping
+    fun getLatestProcesses(pageable: Pageable): Page<ProcessDefinition> {
+        return processService.getLatestProcessDefinitions(pageable)
     }
 
 }

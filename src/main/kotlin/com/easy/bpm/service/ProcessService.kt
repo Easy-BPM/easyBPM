@@ -151,6 +151,10 @@ class ProcessService (
         }
     }
 
+    fun getLatestProcessDefinitions(pageable: Pageable): Page<ProcessDefinition> {
+        return processDefinitionRepository.findLatestVersionProcesses(pageable)
+    }
+
 
 
 }

@@ -1,0 +1,1 @@
+ALTER TABLE form RENAME COLUMN definition TO schema;

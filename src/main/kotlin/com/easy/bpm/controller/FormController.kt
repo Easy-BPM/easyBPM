@@ -6,7 +6,7 @@ import com.easy.bpm.service.FormService
 import org.springframework.web.bind.annotation.*
 
 @RestController
-@RequestMapping("/api/forms")
+@RequestMapping("/forms")
 class FormController(
     private val formService: FormService
 ) {
