@@ -11,7 +11,7 @@ data class Task(
     val id: Long = 0,
 
     @Column(name = "process_instance_id", nullable = false)
-    val processInstanceId: Long,  // Agora apenas o ID
+    val processInstanceId: Long,
 
     val nodeId: String,
     var assignee: String? = null,
@@ -20,5 +20,7 @@ data class Task(
     var status: TaskStatus = TaskStatus.PENDING,
 
     val createdAt: LocalDateTime = LocalDateTime.now(),
-    var completedAt: LocalDateTime? = null
+    var completedAt: LocalDateTime? = null,
+
+    val formId: Long? = null
 )

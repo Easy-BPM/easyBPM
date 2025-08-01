@@ -5,6 +5,7 @@ import com.easy.bpm.enum.TaskStatus
 import com.easy.bpm.model.process.ProcessInstance
 import com.easy.bpm.model.task.Task
 import com.easy.bpm.model.variable.ProcessVariable
+import com.easy.bpm.repository.form.FormDefinitionRepository
 import com.easy.bpm.repository.process.ProcessInstanceRepository
 import com.easy.bpm.repository.variable.ProcessVariableRepository
 import com.easy.bpm.repository.task.TaskRepository
@@ -17,18 +18,18 @@ import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import java.time.LocalDateTime
 
-
 @Service
 class TaskService(
     private val processTaskRepository: TaskRepository,
     private val processInstanceRepository: ProcessInstanceRepository,
     private val processVariableRepository: ProcessVariableRepository,
     private val taskVariableRepository: TaskVariableRepository,
+    private val formService: FormService,
     private val objectMapper: ObjectMapper
 ) {
 
     @Transactional
-    fun completeTask(taskId: Long, assignee: String, variables: Map<String, String>) {
+    fun completeTask(taskId: Long, assignee: String, variables: Map<String, Any>) {
         val task = processTaskRepository.findById(taskId)
             .orElseThrow { IllegalArgumentException("Task not found") }
 
@@ -41,10 +42,17 @@ class TaskService(
             .orElseThrow { IllegalArgumentException("Process instance not found") }
 
         // Salva as variáveis como variáveis de processo
-        val processVars = variables.map { (key, value) ->
-            ProcessVariable(processInstanceId = instance.id, name = key, value = value)
+        variables.forEach { (key, value) ->
+            val varValue = serializeVariableValue(value)
+            val existingVar = processVariableRepository.findByProcessInstanceIdAndName(instance.id, key)
+            if (existingVar != null) {
+                existingVar.value = objectMapper.valueToTree(varValue)
+                processVariableRepository.save(existingVar)
+            } else {
+                val newVar = ProcessVariable(processInstanceId = instance.id, name = key, value = objectMapper.valueToTree(varValue))
+                processVariableRepository.save(newVar)
+            }
         }
-        processVariableRepository.saveAll(processVars)
 
         // Remove as variáveis da tarefa (se existirem)
         taskVariableRepository.deleteByTaskId(taskId)
@@ -89,8 +97,9 @@ class TaskService(
         val nodes = objectMapper.readTree(definitionJson).get("nodes")
         val tasks = nodeIds.mapNotNull { nodeId ->
             val node = nodes.find { it.get("id").asText() == nodeId }
+            val form = formService.getLatestVersionByName(nodeId)
             if (node?.get("type")?.asText() == "UserTask") {
-                Task(processInstanceId = instance.id, nodeId = nodeId)
+                Task(processInstanceId = instance.id, nodeId = nodeId, formId = form?.id)
             } else null
         }
 
@@ -116,5 +125,9 @@ class TaskService(
             else ->
                 processTaskRepository.findAll(pageable)
         }
+    }
+
+    private fun serializeVariableValue(value: Any): String {
+        return objectMapper.writeValueAsString(value)
     }
 }

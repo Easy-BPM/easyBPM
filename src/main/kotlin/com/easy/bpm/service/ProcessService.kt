@@ -11,6 +11,8 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import jakarta.transaction.Transactional
 import org.springframework.stereotype.Service
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.Pageable
 
 @Service
 class ProcessService (
@@ -124,6 +126,10 @@ class ProcessService (
         }
 
         return startNextNodes
+    }
+
+    fun getProcessInstances(pageable: Pageable): Page<ProcessInstance> {
+        return processInstanceRepository.findAll(pageable)
     }
 
     private fun createUserTasksIfAny(

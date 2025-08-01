@@ -1,8 +1,8 @@
-package com.easy.bpm.controller
+package com.easy.bpm.controller.data
 
 import com.fasterxml.jackson.databind.JsonNode
 
-data class DeployRequest(
+data class DeployProcessRequest(
     val name: String,
     val definitionJson: JsonNode
 )

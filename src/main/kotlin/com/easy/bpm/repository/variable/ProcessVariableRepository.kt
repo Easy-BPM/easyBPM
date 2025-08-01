@@ -5,4 +5,5 @@ import org.springframework.data.jpa.repository.JpaRepository
 
 interface ProcessVariableRepository : JpaRepository<ProcessVariable, Long> {
     fun findByProcessInstanceId(processInstanceId: Long): List<ProcessVariable>
+    fun findByProcessInstanceIdAndName(processInstanceId: Long, name: String): ProcessVariable?
 }
