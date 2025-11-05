@@ -5,7 +5,6 @@ import com.easy.bpm.enum.TaskStatus
 import com.easy.bpm.model.process.ProcessInstance
 import com.easy.bpm.model.task.Task
 import com.easy.bpm.model.variable.ProcessVariable
-import com.easy.bpm.repository.form.FormDefinitionRepository
 import com.easy.bpm.repository.process.ProcessInstanceRepository
 import com.easy.bpm.repository.variable.ProcessVariableRepository
 import com.easy.bpm.repository.task.TaskRepository
@@ -24,6 +23,7 @@ class TaskService(
     private val processInstanceRepository: ProcessInstanceRepository,
     private val processVariableRepository: ProcessVariableRepository,
     private val taskVariableRepository: TaskVariableRepository,
+    private val integrationService: IntegrationService,
     private val formService: FormService,
     private val objectMapper: ObjectMapper
 ) {
@@ -82,6 +82,7 @@ class TaskService(
 
         // ✅ Cria novas tarefas se necessário
         createUserTasksIfAny(nextNodeIds, instance, definitionJson)
+        handleIntegrationTasksIfAny(nextNodeIds, instance, definitionJson)
     }
 
     private fun isEndEvent(nodeId: String, nodes: JsonNode): Boolean {
@@ -130,4 +131,34 @@ class TaskService(
     private fun serializeVariableValue(value: Any): String {
         return objectMapper.writeValueAsString(value)
     }
+
+    private fun handleIntegrationTasksIfAny(
+        nodeIds: List<String>,
+        instance: ProcessInstance,
+        definitionJson: String
+    ) {
+        val nodes = objectMapper.readTree(definitionJson).get("nodes")
+
+        nodeIds.forEach { nodeId ->
+            val node = nodes.find { it.get("id").asText() == nodeId }
+
+            if (node?.get("type")?.asText() == "ServiceTask") {
+                val config = node.get("properties") ?: throw IllegalArgumentException("ServiceTask $nodeId missing properties")
+
+                val outputs = integrationService.executeIntegration(instance, nodeId, config)
+
+                // avançar no grafo
+                val nextNodeIds = node.get("next")?.map { it.asText() } ?: emptyList()
+                instance.currentNode = nextNodeIds
+                instance.updatedAt = LocalDateTime.now()
+
+                processInstanceRepository.save(instance)
+
+                // continuar fluxo
+                handleIntegrationTasksIfAny(nextNodeIds, instance, definitionJson)
+                createUserTasksIfAny(nextNodeIds, instance, definitionJson)
+            }
+        }
+    }
+
 }

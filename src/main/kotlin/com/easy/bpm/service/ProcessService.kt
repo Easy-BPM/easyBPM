@@ -13,11 +13,13 @@ import jakarta.transaction.Transactional
 import org.springframework.stereotype.Service
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
+import java.time.LocalDateTime
 
 @Service
 class ProcessService (
     private val processDefinitionRepository: ProcessDefinitionRepository,
     private val processInstanceRepository: ProcessInstanceRepository,
+    private val integrationService: IntegrationService,
     private val taskRepository: TaskRepository,
     private val objectMapper: ObjectMapper
 ){
@@ -66,6 +68,18 @@ class ProcessService (
                     }
                 }
             }
+
+            if (type == "Integration") {
+                if (!node.has("url")) {
+                    throw IllegalArgumentException("Integration node $id must declare 'url'")
+                }
+                if (node.has("inputMapping") && !node.get("inputMapping").isArray) {
+                    throw IllegalArgumentException("Integration node $id: 'inputMapping' must be an array")
+                }
+                if (node.has("outputMapping") && !node.get("outputMapping").isArray) {
+                    throw IllegalArgumentException("Integration node $id: 'outputMapping' must be an array")
+                }
+            }
         }
 
         // 2. Validar referências de 'next'
@@ -101,6 +115,7 @@ class ProcessService (
         )
         processInstanceRepository.save(instance)
         createUserTasksIfAny(startNodes, instance, definition.definitionJson)
+        handleIntegrationTasksIfAny(startNodes, instance, definition.definitionJson)
         return instance;
     }
 
@@ -153,6 +168,35 @@ class ProcessService (
 
     fun getLatestProcessDefinitions(pageable: Pageable): Page<ProcessDefinition> {
         return processDefinitionRepository.findLatestVersionProcesses(pageable)
+    }
+
+    private fun handleIntegrationTasksIfAny(
+        nodeIds: List<String>,
+        instance: ProcessInstance,
+        definitionJson: String
+    ) {
+        val nodes = objectMapper.readTree(definitionJson).get("nodes")
+
+        nodeIds.forEach { nodeId ->
+            val node = nodes.find { it.get("id").asText() == nodeId }
+
+            if (node?.get("type")?.asText() == "ServiceTask") {
+                val config = node.get("properties") ?: throw IllegalArgumentException("ServiceTask $nodeId missing properties")
+
+                val outputs = integrationService.executeIntegration(instance, nodeId, config)
+
+                // avançar no grafo
+                val nextNodeIds = node.get("next")?.map { it.asText() } ?: emptyList()
+                instance.currentNode = nextNodeIds
+                instance.updatedAt = LocalDateTime.now()
+
+                processInstanceRepository.save(instance)
+
+                // continuar fluxo
+                handleIntegrationTasksIfAny(nextNodeIds, instance, definitionJson)
+                createUserTasksIfAny(nextNodeIds, instance, definitionJson)
+            }
+        }
     }
 
 
