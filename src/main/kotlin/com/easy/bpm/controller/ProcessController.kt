@@ -37,8 +37,6 @@ class ProcessController(
 
     @PostMapping
     fun deploy(@RequestBody request: DeployProcessRequest): ProcessDefinition {
-        val jsonFromXml = convertXmlToInternalJson(request.xml, objectMapper)
-
         return processService.deployProcess(request.name, request.definitionJson)
     }
 

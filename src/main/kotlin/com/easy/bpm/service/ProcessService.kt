@@ -25,10 +25,10 @@ class ProcessService (
 ){
 
     @Transactional
-    fun deployProcess(name: String, definitionJson: String): ProcessDefinition {
+    fun deployProcess(name: String, definitionJson: JsonNode): ProcessDefinition {
         // 1. Parse JSON
         val jsonNode = try {
-            objectMapper.readTree(definitionJson)
+            objectMapper.readTree(definitionJson.asText())
         } catch (e: Exception) {
             throw IllegalArgumentException("Invalid JSON format")
         }
@@ -95,7 +95,7 @@ class ProcessService (
 
         val process = ProcessDefinition(
             name = name,
-            definitionJson = definitionJson,
+            definitionJson = definitionJson.asText(),
             version = nextVersion
         )
 
