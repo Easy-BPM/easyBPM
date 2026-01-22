@@ -10,4 +10,5 @@ interface TaskRepository : JpaRepository<Task, Long> {
     fun findByAssignee(assignee: String, pageable: Pageable): Page<Task>
     fun findByStatus(status: TaskStatus, pageable: Pageable): Page<Task>
     fun findByAssigneeAndStatus(assignee: String, status: TaskStatus, pageable: Pageable): Page<Task>
+
 }

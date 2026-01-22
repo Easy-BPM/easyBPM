@@ -13,6 +13,8 @@ data class Task(
     @Column(name = "process_instance_id", nullable = false)
     val processInstanceId: Long,
 
+    val title: String? = null,
+
     val nodeId: String,
     var assignee: String? = null,
 

@@ -5,6 +5,7 @@ import com.easy.bpm.enum.TaskStatus
 import com.easy.bpm.model.process.ProcessInstance
 import com.easy.bpm.model.task.Task
 import com.easy.bpm.model.variable.ProcessVariable
+import com.easy.bpm.model.variable.TaskVariable
 import com.easy.bpm.repository.process.ProcessInstanceRepository
 import com.easy.bpm.repository.variable.ProcessVariableRepository
 import com.easy.bpm.repository.task.TaskRepository
@@ -158,6 +159,89 @@ class TaskService(
                 handleIntegrationTasksIfAny(nextNodeIds, instance, definitionJson)
                 createUserTasksIfAny(nextNodeIds, instance, definitionJson)
             }
+        }
+    }
+
+    private fun applyTaskOutputs(
+        task: Task,
+        node: JsonNode,
+        instance: ProcessInstance
+    ) {
+        val config = node.get("config") ?: return
+        val outputs = config.get("outputs") ?: return
+
+        outputs.forEach { output ->
+            val sourceName = output.get("sourceName").asText()
+            val target = output.get("target").asText()
+            val valueNode = output.get("value")
+
+            val sourceVar = taskVariableRepository
+                .findByTaskIdAndName(task.id, sourceName)
+                ?: throw IllegalArgumentException("Task variable '$sourceName' not found")
+
+            when (target) {
+                "variable" -> {
+                    val processVarName = valueNode.asText()
+
+                    val processVar =
+                        processVariableRepository.findByProcessInstanceIdAndName(instance.id, processVarName)
+
+                    if (processVar != null) {
+                        processVar.value = sourceVar.value
+                        processVariableRepository.save(processVar)
+                    } else {
+                        val newVar = ProcessVariable(
+                            processInstanceId = instance.id,
+                            name = processVarName,
+                            value = sourceVar.value
+                        )
+                        processVariableRepository.save(newVar)
+                    }
+                }
+
+                "static" -> {
+                    // ignora ou registra log/auditoria futuramente
+                }
+
+                else -> throw IllegalArgumentException("Invalid output target '$target'")
+            }
+        }
+    }
+
+    private fun applyTaskInputs(
+        task: Task,
+        node: JsonNode,
+        instance: ProcessInstance
+    ) {
+        val config = node.get("config") ?: return
+        val inputs = config.get("inputs") ?: return
+
+        inputs.forEach { input ->
+            val targetName = input.get("targetName").asText()
+            val source = input.get("source").asText()
+            val valueNode = input.get("value")
+
+            val value: JsonNode = when (source) {
+                "variable" -> {
+                    val varName = valueNode.asText()
+                    val processVar = processVariableRepository
+                        .findByProcessInstanceIdAndName(instance.id, varName)
+                        ?: throw IllegalArgumentException("Process variable '$varName' not found")
+                    processVar.value
+                }
+
+                "static" -> valueNode
+
+                else -> throw IllegalArgumentException("Invalid input source '$source'")
+            }
+
+            val taskVar = TaskVariable(
+                taskId = task.id,
+                name = targetName,
+                value = value
+            )
+
+            taskVariableRepository.save(taskVar)
         }
     }
 

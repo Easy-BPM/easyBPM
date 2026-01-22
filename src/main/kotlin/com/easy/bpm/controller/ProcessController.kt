@@ -5,6 +5,7 @@ import com.easy.bpm.model.process.ProcessDefinition
 import com.easy.bpm.model.process.ProcessInstance
 import com.easy.bpm.service.ProcessService
 import com.easy.bpm.util.ParseXMLToJsonFormat.convertXmlToInternalJson
+import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
@@ -36,8 +37,8 @@ class ProcessController(
 
 
     @PostMapping
-    fun deploy(@RequestBody request: DeployProcessRequest): ProcessDefinition {
-        return processService.deployProcess(request.name, request.definitionJson)
+    fun deploy(@RequestBody request: JsonNode): ProcessDefinition {
+        return processService.deployProcess(request)
     }
 
     @PostMapping("/{processDefinitionId}/start")
