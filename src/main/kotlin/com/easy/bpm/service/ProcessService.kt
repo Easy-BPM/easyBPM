@@ -5,10 +5,12 @@ import com.easy.bpm.model.process.ProcessDefinition
 import com.easy.bpm.model.process.ProcessInstance
 import com.easy.bpm.model.task.Task
 import com.easy.bpm.model.variable.ProcessVariable
+import com.easy.bpm.model.variable.TaskVariable
 import com.easy.bpm.repository.process.ProcessDefinitionRepository
 import com.easy.bpm.repository.process.ProcessInstanceRepository
 import com.easy.bpm.repository.task.TaskRepository
 import com.easy.bpm.repository.variable.ProcessVariableRepository
+import com.easy.bpm.repository.variable.TaskVariableRepository
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import jakarta.transaction.Transactional
@@ -22,6 +24,7 @@ class ProcessService (
     private val processDefinitionRepository: ProcessDefinitionRepository,
     private val processInstanceRepository: ProcessInstanceRepository,
     private val processVariableRepository: ProcessVariableRepository,
+    private val taskVariableRepository: TaskVariableRepository,
     private val integrationService: IntegrationService,
     private val taskRepository: TaskRepository,
     private val objectMapper: ObjectMapper
@@ -221,16 +224,21 @@ class ProcessService (
         definitionJson: String
     ) {
         val nodes = objectMapper.readTree(definitionJson).get("nodes")
-        val tasks = nodeIds.mapNotNull { nodeId ->
-            val node = nodes.find { it.get("id").asText() == nodeId }
-            if (node?.get("type")?.asText() == "UserTask") {
-                Task(processInstanceId = instance.id, nodeId = nodeId)
-            } else null
-        }
 
-        if (tasks.isNotEmpty()) {
-            // injete o repositório no construtor se ainda não tiver
-            taskRepository.saveAll(tasks)
+        nodeIds.forEach { nodeId ->
+            val node = nodes.find { it.get("id").asText() == nodeId }
+
+            if (node?.get("type")?.asText() == "UserTask") {
+                val task = taskRepository.save(
+                    Task(
+                        processInstanceId = instance.id,
+                        nodeId = nodeId
+                    )
+                )
+
+                // 🔥 APLICA INPUT MAPPING AQUI
+                applyTaskInputs(task, node, instance)
+            }
         }
     }
 
@@ -287,6 +295,43 @@ class ProcessService (
 
         if (variables.isNotEmpty()) {
             processVariableRepository.saveAll(variables)
+        }
+    }
+
+    private fun applyTaskInputs(
+        task: Task,
+        node: JsonNode,
+        instance: ProcessInstance
+    ) {
+        val config = node.get("config") ?: return
+        val inputs = config.get("inputs") ?: return
+
+        inputs.forEach { input ->
+            val targetName = input.get("targetName").asText()
+            val source = input.get("source").asText()
+            val valueNode = input.get("value")
+
+            val value: JsonNode = when (source) {
+                "variable" -> {
+                    val varName = valueNode.asText()
+                    val processVar = processVariableRepository
+                        .findByProcessInstanceIdAndName(instance.id, varName)
+                        ?: throw IllegalArgumentException("Process variable '$varName' not found")
+                    processVar.value
+                }
+
+                "static" -> valueNode
+
+                else -> throw IllegalArgumentException("Invalid input source '$source'")
+            }
+
+            val taskVar = TaskVariable(
+                taskId = task.id,
+                name = targetName,
+                value = value
+            )
+
+            taskVariableRepository.save(taskVar)
         }
     }
 

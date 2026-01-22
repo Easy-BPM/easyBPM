@@ -31,6 +31,7 @@ class TaskService(
 
     @Transactional
     fun completeTask(taskId: Long, assignee: String, variables: Map<String, Any>) {
+
         val task = processTaskRepository.findById(taskId)
             .orElseThrow { IllegalArgumentException("Task not found") }
 
@@ -38,40 +39,42 @@ class TaskService(
             throw IllegalStateException("Task already completed")
         }
 
-        // ⚠️ Recuperar a instancia pelo ID armazenado na task
         val instance = processInstanceRepository.findById(task.processInstanceId)
             .orElseThrow { IllegalArgumentException("Process instance not found") }
-
-        // Salva as variáveis como variáveis de processo
-        variables.forEach { (key, value) ->
-            val varValue = serializeVariableValue(value)
-            val existingVar = processVariableRepository.findByProcessInstanceIdAndName(instance.id, key)
-            if (existingVar != null) {
-                existingVar.value = objectMapper.valueToTree(varValue)
-                processVariableRepository.save(existingVar)
-            } else {
-                val newVar = ProcessVariable(processInstanceId = instance.id, name = key, value = objectMapper.valueToTree(varValue))
-                processVariableRepository.save(newVar)
-            }
-        }
-
-        // Remove as variáveis da tarefa (se existirem)
-        taskVariableRepository.deleteByTaskId(taskId)
 
         val definitionJson = instance.processDefinition.definitionJson
         val jsonNode = objectMapper.readTree(definitionJson)
         val nodes = jsonNode.get("nodes")
 
         val currentNode = nodes.find { it.get("id").asText() == task.nodeId }
-        val nextNodeIds = currentNode?.get("next")?.map { it.asText() } ?: emptyList()
+            ?: throw IllegalStateException("Node '${task.nodeId}' not found")
 
-        // ✅ Atualiza e salva a tarefa
+        // 1️⃣ Salvar dados do formulário como TASK VARIABLES
+        variables.forEach { (key, value) ->
+            val taskVar = TaskVariable(
+                taskId = task.id,
+                name = key,
+                value = objectMapper.valueToTree(value)
+            )
+            taskVariableRepository.save(taskVar)
+        }
+
+        // 2️⃣ Aplicar OUTPUT mapping → TASK → PROCESS
+        applyTaskOutputs(task, currentNode, instance)
+
+        // 3️⃣ Limpar TaskVariables - NOT ACTIVE
+        //taskVariableRepository.deleteByTaskId(task.id)
+
+        // 4️⃣ Resolver próximos nós
+        val nextNodeIds = currentNode.get("next")?.map { it.asText() } ?: emptyList()
+
+        // 5️⃣ Atualizar Task
         task.assignee = assignee
         task.status = TaskStatus.COMPLETED
         task.completedAt = LocalDateTime.now()
         processTaskRepository.save(task)
 
-        // ✅ Atualiza a instância de processo
+        // 6️⃣ Atualizar Instância
         instance.currentNode = nextNodeIds
         instance.updatedAt = LocalDateTime.now()
 
@@ -81,7 +84,7 @@ class TaskService(
 
         processInstanceRepository.save(instance)
 
-        // ✅ Cria novas tarefas se necessário
+        // 7️⃣ Continuar execução
         createUserTasksIfAny(nextNodeIds, instance, definitionJson)
         handleIntegrationTasksIfAny(nextNodeIds, instance, definitionJson)
     }
@@ -97,16 +100,27 @@ class TaskService(
         definitionJson: String
     ) {
         val nodes = objectMapper.readTree(definitionJson).get("nodes")
-        val tasks = nodeIds.mapNotNull { nodeId ->
-            val node = nodes.find { it.get("id").asText() == nodeId }
-            val form = formService.getLatestVersionByName(nodeId)
-            if (node?.get("type")?.asText() == "UserTask") {
-                Task(processInstanceId = instance.id, nodeId = nodeId, formId = form?.id)
-            } else null
-        }
 
-        processTaskRepository.saveAll(tasks)
+        nodeIds.forEach { nodeId ->
+            val node = nodes.find { it.get("id").asText() == nodeId }
+
+            if (node?.get("type")?.asText() == "UserTask") {
+                val form = formService.getLatestVersionByName(nodeId)
+
+                val task = processTaskRepository.save(
+                    Task(
+                        processInstanceId = instance.id,
+                        nodeId = nodeId,
+                        formId = form?.id
+                    )
+                )
+
+                // 🔥 aplica input mapping aqui
+                applyTaskInputs(task, node, instance)
+            }
+        }
     }
+
 
     fun getTasks(pageable: Pageable): Page<Task> {
         return processTaskRepository.findAll(pageable)
@@ -167,47 +181,58 @@ class TaskService(
         node: JsonNode,
         instance: ProcessInstance
     ) {
-        val config = node.get("config") ?: return
-        val outputs = config.get("outputs") ?: return
+        val outputs = node.get("config")?.get("outputs") ?: return
 
         outputs.forEach { output ->
-            val sourceName = output.get("sourceName").asText()
-            val target = output.get("target").asText()
-            val valueNode = output.get("value")
+            val sourceName = output.get("sourceName")?.asText()
+            val target = output.get("target")?.asText()
+                ?: throw IllegalArgumentException("Output missing 'target'")
 
-            val sourceVar = taskVariableRepository
-                .findByTaskIdAndName(task.id, sourceName)
-                ?: throw IllegalArgumentException("Task variable '$sourceName' not found")
+            if (target != "variable") return@forEach
 
-            when (target) {
-                "variable" -> {
-                    val processVarName = valueNode.asText()
+            val processVarName = output.get("value")?.asText()
+                ?: throw IllegalArgumentException("Output missing 'value' (process variable name)")
 
-                    val processVar =
-                        processVariableRepository.findByProcessInstanceIdAndName(instance.id, processVarName)
-
-                    if (processVar != null) {
-                        processVar.value = sourceVar.value
-                        processVariableRepository.save(processVar)
-                    } else {
-                        val newVar = ProcessVariable(
-                            processInstanceId = instance.id,
-                            name = processVarName,
-                            value = sourceVar.value
+            val finalValue: JsonNode = when {
+                !sourceName.isNullOrBlank() -> {
+                    val taskVar = taskVariableRepository
+                        .findByTaskIdAndName(task.id, sourceName)
+                        ?: throw IllegalArgumentException(
+                            "Task variable '$sourceName' not found for task ${task.id}"
                         )
-                        processVariableRepository.save(newVar)
-                    }
+                    taskVar.value
                 }
 
-                "static" -> {
-                    // ignora ou registra log/auditoria futuramente
+                else -> {
+                    parseStaticValue(output.get("value"))
                 }
+            }
 
-                else -> throw IllegalArgumentException("Invalid output target '$target'")
+            val existingVar =
+                processVariableRepository.findByProcessInstanceIdAndName(instance.id, processVarName)
+
+            if (existingVar != null) {
+                existingVar.value = finalValue
+                processVariableRepository.save(existingVar)
+            } else {
+                processVariableRepository.save(
+                    ProcessVariable(
+                        processInstanceId = instance.id,
+                        name = processVarName,
+                        value = finalValue
+                    )
+                )
             }
         }
     }
 
+    private fun parseStaticValue(valueNode: JsonNode): JsonNode {
+        return if (valueNode.isTextual) {
+            objectMapper.readTree(valueNode.asText())
+        } else {
+            valueNode
+        }
+    }
     private fun applyTaskInputs(
         task: Task,
         node: JsonNode,
