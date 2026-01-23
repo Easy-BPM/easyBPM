@@ -7,8 +7,8 @@ import com.easy.bpm.model.task.Task
 import com.easy.bpm.model.variable.ProcessVariable
 import com.easy.bpm.model.variable.TaskVariable
 import com.easy.bpm.repository.process.ProcessInstanceRepository
-import com.easy.bpm.repository.variable.ProcessVariableRepository
 import com.easy.bpm.repository.task.TaskRepository
+import com.easy.bpm.repository.variable.ProcessVariableRepository
 import com.easy.bpm.repository.variable.TaskVariableRepository
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -20,7 +20,7 @@ import java.time.LocalDateTime
 
 @Service
 class TaskService(
-    private val processTaskRepository: TaskRepository,
+    private val taskRepository: TaskRepository,
     private val processInstanceRepository: ProcessInstanceRepository,
     private val processVariableRepository: ProcessVariableRepository,
     private val taskVariableRepository: TaskVariableRepository,
@@ -29,150 +29,163 @@ class TaskService(
     private val objectMapper: ObjectMapper
 ) {
 
+    /* =========================
+       TASK COMPLETION
+     ========================= */
+
     @Transactional
     fun completeTask(taskId: Long, assignee: String, variables: Map<String, Any>) {
 
-        val task = processTaskRepository.findById(taskId)
-            .orElseThrow { IllegalArgumentException("Task not found") }
+        val task = getActiveTask(taskId)
+        val instance = getProcessInstance(task.processInstanceId)
 
-        if (task.status == TaskStatus.COMPLETED) {
-            throw IllegalStateException("Task already completed")
-        }
-
-        val instance = processInstanceRepository.findById(task.processInstanceId)
-            .orElseThrow { IllegalArgumentException("Process instance not found") }
-
-        val definitionJson = instance.processDefinition.definitionJson
-        val jsonNode = objectMapper.readTree(definitionJson)
-        val nodes = jsonNode.get("nodes")
-
-        val currentNode = nodes.find { it.get("id").asText() == task.nodeId }
-            ?: throw IllegalStateException("Node '${task.nodeId}' not found")
+        val definition = parseDefinition(instance.processDefinition.definitionJson)
+        val currentNode = findNode(definition, task.nodeId)
 
         // 1️⃣ Salvar dados do formulário como TASK VARIABLES
-        variables.forEach { (key, value) ->
-            val taskVar = TaskVariable(
-                taskId = task.id,
-                name = key,
-                value = objectMapper.valueToTree(value)
-            )
-            taskVariableRepository.save(taskVar)
-        }
+        persistTaskVariables(task, variables)
 
-        // 2️⃣ Aplicar OUTPUT mapping → TASK → PROCESS
+        // 2️⃣ OUTPUT mapping → TASK → PROCESS
         applyTaskOutputs(task, currentNode, instance)
 
-        // 3️⃣ Limpar TaskVariables - NOT ACTIVE
-        //taskVariableRepository.deleteByTaskId(task.id)
+        // 3️⃣ Resolver próximos nós
+        val nextNodeIds = getNextNodes(currentNode)
 
-        // 4️⃣ Resolver próximos nós
-        val nextNodeIds = currentNode.get("next")?.map { it.asText() } ?: emptyList()
+        // 4️⃣ Atualizar Task
+        completeTaskEntity(task, assignee)
 
-        // 5️⃣ Atualizar Task
-        task.assignee = assignee
-        task.status = TaskStatus.COMPLETED
-        task.completedAt = LocalDateTime.now()
-        processTaskRepository.save(task)
+        // 5️⃣ Atualizar instância
+        advanceProcess(instance, nextNodeIds, definition)
 
-        // 6️⃣ Atualizar Instância
+        // 6️⃣ Continuar execução
+        executeNextSteps(nextNodeIds, instance, definition)
+    }
+
+    /* =========================
+       QUERY METHODS
+     ========================= */
+
+    fun getTasks(pageable: Pageable): Page<Task> =
+        taskRepository.findAll(pageable)
+
+    fun getTaskById(id: Long): Task? =
+        taskRepository.findById(id).orElse(null)
+
+    fun searchTasks(assignee: String?, status: TaskStatus?, pageable: Pageable): Page<Task> =
+        when {
+            assignee != null && status != null ->
+                taskRepository.findByAssigneeAndStatus(assignee, status, pageable)
+
+            assignee != null ->
+                taskRepository.findByAssignee(assignee, pageable)
+
+            status != null ->
+                taskRepository.findByStatus(status, pageable)
+
+            else -> taskRepository.findAll(pageable)
+        }
+
+    /* =========================
+       EXECUTION FLOW
+     ========================= */
+
+    private fun executeNextSteps(
+        nodeIds: List<String>,
+        instance: ProcessInstance,
+        definition: JsonNode
+    ) {
+        nodeIds.forEach { nodeId ->
+            val node = findNode(definition, nodeId)
+
+            when (node.get("type").asText()) {
+                "UserTask" -> handleUserTask(instance, node, definition)
+                "ServiceTask" -> handleServiceTask(instance, node, definition)
+                "EndEvent" -> finishProcess(instance)
+            }
+        }
+    }
+
+    private fun handleUserTask(
+        instance: ProcessInstance,
+        node: JsonNode,
+        definition: JsonNode
+    ) {
+        val form = formService.getLatestVersionByName(node.get("id").asText())
+
+        val task = taskRepository.save(
+            Task(
+                processInstanceId = instance.id,
+                title = node.get("name").asText(),
+                nodeId = node.get("id").asText(),
+                formId = form?.id
+            )
+        )
+
+        applyTaskInputs(task, node, instance)
+    }
+
+    private fun handleServiceTask(
+        instance: ProcessInstance,
+        node: JsonNode,
+        definition: JsonNode
+    ) {
+        val config = node.get("properties")
+            ?: throw IllegalArgumentException("ServiceTask ${node.get("id").asText()} missing properties")
+
+        integrationService.executeIntegration(instance, node.get("id").asText(), config)
+
+        val nextNodeIds = getNextNodes(node)
+
+        advanceProcess(instance, nextNodeIds, definition)
+
+        executeNextSteps(nextNodeIds, instance, definition)
+    }
+
+    /* =========================
+       STATE MANAGEMENT
+     ========================= */
+
+    private fun advanceProcess(
+        instance: ProcessInstance,
+        nextNodeIds: List<String>,
+        definition: JsonNode
+    ) {
         instance.currentNode = nextNodeIds
         instance.updatedAt = LocalDateTime.now()
 
-        if (nextNodeIds.isEmpty() || nextNodeIds.all { isEndEvent(it, nodes) }) {
+        if (nextNodeIds.isEmpty() || nextNodeIds.all { isEndEvent(it, definition) }) {
             instance.status = ProcessStatus.COMPLETED
         }
 
         processInstanceRepository.save(instance)
-
-        // 7️⃣ Continuar execução
-        createUserTasksIfAny(nextNodeIds, instance, definitionJson)
-        handleIntegrationTasksIfAny(nextNodeIds, instance, definitionJson)
     }
 
-    private fun isEndEvent(nodeId: String, nodes: JsonNode): Boolean {
-        val node = nodes.find { it.get("id").asText() == nodeId }
-        return node?.get("type")?.asText() == "EndEvent"
+    private fun completeTaskEntity(task: Task, assignee: String) {
+        task.assignee = assignee
+        task.status = TaskStatus.COMPLETED
+        task.completedAt = LocalDateTime.now()
+        taskRepository.save(task)
     }
 
-    private fun createUserTasksIfAny(
-        nodeIds: List<String>,
-        instance: ProcessInstance,
-        definitionJson: String
-    ) {
-        val nodes = objectMapper.readTree(definitionJson).get("nodes")
+    private fun finishProcess(instance: ProcessInstance) {
+        instance.status = ProcessStatus.COMPLETED
+        instance.updatedAt = LocalDateTime.now()
+        processInstanceRepository.save(instance)
+    }
 
-        nodeIds.forEach { nodeId ->
-            val node = nodes.find { it.get("id").asText() == nodeId }
+    /* =========================
+       VARIABLE MANAGEMENT
+     ========================= */
 
-            if (node?.get("type")?.asText() == "UserTask") {
-                val form = formService.getLatestVersionByName(nodeId)
-
-                val task = processTaskRepository.save(
-                    Task(
-                        processInstanceId = instance.id,
-                        nodeId = nodeId,
-                        formId = form?.id
-                    )
+    private fun persistTaskVariables(task: Task, variables: Map<String, Any>) {
+        variables.forEach { (key, value) ->
+            taskVariableRepository.save(
+                TaskVariable(
+                    taskId = task.id,
+                    name = key,
+                    value = objectMapper.valueToTree(value)
                 )
-
-                // 🔥 aplica input mapping aqui
-                applyTaskInputs(task, node, instance)
-            }
-        }
-    }
-
-
-    fun getTasks(pageable: Pageable): Page<Task> {
-        return processTaskRepository.findAll(pageable)
-    }
-
-    fun getTaskById(id: Long): Task? {
-        return processTaskRepository.findById(id).orElse(null)
-    }
-
-    fun searchTasks(assignee: String?, status: TaskStatus?, pageable: Pageable): Page<Task> {
-        return when {
-            assignee != null && status != null ->
-                processTaskRepository.findByAssigneeAndStatus(assignee, status, pageable)
-            assignee != null ->
-                processTaskRepository.findByAssignee(assignee, pageable)
-            status != null ->
-                processTaskRepository.findByStatus(status, pageable)
-            else ->
-                processTaskRepository.findAll(pageable)
-        }
-    }
-
-    private fun serializeVariableValue(value: Any): String {
-        return objectMapper.writeValueAsString(value)
-    }
-
-    private fun handleIntegrationTasksIfAny(
-        nodeIds: List<String>,
-        instance: ProcessInstance,
-        definitionJson: String
-    ) {
-        val nodes = objectMapper.readTree(definitionJson).get("nodes")
-
-        nodeIds.forEach { nodeId ->
-            val node = nodes.find { it.get("id").asText() == nodeId }
-
-            if (node?.get("type")?.asText() == "ServiceTask") {
-                val config = node.get("properties") ?: throw IllegalArgumentException("ServiceTask $nodeId missing properties")
-
-                val outputs = integrationService.executeIntegration(instance, nodeId, config)
-
-                // avançar no grafo
-                val nextNodeIds = node.get("next")?.map { it.asText() } ?: emptyList()
-                instance.currentNode = nextNodeIds
-                instance.updatedAt = LocalDateTime.now()
-
-                processInstanceRepository.save(instance)
-
-                // continuar fluxo
-                handleIntegrationTasksIfAny(nextNodeIds, instance, definitionJson)
-                createUserTasksIfAny(nextNodeIds, instance, definitionJson)
-            }
+            )
         }
     }
 
@@ -184,7 +197,6 @@ class TaskService(
         val outputs = node.get("config")?.get("outputs") ?: return
 
         outputs.forEach { output ->
-            val sourceName = output.get("sourceName")?.asText()
             val target = output.get("target")?.asText()
                 ?: throw IllegalArgumentException("Output missing 'target'")
 
@@ -193,19 +205,15 @@ class TaskService(
             val processVarName = output.get("value")?.asText()
                 ?: throw IllegalArgumentException("Output missing 'value' (process variable name)")
 
-            val finalValue: JsonNode = when {
-                !sourceName.isNullOrBlank() -> {
-                    val taskVar = taskVariableRepository
-                        .findByTaskIdAndName(task.id, sourceName)
-                        ?: throw IllegalArgumentException(
-                            "Task variable '$sourceName' not found for task ${task.id}"
-                        )
-                    taskVar.value
-                }
+            val sourceName = output.get("sourceName")?.asText()
 
-                else -> {
-                    parseStaticValue(output.get("value"))
-                }
+            val finalValue: JsonNode = if (!sourceName.isNullOrBlank()) {
+                val taskVar = taskVariableRepository
+                    .findByTaskIdAndName(task.id, sourceName)
+                    ?: throw IllegalArgumentException("Task variable '$sourceName' not found")
+                taskVar.value
+            } else {
+                parseStaticValue(output.get("value"))
             }
 
             val existingVar =
@@ -226,20 +234,12 @@ class TaskService(
         }
     }
 
-    private fun parseStaticValue(valueNode: JsonNode): JsonNode {
-        return if (valueNode.isTextual) {
-            objectMapper.readTree(valueNode.asText())
-        } else {
-            valueNode
-        }
-    }
     private fun applyTaskInputs(
         task: Task,
         node: JsonNode,
         instance: ProcessInstance
     ) {
-        val config = node.get("config") ?: return
-        val inputs = config.get("inputs") ?: return
+        val inputs = node.get("config")?.get("inputs") ?: return
 
         inputs.forEach { input ->
             val targetName = input.get("targetName").asText()
@@ -249,25 +249,62 @@ class TaskService(
             val value: JsonNode = when (source) {
                 "variable" -> {
                     val varName = valueNode.asText()
-                    val processVar = processVariableRepository
-                        .findByProcessInstanceIdAndName(instance.id, varName)
-                        ?: throw IllegalArgumentException("Process variable '$varName' not found")
+                    val processVar =
+                        processVariableRepository.findByProcessInstanceIdAndName(instance.id, varName)
+                            ?: throw IllegalArgumentException("Process variable '$varName' not found")
                     processVar.value
                 }
 
-                "static" -> valueNode
+                "static" -> parseStaticValue(valueNode)
 
                 else -> throw IllegalArgumentException("Invalid input source '$source'")
             }
 
-            val taskVar = TaskVariable(
-                taskId = task.id,
-                name = targetName,
-                value = value
+            taskVariableRepository.save(
+                TaskVariable(
+                    taskId = task.id,
+                    name = targetName,
+                    value = value
+                )
             )
-
-            taskVariableRepository.save(taskVar)
         }
     }
 
+    /* =========================
+       HELPERS
+     ========================= */
+
+    private fun getActiveTask(taskId: Long): Task {
+        val task = taskRepository.findById(taskId)
+            .orElseThrow { IllegalArgumentException("Task not found") }
+
+        if (task.status == TaskStatus.COMPLETED) {
+            throw IllegalStateException("Task already completed")
+        }
+
+        return task
+    }
+
+    private fun getProcessInstance(instanceId: Long): ProcessInstance =
+        processInstanceRepository.findById(instanceId)
+            .orElseThrow { IllegalArgumentException("Process instance not found") }
+
+    private fun parseDefinition(definitionJson: String): JsonNode =
+        objectMapper.readTree(definitionJson)
+
+    private fun findNode(definition: JsonNode, nodeId: String): JsonNode =
+        definition.get("nodes")
+            .find { it.get("id").asText() == nodeId }
+            ?: throw IllegalArgumentException("Node '$nodeId' not found")
+
+    private fun getNextNodes(node: JsonNode): List<String> =
+        node.get("next")?.map { it.asText() } ?: emptyList()
+
+    private fun isEndEvent(nodeId: String, definition: JsonNode): Boolean {
+        val node = findNode(definition, nodeId)
+        return node.get("type").asText() == "EndEvent"
+    }
+
+    private fun parseStaticValue(valueNode: JsonNode): JsonNode =
+        if (valueNode.isTextual) objectMapper.readTree(valueNode.asText()) else valueNode
 }

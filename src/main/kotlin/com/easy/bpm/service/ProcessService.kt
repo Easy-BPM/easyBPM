@@ -20,276 +20,175 @@ import org.springframework.data.domain.Pageable
 import java.time.LocalDateTime
 
 @Service
-class ProcessService (
+class ProcessService(
     private val processDefinitionRepository: ProcessDefinitionRepository,
     private val processInstanceRepository: ProcessInstanceRepository,
     private val processVariableRepository: ProcessVariableRepository,
     private val taskVariableRepository: TaskVariableRepository,
     private val integrationService: IntegrationService,
+    private val formService: FormService,
     private val taskRepository: TaskRepository,
     private val objectMapper: ObjectMapper
-){
+) {
+
+    /* =========================
+       DEPLOY
+     ========================= */
 
     @Transactional
     fun deployProcess(definitionJson: JsonNode): ProcessDefinition {
+        val json = validateAndParseDefinition(definitionJson)
 
-        val jsonNode = definitionJson.takeIf { it.isObject }
-            ?: throw IllegalArgumentException("Root JSON must be an object")
+        val processId = json.get("processId").asText()
 
-        val processId = jsonNode.get("processId")?.asText()
-            ?: throw IllegalArgumentException("Missing 'processId'")
-
-        val nodes = jsonNode.get("nodes")
-            ?: throw IllegalArgumentException("Missing 'nodes' in process definition")
-        if (!nodes.isArray) throw IllegalArgumentException("'nodes' must be an array")
-
-        val flows = jsonNode.get("flows")
-            ?: throw IllegalArgumentException("Missing 'flows' in process definition")
-        if (!flows.isArray) throw IllegalArgumentException("'flows' must be an array")
-
-        val variables = jsonNode.get("variables")
-        if (variables != null && !variables.isArray) {
-            throw IllegalArgumentException("'variables' must be an array")
-        }
-
-        val validTypes = setOf(
-            "StartEvent", "EndEvent", "UserTask", "Integration",
-            "InclusiveGateway", "ExclusiveGateway", "ParallelGateway",
-            "ServiceTask", "ScriptTask", "TimerEvent", "MessageEvent", "CallActivity"
-        )
-
-        val nodeIds = mutableSetOf<String>()
-
-        // 2. Validar variáveis
-        variables?.forEach { variable ->
-            val name = variable.get("name")?.asText()
-                ?: throw IllegalArgumentException("Every variable must have 'name'")
-            val type = variable.get("type")?.asText()
-                ?: throw IllegalArgumentException("Variable '$name' must have 'type'")
-
-            if (type !in setOf("string", "number", "boolean", "object")) {
-                throw IllegalArgumentException("Invalid variable type '$type' at '$name'")
-            }
-        }
-
-        // 3. Validar nós
-        for (node in nodes) {
-            val id = node.get("id")?.asText()
-                ?: throw IllegalArgumentException("Every node must have an 'id'")
-
-            val type = node.get("type")?.asText()
-                ?: throw IllegalArgumentException("Every node must have a 'type'")
-
-            val next = node.get("next")
-                ?: throw IllegalArgumentException("Node $id must have 'next'")
-
-            if (!validTypes.contains(type)) {
-                throw IllegalArgumentException("Invalid node type '$type' at node '$id'")
-            }
-
-            if (!next.isArray) {
-                throw IllegalArgumentException("Node $id: 'next' must be an array")
-            }
-
-            if (!nodeIds.add(id)) {
-                throw IllegalArgumentException("Duplicate node id '$id'")
-            }
-
-            // Validação do config (inputs / outputs)
-            if (node.has("config")) {
-                val config = node.get("config")
-
-                if (config.has("inputs") && !config.get("inputs").isArray) {
-                    throw IllegalArgumentException("Node $id: 'config.inputs' must be an array")
-                }
-
-                if (config.has("outputs") && !config.get("outputs").isArray) {
-                    throw IllegalArgumentException("Node $id: 'config.outputs' must be an array")
-                }
-
-                config.get("inputs")?.forEach { input ->
-                    require(input.hasNonNull("targetName")) { "Node $id: input missing 'targetName'" }
-                    require(input.hasNonNull("type")) { "Node $id: input missing 'type'" }
-                    require(input.hasNonNull("source")) { "Node $id: input missing 'source'" }
-                    require(input.has("value")) { "Node $id: input missing 'value'" }
-                }
-
-                config.get("outputs")?.forEach { output ->
-                    require(output.hasNonNull("sourceName")) { "Node $id: output missing 'sourceName'" }
-                    require(output.hasNonNull("type")) { "Node $id: output missing 'type'" }
-                    require(output.hasNonNull("target")) { "Node $id: output missing 'target'" }
-                    require(output.has("value")) { "Node $id: output missing 'value'" }
-                }
-            }
-        }
-
-        // 4. Validar referências em 'next'
-        val referencedNext = nodes.flatMap {
-            it.get("next").map { n -> n.asText() }
-        }.toSet()
-
-        val undefinedNext = referencedNext - nodeIds
-        if (undefinedNext.isNotEmpty()) {
-            throw IllegalArgumentException("Found 'next' references to undefined nodes: $undefinedNext")
-        }
-
-        // 5. Validar flows
-        for (flow in flows) {
-            val from = flow.get("from")?.asText()
-                ?: throw IllegalArgumentException("Flow missing 'from'")
-
-            val to = flow.get("to")?.asText()
-                ?: throw IllegalArgumentException("Flow missing 'to'")
-
-            if (from !in nodeIds) {
-                throw IllegalArgumentException("Flow references undefined 'from' node: $from")
-            }
-
-            if (to !in nodeIds) {
-                throw IllegalArgumentException("Flow references undefined 'to' node: $to")
-            }
-        }
-
-        // 6. Versionamento
         val latestVersion =
             processDefinitionRepository.findTopByNameOrderByVersionDesc(processId)
 
         val nextVersion = (latestVersion?.version ?: 0) + 1
 
-        val process = ProcessDefinition(
-            name = processId,
-            definitionJson = jsonNode.toString(),
-            version = nextVersion
+        return processDefinitionRepository.save(
+            ProcessDefinition(
+                name = processId,
+                definitionJson = json.toString(),
+                version = nextVersion
+            )
         )
-
-        return processDefinitionRepository.save(process)
     }
 
+    /* =========================
+       START PROCESS
+     ========================= */
 
     @Transactional
     fun startProcessInstance(processDefinitionId: Long): ProcessInstance {
         val definition = processDefinitionRepository.findById(processDefinitionId)
             .orElseThrow { IllegalArgumentException("Process definition not found") }
 
-        val startNodes = getStartNextNodes(definition.definitionJson)
+        val json = parseDefinition(definition.definitionJson)
 
-        val instance = ProcessInstance(
-            processDefinition = definition,
-            status = ProcessStatus.ACTIVE,
-            currentNode = startNodes
+        val startNodes = getStartNodes(json)
+
+        val instance = processInstanceRepository.save(
+            ProcessInstance(
+                processDefinition = definition,
+                status = ProcessStatus.ACTIVE,
+                currentNode = startNodes
+            )
         )
 
-        processInstanceRepository.save(instance)
+        initializeProcessVariables(instance, json)
 
-        // 🔥 Inicializa variáveis aqui
-        initializeProcessVariables(instance, definition.definitionJson)
-
-        createUserTasksIfAny(startNodes, instance, definition.definitionJson)
-        handleIntegrationTasksIfAny(startNodes, instance, definition.definitionJson)
+        executeNodes(startNodes, instance, json)
 
         return instance
     }
 
-    private fun getStartNextNodes(definitionJson: String): List<String> {
-        val jsonNode: JsonNode = objectMapper.readTree(definitionJson)
-        val nodes = jsonNode.get("nodes")
+    fun getProcessInstances(pageable: Pageable): Page<ProcessInstance> =
+        processInstanceRepository.findAll(pageable)
 
-        // Find the StartEvent node
-        val startNode = nodes.find { it.get("type").asText() == "StartEvent" }
-                ?: throw IllegalArgumentException("No StartEvent found in process definition")
+    fun getLatestProcessDefinitions(pageable: Pageable): Page<ProcessDefinition> =
+        processDefinitionRepository.findLatestVersionProcesses(pageable)
 
-        // Get its 'next' array of node ids
-        val nextNodes = startNode.get("next")
+    /* =========================
+       EXECUTION ENGINE CORE
+     ========================= */
 
-        // Collect all node ids after the start event
-        val startNextNodes = mutableListOf<String>()
-        for (nodeIdNode in nextNodes) {
-            startNextNodes.add(nodeIdNode.asText())
-        }
-
-        if (startNextNodes.isEmpty()) {
-            throw IllegalArgumentException("No nodes found after StartEvent")
-        }
-
-        return startNextNodes
-    }
-
-    fun getProcessInstances(pageable: Pageable): Page<ProcessInstance> {
-        return processInstanceRepository.findAll(pageable)
-    }
-
-    private fun createUserTasksIfAny(
+    private fun executeNodes(
         nodeIds: List<String>,
         instance: ProcessInstance,
-        definitionJson: String
+        definition: JsonNode
     ) {
-        val nodes = objectMapper.readTree(definitionJson).get("nodes")
-
         nodeIds.forEach { nodeId ->
-            val node = nodes.find { it.get("id").asText() == nodeId }
-
-            if (node?.get("type")?.asText() == "UserTask") {
-                val task = taskRepository.save(
-                    Task(
-                        processInstanceId = instance.id,
-                        nodeId = nodeId
-                    )
-                )
-
-                // 🔥 APLICA INPUT MAPPING AQUI
-                applyTaskInputs(task, node, instance)
-            }
+            val node = findNode(definition, nodeId)
+            executeNode(instance, node, definition)
         }
     }
 
-    fun getLatestProcessDefinitions(pageable: Pageable): Page<ProcessDefinition> {
-        return processDefinitionRepository.findLatestVersionProcesses(pageable)
-    }
-
-    private fun handleIntegrationTasksIfAny(
-        nodeIds: List<String>,
+    private fun executeNode(
         instance: ProcessInstance,
-        definitionJson: String
+        node: JsonNode,
+        definition: JsonNode
     ) {
-        val nodes = objectMapper.readTree(definitionJson).get("nodes")
-
-        nodeIds.forEach { nodeId ->
-            val node = nodes.find { it.get("id").asText() == nodeId }
-
-            if (node?.get("type")?.asText() == "ServiceTask") {
-                val config = node.get("properties") ?: throw IllegalArgumentException("ServiceTask $nodeId missing properties")
-
-                val outputs = integrationService.executeIntegration(instance, nodeId, config)
-
-                // avançar no grafo
-                val nextNodeIds = node.get("next")?.map { it.asText() } ?: emptyList()
-                instance.currentNode = nextNodeIds
-                instance.updatedAt = LocalDateTime.now()
-
-                processInstanceRepository.save(instance)
-
-                // continuar fluxo
-                handleIntegrationTasksIfAny(nextNodeIds, instance, definitionJson)
-                createUserTasksIfAny(nextNodeIds, instance, definitionJson)
-            }
+        when (node.get("type").asText()) {
+            "UserTask" -> handleUserTask(instance, node)
+            "ServiceTask" -> handleServiceTask(instance, node, definition)
+            "EndEvent" -> finishProcess(instance)
         }
     }
+
+    private fun handleUserTask(
+        instance: ProcessInstance,
+        node: JsonNode
+    ) {
+        val form = formService.getLatestVersionByName(node.get("id").asText())
+        val task = taskRepository.save(
+            Task(
+                processInstanceId = instance.id,
+                title = node.get("name").asText(),
+                nodeId = node.get("id").asText(),
+                formId = form?.id
+            )
+        )
+
+        applyTaskInputs(task, node, instance)
+    }
+
+    private fun handleServiceTask(
+        instance: ProcessInstance,
+        node: JsonNode,
+        definition: JsonNode
+    ) {
+        val config = node.get("properties")
+            ?: throw IllegalArgumentException("ServiceTask missing properties")
+
+        integrationService.executeIntegration(
+            instance,
+            node.get("id").asText(),
+            config
+        )
+
+        val nextNodes = getNextNodes(node)
+
+        advanceProcess(instance, nextNodes)
+
+        executeNodes(nextNodes, instance, definition)
+    }
+
+    private fun finishProcess(instance: ProcessInstance) {
+        instance.status = ProcessStatus.COMPLETED
+        instance.updatedAt = LocalDateTime.now()
+        processInstanceRepository.save(instance)
+    }
+
+    private fun advanceProcess(
+        instance: ProcessInstance,
+        nextNodes: List<String>
+    ) {
+        instance.currentNode = nextNodes
+        instance.updatedAt = LocalDateTime.now()
+
+        if (nextNodes.isEmpty()) {
+            instance.status = ProcessStatus.COMPLETED
+        }
+
+        processInstanceRepository.save(instance)
+    }
+
+    /* =========================
+       VARIABLE MANAGEMENT
+     ========================= */
 
     private fun initializeProcessVariables(
         instance: ProcessInstance,
-        definitionJson: String
+        definition: JsonNode
     ) {
-        val jsonNode = objectMapper.readTree(definitionJson)
-        val variablesNode = jsonNode.get("variables") ?: return
+        val variablesNode = definition.get("variables") ?: return
 
-        val variables = variablesNode.map { variableNode ->
-            val name = variableNode.get("name").asText()
-            val initialValueNode = variableNode.get("initialValue") ?: objectMapper.nullNode()
-
+        val variables = variablesNode.map {
             ProcessVariable(
                 processInstanceId = instance.id,
-                name = name,
-                value = initialValueNode
+                name = it.get("name").asText(),
+                value = it.get("initialValue") ?: objectMapper.nullNode()
             )
         }
 
@@ -303,8 +202,7 @@ class ProcessService (
         node: JsonNode,
         instance: ProcessInstance
     ) {
-        val config = node.get("config") ?: return
-        val inputs = config.get("inputs") ?: return
+        val inputs = node.get("config")?.get("inputs") ?: return
 
         inputs.forEach { input ->
             val targetName = input.get("targetName").asText()
@@ -314,27 +212,107 @@ class ProcessService (
             val value: JsonNode = when (source) {
                 "variable" -> {
                     val varName = valueNode.asText()
-                    val processVar = processVariableRepository
-                        .findByProcessInstanceIdAndName(instance.id, varName)
-                        ?: throw IllegalArgumentException("Process variable '$varName' not found")
+                    val processVar =
+                        processVariableRepository.findByProcessInstanceIdAndName(instance.id, varName)
+                            ?: throw IllegalArgumentException("Process variable '$varName' not found")
                     processVar.value
                 }
 
-                "static" -> valueNode
+                "static" -> parseStaticValue(valueNode)
 
                 else -> throw IllegalArgumentException("Invalid input source '$source'")
             }
 
-            val taskVar = TaskVariable(
-                taskId = task.id,
-                name = targetName,
-                value = value
+            taskVariableRepository.save(
+                TaskVariable(
+                    taskId = task.id,
+                    name = targetName,
+                    value = value
+                )
             )
-
-            taskVariableRepository.save(taskVar)
         }
     }
 
+    /* =========================
+       JSON HELPERS
+     ========================= */
 
+    private fun parseDefinition(definitionJson: String): JsonNode =
+        objectMapper.readTree(definitionJson)
 
+    private fun findNode(definition: JsonNode, nodeId: String): JsonNode =
+        definition.get("nodes")
+            .find { it.get("id").asText() == nodeId }
+            ?: throw IllegalArgumentException("Node '$nodeId' not found")
+
+    private fun getNextNodes(node: JsonNode): List<String> =
+        node.get("next")?.map { it.asText() } ?: emptyList()
+
+    private fun getStartNodes(definition: JsonNode): List<String> {
+        val start = definition.get("nodes")
+            .find { it.get("type").asText() == "StartEvent" }
+            ?: throw IllegalArgumentException("StartEvent not found")
+
+        return getNextNodes(start).also {
+            if (it.isEmpty()) {
+                throw IllegalArgumentException("StartEvent has no outgoing flow")
+            }
+        }
+    }
+
+    private fun parseStaticValue(valueNode: JsonNode?): JsonNode {
+        if (valueNode == null || valueNode.isNull) return objectMapper.nullNode()
+
+        return if (valueNode.isTextual) {
+            objectMapper.readTree(valueNode.asText())
+        } else {
+            valueNode
+        }
+    }
+
+    /* =========================
+       DEPLOY VALIDATION
+     ========================= */
+
+    private fun validateAndParseDefinition(definitionJson: JsonNode): JsonNode {
+        val json = definitionJson.takeIf { it.isObject }
+            ?: throw IllegalArgumentException("Root JSON must be an object")
+
+        val processId = json.get("processId")?.asText()
+            ?: throw IllegalArgumentException("Missing 'processId'")
+
+        val nodes = json.get("nodes")
+            ?: throw IllegalArgumentException("Missing 'nodes'")
+        require(nodes.isArray) { "'nodes' must be an array" }
+
+        val flows = json.get("flows")
+            ?: throw IllegalArgumentException("Missing 'flows'")
+        require(flows.isArray) { "'flows' must be an array" }
+
+        val validTypes = setOf(
+            "StartEvent", "EndEvent", "UserTask", "Integration",
+            "InclusiveGateway", "ExclusiveGateway", "ParallelGateway",
+            "ServiceTask", "ScriptTask", "TimerEvent", "MessageEvent", "CallActivity"
+        )
+
+        val nodeIds = mutableSetOf<String>()
+
+        nodes.forEach { node ->
+            val id = node.get("id")?.asText()
+                ?: throw IllegalArgumentException("Node missing 'id'")
+
+            val type = node.get("type")?.asText()
+                ?: throw IllegalArgumentException("Node $id missing 'type'")
+
+            if (type !in validTypes) {
+                throw IllegalArgumentException("Invalid node type '$type' at '$id'")
+            }
+
+            if (!nodeIds.add(id)) {
+                throw IllegalArgumentException("Duplicate node id '$id'")
+            }
+        }
+
+        return json
+    }
 }
