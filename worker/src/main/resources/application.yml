@@ -1,0 +1,11 @@
+spring:
+  application:
+    name: bpm-worker
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: easybpm
+    password: easybpm
+
+server:
+  port: 0
