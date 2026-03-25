@@ -1,6 +1,7 @@
 package com.easy.bpm.service
 
 import com.easy.bpm.enum.ProcessStatus
+import com.easy.bpm.enum.NodeType
 import com.easy.bpm.model.process.ProcessDefinition
 import com.easy.bpm.model.process.ProcessInstance
 import com.easy.bpm.model.task.Task
@@ -17,6 +18,7 @@ import jakarta.transaction.Transactional
 import org.springframework.stereotype.Service
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
+import javax.script.ScriptEngineManager
 import java.time.LocalDateTime
 
 @Service
@@ -28,7 +30,9 @@ class ProcessService(
     private val integrationService: IntegrationService,
     private val formService: FormService,
     private val taskRepository: TaskRepository,
-    private val objectMapper: ObjectMapper
+    private val objectMapper: ObjectMapper,
+    private val rabbitPublisher: com.easy.bpm.messaging.RabbitPublisher,
+    private val gatewayService: GatewayService
 ) {
 
     /* =========================
@@ -66,17 +70,20 @@ class ProcessService(
 
         val json = parseDefinition(definition.definitionJson)
 
-        val startNodes = getStartNodes(json)
-
         val instance = processInstanceRepository.save(
             ProcessInstance(
                 processDefinition = definition,
                 status = ProcessStatus.ACTIVE,
-                currentNode = startNodes
+                currentNode = emptyList()
             )
         )
 
         initializeProcessVariables(instance, json)
+
+        val startNodes = getStartNodes(instance, json)
+
+        instance.currentNode = startNodes
+        processInstanceRepository.save(instance)
 
         executeNodes(startNodes, instance, json)
 
@@ -109,10 +116,17 @@ class ProcessService(
         node: JsonNode,
         definition: JsonNode
     ) {
-        when (node.get("type").asText()) {
-            "UserTask" -> handleUserTask(instance, node)
-            "ServiceTask" -> handleServiceTask(instance, node, definition)
-            "EndEvent" -> finishProcess(instance)
+        val nodeType = NodeType.fromString(node.get("type").asText())
+        when (nodeType) {
+            NodeType.UserTask -> handleUserTask(instance, node)
+            NodeType.ServiceTask -> handleServiceTask(instance, node)
+            NodeType.EndEvent -> finishProcess(instance)
+            NodeType.ExclusiveGateway, NodeType.ParallelGateway, NodeType.InclusiveGateway -> {
+                val nextNodes = getNextNodes(node, definition, instance)
+                advanceProcess(instance, nextNodes)
+                executeNodes(nextNodes, instance, definition)
+            }
+            else -> { /* no-op for other node types */ }
         }
     }
 
@@ -130,24 +144,57 @@ class ProcessService(
             )
         )
 
+        // Publish TaskCreated event
+        try {
+            rabbitPublisher.publishTaskCreated(
+                mapOf(
+                    "taskId" to task.id,
+                    "processInstanceId" to task.processInstanceId,
+                    "nodeId" to task.nodeId,
+                    "title" to task.title,
+                    "formId" to task.formId
+                )
+            )
+        } catch (_: Exception) {
+        }
+
         applyTaskInputs(task, node, instance)
     }
 
     private fun handleServiceTask(
         instance: ProcessInstance,
-        node: JsonNode,
-        definition: JsonNode
+        node: JsonNode
     ) {
         val config = node.get("properties")
-            ?: throw IllegalArgumentException("ServiceTask missing properties")
+            ?: throw IllegalArgumentException("ServiceTask ${node.get("id").asText()} missing properties")
 
-        integrationService.executeIntegration(
-            instance,
-            node.get("id").asText(),
-            config
-        )
+        // Publish a service task request to RabbitMQ; worker will send a completion event.
+        rabbitPublisher.publishServiceTaskRequest(instance.id, node.get("id").asText(), config)
 
-        val nextNodes = getNextNodes(node)
+        // Persist instance updated timestamp; instance remains on this node until completion.
+        instance.updatedAt = LocalDateTime.now()
+        processInstanceRepository.save(instance)
+    }
+
+    @Transactional
+    fun handleServiceTaskCompleted(processInstanceId: Long, nodeId: String, outputs: Map<String, String>) {
+        val instance = processInstanceRepository.findById(processInstanceId)
+            .orElseThrow { IllegalArgumentException("Process instance not found") }
+
+        // Save outputs as process variables
+        outputs.forEach { (k, v) ->
+            val newVar = ProcessVariable(
+                processInstanceId = instance.id,
+                name = k,
+                value = objectMapper.valueToTree(v)
+            )
+            processVariableRepository.save(newVar)
+        }
+
+        val definition = parseDefinition(instance.processDefinition.definitionJson)
+        val node = findNode(definition, nodeId)
+
+        val nextNodes = getNextNodes(node, definition, instance)
 
         advanceProcess(instance, nextNodes)
 
@@ -245,28 +292,47 @@ class ProcessService(
             .find { it.get("id").asText() == nodeId }
             ?: throw IllegalArgumentException("Node '$nodeId' not found")
 
-    private fun getNextNodes(node: JsonNode): List<String> =
-        node.get("next")?.map { it.asText() } ?: emptyList()
+    private fun getNextNodes(node: JsonNode, definition: JsonNode, instance: ProcessInstance): List<String> {
+        return gatewayService.getNextNodes(node, definition, instance)
+    }
 
-    private fun getStartNodes(definition: JsonNode): List<String> {
+    private fun getStartNodes(instance: ProcessInstance, definition: JsonNode): List<String> {
         val start = definition.get("nodes")
-            .find { it.get("type").asText() == "StartEvent" }
+            .find { NodeType.fromString(it.get("type").asText()) == NodeType.StartEvent }
             ?: throw IllegalArgumentException("StartEvent not found")
 
-        return getNextNodes(start).also {
+        return getNextNodes(start, definition, instance).also {
             if (it.isEmpty()) {
                 throw IllegalArgumentException("StartEvent has no outgoing flow")
             }
         }
     }
 
+    private fun evaluateCondition(condition: String, instance: ProcessInstance): Boolean {
+        return gatewayService.evaluateCondition(condition, instance)
+    }
+
     private fun parseStaticValue(valueNode: JsonNode?): JsonNode {
         if (valueNode == null || valueNode.isNull) return objectMapper.nullNode()
 
-        return if (valueNode.isTextual) {
-            objectMapper.readTree(valueNode.asText())
-        } else {
-            valueNode
+        if (!valueNode.isTextual) return valueNode
+
+        val text = valueNode.asText()
+        val trimmed = text.trim()
+
+        // Try to parse textual content as JSON when it looks like JSON (object/array/literal/number).
+        // If parse fails or it doesn't look like JSON, return as a plain text node.
+        return try {
+            if (trimmed.startsWith("{") || trimmed.startsWith("[") ||
+                trimmed == "null" || trimmed == "true" || trimmed == "false" ||
+                trimmed.matches(Regex("-?\\d+(\\.\\d+)?"))
+            ) {
+                objectMapper.readTree(text)
+            } else {
+                objectMapper.nodeFactory.textNode(text)
+            }
+        } catch (ex: Exception) {
+            objectMapper.nodeFactory.textNode(text)
         }
     }
 
@@ -278,8 +344,7 @@ class ProcessService(
         val json = definitionJson.takeIf { it.isObject }
             ?: throw IllegalArgumentException("Root JSON must be an object")
 
-        val processId = json.get("processId")?.asText()
-            ?: throw IllegalArgumentException("Missing 'processId'")
+        json.get("processId") ?: throw IllegalArgumentException("Missing 'processId'")
 
         val nodes = json.get("nodes")
             ?: throw IllegalArgumentException("Missing 'nodes'")
@@ -289,23 +354,19 @@ class ProcessService(
             ?: throw IllegalArgumentException("Missing 'flows'")
         require(flows.isArray) { "'flows' must be an array" }
 
-        val validTypes = setOf(
-            "StartEvent", "EndEvent", "UserTask", "Integration",
-            "InclusiveGateway", "ExclusiveGateway", "ParallelGateway",
-            "ServiceTask", "ScriptTask", "TimerEvent", "MessageEvent", "CallActivity"
-        )
-
         val nodeIds = mutableSetOf<String>()
 
         nodes.forEach { node ->
             val id = node.get("id")?.asText()
                 ?: throw IllegalArgumentException("Node missing 'id'")
 
-            val type = node.get("type")?.asText()
+            val typeText = node.get("type")?.asText()
                 ?: throw IllegalArgumentException("Node $id missing 'type'")
 
-            if (type !in validTypes) {
-                throw IllegalArgumentException("Invalid node type '$type' at '$id'")
+            try {
+                NodeType.fromString(typeText)
+            } catch (ex: IllegalArgumentException) {
+                throw IllegalArgumentException("Invalid node type '$typeText' at '$id'")
             }
 
             if (!nodeIds.add(id)) {

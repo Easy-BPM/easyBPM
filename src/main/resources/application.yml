@@ -16,5 +16,11 @@ spring:
         format_sql: true
     database-platform: org.hibernate.dialect.PostgreSQLDialect
 
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: easybpm
+    password: easybpm
+
 server:
   port: 8080

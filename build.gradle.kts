@@ -25,12 +25,12 @@ dependencies {
 	implementation("org.jetbrains.kotlin:kotlin-reflect")
 	implementation("org.postgresql:postgresql")
 	implementation("org.springframework.boot:spring-boot-starter-web")
+	implementation("org.springframework.boot:spring-boot-starter-amqp")
 	implementation("org.flywaydb:flyway-core:9.16.1")
 	implementation("com.vladmihalcea:hibernate-types-60:2.21.1")
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
 	testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
-	implementation("org.hibernate.orm:hibernate-core:6.4.4.Final")
 	implementation("org.jboss.logging:jboss-logging:3.5.3.Final")
 }
 

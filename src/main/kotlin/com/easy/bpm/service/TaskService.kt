@@ -1,6 +1,7 @@
 package com.easy.bpm.service
 
 import com.easy.bpm.enum.ProcessStatus
+import com.easy.bpm.enum.NodeType
 import com.easy.bpm.enum.TaskStatus
 import com.easy.bpm.model.process.ProcessInstance
 import com.easy.bpm.model.task.Task
@@ -17,16 +18,20 @@ import org.springframework.stereotype.Service
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import java.time.LocalDateTime
+import javax.script.ScriptEngineManager
 
 @Service
 class TaskService(
     private val taskRepository: TaskRepository,
     private val processInstanceRepository: ProcessInstanceRepository,
     private val processVariableRepository: ProcessVariableRepository,
-    private val taskVariableRepository: TaskVariableRepository,
+        private val taskVariableRepository: TaskVariableRepository,
     private val integrationService: IntegrationService,
     private val formService: FormService,
     private val objectMapper: ObjectMapper
+        ,
+    private val rabbitPublisher: com.easy.bpm.messaging.RabbitPublisher,
+    private val gatewayService: GatewayService
 ) {
 
     /* =========================
@@ -49,10 +54,24 @@ class TaskService(
         applyTaskOutputs(task, currentNode, instance)
 
         // 3️⃣ Resolver próximos nós
-        val nextNodeIds = getNextNodes(currentNode)
+        val nextNodeIds = getNextNodes(currentNode, definition, instance)
 
         // 4️⃣ Atualizar Task
         completeTaskEntity(task, assignee)
+
+        // Publish TaskCompleted event (include provided variables)
+        try {
+            rabbitPublisher.publishTaskCompleted(
+                mapOf(
+                    "taskId" to task.id,
+                    "processInstanceId" to task.processInstanceId,
+                    "nodeId" to task.nodeId,
+                    "assignee" to assignee,
+                    "variables" to variables
+                )
+            )
+        } catch (_: Exception) {
+        }
 
         // 5️⃣ Atualizar instância
         advanceProcess(instance, nextNodeIds, definition)
@@ -96,19 +115,32 @@ class TaskService(
     ) {
         nodeIds.forEach { nodeId ->
             val node = findNode(definition, nodeId)
+            executeNode(instance, node, definition)
+        }
+    }
 
-            when (node.get("type").asText()) {
-                "UserTask" -> handleUserTask(instance, node, definition)
-                "ServiceTask" -> handleServiceTask(instance, node, definition)
-                "EndEvent" -> finishProcess(instance)
+    private fun executeNode(
+        instance: ProcessInstance,
+        node: JsonNode,
+        definition: JsonNode
+    ) {
+        val nodeType = NodeType.fromString(node.get("type").asText())
+        when (nodeType) {
+            NodeType.UserTask -> handleUserTask(instance, node)
+            NodeType.ServiceTask -> handleServiceTask(instance, node, definition)
+            NodeType.EndEvent -> finishProcess(instance)
+            NodeType.ExclusiveGateway, NodeType.ParallelGateway, NodeType.InclusiveGateway -> {
+                val nextNodes = getNextNodes(node, definition, instance)
+                advanceProcess(instance, nextNodes, definition)
+                executeNextSteps(nextNodes, instance, definition)
             }
+            else -> { /* no-op for other node types */ }
         }
     }
 
     private fun handleUserTask(
         instance: ProcessInstance,
-        node: JsonNode,
-        definition: JsonNode
+        node: JsonNode
     ) {
         val form = formService.getLatestVersionByName(node.get("id").asText())
 
@@ -120,6 +152,20 @@ class TaskService(
                 formId = form?.id
             )
         )
+
+        // Publish TaskCreated event
+        try {
+            rabbitPublisher.publishTaskCreated(
+                mapOf(
+                    "taskId" to task.id,
+                    "processInstanceId" to task.processInstanceId,
+                    "nodeId" to task.nodeId,
+                    "title" to task.title,
+                    "formId" to task.formId
+                )
+            )
+        } catch (_: Exception) {
+        }
 
         applyTaskInputs(task, node, instance)
     }
@@ -134,7 +180,7 @@ class TaskService(
 
         integrationService.executeIntegration(instance, node.get("id").asText(), config)
 
-        val nextNodeIds = getNextNodes(node)
+        val nextNodeIds = getNextNodes(node, definition, instance)
 
         advanceProcess(instance, nextNodeIds, definition)
 
@@ -297,12 +343,19 @@ class TaskService(
             .find { it.get("id").asText() == nodeId }
             ?: throw IllegalArgumentException("Node '$nodeId' not found")
 
-    private fun getNextNodes(node: JsonNode): List<String> =
-        node.get("next")?.map { it.asText() } ?: emptyList()
+    
+
+    private fun getNextNodes(node: JsonNode, definition: JsonNode, instance: ProcessInstance): List<String> {
+        return gatewayService.getNextNodes(node, definition, instance)
+    }
+
+    private fun evaluateCondition(condition: String, instance: ProcessInstance): Boolean {
+        return gatewayService.evaluateCondition(condition, instance)
+    }
 
     private fun isEndEvent(nodeId: String, definition: JsonNode): Boolean {
         val node = findNode(definition, nodeId)
-        return node.get("type").asText() == "EndEvent"
+        return NodeType.fromString(node.get("type").asText()) == NodeType.EndEvent
     }
 
     private fun parseStaticValue(valueNode: JsonNode): JsonNode =

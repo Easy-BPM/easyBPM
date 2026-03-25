@@ -14,5 +14,18 @@ services:
       - ./initdb:/docker-entrypoint-initdb.d
       - pg_data:/var/lib/postgresql/data
 
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: bpm_rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: easybpm
+      RABBITMQ_DEFAULT_PASS: easybpm
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+
 volumes:
   pg_data:
+  rabbitmq_data:

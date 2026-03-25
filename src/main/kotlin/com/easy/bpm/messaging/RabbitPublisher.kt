@@ -29,4 +29,12 @@ class RabbitPublisher(
 
         rabbitTemplate.convertAndSend(AmqpConfig.EXCHANGE, AmqpConfig.COMPLETION_ROUTING_KEY, payload)
     }
+
+    fun publishTaskCreated(payload: Map<String, Any?>) {
+        rabbitTemplate.convertAndSend(AmqpConfig.EXCHANGE, AmqpConfig.TASK_CREATED_ROUTING_KEY, payload)
+    }
+
+    fun publishTaskCompleted(payload: Map<String, Any?>) {
+        rabbitTemplate.convertAndSend(AmqpConfig.EXCHANGE, AmqpConfig.TASK_COMPLETED_ROUTING_KEY, payload)
+    }
 }
