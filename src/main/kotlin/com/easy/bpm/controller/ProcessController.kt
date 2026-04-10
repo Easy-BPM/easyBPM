@@ -56,4 +56,23 @@ class ProcessController(
         return processService.getLatestProcessDefinitions(pageable)
     }
 
+    @PostMapping("/messages")
+    fun sendMessage(@RequestBody request: Map<String, Any>): Map<String, Any> {
+        val messageName = request["messageName"] as? String
+            ?: throw IllegalArgumentException("Missing messageName")
+        val correlationKey = request["correlationKey"] as? String
+            ?: throw IllegalArgumentException("Missing correlationKey")
+        @Suppress("UNCHECKED_CAST")
+        val variables = request["variables"] as? Map<String, Any>
+
+        processService.handleMessageReceived(messageName, correlationKey, variables)
+
+        return mapOf(
+            "status" to "success",
+            "message" to "Message received and process resumed",
+            "messageName" to messageName,
+            "correlationKey" to correlationKey
+        )
+    }
+
 }

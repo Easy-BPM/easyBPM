@@ -37,4 +37,36 @@ class RabbitPublisher(
     fun publishTaskCompleted(payload: Map<String, Any?>) {
         rabbitTemplate.convertAndSend(AmqpConfig.EXCHANGE, AmqpConfig.TASK_COMPLETED_ROUTING_KEY, payload)
     }
+
+    fun publishMessageExpected(
+        processInstanceId: Long,
+        nodeId: String,
+        messageName: String,
+        correlationKey: String,
+        timeoutSeconds: Long? = null
+    ) {
+        val payload = mapOf(
+            "processInstanceId" to processInstanceId,
+            "nodeId" to nodeId,
+            "messageName" to messageName,
+            "correlationKey" to correlationKey,
+            "timeoutSeconds" to timeoutSeconds
+        )
+
+        rabbitTemplate.convertAndSend(AmqpConfig.EXCHANGE, AmqpConfig.REQUEST_ROUTING_KEY, payload)
+    }
+
+    fun publishMessageReceived(
+        messageName: String,
+        correlationKey: String,
+        variables: Map<String, Any>? = null
+    ) {
+        val payload = mapOf(
+            "messageName" to messageName,
+            "correlationKey" to correlationKey,
+            "variables" to variables
+        )
+
+        rabbitTemplate.convertAndSend(AmqpConfig.EXCHANGE, AmqpConfig.MESSAGE_EVENTS_ROUTING_KEY, payload)
+    }
 }

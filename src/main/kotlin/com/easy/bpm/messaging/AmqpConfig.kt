@@ -21,6 +21,8 @@ class AmqpConfig {
         const val TASK_COMPLETED_QUEUE = "task-completed"
         const val TASK_CREATED_ROUTING_KEY = "task.created"
         const val TASK_COMPLETED_ROUTING_KEY = "task.completed"
+        const val MESSAGE_EVENTS_QUEUE = "message-events"
+        const val MESSAGE_EVENTS_ROUTING_KEY = "message.event.received"
     }
 
     @Bean
@@ -34,6 +36,9 @@ class AmqpConfig {
 
     @Bean
     fun taskCompletedQueue() = Queue(TASK_COMPLETED_QUEUE, true)
+
+    @Bean
+    fun messageEventsQueue() = Queue(MESSAGE_EVENTS_QUEUE, true)
 
     @Bean
     fun exchange() = TopicExchange(EXCHANGE)
@@ -53,6 +58,10 @@ class AmqpConfig {
     @Bean
     fun bindingTaskCompleted(@Qualifier("taskCompletedQueue") queue: Queue, exchange: TopicExchange): Binding =
         BindingBuilder.bind(queue).to(exchange).with(TASK_COMPLETED_ROUTING_KEY)
+
+    @Bean
+    fun bindingMessageEvents(@Qualifier("messageEventsQueue") queue: Queue, exchange: TopicExchange): Binding =
+        BindingBuilder.bind(queue).to(exchange).with(MESSAGE_EVENTS_ROUTING_KEY)
 
     @Bean
     fun messageConverter() = Jackson2JsonMessageConverter()

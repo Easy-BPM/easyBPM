@@ -28,4 +28,20 @@ class RabbitListenerService(
 
         processService.handleServiceTaskCompleted(processInstanceId, nodeId, outputs)
     }
+
+    @RabbitListener(queues = [AmqpConfig.MESSAGE_EVENTS_QUEUE])
+    fun onMessageReceived(message: Map<String, Any>) {
+        val messageName = message["messageName"] as? String ?: return
+        val correlationKey = message["correlationKey"] as? String ?: return
+
+        @Suppress("UNCHECKED_CAST")
+        val variables = message["variables"] as? Map<String, Any>
+
+        try {
+            processService.handleMessageReceived(messageName, correlationKey, variables)
+        } catch (ex: IllegalArgumentException) {
+            // Log or handle message with no matching subscription
+            ex.printStackTrace()
+        }
+    }
 }

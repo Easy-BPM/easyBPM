@@ -1,0 +1,89 @@
+{
+  "processId": "payment-process",
+  "name": "Payment Confirmation Process",
+  "description": "Demonstrates message event for inter-process communication",
+  "version": 1,
+  "variables": [
+    {
+      "name": "orderId",
+      "initialValue": "ORD-001",
+      "type": "string"
+    },
+    {
+      "name": "customerId",
+      "initialValue": "CUST-001",
+      "type": "string"
+    },
+    {
+      "name": "amount",
+      "initialValue": 99.99,
+      "type": "number"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "start",
+      "type": "StartEvent",
+      "name": "Order Received",
+      "next": ["waitForPayment"]
+    },
+    {
+      "id": "waitForPayment",
+      "type": "MessageEvent",
+      "name": "Wait for Payment Confirmation",
+      "description": "Waiting for payment processor to send PaymentConfirmed message",
+      "properties": {
+        "messageName": "PaymentConfirmed",
+        "correlationKey": "${orderId}-${customerId}",
+        "timeoutSeconds": 3600,
+        "description": "Receives payment confirmation from external payment processor"
+      },
+      "next": ["sendConfirmation"]
+    },
+    {
+      "id": "sendConfirmation",
+      "type": "ServiceTask",
+      "name": "Send Order Confirmation Email",
+      "properties": {
+        "serviceName": "email-service",
+        "operation": "sendOrderConfirmation",
+        "inputs": [
+          {
+            "targetName": "email",
+            "source": "variable",
+            "value": "customerEmail"
+          },
+          {
+            "targetName": "orderId",
+            "source": "variable",
+            "value": "orderId"
+          }
+        ]
+      },
+      "next": ["end"]
+    },
+    {
+      "id": "end",
+      "type": "EndEvent",
+      "name": "End",
+      "description": "Process completed successfully"
+    }
+  ],
+  "flows": [
+    {
+      "source": "start",
+      "target": "waitForPayment",
+      "name": "Order Placed"
+    },
+    {
+      "source": "waitForPayment",
+      "target": "sendConfirmation",
+      "name": "Payment Received"
+    },
+    {
+      "source": "sendConfirmation",
+      "target": "end",
+      "name": "Email Sent"
+    }
+  ]
+}

@@ -32,7 +32,8 @@ class ProcessService(
     private val taskRepository: TaskRepository,
     private val objectMapper: ObjectMapper,
     private val rabbitPublisher: com.easy.bpm.messaging.RabbitPublisher,
-    private val gatewayService: GatewayService
+    private val gatewayService: GatewayService,
+    private val messageSubscriptionService: MessageSubscriptionService
 ) {
 
     /* =========================
@@ -93,6 +94,9 @@ class ProcessService(
     fun getProcessInstances(pageable: Pageable): Page<ProcessInstance> =
         processInstanceRepository.findAll(pageable)
 
+    fun getProcessInstanceById(id: Long): ProcessInstance? =
+        processInstanceRepository.findById(id).orElse(null)
+
     fun getLatestProcessDefinitions(pageable: Pageable): Page<ProcessDefinition> =
         processDefinitionRepository.findLatestVersionProcesses(pageable)
 
@@ -120,6 +124,7 @@ class ProcessService(
         when (nodeType) {
             NodeType.UserTask -> handleUserTask(instance, node)
             NodeType.ServiceTask -> handleServiceTask(instance, node)
+            NodeType.MessageEvent -> handleMessageEvent(instance, node)
             NodeType.EndEvent -> finishProcess(instance)
             NodeType.ExclusiveGateway, NodeType.ParallelGateway, NodeType.InclusiveGateway -> {
                 val nextNodes = getNextNodes(node, definition, instance)
@@ -176,6 +181,57 @@ class ProcessService(
         processInstanceRepository.save(instance)
     }
 
+    private fun handleMessageEvent(
+        instance: ProcessInstance,
+        node: JsonNode
+    ) {
+        val nodeId = node.get("id").asText()
+        val properties = node.get("properties")
+            ?: throw IllegalArgumentException("MessageEvent $nodeId missing properties")
+
+        val messageName = properties.get("messageName")?.asText()
+            ?: throw IllegalArgumentException("MessageEvent $nodeId missing messageName")
+
+        val correlationKeyTemplate = properties.get("correlationKey")?.asText()
+            ?: throw IllegalArgumentException("MessageEvent $nodeId missing correlationKey")
+
+        // Evaluate correlation key with variable substitution
+        val correlationKey = evaluateCorrelationKey(correlationKeyTemplate, instance)
+
+        val timeoutSeconds = properties.get("timeoutSeconds")?.asLong()
+
+        // Create message subscription
+        val timeoutAt = if (timeoutSeconds != null) {
+            LocalDateTime.now().plusSeconds(timeoutSeconds)
+        } else {
+            null
+        }
+
+        messageSubscriptionService.subscribeToMessage(
+            processInstanceId = instance.id,
+            nodeId = nodeId,
+            messageName = messageName,
+            correlationKey = correlationKey,
+            timeoutAt = timeoutAt
+        )
+
+        // Publish message expected event
+        try {
+            rabbitPublisher.publishMessageExpected(
+                processInstanceId = instance.id,
+                nodeId = nodeId,
+                messageName = messageName,
+                correlationKey = correlationKey,
+                timeoutSeconds = timeoutSeconds
+            )
+        } catch (_: Exception) {
+        }
+
+        // Persist instance updated timestamp; instance remains on this node until message arrival
+        instance.updatedAt = LocalDateTime.now()
+        processInstanceRepository.save(instance)
+    }
+
     @Transactional
     fun handleServiceTaskCompleted(processInstanceId: Long, nodeId: String, outputs: Map<String, String>) {
         val instance = processInstanceRepository.findById(processInstanceId)
@@ -193,6 +249,45 @@ class ProcessService(
 
         val definition = parseDefinition(instance.processDefinition.definitionJson)
         val node = findNode(definition, nodeId)
+
+        val nextNodes = getNextNodes(node, definition, instance)
+
+        advanceProcess(instance, nextNodes)
+
+        executeNodes(nextNodes, instance, definition)
+    }
+
+    @Transactional
+    fun handleMessageReceived(
+        messageName: String,
+        correlationKey: String,
+        variables: Map<String, Any>? = null
+    ) {
+        // Find matching message subscription
+        val subscription = messageSubscriptionService.receiveMessage(
+            messageName,
+            correlationKey,
+            variables
+        ) ?: throw IllegalArgumentException("No waiting subscription for message '$messageName' with correlationKey '$correlationKey'")
+
+        val instance = processInstanceRepository.findById(subscription.processInstanceId)
+            .orElseThrow { IllegalArgumentException("Process instance ${subscription.processInstanceId} not found") }
+
+        // Save received message variables as process variables
+        variables?.forEach { (k, v) ->
+            val newVar = ProcessVariable(
+                processInstanceId = instance.id,
+                name = k,
+                value = objectMapper.valueToTree(v)
+            )
+            processVariableRepository.save(newVar)
+        }
+
+        // Clean up subscription after message received
+        messageSubscriptionService.deleteSubscription(subscription.id)
+
+        val definition = parseDefinition(instance.processDefinition.definitionJson)
+        val node = findNode(definition, subscription.nodeId)
 
         val nextNodes = getNextNodes(node, definition, instance)
 
@@ -312,6 +407,28 @@ class ProcessService(
         return gatewayService.evaluateCondition(condition, instance)
     }
 
+    /**
+     * Evaluate correlation key template with variable substitution.
+     * Supports ${variableName} expressions like ${orderId}-${instanceNumber}
+     */
+    private fun evaluateCorrelationKey(template: String, instance: ProcessInstance): String {
+        var result = template
+        val regex = Regex("\\$\\{([^}]+)\\}")
+
+        result = regex.replace(result) { match ->
+            val varName = match.groupValues[1]
+            val processVar = processVariableRepository.findByProcessInstanceIdAndName(instance.id, varName)
+            when {
+                processVar == null || processVar.value.isNull -> varName // Fallback to var name if not found
+                processVar.value.isTextual -> processVar.value.asText()
+                processVar.value.isNumber -> processVar.value.toString()
+                else -> processVar.value.toString()
+            }
+        }
+
+        return result
+    }
+
     private fun parseStaticValue(valueNode: JsonNode?): JsonNode {
         if (valueNode == null || valueNode.isNull) return objectMapper.nullNode()
 
@@ -363,10 +480,28 @@ class ProcessService(
             val typeText = node.get("type")?.asText()
                 ?: throw IllegalArgumentException("Node $id missing 'type'")
 
-            try {
+            val nodeType = try {
                 NodeType.fromString(typeText)
             } catch (ex: IllegalArgumentException) {
                 throw IllegalArgumentException("Invalid node type '$typeText' at '$id'")
+            }
+
+            // Validate MessageEvent properties
+            if (nodeType == NodeType.MessageEvent) {
+                val properties = node.get("properties")
+                    ?: throw IllegalArgumentException("MessageEvent $id missing 'properties'")
+
+                properties.get("messageName")?.asText()
+                    ?: throw IllegalArgumentException("MessageEvent $id missing 'messageName' in properties")
+
+                properties.get("correlationKey")?.asText()
+                    ?: throw IllegalArgumentException("MessageEvent $id missing 'correlationKey' in properties")
+            }
+
+            // Validate ServiceTask properties
+            if (nodeType == NodeType.ServiceTask) {
+                node.get("properties")
+                    ?: throw IllegalArgumentException("ServiceTask $id missing 'properties'")
             }
 
             if (!nodeIds.add(id)) {
