@@ -31,7 +31,8 @@ class TaskService(
     private val objectMapper: ObjectMapper
         ,
     private val rabbitPublisher: com.easy.bpm.messaging.RabbitPublisher,
-    private val gatewayService: GatewayService
+    private val gatewayService: GatewayService,
+    private val messageSubscriptionService: MessageSubscriptionService
 ) {
 
     /* =========================
@@ -128,6 +129,8 @@ class TaskService(
         when (nodeType) {
             NodeType.UserTask -> handleUserTask(instance, node)
             NodeType.ServiceTask -> handleServiceTask(instance, node, definition)
+            NodeType.MessageIntermediateCatchEvent -> handleMessageIntermediateCatchEvent(instance, node)
+            NodeType.MessageIntermediateThrowEvent -> handleMessageIntermediateThrowEvent(instance, node, definition)
             NodeType.EndEvent -> finishProcess(instance)
             NodeType.ExclusiveGateway, NodeType.ParallelGateway, NodeType.InclusiveGateway -> {
                 val nextNodes = getNextNodes(node, definition, instance)
@@ -180,6 +183,118 @@ class TaskService(
 
         integrationService.executeIntegration(instance, node.get("id").asText(), config)
 
+        val nextNodeIds = getNextNodes(node, definition, instance)
+
+        advanceProcess(instance, nextNodeIds, definition)
+
+        executeNextSteps(nextNodeIds, instance, definition)
+    }
+
+    private fun handleMessageIntermediateCatchEvent(
+        instance: ProcessInstance,
+        node: JsonNode
+    ) {
+        val nodeId = node.get("id").asText()
+        val message = node.get("message")
+            ?: throw IllegalArgumentException("MessageIntermediateCatchEvent $nodeId missing 'message' object")
+
+        val messageName = message.get("name")?.asText()
+            ?: throw IllegalArgumentException("MessageIntermediateCatchEvent $nodeId missing 'message.name'")
+
+        val correlationKeys = message.get("correlationKeys")
+        if (correlationKeys == null || !correlationKeys.isArray || correlationKeys.size() == 0) {
+            throw IllegalArgumentException("MessageIntermediateCatchEvent $nodeId missing 'message.correlationKeys'")
+        }
+
+        val correlationKey = correlationKeys[0].asText()
+
+        // Create message subscription
+        messageSubscriptionService.subscribeToMessage(
+            processInstanceId = instance.id,
+            nodeId = nodeId,
+            messageName = messageName,
+            correlationKey = correlationKey,
+            timeoutAt = null
+        )
+
+        // Publish message expected event
+        try {
+            rabbitPublisher.publishMessageExpected(
+                processInstanceId = instance.id,
+                nodeId = nodeId,
+                messageName = messageName,
+                correlationKey = correlationKey,
+                timeoutSeconds = null
+            )
+        } catch (_: Exception) {
+        }
+
+        // Persist instance updated timestamp; instance remains on this node until message arrival
+        instance.updatedAt = LocalDateTime.now()
+        processInstanceRepository.save(instance)
+    }
+
+    private fun handleMessageIntermediateThrowEvent(
+        instance: ProcessInstance,
+        node: JsonNode,
+        definition: JsonNode
+    ) {
+        val nodeId = node.get("id").asText()
+        val message = node.get("message")
+            ?: throw IllegalArgumentException("MessageIntermediateThrowEvent $nodeId missing 'message' object")
+
+        val messageName = message.get("name")?.asText()
+            ?: throw IllegalArgumentException("MessageIntermediateThrowEvent $nodeId missing 'message.name'")
+
+        val correlationKeys = message.get("correlationKeys")
+        if (correlationKeys == null || !correlationKeys.isArray || correlationKeys.size() == 0) {
+            throw IllegalArgumentException("MessageIntermediateThrowEvent $nodeId missing 'message.correlationKeys'")
+        }
+
+        val correlationKey = correlationKeys[0].asText()
+
+        // Build payload from node configuration
+        val payloadArray = message.get("payload")
+        val payload = mutableMapOf<String, Any>()
+
+        if (payloadArray != null && payloadArray.isArray) {
+            payloadArray.forEach { payloadMapping ->
+                val targetName = payloadMapping.get("targetName")?.asText()
+                    ?: throw IllegalArgumentException("MessageIntermediateThrowEvent payload missing 'targetName'")
+
+                val source = payloadMapping.get("source")?.asText()
+                    ?: throw IllegalArgumentException("MessageIntermediateThrowEvent payload missing 'source'")
+
+                val value = payloadMapping.get("value")?.asText()
+                    ?: throw IllegalArgumentException("MessageIntermediateThrowEvent payload missing 'value'")
+
+                // Map from process variable or static value
+                val mappedValue = when (source) {
+                    "variable" -> {
+                        processVariableRepository.findByProcessInstanceIdAndName(instance.id, value)
+                            ?.value?.asText() ?: value
+                    }
+
+                    "static" -> value
+                    else -> value
+                }
+
+                payload[targetName] = mappedValue
+            }
+        }
+
+        // Publish message to external system
+        try {
+            rabbitPublisher.publishMessageThrown(
+                messageName = messageName,
+                correlationKey = correlationKey,
+                variables = payload
+            )
+        } catch (ex: Exception) {
+            // Log exception but continue
+        }
+
+        // Advance to next node
         val nextNodeIds = getNextNodes(node, definition, instance)
 
         advanceProcess(instance, nextNodeIds, definition)

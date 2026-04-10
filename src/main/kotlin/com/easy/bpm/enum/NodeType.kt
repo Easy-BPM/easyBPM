@@ -12,6 +12,8 @@ enum class NodeType(val typeName: String) {
     ScriptTask("ScriptTask"),
     TimerEvent("TimerEvent"),
     MessageEvent("MessageEvent"),
+    MessageIntermediateCatchEvent("MessageIntermediateCatchEvent"),
+    MessageIntermediateThrowEvent("MessageIntermediateThrowEvent"),
     CallActivity("CallActivity");
 
     companion object {

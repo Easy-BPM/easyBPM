@@ -125,6 +125,8 @@ class ProcessService(
             NodeType.UserTask -> handleUserTask(instance, node)
             NodeType.ServiceTask -> handleServiceTask(instance, node)
             NodeType.MessageEvent -> handleMessageEvent(instance, node)
+            NodeType.MessageIntermediateCatchEvent -> handleMessageIntermediateCatchEvent(instance, node)
+            NodeType.MessageIntermediateThrowEvent -> handleMessageIntermediateThrowEvent(instance, node, definition)
             NodeType.EndEvent -> finishProcess(instance)
             NodeType.ExclusiveGateway, NodeType.ParallelGateway, NodeType.InclusiveGateway -> {
                 val nextNodes = getNextNodes(node, definition, instance)
@@ -230,6 +232,116 @@ class ProcessService(
         // Persist instance updated timestamp; instance remains on this node until message arrival
         instance.updatedAt = LocalDateTime.now()
         processInstanceRepository.save(instance)
+    }
+
+    private fun handleMessageIntermediateCatchEvent(
+        instance: ProcessInstance,
+        node: JsonNode
+    ) {
+        val nodeId = node.get("id").asText()
+        val message = node.get("message")
+            ?: throw IllegalArgumentException("MessageIntermediateCatchEvent $nodeId missing 'message' object")
+
+        val messageName = message.get("name")?.asText()
+            ?: throw IllegalArgumentException("MessageIntermediateCatchEvent $nodeId missing 'message.name'")
+
+        val correlationKeys = message.get("correlationKeys")
+        if (correlationKeys == null || !correlationKeys.isArray || correlationKeys.size() == 0) {
+            throw IllegalArgumentException("MessageIntermediateCatchEvent $nodeId missing 'message.correlationKeys'")
+        }
+
+        val correlationKey = correlationKeys[0].asText()
+
+        // Create message subscription with payload mapping
+        messageSubscriptionService.subscribeToMessage(
+            processInstanceId = instance.id,
+            nodeId = nodeId,
+            messageName = messageName,
+            correlationKey = correlationKey,
+            timeoutAt = null
+        )
+
+        // Publish message expected event
+        try {
+            rabbitPublisher.publishMessageExpected(
+                processInstanceId = instance.id,
+                nodeId = nodeId,
+                messageName = messageName,
+                correlationKey = correlationKey,
+                timeoutSeconds = null
+            )
+        } catch (_: Exception) {
+        }
+
+        // Persist instance updated timestamp; instance remains on this node until message arrival
+        instance.updatedAt = LocalDateTime.now()
+        processInstanceRepository.save(instance)
+    }
+
+    private fun handleMessageIntermediateThrowEvent(
+        instance: ProcessInstance,
+        node: JsonNode,
+        definition: JsonNode
+    ) {
+        val nodeId = node.get("id").asText()
+        val message = node.get("message")
+            ?: throw IllegalArgumentException("MessageIntermediateThrowEvent $nodeId missing 'message' object")
+
+        val messageName = message.get("name")?.asText()
+            ?: throw IllegalArgumentException("MessageIntermediateThrowEvent $nodeId missing 'message.name'")
+
+        val correlationKeys = message.get("correlationKeys")
+        if (correlationKeys == null || !correlationKeys.isArray || correlationKeys.size() == 0) {
+            throw IllegalArgumentException("MessageIntermediateThrowEvent $nodeId missing 'message.correlationKeys'")
+        }
+
+        val correlationKey = correlationKeys[0].asText()
+
+        // Build payload from node configuration
+        val payloadArray = message.get("payload")
+        val payload = mutableMapOf<String, Any>()
+
+        if (payloadArray != null && payloadArray.isArray) {
+            payloadArray.forEach { payloadMapping ->
+                val targetName = payloadMapping.get("targetName")?.asText()
+                    ?: throw IllegalArgumentException("MessageIntermediateThrowEvent payload missing 'targetName'")
+
+                val source = payloadMapping.get("source")?.asText()
+                    ?: throw IllegalArgumentException("MessageIntermediateThrowEvent payload missing 'source'")
+
+                val value = payloadMapping.get("value")?.asText()
+                    ?: throw IllegalArgumentException("MessageIntermediateThrowEvent payload missing 'value'")
+
+                // Map from process variable or static value
+                val mappedValue = when (source) {
+                    "variable" -> {
+                        processVariableRepository.findByProcessInstanceIdAndName(instance.id, value)
+                            ?.value?.asText() ?: value
+                    }
+
+                    "static" -> value
+                    else -> value
+                }
+
+                payload[targetName] = mappedValue
+            }
+        }
+
+        // Publish message to external system
+        try {
+            rabbitPublisher.publishMessageThrown(
+                messageName = messageName,
+                correlationKey = correlationKey,
+                variables = payload
+            )
+        } catch (ex: Exception) {
+            // Log exception but continue
+        }
+
+        // Advance to next node
+        val nextNodes = getNextNodes(node, definition, instance)
+        advanceProcess(instance, nextNodes)
+        executeNodes(nextNodes, instance, definition)
     }
 
     @Transactional
@@ -496,6 +608,58 @@ class ProcessService(
 
                 properties.get("correlationKey")?.asText()
                     ?: throw IllegalArgumentException("MessageEvent $id missing 'correlationKey' in properties")
+            }
+
+            // Validate MessageIntermediateCatchEvent properties
+            if (nodeType == NodeType.MessageIntermediateCatchEvent) {
+                val message = node.get("message")
+                    ?: throw IllegalArgumentException("MessageIntermediateCatchEvent $id missing 'message' object")
+
+                message.get("name")?.asText()
+                    ?: throw IllegalArgumentException("MessageIntermediateCatchEvent $id missing 'message.name'")
+
+                val correlationKeys = message.get("correlationKeys")
+                if (correlationKeys == null || !correlationKeys.isArray || correlationKeys.size() == 0) {
+                    throw IllegalArgumentException("MessageIntermediateCatchEvent $id missing or empty 'message.correlationKeys'")
+                }
+
+                val payload = message.get("payload")
+                if (payload != null && payload.isArray) {
+                    payload.forEach { mapping ->
+                        mapping.get("sourceName")?.asText()
+                            ?: throw IllegalArgumentException("MessageIntermediateCatchEvent $id payload missing 'sourceName'")
+                        mapping.get("target")?.asText()
+                            ?: throw IllegalArgumentException("MessageIntermediateCatchEvent $id payload missing 'target'")
+                        mapping.get("value")?.asText()
+                            ?: throw IllegalArgumentException("MessageIntermediateCatchEvent $id payload missing 'value'")
+                    }
+                }
+            }
+
+            // Validate MessageIntermediateThrowEvent properties
+            if (nodeType == NodeType.MessageIntermediateThrowEvent) {
+                val message = node.get("message")
+                    ?: throw IllegalArgumentException("MessageIntermediateThrowEvent $id missing 'message' object")
+
+                message.get("name")?.asText()
+                    ?: throw IllegalArgumentException("MessageIntermediateThrowEvent $id missing 'message.name'")
+
+                val correlationKeys = message.get("correlationKeys")
+                if (correlationKeys == null || !correlationKeys.isArray || correlationKeys.size() == 0) {
+                    throw IllegalArgumentException("MessageIntermediateThrowEvent $id missing or empty 'message.correlationKeys'")
+                }
+
+                val payload = message.get("payload")
+                if (payload != null && payload.isArray) {
+                    payload.forEach { mapping ->
+                        mapping.get("targetName")?.asText()
+                            ?: throw IllegalArgumentException("MessageIntermediateThrowEvent $id payload missing 'targetName'")
+                        mapping.get("source")?.asText()
+                            ?: throw IllegalArgumentException("MessageIntermediateThrowEvent $id payload missing 'source'")
+                        mapping.get("value")?.asText()
+                            ?: throw IllegalArgumentException("MessageIntermediateThrowEvent $id payload missing 'value'")
+                    }
+                }
             }
 
             // Validate ServiceTask properties

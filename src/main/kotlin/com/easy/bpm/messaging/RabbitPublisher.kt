@@ -69,4 +69,18 @@ class RabbitPublisher(
 
         rabbitTemplate.convertAndSend(AmqpConfig.EXCHANGE, AmqpConfig.MESSAGE_EVENTS_ROUTING_KEY, payload)
     }
+
+    fun publishMessageThrown(
+        messageName: String,
+        correlationKey: String,
+        variables: Map<String, Any>
+    ) {
+        val payload = mapOf(
+            "messageName" to messageName,
+            "correlationKey" to correlationKey,
+            "variables" to variables
+        )
+
+        rabbitTemplate.convertAndSend(AmqpConfig.EXCHANGE, AmqpConfig.MESSAGE_EVENTS_ROUTING_KEY, payload)
+    }
 }
