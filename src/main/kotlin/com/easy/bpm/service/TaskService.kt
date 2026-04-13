@@ -128,7 +128,8 @@ class TaskService(
         val nodeType = NodeType.fromString(node.get("type").asText())
         when (nodeType) {
             NodeType.UserTask -> handleUserTask(instance, node)
-            NodeType.ServiceTask -> handleServiceTask(instance, node, definition)
+            NodeType.APITask -> handleAPITask(instance, node, definition)
+            NodeType.ServiceTask -> handleServiceTaskNode(instance, node, definition)
             NodeType.MessageIntermediateCatchEvent -> handleMessageIntermediateCatchEvent(instance, node)
             NodeType.MessageIntermediateThrowEvent -> handleMessageIntermediateThrowEvent(instance, node, definition)
             NodeType.EndEvent -> finishProcess(instance)
@@ -173,13 +174,13 @@ class TaskService(
         applyTaskInputs(task, node, instance)
     }
 
-    private fun handleServiceTask(
+    private fun handleAPITask(
         instance: ProcessInstance,
         node: JsonNode,
         definition: JsonNode
     ) {
         val config = node.get("properties")
-            ?: throw IllegalArgumentException("ServiceTask ${node.get("id").asText()} missing properties")
+            ?: throw IllegalArgumentException("APITask ${node.get("id").asText()} missing properties")
 
         integrationService.executeIntegration(instance, node.get("id").asText(), config)
 
@@ -188,6 +189,65 @@ class TaskService(
         advanceProcess(instance, nextNodeIds, definition)
 
         executeNextSteps(nextNodeIds, instance, definition)
+    }
+
+    private fun handleServiceTaskNode(
+        instance: ProcessInstance,
+        node: JsonNode,
+        definition: JsonNode
+    ) {
+        val config = node.get("config")
+
+        // If service task declares "variables", treat as internal (auto-execute)
+        if (config != null && config.has("variables")) {
+            val variables = config.get("variables")
+            variables.forEach { varConfig ->
+                val varName = varConfig.get("name")?.asText()
+                    ?: throw IllegalArgumentException("ServiceTask variable missing 'name' field")
+
+                val source = varConfig.get("source")?.asText() ?: "static"
+                val value: JsonNode = when (source) {
+                    "static" -> parseStaticValue(varConfig.get("value"))
+                    "variable" -> {
+                        val sourceVarName = varConfig.get("value")?.asText()
+                            ?: throw IllegalArgumentException("ServiceTask variable missing 'value' field for variable source")
+                        val sourceVar = processVariableRepository.findByProcessInstanceIdAndName(instance.id, sourceVarName)
+                        sourceVar?.value ?: throw IllegalArgumentException("Source process variable '$sourceVarName' not found")
+                    }
+                    else -> throw IllegalArgumentException("Invalid variable source: '$source'")
+                }
+
+                // Save or update process variable
+                val existing = processVariableRepository.findByProcessInstanceIdAndName(instance.id, varName)
+                if (existing != null) {
+                    existing.value = value
+                    processVariableRepository.save(existing)
+                } else {
+                    processVariableRepository.save(
+                        ProcessVariable(
+                            processInstanceId = instance.id,
+                            name = varName,
+                            value = value
+                        )
+                    )
+                }
+            }
+
+            // Continue to next nodes for internal service task
+            val nextNodeIds = getNextNodes(node, definition, instance)
+            advanceProcess(instance, nextNodeIds, definition)
+            executeNextSteps(nextNodeIds, instance, definition)
+        } else {
+            // External service task: publish request and remain on this node until completion
+            val properties = config ?: objectMapper.createObjectNode()
+            try {
+                rabbitPublisher.publishServiceTaskRequest(instance.id, node.get("id").asText(), properties)
+            } catch (_: Exception) {
+            }
+
+            instance.updatedAt = LocalDateTime.now()
+            processInstanceRepository.save(instance)
+        }
     }
 
     private fun handleMessageIntermediateCatchEvent(
@@ -312,6 +372,34 @@ class TaskService(
         definition: JsonNode
     ) {
         instance.currentNode = nextNodeIds
+        // Resolve and append meaningful nodes to history (skip gateways, include resolved targets and end events)
+        val appendable = mutableListOf<String>()
+
+        fun resolveAndCollect(id: String) {
+            val node = definition.get("nodes").find { it.get("id").asText() == id } ?: return
+            when (NodeType.fromString(node.get("type").asText())) {
+                NodeType.ExclusiveGateway, NodeType.ParallelGateway, NodeType.InclusiveGateway -> {
+                    val targets = getNextNodes(node, definition, instance)
+                    targets.forEach { resolveAndCollect(it) }
+                }
+                NodeType.UserTask,
+                NodeType.ServiceTask,
+                NodeType.APITask,
+                NodeType.MessageEvent,
+                NodeType.MessageIntermediateCatchEvent,
+                NodeType.MessageIntermediateThrowEvent,
+                NodeType.ScriptTask,
+                NodeType.EndEvent -> appendable.add(id)
+                else -> { /* ignore other node types */ }
+            }
+        }
+
+        nextNodeIds.forEach { resolveAndCollect(it) }
+
+        // Avoid consecutive duplicates when appending
+        appendable.forEach { id ->
+            if (instance.nodeHistory.lastOrNull() != id) instance.nodeHistory = instance.nodeHistory + id
+        }
         instance.updatedAt = LocalDateTime.now()
 
         if (nextNodeIds.isEmpty() || nextNodeIds.all { isEndEvent(it, definition) }) {
@@ -330,6 +418,7 @@ class TaskService(
 
     private fun finishProcess(instance: ProcessInstance) {
         instance.status = ProcessStatus.COMPLETED
+        instance.currentNode = emptyList()
         instance.updatedAt = LocalDateTime.now()
         processInstanceRepository.save(instance)
     }

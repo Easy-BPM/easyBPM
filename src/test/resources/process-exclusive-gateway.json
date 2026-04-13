@@ -1,7 +1,7 @@
 {
   "processId": "process_1776104838556",
   "metadata": {
-    "exportedAt": "2026-04-13T18:34:10.168Z",
+    "exportedAt": "2026-04-13T19:25:12.079Z",
     "version": "1.0"
   },
   "variables": [
@@ -36,10 +36,18 @@
         "gateway_moramnbpf"
       ],
       "config": {
-        "inputs": [],
+        "inputs": [
+          {
+            "targetName": "logicalCondition",
+            "type": "string",
+            "source": "static",
+            "value": "true"
+          }
+        ],
         "outputs": [
           {
-            "sourceName": "userInput",
+            "sourceName": "logicalCondition",
+            "type": "boolean",
             "target": "variable",
             "value": "logicalCondition"
           }
@@ -55,39 +63,9 @@
         "y": 230
       },
       "next": [
-        "service-task_l7nkrd4ut",
-        "service-task_gxa9wmxsw"
+        "service-task_s53rkrxeh",
+        "service-task_ikgbrmkem"
       ]
-    },
-    {
-      "id": "service-task_l7nkrd4ut",
-      "name": "Expected result",
-      "type": "ServiceTask",
-      "position": {
-        "x": 490,
-        "y": 100
-      },
-      "next": [
-        "end_phhuhp25e"
-      ],
-      "service": {
-        "method": "GET"
-      }
-    },
-    {
-      "id": "service-task_gxa9wmxsw",
-      "name": "Not Expected Result",
-      "type": "ServiceTask",
-      "position": {
-        "x": 490,
-        "y": 320
-      },
-      "next": [
-        "end_phhuhp25e"
-      ],
-      "service": {
-        "method": "GET"
-      }
     },
     {
       "id": "end_phhuhp25e",
@@ -98,6 +76,66 @@
         "y": 200
       },
       "next": []
+    },
+    {
+      "id": "service-task_s53rkrxeh",
+      "name": "Expected",
+      "type": "ServiceTask",
+      "position": {
+        "x": 490,
+        "y": 120
+      },
+      "next": [
+        "end_phhuhp25e"
+      ],
+      "config": {
+        "inputs": [
+          {
+            "targetName": "saida",
+            "type": "boolean",
+            "source": "static",
+            "value": "false"
+          }
+        ],
+        "outputs": [
+          {
+            "sourceName": "saida",
+            "type": "boolean",
+            "target": "variable",
+            "value": "logicalCondition"
+          }
+        ]
+      }
+    },
+    {
+      "id": "service-task_ikgbrmkem",
+      "name": "Not ",
+      "type": "ServiceTask",
+      "position": {
+        "x": 490,
+        "y": 300
+      },
+      "next": [
+        "end_phhuhp25e"
+      ],
+      "config": {
+        "inputs": [
+          {
+            "targetName": "saida",
+            "type": "boolean",
+            "source": "static",
+            "value": "true"
+          }
+        ],
+        "outputs": [
+          {
+            "sourceName": "saida",
+            "type": "boolean",
+            "target": "variable",
+            "value": "logicalCondition"
+          }
+        ]
+      }
     }
   ],
   "flows": [
@@ -113,22 +151,22 @@
     },
     {
       "from": "gateway_moramnbpf",
-      "to": "service-task_l7nkrd4ut",
+      "to": "service-task_s53rkrxeh",
       "condition": "${logicalCondition} == true"
     },
     {
-      "from": "service-task_l7nkrd4ut",
-      "to": "end_phhuhp25e",
-      "condition": null
-    },
-    {
-      "from": "service-task_gxa9wmxsw",
-      "to": "end_phhuhp25e",
-      "condition": null
-    },
-    {
       "from": "gateway_moramnbpf",
-      "to": "service-task_gxa9wmxsw",
+      "to": "service-task_ikgbrmkem",
+      "condition": null
+    },
+    {
+      "from": "service-task_s53rkrxeh",
+      "to": "end_phhuhp25e",
+      "condition": null
+    },
+    {
+      "from": "service-task_ikgbrmkem",
+      "to": "end_phhuhp25e",
       "condition": null
     }
   ]

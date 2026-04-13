@@ -4,6 +4,8 @@ import com.easy.bpm.enum.TaskStatus
 import com.easy.bpm.model.task.Task
 import com.easy.bpm.service.TaskService
 import com.fasterxml.jackson.databind.ObjectMapper
+import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.http.ResponseEntity
@@ -11,27 +13,28 @@ import org.springframework.web.bind.annotation.*
 
 @RestController
 @RequestMapping("/tasks")
+@Tag(name = "Tasks", description = "Task management and completion")
 class TaskController(
     private val taskService: TaskService,
     private val objectMapper: ObjectMapper
 ) {
 
-    // 1. Listar todas as tarefas com paginação
     @GetMapping
+    @Operation(summary = "Get all tasks", description = "Retrieve all tasks with pagination")
     fun getTasks(pageable: Pageable): Page<Task> {
         return taskService.getTasks(pageable)
     }
 
-    // 2. Buscar tarefa por ID
     @GetMapping("/{id}")
+    @Operation(summary = "Get task by ID", description = "Retrieve a specific task by its ID")
     fun getTaskById(@PathVariable id: Long): ResponseEntity<Task> {
         return taskService.getTaskById(id)
             ?.let { ResponseEntity.ok(it) }
             ?: ResponseEntity.notFound().build()
     }
 
-    // 3. Buscar tarefas por status e/ou assignee
     @GetMapping("/search")
+    @Operation(summary = "Search tasks", description = "Search tasks by assignee and/or status with pagination")
     fun searchTasks(
         @RequestParam(required = false) assignee: String?,
         @RequestParam(required = false) status: TaskStatus?,
@@ -40,8 +43,8 @@ class TaskController(
         return taskService.searchTasks(assignee, status, pageable)
     }
 
-    // 4. Complete Task
     @PostMapping("/{id}/complete")
+    @Operation(summary = "Complete a task", description = "Mark a task as completed and provide task variables")
     fun completeTask(
         @PathVariable id: Long,
         @RequestBody body: Map<String, Any> // Espera: { "assignee": "joao", "variables": { "aprovado": "true" } }

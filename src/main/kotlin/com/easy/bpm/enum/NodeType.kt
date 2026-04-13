@@ -8,6 +8,7 @@ enum class NodeType(val typeName: String) {
     InclusiveGateway("InclusiveGateway"),
     ExclusiveGateway("ExclusiveGateway"),
     ParallelGateway("ParallelGateway"),
+    APITask("APITask"),
     ServiceTask("ServiceTask"),
     ScriptTask("ScriptTask"),
     TimerEvent("TimerEvent"),

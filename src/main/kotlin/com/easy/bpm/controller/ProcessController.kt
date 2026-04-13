@@ -7,6 +7,8 @@ import com.easy.bpm.service.ProcessService
 import com.easy.bpm.util.ParseXMLToJsonFormat.convertXmlToInternalJson
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
+import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.web.bind.annotation.*
@@ -30,6 +32,7 @@ SELECT * FROM process_INSTANCE
 
 @RestController
 @RequestMapping("/processes")
+@Tag(name = "Processes", description = "Process definition and instance management")
 class ProcessController(
         private val processService: ProcessService,
         private val objectMapper: ObjectMapper
@@ -37,26 +40,31 @@ class ProcessController(
 
 
     @PostMapping
+    @Operation(summary = "Deploy a process definition", description = "Upload and deploy a new BPMN process definition")
     fun deploy(@RequestBody request: JsonNode): ProcessDefinition {
         return processService.deployProcess(request)
     }
 
     @PostMapping("/{processDefinitionId}/start")
+    @Operation(summary = "Start a process instance", description = "Create and start a new instance of a process definition")
     fun startInstance(@PathVariable processDefinitionId: Long): ProcessInstance {
         return processService.startProcessInstance(processDefinitionId)
     }
 
     @GetMapping("/instances")
+    @Operation(summary = "Get process instances", description = "Retrieve all process instances with pagination")
     fun getProcessInstances(pageable: Pageable): Page<ProcessInstance> {
         return processService.getProcessInstances(pageable)
     }
 
     @GetMapping
+    @Operation(summary = "Get latest process definitions", description = "Retrieve the latest versions of all process definitions")
     fun getLatestProcesses(pageable: Pageable): Page<ProcessDefinition> {
         return processService.getLatestProcessDefinitions(pageable)
     }
 
     @PostMapping("/messages")
+    @Operation(summary = "Send a message", description = "Send a message to trigger message-based events in running process instances")
     fun sendMessage(@RequestBody request: Map<String, Any>): Map<String, Any> {
         val messageName = request["messageName"] as? String
             ?: throw IllegalArgumentException("Missing messageName")

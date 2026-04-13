@@ -84,6 +84,7 @@ class ProcessService(
         val startNodes = getStartNodes(instance, json)
 
         instance.currentNode = startNodes
+        instance.nodeHistory = startNodes
         processInstanceRepository.save(instance)
 
         executeNodes(startNodes, instance, json)
@@ -123,14 +124,15 @@ class ProcessService(
         val nodeType = NodeType.fromString(node.get("type").asText())
         when (nodeType) {
             NodeType.UserTask -> handleUserTask(instance, node)
-            NodeType.ServiceTask -> handleServiceTask(instance, node)
+            NodeType.APITask -> handleAPITask(instance, node)
+            NodeType.ServiceTask -> handleServiceTaskNode(instance, node, definition)
             NodeType.MessageEvent -> handleMessageEvent(instance, node)
             NodeType.MessageIntermediateCatchEvent -> handleMessageIntermediateCatchEvent(instance, node)
             NodeType.MessageIntermediateThrowEvent -> handleMessageIntermediateThrowEvent(instance, node, definition)
             NodeType.EndEvent -> finishProcess(instance)
             NodeType.ExclusiveGateway, NodeType.ParallelGateway, NodeType.InclusiveGateway -> {
                 val nextNodes = getNextNodes(node, definition, instance)
-                advanceProcess(instance, nextNodes)
+                advanceProcess(instance, nextNodes, definition)
                 executeNodes(nextNodes, instance, definition)
             }
             else -> { /* no-op for other node types */ }
@@ -168,12 +170,12 @@ class ProcessService(
         applyTaskInputs(task, node, instance)
     }
 
-    private fun handleServiceTask(
+    private fun handleAPITask(
         instance: ProcessInstance,
         node: JsonNode
     ) {
         val config = node.get("properties")
-            ?: throw IllegalArgumentException("ServiceTask ${node.get("id").asText()} missing properties")
+            ?: throw IllegalArgumentException("APITask ${node.get("id").asText()} missing properties")
 
         // Publish a service task request to RabbitMQ; worker will send a completion event.
         rabbitPublisher.publishServiceTaskRequest(instance.id, node.get("id").asText(), config)
@@ -181,6 +183,66 @@ class ProcessService(
         // Persist instance updated timestamp; instance remains on this node until completion.
         instance.updatedAt = LocalDateTime.now()
         processInstanceRepository.save(instance)
+    }
+
+    private fun handleServiceTaskNode(
+        instance: ProcessInstance,
+        node: JsonNode,
+        definition: JsonNode
+    ) {
+        val config = node.get("config")
+
+        // If service task declares "variables", treat as internal (auto-execute)
+        if (config != null && config.has("variables")) {
+            val variables = config.get("variables")
+            variables.forEach { varConfig ->
+                val varName = varConfig.get("name")?.asText()
+                    ?: throw IllegalArgumentException("ServiceTask variable missing 'name' field")
+
+                val source = varConfig.get("source")?.asText() ?: "static"
+                val value: JsonNode = when (source) {
+                    "static" -> parseStaticValue(varConfig.get("value"))
+                    "variable" -> {
+                        val sourceVarName = varConfig.get("value")?.asText()
+                            ?: throw IllegalArgumentException("ServiceTask variable missing source variable name")
+                        val sourceVar = processVariableRepository.findByProcessInstanceIdAndName(instance.id, sourceVarName)
+                            ?: throw IllegalArgumentException("Source variable '$sourceVarName' not found")
+                        sourceVar.value
+                    }
+                    else -> throw IllegalArgumentException("Invalid variable source '$source'")
+                }
+
+                // Save or update process variable
+                val existing = processVariableRepository.findByProcessInstanceIdAndName(instance.id, varName)
+                if (existing != null) {
+                    existing.value = value
+                    processVariableRepository.save(existing)
+                } else {
+                    processVariableRepository.save(
+                        ProcessVariable(
+                            processInstanceId = instance.id,
+                            name = varName,
+                            value = value
+                        )
+                    )
+                }
+            }
+
+            // Continue execution for internal service task
+            val nextNodes = getNextNodes(node, definition, instance)
+            advanceProcess(instance, nextNodes, definition)
+            executeNodes(nextNodes, instance, definition)
+        } else {
+            // External service task: publish request and remain on this node until completion
+            val properties = config ?: objectMapper.createObjectNode()
+            try {
+                rabbitPublisher.publishServiceTaskRequest(instance.id, node.get("id").asText(), properties)
+            } catch (_: Exception) {
+            }
+
+            instance.updatedAt = LocalDateTime.now()
+            processInstanceRepository.save(instance)
+        }
     }
 
     private fun handleMessageEvent(
@@ -340,7 +402,7 @@ class ProcessService(
 
         // Advance to next node
         val nextNodes = getNextNodes(node, definition, instance)
-        advanceProcess(instance, nextNodes)
+        advanceProcess(instance, nextNodes, definition)
         executeNodes(nextNodes, instance, definition)
     }
 
@@ -364,7 +426,7 @@ class ProcessService(
 
         val nextNodes = getNextNodes(node, definition, instance)
 
-        advanceProcess(instance, nextNodes)
+        advanceProcess(instance, nextNodes, definition)
 
         executeNodes(nextNodes, instance, definition)
     }
@@ -403,22 +465,53 @@ class ProcessService(
 
         val nextNodes = getNextNodes(node, definition, instance)
 
-        advanceProcess(instance, nextNodes)
+        advanceProcess(instance, nextNodes, definition)
 
         executeNodes(nextNodes, instance, definition)
     }
 
     private fun finishProcess(instance: ProcessInstance) {
         instance.status = ProcessStatus.COMPLETED
+        instance.currentNode = emptyList()
         instance.updatedAt = LocalDateTime.now()
         processInstanceRepository.save(instance)
     }
 
     private fun advanceProcess(
         instance: ProcessInstance,
-        nextNodes: List<String>
+        nextNodes: List<String>,
+        definition: JsonNode
     ) {
         instance.currentNode = nextNodes
+
+        // Resolve and append meaningful nodes to history (skip gateways, but include their resolved targets)
+        val appendable = mutableListOf<String>()
+
+        fun resolveAndCollect(id: String) {
+            val node = definition.get("nodes").find { it.get("id").asText() == id } ?: return
+            when (NodeType.fromString(node.get("type").asText())) {
+                NodeType.ExclusiveGateway, NodeType.ParallelGateway, NodeType.InclusiveGateway -> {
+                    val targets = getNextNodes(node, definition, instance)
+                    targets.forEach { resolveAndCollect(it) }
+                }
+                NodeType.UserTask,
+                NodeType.ServiceTask,
+                NodeType.APITask,
+                NodeType.MessageEvent,
+                NodeType.MessageIntermediateCatchEvent,
+                NodeType.MessageIntermediateThrowEvent,
+                NodeType.ScriptTask,
+                NodeType.EndEvent -> appendable.add(id)
+                else -> { /* ignore other node types */ }
+            }
+        }
+
+        nextNodes.forEach { resolveAndCollect(it) }
+
+        // Avoid consecutive duplicates when appending
+        appendable.forEach { id ->
+            if (instance.nodeHistory.lastOrNull() != id) instance.nodeHistory = instance.nodeHistory + id
+        }
         instance.updatedAt = LocalDateTime.now()
 
         if (nextNodes.isEmpty()) {
@@ -663,7 +756,7 @@ class ProcessService(
             }
 
             // Validate ServiceTask properties
-            if (nodeType == NodeType.ServiceTask) {
+            if (nodeType == NodeType.APITask) {
                 node.get("properties")
                     ?: throw IllegalArgumentException("ServiceTask $id missing 'properties'")
             }

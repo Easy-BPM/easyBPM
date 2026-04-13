@@ -10,6 +10,7 @@ CREATE TABLE "process_instance" (
     "process_definition_id" BIGINT,
     "status" INTEGER,
     "current_nodes" CLOB,
+    "node_history" CLOB,
     "created_at" TIMESTAMP,
     "updated_at" TIMESTAMP
 );

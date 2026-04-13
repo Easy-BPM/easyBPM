@@ -140,6 +140,7 @@ class GatewayService(
                 }
             }
         } catch (ex: Exception) {
+            System.out.println(ex.message)
             throw ex
         }
     }

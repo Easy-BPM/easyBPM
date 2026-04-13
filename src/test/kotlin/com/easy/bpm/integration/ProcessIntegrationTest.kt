@@ -17,6 +17,7 @@ import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabas
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase.Replace
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.mock.mockito.MockBean
+import org.springframework.core.io.ClassPathResource
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.transaction.annotation.Transactional
 
@@ -39,101 +40,14 @@ class ProcessIntegrationTest(
 
     @Test
     fun `start user task process should create task variable and complete process`() {
-        val processDefinitionJson = objectMapper.readTree(
-            """
-            {
-              "processId": "easyProcessOneUserTask",
-              "metadata": {
-                "exportedAt": "2026-04-10T20:04:16.022Z",
-                "version": "1.0"
-              },
-              "variables": [
-                {
-                  "name": "var1",
-                  "type": "string",
-                  "initialValue": "\"test\""
-                },
-                {
-                  "name": "var_2",
-                  "type": "string",
-                  "initialValue": ""
-                }
-              ],
-              "nodes": [
-                {
-                  "id": "start_y8xubc4hb",
-                  "name": "New start",
-                  "type": "StartEvent",
-                  "position": {
-                    "x": 120,
-                    "y": 210
-                  },
-                  "next": [
-                    "user-task_mxtpi3bf9"
-                  ]
-                },
-                {
-                  "id": "user-task_mxtpi3bf9",
-                  "name": "New user task",
-                  "type": "UserTask",
-                  "position": {
-                    "x": 310,
-                    "y": 200
-                  },
-                  "next": [
-                    "end_mh30nsi9i"
-                  ],
-                  "config": {
-                    "inputs": [
-                      {
-                        "targetName": "InternalVAR",
-                        "type": "string",
-                        "source": "variable",
-                        "value": "var1"
-                      }
-                    ],
-                    "outputs": [
-                      {
-                        "sourceName": "InternalVAR",
-                        "type": "string",
-                        "target": "variable",
-                        "value": "var_2"
-                      }
-                    ]
-                  }
-                },
-                {
-                  "id": "end_mh30nsi9i",
-                  "name": "New end",
-                  "type": "EndEvent",
-                  "position": {
-                    "x": 550,
-                    "y": 210
-                  },
-                  "next": []
-                }
-              ],
-              "flows": [
-                {
-                  "from": "start_y8xubc4hb",
-                  "to": "user-task_mxtpi3bf9",
-                  "condition": null
-                },
-                {
-                  "from": "user-task_mxtpi3bf9",
-                  "to": "end_mh30nsi9i",
-                  "condition": null
-                }
-              ]
-            }
-            """
-        )
+        val processDefinitionJson = objectMapper.readTree(ClassPathResource("process-one-user-task.json").inputStream)
 
         val processDefinition = processService.deployProcess(processDefinitionJson)
         val processInstance = processService.startProcessInstance(processDefinition.id)
 
         assertThat(processInstance.status).isEqualTo(ProcessStatus.ACTIVE)
         assertThat(processInstance.currentNode).containsExactly("user-task_mxtpi3bf9")
+        assertThat(processInstance.nodeHistory).containsExactly("user-task_mxtpi3bf9")
 
         val createdTask = taskRepository.findAll().first { it.processInstanceId == processInstance.id }
         assertThat(createdTask.status).isEqualTo(TaskStatus.PENDING)
@@ -155,6 +69,7 @@ class ProcessIntegrationTest(
 
         val completedInstance = processInstanceRepository.findById(processInstance.id).orElseThrow()
         assertThat(completedInstance.status).isEqualTo(ProcessStatus.COMPLETED)
+        assertThat(completedInstance.nodeHistory).contains("user-task_mxtpi3bf9")
 
         val completedTask = taskRepository.findById(createdTask.id).orElseThrow()
         assertThat(completedTask.status).isEqualTo(TaskStatus.COMPLETED)
@@ -162,5 +77,88 @@ class ProcessIntegrationTest(
         val finalProcessVariable = processVariableRepository.findByProcessInstanceIdAndName(processInstance.id, "var_2")
         assertThat(finalProcessVariable).isNotNull
         assertThat(finalProcessVariable?.value?.asText()).isEqualTo("\"test\"")
+    }
+
+
+    @Test
+    fun `exclusive gateway should route to conditional path when condition is met`() {
+        val processDefinitionJson = objectMapper.readTree(ClassPathResource("process-exclusive-gateway.json").inputStream)
+
+        val processDefinition = processService.deployProcess(processDefinitionJson)
+        val processInstance = processService.startProcessInstance(processDefinition.id)
+
+        assertThat(processInstance.status).isEqualTo(ProcessStatus.ACTIVE)
+        assertThat(processInstance.currentNode).containsExactly("user-task_1c50w5biq")
+        assertThat(processInstance.nodeHistory).containsExactly("user-task_1c50w5biq")
+
+        // Complete user task (input mapping sets logicalCondition to true, output mapping copies to process variable)
+        val task = taskRepository.findAll().first { it.processInstanceId == processInstance.id }
+        taskService.completeTask(task.id, "test-user", emptyMap())
+
+        // Process should have moved to the conditional service task path
+        val updatedInstance = processInstanceRepository.findById(processInstance.id).orElseThrow()
+        assertThat(updatedInstance.nodeHistory).containsExactly("user-task_1c50w5biq", "service-task_s53rkrxeh")
+
+        // Verify logicalCondition variable was set to true
+        val logicalConditionVar = processVariableRepository.findByProcessInstanceIdAndName(processInstance.id, "logicalCondition")
+        assertThat(logicalConditionVar).isNotNull
+        assertThat(logicalConditionVar?.value?.asText()).isEqualTo("true")
+
+        // Simulate service task completion
+        processService.handleServiceTaskCompleted(processInstance.id, "service-task_s53rkrxeh", emptyMap())
+
+        // Process should complete
+        val completedInstance = processInstanceRepository.findById(processInstance.id).orElseThrow()
+        assertThat(completedInstance.status).isEqualTo(ProcessStatus.COMPLETED)
+    }
+
+    @Test
+    fun `service task node should set process variables and continue to next step`() {
+        val processDefinitionJson = objectMapper.readTree(ClassPathResource("process-service-task.json").inputStream)
+
+        val processDefinition = processService.deployProcess(processDefinitionJson)
+        val processInstance = processService.startProcessInstance(processDefinition.id)
+
+        assertThat(processInstance.status).isEqualTo(ProcessStatus.COMPLETED)
+        assertThat(processInstance.currentNode).isEmpty()
+        assertThat(processInstance.nodeHistory).containsExactly("service_task_1", "end_service_task")
+
+        // Verify static variable was set
+        val staticVar = processVariableRepository.findByProcessInstanceIdAndName(processInstance.id, "staticVar")
+        assertThat(staticVar).isNotNull
+        assertThat(staticVar?.value?.asText()).isEqualTo("\"static_value\"")
+
+        // Verify dynamic variable was set (copied from sourceVar)
+        val dynamicVar = processVariableRepository.findByProcessInstanceIdAndName(processInstance.id, "dynamicVar")
+        assertThat(dynamicVar).isNotNull
+        assertThat(dynamicVar?.value?.asText()).isEqualTo("\"initial_value\"")
+    }
+
+    @Test
+    fun `service task node should support both static and variable assignment in same node`() {
+        val processDefinitionJson = objectMapper.readTree(ClassPathResource("process-service-task.json").inputStream)
+
+        val processDefinition = processService.deployProcess(processDefinitionJson)
+        val processInstance = processService.startProcessInstance(processDefinition.id)
+
+        assertThat(processInstance.status).isEqualTo(ProcessStatus.COMPLETED)
+
+        // Retrieve all process variables for the instance
+        val variables = processVariableRepository.findByProcessInstanceId(processInstance.id)
+
+        // Should have sourceVar, staticVar, and dynamicVar
+        assertThat(variables).hasSize(3)
+
+        // Check sourceVar is unchanged (initial value)
+        val sourceVar = variables.first { it.name == "sourceVar" }
+        assertThat(sourceVar.value.asText()).isEqualTo("\"initial_value\"")
+
+        // Check staticVar was set
+        val staticVar = variables.first { it.name == "staticVar" }
+        assertThat(staticVar.value.asText()).isEqualTo("\"static_value\"")
+
+        // Check dynamicVar was set from sourceVar
+        val dynamicVar = variables.first { it.name == "dynamicVar" }
+        assertThat(dynamicVar.value.asText()).isEqualTo("\"initial_value\"")
     }
 }
