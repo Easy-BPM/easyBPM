@@ -1,0 +1,86 @@
+{
+  "processId": "easyProcessServiceTask",
+  "metadata": {
+    "exportedAt": "2026-04-10T20:04:16.022Z",
+    "version": "1.0"
+  },
+  "variables": [
+    {
+      "name": "sourceVar",
+      "type": "string",
+      "initialValue": "\"initial_value\""
+    },
+    {
+      "name": "staticVar",
+      "type": "string",
+      "initialValue": ""
+    },
+    {
+      "name": "dynamicVar",
+      "type": "string",
+      "initialValue": ""
+    }
+  ],
+  "nodes": [
+    {
+      "id": "start_service_task",
+      "name": "Start",
+      "type": "StartEvent",
+      "position": {
+        "x": 120,
+        "y": 210
+      },
+      "next": [
+        "service_task_1"
+      ]
+    },
+    {
+      "id": "service_task_1",
+      "name": "Set Variables",
+      "type": "ServiceTask",
+      "position": {
+        "x": 310,
+        "y": 200
+      },
+      "next": [
+        "end_service_task"
+      ],
+      "config": {
+        "variables": [
+          {
+            "name": "staticVar",
+            "source": "static",
+            "value": "\"static_value\""
+          },
+          {
+            "name": "dynamicVar",
+            "source": "variable",
+            "value": "sourceVar"
+          }
+        ]
+      }
+    },
+    {
+      "id": "end_service_task",
+      "name": "End",
+      "type": "EndEvent",
+      "position": {
+        "x": 550,
+        "y": 210
+      },
+      "next": []
+    }
+  ],
+  "flows": [
+    {
+      "from": "start_service_task",
+      "to": "service_task_1",
+      "condition": null
+    },
+    {
+      "from": "service_task_1",
+      "to": "end_service_task",
+      "condition": null
+    }
+  ]
+}

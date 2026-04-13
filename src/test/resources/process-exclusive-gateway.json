@@ -1,0 +1,135 @@
+{
+  "processId": "process_1776104838556",
+  "metadata": {
+    "exportedAt": "2026-04-13T18:34:10.168Z",
+    "version": "1.0"
+  },
+  "variables": [
+    {
+      "name": "logicalCondition",
+      "type": "boolean",
+      "initialValue": "false"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "start_4q0ks364e",
+      "name": "Start",
+      "type": "StartEvent",
+      "position": {
+        "x": 50,
+        "y": 230
+      },
+      "next": [
+        "user-task_1c50w5biq"
+      ]
+    },
+    {
+      "id": "user-task_1c50w5biq",
+      "name": "User Task 1",
+      "type": "UserTask",
+      "position": {
+        "x": 190,
+        "y": 220
+      },
+      "next": [
+        "gateway_moramnbpf"
+      ],
+      "config": {
+        "inputs": [],
+        "outputs": [
+          {
+            "sourceName": "userInput",
+            "target": "variable",
+            "value": "logicalCondition"
+          }
+        ]
+      }
+    },
+    {
+      "id": "gateway_moramnbpf",
+      "name": "isTrue?",
+      "type": "ExclusiveGateway",
+      "position": {
+        "x": 370,
+        "y": 230
+      },
+      "next": [
+        "service-task_l7nkrd4ut",
+        "service-task_gxa9wmxsw"
+      ]
+    },
+    {
+      "id": "service-task_l7nkrd4ut",
+      "name": "Expected result",
+      "type": "ServiceTask",
+      "position": {
+        "x": 490,
+        "y": 100
+      },
+      "next": [
+        "end_phhuhp25e"
+      ],
+      "service": {
+        "method": "GET"
+      }
+    },
+    {
+      "id": "service-task_gxa9wmxsw",
+      "name": "Not Expected Result",
+      "type": "ServiceTask",
+      "position": {
+        "x": 490,
+        "y": 320
+      },
+      "next": [
+        "end_phhuhp25e"
+      ],
+      "service": {
+        "method": "GET"
+      }
+    },
+    {
+      "id": "end_phhuhp25e",
+      "name": "New end",
+      "type": "EndEvent",
+      "position": {
+        "x": 690,
+        "y": 200
+      },
+      "next": []
+    }
+  ],
+  "flows": [
+    {
+      "from": "start_4q0ks364e",
+      "to": "user-task_1c50w5biq",
+      "condition": null
+    },
+    {
+      "from": "user-task_1c50w5biq",
+      "to": "gateway_moramnbpf",
+      "condition": null
+    },
+    {
+      "from": "gateway_moramnbpf",
+      "to": "service-task_l7nkrd4ut",
+      "condition": "${logicalCondition} == true"
+    },
+    {
+      "from": "service-task_l7nkrd4ut",
+      "to": "end_phhuhp25e",
+      "condition": null
+    },
+    {
+      "from": "service-task_gxa9wmxsw",
+      "to": "end_phhuhp25e",
+      "condition": null
+    },
+    {
+      "from": "gateway_moramnbpf",
+      "to": "service-task_gxa9wmxsw",
+      "condition": null
+    }
+  ]
+}
