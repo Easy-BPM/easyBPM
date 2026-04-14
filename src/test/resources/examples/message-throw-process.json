@@ -1,0 +1,70 @@
+{
+  "processId": "process_1776188076105",
+  "metadata": {
+    "exportedAt": "2026-04-14T17:38:08.106Z",
+    "version": "1.0"
+  },
+  "variables": [],
+  "nodes": [
+    {
+      "id": "start_clw9lbmli",
+      "name": "New start",
+      "type": "StartEvent",
+      "position": {
+        "x": 140,
+        "y": 280
+      },
+      "next": [
+        "message-intermediate-throw_2fyrz45o4"
+      ]
+    },
+    {
+      "id": "message-intermediate-throw_2fyrz45o4",
+      "name": "New message intermediate-throw",
+      "type": "MessageIntermediateThrowEvent",
+      "position": {
+        "x": 300,
+        "y": 280
+      },
+      "next": [
+        "end_xndbojn7m"
+      ],
+      "message": {
+        "name": "Order",
+        "correlationKeys": [
+          "004"
+        ],
+            "payload": [
+              {
+                "targetName": "processMessage",
+                "type": "string",
+                "source": "static",
+                "value": "test"
+              }
+            ]
+      }
+    },
+    {
+      "id": "end_xndbojn7m",
+      "name": "New end",
+      "type": "EndEvent",
+      "position": {
+        "x": 440,
+        "y": 280
+      },
+      "next": []
+    }
+  ],
+  "flows": [
+    {
+      "from": "start_clw9lbmli",
+      "to": "message-intermediate-throw_2fyrz45o4",
+      "condition": null
+    },
+    {
+      "from": "message-intermediate-throw_2fyrz45o4",
+      "to": "end_xndbojn7m",
+      "condition": null
+    }
+  ]
+}

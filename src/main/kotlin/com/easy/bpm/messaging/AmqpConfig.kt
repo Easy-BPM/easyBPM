@@ -15,14 +15,18 @@ class AmqpConfig {
         const val EXCHANGE = "bpm.exchange"
         const val SERVICE_TASK_REQUESTS_QUEUE = "service-task-requests"
         const val SERVICE_TASK_COMPLETIONS_QUEUE = "service-task-completions"
+        const val SERVICE_TASK_DLQ = "service-task-requests.dlq"
         const val REQUEST_ROUTING_KEY = "service.task.request"
         const val COMPLETION_ROUTING_KEY = "service.task.completed"
+        const val DLQ_ROUTING_KEY = "service.task.request.dlq"
         const val TASK_CREATED_QUEUE = "task-created"
         const val TASK_COMPLETED_QUEUE = "task-completed"
         const val TASK_CREATED_ROUTING_KEY = "task.created"
         const val TASK_COMPLETED_ROUTING_KEY = "task.completed"
         const val MESSAGE_EVENTS_QUEUE = "message-events"
         const val MESSAGE_EVENTS_ROUTING_KEY = "message.event.received"
+        const val MAX_RETRIES = 3
+        const val INITIAL_RETRY_DELAY_MS = 5000
     }
 
     @Bean
@@ -30,6 +34,9 @@ class AmqpConfig {
 
     @Bean
     fun serviceTaskCompletionsQueue() = Queue(SERVICE_TASK_COMPLETIONS_QUEUE, true)
+
+    @Bean
+    fun serviceTaskDlq() = Queue(SERVICE_TASK_DLQ, true)
 
     @Bean
     fun taskCreatedQueue() = Queue(TASK_CREATED_QUEUE, true)
@@ -50,6 +57,10 @@ class AmqpConfig {
     @Bean
     fun bindingCompletions(@Qualifier("serviceTaskCompletionsQueue") queue: Queue, exchange: TopicExchange): Binding =
         BindingBuilder.bind(queue).to(exchange).with(COMPLETION_ROUTING_KEY)
+
+    @Bean
+    fun bindingDlq(@Qualifier("serviceTaskDlq") queue: Queue, exchange: TopicExchange): Binding =
+        BindingBuilder.bind(queue).to(exchange).with(DLQ_ROUTING_KEY)
 
     @Bean
     fun bindingTaskCreated(@Qualifier("taskCreatedQueue") queue: Queue, exchange: TopicExchange): Binding =

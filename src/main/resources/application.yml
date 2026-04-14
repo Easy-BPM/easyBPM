@@ -25,6 +25,36 @@ spring:
 server:
   port: 8085
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    distribution:
+      percentiles-histogram:
+        process.execution.duration: true
+        node.execution.duration: true
+        task.completion.duration: true
+        service.task.execution.duration: true
+
+logging:
+  level:
+    root: INFO
+    com.easy.bpm: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %X{correlationId} - %msg%n"
+  file:
+    name: logs/bpm.log
+    max-size: 10MB
+    max-history: 10
+
 springdoc:
   api-docs:
     path: /v3/api-docs

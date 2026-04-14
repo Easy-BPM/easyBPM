@@ -1,0 +1,14 @@
+{
+  "id": "readme-main",
+  "title": "Easy BPM — Local dev notes",
+  "description": "Overview",
+  "source": "@site/docs/readme-main.md",
+  "sourceDirName": ".",
+  "slug": "/readme-main",
+  "permalink": "/docs/readme-main",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {}
+}

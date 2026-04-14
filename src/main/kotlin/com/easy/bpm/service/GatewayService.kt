@@ -21,6 +21,40 @@ class GatewayService(
         val nodeType = NodeType.fromString(node.get("type").asText())
 
         if (nodeType == NodeType.ParallelGateway) {
+            val nodeId = node.get("id").asText()
+            // Check if this parallel gateway is being used as a JOIN (convergence point)
+            val flows = definition.get("flows") ?: return node.get("next")?.map { it.asText() } ?: emptyList()
+            val incomingFlows = flows.filter { 
+                (it.get("target") ?: it.get("to"))?.asText() == nodeId 
+            }
+            
+            // If there are multiple incoming flows, this is a join gateway that needs to synchronize
+            if (incomingFlows.size > 1) {
+                val tokenVarName = "__pg_${nodeId}_arrivals"
+                val existing = processVariableRepository.findByProcessInstanceIdAndName(instance.id, tokenVarName)
+                val currentCount = existing?.value?.asInt() ?: 0
+                val newCount = currentCount + 1
+
+                if (existing != null) {
+                    existing.value = objectMapper.valueToTree(newCount)
+                    processVariableRepository.save(existing)
+                } else {
+                    processVariableRepository.save(ProcessVariable(processInstanceId = instance.id, name = tokenVarName, value = objectMapper.valueToTree(newCount)))
+                }
+
+                // Don't proceed until all paths have arrived
+                if (newCount < incomingFlows.size) {
+                    return emptyList()  // Wait for other paths
+                } else {
+                    // All paths arrived, reset and proceed
+                    val reset = processVariableRepository.findByProcessInstanceIdAndName(instance.id, tokenVarName)
+                    if (reset != null) {
+                        reset.value = objectMapper.valueToTree(0)
+                        processVariableRepository.save(reset)
+                    }
+                }
+            }
+            
             return node.get("next")?.map { it.asText() } ?: emptyList()
         }
 

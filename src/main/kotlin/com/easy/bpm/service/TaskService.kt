@@ -32,7 +32,8 @@ class TaskService(
         ,
     private val rabbitPublisher: com.easy.bpm.messaging.RabbitPublisher,
     private val gatewayService: GatewayService,
-    private val messageSubscriptionService: MessageSubscriptionService
+    private val messageSubscriptionService: MessageSubscriptionService,
+    private val metricsService: MetricsService
 ) {
 
     /* =========================
@@ -41,6 +42,7 @@ class TaskService(
 
     @Transactional
     fun completeTask(taskId: Long, assignee: String, variables: Map<String, Any>) {
+        val startTime = System.currentTimeMillis()
 
         val task = getActiveTask(taskId)
         val instance = getProcessInstance(task.processInstanceId)
@@ -59,6 +61,9 @@ class TaskService(
 
         // 4️⃣ Atualizar Task
         completeTaskEntity(task, assignee)
+        metricsService.recordTaskCompleted()
+        val duration = System.currentTimeMillis() - startTime
+        metricsService.recordTaskExecution(duration)
 
         // Publish TaskCompleted event (include provided variables)
         try {
@@ -85,14 +90,25 @@ class TaskService(
        QUERY METHODS
      ========================= */
 
-    fun getTasks(pageable: Pageable): Page<Task> =
-        taskRepository.findAll(pageable)
+    fun getTasks(pageable: Pageable): Page<Task> {
+        val startTime = System.currentTimeMillis()
+        val result = taskRepository.findAll(pageable)
+        val duration = System.currentTimeMillis() - startTime
+        metricsService.recordTaskQueryDuration(duration)
+        return result
+    }
 
-    fun getTaskById(id: Long): Task? =
-        taskRepository.findById(id).orElse(null)
+    fun getTaskById(id: Long): Task? {
+        val startTime = System.currentTimeMillis()
+        val result = taskRepository.findById(id).orElse(null)
+        val duration = System.currentTimeMillis() - startTime
+        metricsService.recordTaskQueryDuration(duration)
+        return result
+    }
 
-    fun searchTasks(assignee: String?, status: TaskStatus?, pageable: Pageable): Page<Task> =
-        when {
+    fun searchTasks(assignee: String?, status: TaskStatus?, pageable: Pageable): Page<Task> {
+        val startTime = System.currentTimeMillis()
+        val result = when {
             assignee != null && status != null ->
                 taskRepository.findByAssigneeAndStatus(assignee, status, pageable)
 
@@ -104,6 +120,10 @@ class TaskService(
 
             else -> taskRepository.findAll(pageable)
         }
+        val duration = System.currentTimeMillis() - startTime
+        metricsService.recordTaskQueryDuration(duration)
+        return result
+    }
 
     /* =========================
        EXECUTION FLOW

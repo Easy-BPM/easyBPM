@@ -1,0 +1,121 @@
+{
+  "processId": "process_1776188076105",
+  "metadata": {
+    "exportedAt": "2026-04-14T18:53:38.963Z",
+    "version": "1.0"
+  },
+  "variables": [],
+  "nodes": [
+    {
+      "id": "start_clw9lbmli",
+      "name": "New start",
+      "type": "StartEvent",
+      "position": {
+        "x": 60,
+        "y": 280
+      },
+      "next": [
+        "parallel-gateway_wqr1sso6h"
+      ]
+    },
+    {
+      "id": "parallel-gateway_wqr1sso6h",
+      "name": "New parallel gateway",
+      "type": "ParallelGateway",
+      "position": {
+        "x": 200,
+        "y": 280
+      },
+      "next": [
+        "service-task_0y3nou13o",
+        "service-task_w85hsw0qz"
+      ]
+    },
+    {
+      "id": "parallel-gateway_p66bh45c8",
+      "name": "New parallel gateway",
+      "type": "ParallelGateway",
+      "position": {
+        "x": 480,
+        "y": 280
+      },
+      "next": [
+        "end_dlv3vipnp"
+      ]
+    },
+    {
+      "id": "service-task_0y3nou13o",
+      "name": "New service task",
+      "type": "ServiceTask",
+      "position": {
+        "x": 290,
+        "y": 190
+      },
+      "next": [
+        "parallel-gateway_p66bh45c8"
+      ],
+      "config": {
+        "inputs": [],
+        "outputs": []
+      }
+    },
+    {
+      "id": "service-task_w85hsw0qz",
+      "name": "New service task",
+      "type": "ServiceTask",
+      "position": {
+        "x": 300,
+        "y": 390
+      },
+      "next": [
+        "parallel-gateway_p66bh45c8"
+      ],
+      "config": {
+        "inputs": [],
+        "outputs": []
+      }
+    },
+    {
+      "id": "end_dlv3vipnp",
+      "name": "New end",
+      "type": "EndEvent",
+      "position": {
+        "x": 630,
+        "y": 280
+      },
+      "next": []
+    }
+  ],
+  "flows": [
+    {
+      "from": "start_clw9lbmli",
+      "to": "parallel-gateway_wqr1sso6h",
+      "condition": null
+    },
+    {
+      "from": "parallel-gateway_wqr1sso6h",
+      "to": "service-task_0y3nou13o",
+      "condition": null
+    },
+    {
+      "from": "parallel-gateway_wqr1sso6h",
+      "to": "service-task_w85hsw0qz",
+      "condition": null
+    },
+    {
+      "from": "service-task_0y3nou13o",
+      "to": "parallel-gateway_p66bh45c8",
+      "condition": null
+    },
+    {
+      "from": "service-task_w85hsw0qz",
+      "to": "parallel-gateway_p66bh45c8",
+      "condition": null
+    },
+    {
+      "from": "parallel-gateway_p66bh45c8",
+      "to": "end_dlv3vipnp",
+      "condition": null
+    }
+  ]
+}

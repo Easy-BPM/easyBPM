@@ -1,0 +1,156 @@
+{
+  "pluginId": "default",
+  "version": "current",
+  "label": "Next",
+  "banner": null,
+  "badge": false,
+  "noIndex": false,
+  "className": "docs-version-current",
+  "isLast": true,
+  "docsSidebars": {
+    "docs": [
+      {
+        "type": "link",
+        "label": "Overview",
+        "href": "/docs/overview",
+        "docId": "overview",
+        "unlisted": false
+      },
+      {
+        "type": "link",
+        "label": "Getting Started",
+        "href": "/docs/getting-started",
+        "docId": "getting-started",
+        "unlisted": false
+      },
+      {
+        "type": "link",
+        "label": "Developer Quick Reference",
+        "href": "/docs/developer-quick-reference",
+        "docId": "developer-quick-reference",
+        "unlisted": false
+      },
+      {
+        "type": "link",
+        "label": "BPM Engine - Implementation Status",
+        "href": "/docs/implementation-status",
+        "docId": "implementation-status",
+        "unlisted": false
+      },
+      {
+        "type": "link",
+        "label": "Features & Architecture",
+        "href": "/docs/features-architecture",
+        "docId": "features-architecture",
+        "unlisted": false
+      },
+      {
+        "type": "link",
+        "label": "API & Controllers",
+        "href": "/docs/api-controllers",
+        "docId": "api-controllers",
+        "unlisted": false
+      },
+      {
+        "type": "link",
+        "label": "Metrics & Observability (Phase 3)",
+        "href": "/docs/metrics-observability",
+        "docId": "metrics-observability",
+        "unlisted": false
+      },
+      {
+        "type": "link",
+        "label": "Message Events (Catch & Throw)",
+        "href": "/docs/message-events",
+        "docId": "message-events",
+        "unlisted": false
+      },
+      {
+        "type": "link",
+        "label": "Integration Testing",
+        "href": "/docs/integration-testing",
+        "docId": "integration-testing",
+        "unlisted": false
+      },
+      {
+        "type": "link",
+        "label": "Examples",
+        "href": "/docs/examples",
+        "docId": "examples",
+        "unlisted": false
+      }
+    ]
+  },
+  "docs": {
+    "api-controllers": {
+      "id": "api-controllers",
+      "title": "API & Controllers",
+      "description": "The Easy BPM Engine provides REST endpoints for managing processes, tasks, and forms. All endpoints are documented with OpenAPI/Swagger integration.",
+      "sidebar": "docs"
+    },
+    "developer-quick-reference": {
+      "id": "developer-quick-reference",
+      "title": "Developer Quick Reference",
+      "description": "Quick guide for developers working with the Easy BPM Engine.",
+      "sidebar": "docs"
+    },
+    "examples": {
+      "id": "examples",
+      "title": "Examples",
+      "description": "Find example process definitions in src/main/resources/examples/.",
+      "sidebar": "docs"
+    },
+    "examples-readme": {
+      "id": "examples-readme",
+      "title": "BPM Process Examples",
+      "description": "This directory contains example BPMN process definitions that demonstrate various BPM engine capabilities, with focus on message event usage."
+    },
+    "features-architecture": {
+      "id": "features-architecture",
+      "title": "Features & Architecture",
+      "description": "Easy BPM is a Spring Boot-based Business Process Management engine built in Kotlin. It provides a complete solution for deploying, executing, and monitoring BPMN-style processes.",
+      "sidebar": "docs"
+    },
+    "getting-started": {
+      "id": "getting-started",
+      "title": "Getting Started",
+      "description": "Prerequisites",
+      "sidebar": "docs"
+    },
+    "implementation-status": {
+      "id": "implementation-status",
+      "title": "BPM Engine - Implementation Status",
+      "description": "Complete status of the Easy BPM Engine implementation including Phase 1 (Data Integrity), Phase 2 (Worker Architecture), and Phase 3 (Observability).",
+      "sidebar": "docs"
+    },
+    "integration-testing": {
+      "id": "integration-testing",
+      "title": "Integration Testing",
+      "description": "Integration tests validate message event handling and process orchestration.",
+      "sidebar": "docs"
+    },
+    "message-events": {
+      "id": "message-events",
+      "title": "Message Events (Catch & Throw)",
+      "description": "Overview",
+      "sidebar": "docs"
+    },
+    "metrics-observability": {
+      "id": "metrics-observability",
+      "title": "Metrics & Observability (Phase 3)",
+      "description": "The Easy BPM Engine includes comprehensive observability features using Spring Boot Actuator and Micrometer. Monitor process execution, task performance, and system health in real-time.",
+      "sidebar": "docs"
+    },
+    "overview": {
+      "id": "overview",
+      "title": "Overview",
+      "description": "Easy BPM is a Spring Boot-based BPM engine supporting BPMN-style process orchestration, message events, and integration with external systems. This documentation site provides guides, examples, and API references for developers and users.",
+      "sidebar": "docs"
+    },
+    "readme-main": {
+      "id": "readme-main",
+      "title": "Easy BPM — Local dev notes",
+      "description": "Overview"
+    }
+  }
+}

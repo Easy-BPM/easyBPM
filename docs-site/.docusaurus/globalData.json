@@ -1,0 +1,86 @@
+{
+  "docusaurus-plugin-content-docs": {
+    "default": {
+      "path": "/docs",
+      "versions": [
+        {
+          "name": "current",
+          "label": "Next",
+          "isLast": true,
+          "path": "/docs",
+          "mainDocId": "overview",
+          "docs": [
+            {
+              "id": "api-controllers",
+              "path": "/docs/api-controllers",
+              "sidebar": "docs"
+            },
+            {
+              "id": "developer-quick-reference",
+              "path": "/docs/developer-quick-reference",
+              "sidebar": "docs"
+            },
+            {
+              "id": "examples",
+              "path": "/docs/examples",
+              "sidebar": "docs"
+            },
+            {
+              "id": "examples-readme",
+              "path": "/docs/examples-readme"
+            },
+            {
+              "id": "features-architecture",
+              "path": "/docs/features-architecture",
+              "sidebar": "docs"
+            },
+            {
+              "id": "getting-started",
+              "path": "/docs/getting-started",
+              "sidebar": "docs"
+            },
+            {
+              "id": "implementation-status",
+              "path": "/docs/implementation-status",
+              "sidebar": "docs"
+            },
+            {
+              "id": "integration-testing",
+              "path": "/docs/integration-testing",
+              "sidebar": "docs"
+            },
+            {
+              "id": "message-events",
+              "path": "/docs/message-events",
+              "sidebar": "docs"
+            },
+            {
+              "id": "metrics-observability",
+              "path": "/docs/metrics-observability",
+              "sidebar": "docs"
+            },
+            {
+              "id": "overview",
+              "path": "/docs/overview",
+              "sidebar": "docs"
+            },
+            {
+              "id": "readme-main",
+              "path": "/docs/readme-main"
+            }
+          ],
+          "draftIds": [],
+          "sidebars": {
+            "docs": {
+              "link": {
+                "path": "/docs/overview",
+                "label": "overview"
+              }
+            }
+          }
+        }
+      ],
+      "breadcrumbs": true
+    }
+  }
+}

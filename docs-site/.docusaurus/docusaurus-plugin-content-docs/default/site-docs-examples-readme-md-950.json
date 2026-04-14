@@ -1,0 +1,14 @@
+{
+  "id": "examples-readme",
+  "title": "BPM Process Examples",
+  "description": "This directory contains example BPMN process definitions that demonstrate various BPM engine capabilities, with focus on message event usage.",
+  "source": "@site/docs/examples-readme.md",
+  "sourceDirName": ".",
+  "slug": "/examples-readme",
+  "permalink": "/docs/examples-readme",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {}
+}

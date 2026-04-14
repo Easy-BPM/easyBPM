@@ -70,3 +70,44 @@ Next steps
 - Harden worker (retries, DLQ, idempotency keys).
 - Add health checks and metrics for both services.
 - Optionally split services and DB ownership when ready.
+
+# Message Events: Catch & Throw
+
+## Overview
+This BPM engine supports BPMN-style Message Catch and Message Throw events for process orchestration and external system integration. Message events enable asynchronous communication and process coordination using message name and correlation key.
+
+## How It Works
+- **Message Catch Event**: Pauses a process instance, waiting for a message with a specific name and correlation key.
+- **Message Throw Event**: Sends a message with a name, correlation key, and optional payload. Any waiting process instance with a matching catch event resumes.
+- **Correlation**: Matching is performed on both `messageName` and `correlationKey`. The correlation key can be a literal or a variable expression.
+
+## Example Usage
+See `src/main/resources/examples/message-catch-process.json` and `message-throw-process.json` for minimal working examples.
+
+- Deploy both processes via the API or UI.
+- Start an instance of the catch process (it will wait at the message event).
+- Start an instance of the throw process (it will send the message and complete).
+- The catch process will resume and complete when the message is delivered.
+
+## Integration Testing
+Integration tests (see `ProcessIntegrationTest`) validate:
+- Message Catch event pauses the process as expected.
+- Message Throw event sends a message with the correct correlation key.
+- The engine resumes and completes the waiting process instance when the message is delivered.
+
+## Example API Call
+Send a message to resume a process:
+```json
+POST /processes/messages
+{
+  "messageName": "Order",
+  "correlationKey": "004",
+  "variables": {}
+}
+```
+
+## References
+- Example definitions: `src/main/resources/examples/`
+- Integration tests: `src/test/kotlin/com/easy/bpm/integration/ProcessIntegrationTest.kt`
+
+---

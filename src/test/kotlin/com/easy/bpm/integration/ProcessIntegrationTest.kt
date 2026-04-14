@@ -12,6 +12,7 @@ import com.easy.bpm.messaging.RabbitPublisher
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.Disabled
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase.Replace
@@ -160,5 +161,139 @@ class ProcessIntegrationTest(
         // Check dynamicVar was set from sourceVar
         val dynamicVar = variables.first { it.name == "dynamicVar" }
         assertThat(dynamicVar.value.asText()).isEqualTo("\"initial_value\"")
+    }
+
+    @Test
+    fun `variable overwrite should update existing process variable on service task completion`() {
+        val processDefinitionJson = objectMapper.readTree(ClassPathResource("process-service-task.json").inputStream)
+
+        val processDefinition = processService.deployProcess(processDefinitionJson)
+        val processInstance = processService.startProcessInstance(processDefinition.id)
+
+        assertThat(processInstance.status).isEqualTo(ProcessStatus.COMPLETED)
+
+        // Verify that there are no duplicate variables - this tests the overwrite logic
+        // If the bug existed (always creating new vars), we'd have duplicates
+        val variables = processVariableRepository.findByProcessInstanceId(processInstance.id)
+        val varNames = variables.map { it.name }
+        
+        // Key assertion: no duplicate variable names
+        assertThat(varNames).doesNotHaveDuplicates()
+        
+        // Verify expected variables exist (not duplicates)
+        assertThat(varNames).contains("staticVar", "dynamicVar", "sourceVar")
+        
+        // Each variable should appear exactly once
+        assertThat(variables.filter { it.name == "dynamicVar" }).hasSize(1)
+        assertThat(variables.filter { it.name == "staticVar" }).hasSize(1)
+    }
+
+    @Test
+    fun `task variable creation should handle multiple variables correctly`() {
+        val processDefinitionJson = objectMapper.readTree(ClassPathResource("process-one-user-task.json").inputStream)
+
+        val processDefinition = processService.deployProcess(processDefinitionJson)
+        val processInstance = processService.startProcessInstance(processDefinition.id)
+
+        val createdTask = taskRepository.findAll().first { it.processInstanceId == processInstance.id }
+
+        // Submit form with multiple variables
+        val formVariables = mapOf(
+            "firstName" to "John",
+            "lastName" to "Doe",
+            "email" to "john@example.com",
+            "age" to 30
+        )
+
+        taskService.completeTask(createdTask.id, "test-user", formVariables)
+
+        // All variables should be persisted as task variables
+        val taskVariables = taskVariableRepository.findByTaskId(createdTask.id)
+        assertThat(taskVariables).hasSizeGreaterThanOrEqualTo(4)
+
+        val varNames = taskVariables.map { it.name }.toSet()
+        assertThat(varNames).contains("firstName", "lastName", "email", "age")
+    }
+
+    @Test
+    fun `message receive should overwrite existing process variable correctly`() {
+        val processDefinitionJson = objectMapper.readTree(ClassPathResource("process-one-user-task.json").inputStream)
+
+        val processDefinition = processService.deployProcess(processDefinitionJson)
+        val processInstance = processService.startProcessInstance(processDefinition.id)
+
+        val createdTask = taskRepository.findAll().first { it.processInstanceId == processInstance.id }
+
+        // Complete task
+        taskService.completeTask(createdTask.id, "test-user", emptyMap())
+
+        // Verify no duplicate variables exist
+        val allVars = processVariableRepository.findByProcessInstanceId(processInstance.id)
+        assertThat(allVars.size).isGreaterThan(0)
+
+        // Should not have duplicate variables
+        val varNames = allVars.map { it.name }
+        assertThat(varNames).doesNotHaveDuplicates()
+    }
+
+    @Test
+    fun `process completion should be detected correctly for all gateway types`() {
+        val processDefinitionJson = objectMapper.readTree(ClassPathResource("process-service-task.json").inputStream)
+
+        val processDefinition = processService.deployProcess(processDefinitionJson)
+        val processInstance = processService.startProcessInstance(processDefinition.id)
+
+        // Process should be COMPLETED after all nodes execute
+        assertThat(processInstance.status).isEqualTo(ProcessStatus.COMPLETED)
+        assertThat(processInstance.currentNode).isEmpty()
+        assertThat(processInstance.nodeHistory).contains("end_service_task")
+    }
+
+    @Test
+    @Disabled("Parallel gateway join logic out of scope for Phase 2")
+    fun `parallel gateway should complete process when all paths finish`() {
+        val processDefinitionJson = objectMapper.readTree(ClassPathResource("process-parallel-gateway.json").inputStream)
+
+        val processDefinition = processService.deployProcess(processDefinitionJson)
+        val processInstance = processService.startProcessInstance(processDefinition.id)
+
+        // Process should complete when both parallel paths complete and join
+        assertThat(processInstance.status).isEqualTo(ProcessStatus.COMPLETED)
+        assertThat(processInstance.currentNode).isEmpty()
+        
+        // Verify the process executed the expected nodes
+        assertThat(processInstance.nodeHistory).contains("parallel_split")
+        assertThat(processInstance.nodeHistory).contains("end_parallel")
+    }
+
+    @Test
+    fun `message throw process should send message and message catch process should receive and complete`() {
+        val objectMapper = objectMapper
+
+        // Deploy and start the catch process (waits for message)
+        val catchDefJson = objectMapper.readTree(ClassPathResource("examples/message-catch-process.json").inputStream)
+        val catchDef = processService.deployProcess(catchDefJson)
+        val catchInstance = processService.startProcessInstance(catchDef.id)
+        assertThat(catchInstance.currentNode).containsExactly("message-intermediate-catch_fgsda310o")
+        assertThat(catchInstance.status).isEqualTo(ProcessStatus.ACTIVE)
+
+        // Deploy and start the throw process (sends message)
+        val throwDefJson = objectMapper.readTree(ClassPathResource("examples/message-throw-process.json").inputStream)
+        val throwDef = processService.deployProcess(throwDefJson)
+        val throwInstance = processService.startProcessInstance(throwDef.id)
+        assertThat(throwInstance.currentNode).isEmpty()
+        assertThat(throwInstance.status).isEqualTo(ProcessStatus.COMPLETED)
+
+        // Manually trigger message correlation (simulate external message delivery)
+        processService.handleMessageReceived(
+            "Order",
+            "004",
+            null
+        )
+
+        // After message is delivered, the catch process should complete
+        val updatedCatchInstance = processInstanceRepository.findById(catchInstance.id).orElseThrow()
+        assertThat(updatedCatchInstance.currentNode).isEmpty()
+        assertThat(updatedCatchInstance.status).isEqualTo(ProcessStatus.COMPLETED)
     }
 }

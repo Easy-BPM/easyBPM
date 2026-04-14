@@ -1,0 +1,69 @@
+{
+  "processId": "process_177618rrr",
+  "metadata": {
+    "exportedAt": "2026-04-14T17:39:35.050Z",
+    "version": "1.0"
+  },
+  "variables": [
+    {
+      "name": "resultMessage",
+      "type": "string",
+      "initialValue": ""
+    }
+  ],
+  "nodes": [
+    {
+      "id": "start_clw9lbmli",
+      "name": "New start",
+      "type": "StartEvent",
+      "position": {
+        "x": 140,
+        "y": 280
+      },
+      "next": [
+        "message-intermediate-catch_fgsda310o"
+      ]
+    },
+    {
+      "id": "end_xndbojn7m",
+      "name": "New end",
+      "type": "EndEvent",
+      "position": {
+        "x": 440,
+        "y": 280
+      },
+      "next": []
+    },
+    {
+      "id": "message-intermediate-catch_fgsda310o",
+      "name": "New message intermediate-catch",
+      "type": "MessageIntermediateCatchEvent",
+      "position": {
+        "x": 290,
+        "y": 280
+      },
+      "next": [
+        "end_xndbojn7m"
+      ],
+      "message": {
+        "name": "Order",
+        "correlationKeys": [
+          "004"
+        ],
+            "payload": []
+      }
+    }
+  ],
+  "flows": [
+    {
+      "from": "start_clw9lbmli",
+      "to": "message-intermediate-catch_fgsda310o",
+      "condition": null
+    },
+    {
+      "from": "message-intermediate-catch_fgsda310o",
+      "to": "end_xndbojn7m",
+      "condition": null
+    }
+  ]
+}

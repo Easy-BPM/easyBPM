@@ -33,7 +33,8 @@ class ProcessService(
     private val objectMapper: ObjectMapper,
     private val rabbitPublisher: com.easy.bpm.messaging.RabbitPublisher,
     private val gatewayService: GatewayService,
-    private val messageSubscriptionService: MessageSubscriptionService
+    private val messageSubscriptionService: MessageSubscriptionService,
+    private val metricsService: MetricsService
 ) {
 
     /* =========================
@@ -66,6 +67,8 @@ class ProcessService(
 
     @Transactional
     fun startProcessInstance(processDefinitionId: Long): ProcessInstance {
+        val startTime = System.currentTimeMillis()
+        
         val definition = processDefinitionRepository.findById(processDefinitionId)
             .orElseThrow { IllegalArgumentException("Process definition not found") }
 
@@ -79,6 +82,8 @@ class ProcessService(
             )
         )
 
+        metricsService.recordProcessStarted()
+
         initializeProcessVariables(instance, json)
 
         val startNodes = getStartNodes(instance, json)
@@ -88,6 +93,9 @@ class ProcessService(
         processInstanceRepository.save(instance)
 
         executeNodes(startNodes, instance, json)
+
+        val duration = System.currentTimeMillis() - startTime
+        metricsService.recordProcessExecution(duration)
 
         return instance
     }
@@ -121,7 +129,9 @@ class ProcessService(
         node: JsonNode,
         definition: JsonNode
     ) {
+        val startTime = System.currentTimeMillis()
         val nodeType = NodeType.fromString(node.get("type").asText())
+        
         when (nodeType) {
             NodeType.UserTask -> handleUserTask(instance, node)
             NodeType.APITask -> handleAPITask(instance, node)
@@ -137,6 +147,9 @@ class ProcessService(
             }
             else -> { /* no-op for other node types */ }
         }
+        
+        val duration = System.currentTimeMillis() - startTime
+        metricsService.recordNodeExecution(duration, nodeType.toString())
     }
 
     private fun handleUserTask(
@@ -152,6 +165,8 @@ class ProcessService(
                 formId = form?.id
             )
         )
+
+        metricsService.recordTaskCreated(task.nodeId)
 
         // Publish TaskCreated event
         try {
@@ -408,17 +423,28 @@ class ProcessService(
 
     @Transactional
     fun handleServiceTaskCompleted(processInstanceId: Long, nodeId: String, outputs: Map<String, String>) {
+        val startTime = System.currentTimeMillis()
+        
         val instance = processInstanceRepository.findById(processInstanceId)
             .orElseThrow { IllegalArgumentException("Process instance not found") }
 
-        // Save outputs as process variables
+        // Save or update outputs as process variables
         outputs.forEach { (k, v) ->
-            val newVar = ProcessVariable(
-                processInstanceId = instance.id,
-                name = k,
-                value = objectMapper.valueToTree(v)
-            )
-            processVariableRepository.save(newVar)
+            val value = objectMapper.readTree(v)
+            val existing = processVariableRepository.findByProcessInstanceIdAndName(instance.id, k)
+            
+            if (existing != null) {
+                existing.value = value
+                processVariableRepository.save(existing)
+            } else {
+                processVariableRepository.save(
+                    ProcessVariable(
+                        processInstanceId = instance.id,
+                        name = k,
+                        value = value
+                    )
+                )
+            }
         }
 
         val definition = parseDefinition(instance.processDefinition.definitionJson)
@@ -429,6 +455,9 @@ class ProcessService(
         advanceProcess(instance, nextNodes, definition)
 
         executeNodes(nextNodes, instance, definition)
+        
+        val duration = System.currentTimeMillis() - startTime
+        metricsService.recordServiceTaskExecution(duration, success = true)
     }
 
     @Transactional
@@ -437,6 +466,8 @@ class ProcessService(
         correlationKey: String,
         variables: Map<String, Any>? = null
     ) {
+        metricsService.recordMessageEventReceived(messageName)
+        
         // Find matching message subscription
         val subscription = messageSubscriptionService.receiveMessage(
             messageName,
@@ -449,12 +480,21 @@ class ProcessService(
 
         // Save received message variables as process variables
         variables?.forEach { (k, v) ->
-            val newVar = ProcessVariable(
-                processInstanceId = instance.id,
-                name = k,
-                value = objectMapper.valueToTree(v)
-            )
-            processVariableRepository.save(newVar)
+            val value = objectMapper.convertValue(v, com.fasterxml.jackson.databind.JsonNode::class.java)
+            val existing = processVariableRepository.findByProcessInstanceIdAndName(instance.id, k)
+            
+            if (existing != null) {
+                existing.value = value
+                processVariableRepository.save(existing)
+            } else {
+                processVariableRepository.save(
+                    ProcessVariable(
+                        processInstanceId = instance.id,
+                        name = k,
+                        value = value
+                    )
+                )
+            }
         }
 
         // Clean up subscription after message received
@@ -475,6 +515,8 @@ class ProcessService(
         instance.currentNode = emptyList()
         instance.updatedAt = LocalDateTime.now()
         processInstanceRepository.save(instance)
+        
+        metricsService.recordProcessCompleted()
     }
 
     private fun advanceProcess(
@@ -514,8 +556,17 @@ class ProcessService(
         }
         instance.updatedAt = LocalDateTime.now()
 
-        if (nextNodes.isEmpty()) {
+        // Process is complete if:
+        // 1. No more nodes to execute, OR
+        // 2. All next nodes are EndEvent nodes
+        val isCompleted = nextNodes.isEmpty() || nextNodes.all { nodeId ->
+            val node = definition.get("nodes").find { it.get("id").asText() == nodeId }
+            node != null && NodeType.fromString(node.get("type").asText()) == NodeType.EndEvent
+        }
+        
+        if (isCompleted) {
             instance.status = ProcessStatus.COMPLETED
+            instance.currentNode = emptyList()
         }
 
         processInstanceRepository.save(instance)

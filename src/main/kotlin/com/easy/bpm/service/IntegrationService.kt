@@ -50,15 +50,24 @@ class IntegrationService(
             else -> throw IllegalArgumentException("Unsupported method $method")
         }
 
-        // ✅ Salva variáveis de saída no processo
+        // ✅ Save or update output variables in process
         val outputs = (response as? Map<String, Any>)?.mapValues { it.value.toString() } ?: emptyMap()
         outputs.forEach { (k, v) ->
-            val newVar = ProcessVariable(
-                processInstanceId = instance.id,
-                name = k,
-                value = objectMapper.valueToTree(v)
-            )
-            processVariableRepository.save(newVar)
+            val value = objectMapper.readTree(v as? String ?: v.toString())
+            val existing = processVariableRepository.findByProcessInstanceIdAndName(instance.id, k)
+            
+            if (existing != null) {
+                existing.value = value
+                processVariableRepository.save(existing)
+            } else {
+                processVariableRepository.save(
+                    ProcessVariable(
+                        processInstanceId = instance.id,
+                        name = k,
+                        value = value
+                    )
+                )
+            }
         }
 
         return outputs
