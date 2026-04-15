@@ -29,6 +29,11 @@ class GatewayService(
                 s?.asText() == nodeId
             }
 
+            // Keep compatibility with definitions that still use node.next even when flows is present.
+            if (outgoing.isEmpty()) {
+                return node.get("next")?.map { it.asText() } ?: emptyList()
+            }
+
             // For gateways, handle conditions and parallel join logic as before
             if (nodeType == NodeType.ExclusiveGateway) {
                 for (flow in outgoing) {
