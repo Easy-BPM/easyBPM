@@ -12,6 +12,7 @@ import com.easy.bpm.repository.process.ProcessInstanceRepository
 import com.easy.bpm.repository.task.TaskRepository
 import com.easy.bpm.repository.variable.ProcessVariableRepository
 import com.easy.bpm.repository.variable.TaskVariableRepository
+import com.easy.bpm.repository.worker.WorkerRequestRepository
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.TextNode
@@ -43,6 +44,7 @@ class ProcessServiceTest : FunSpec({
     val mockGatewayService = mockk<GatewayService>()
     val mockMessageSubscriptionService = mockk<MessageSubscriptionService>()
     val mockMetricsService = mockk<MetricsService>(relaxed = true)
+    val mockWorkerRequestRepository = mockk<WorkerRequestRepository>()
 
     val processService = ProcessService(
         mockProcessDefinitionRepository,
@@ -56,7 +58,8 @@ class ProcessServiceTest : FunSpec({
         mockRabbitPublisher,
         mockGatewayService,
         mockMessageSubscriptionService,
-        mockMetricsService
+        mockMetricsService,
+        mockWorkerRequestRepository
     )
 
     val objectMapper = ObjectMapper()
@@ -77,7 +80,7 @@ class ProcessServiceTest : FunSpec({
                 }
             """.trimIndent())
 
-            every { mockProcessDefinitionRepository.findTopByNameOrderByVersionDesc("my-process") } returns null
+            every { mockProcessDefinitionRepository.findTopByKeyOrderByVersionDesc("my-process") } returns null
             val expectedDefinition = ProcessDefinition(
                 id = 1,
                 name = "my-process",
@@ -113,7 +116,7 @@ class ProcessServiceTest : FunSpec({
                 definitionJson = "{}",
                 version = 1
             )
-            every { mockProcessDefinitionRepository.findTopByNameOrderByVersionDesc("my-process") } returns existingDefinition
+            every { mockProcessDefinitionRepository.findTopByKeyOrderByVersionDesc("my-process") } returns existingDefinition
 
             val expectedDefinition = ProcessDefinition(
                 id = 2,

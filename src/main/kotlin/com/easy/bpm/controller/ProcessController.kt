@@ -1,8 +1,11 @@
 package com.easy.bpm.controller
 
+import com.easy.bpm.controller.data.AssignProcessVariablesRequest
 import com.easy.bpm.controller.data.DeployProcessRequest
+import com.easy.bpm.controller.data.MoveNodeRequest
 import com.easy.bpm.model.process.ProcessDefinition
 import com.easy.bpm.model.process.ProcessInstance
+import com.easy.bpm.model.variable.ProcessVariable
 import com.easy.bpm.service.ProcessService
 import com.easy.bpm.util.ParseXMLToJsonFormat.convertXmlToInternalJson
 import com.fasterxml.jackson.databind.JsonNode
@@ -11,6 +14,7 @@ import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
+import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 
 
@@ -55,6 +59,71 @@ class ProcessController(
     @Operation(summary = "Get process instances", description = "Retrieve all process instances with pagination")
     fun getProcessInstances(pageable: Pageable): Page<ProcessInstance> {
         return processService.getProcessInstances(pageable)
+    }
+
+    @GetMapping("/instances/{id}")
+    @Operation(summary = "Get process instance by ID", description = "Retrieve a specific process instance by its ID")
+    fun getProcessInstanceById(@PathVariable id: Long): ResponseEntity<ProcessInstance> {
+        return processService.getProcessInstanceById(id)
+            ?.let { ResponseEntity.ok(it) }
+            ?: ResponseEntity.notFound().build()
+    }
+
+    @GetMapping("/instances/{id}/variables")
+    @Operation(summary = "Get process variables", description = "Retrieve all variables for a process instance")
+    fun getProcessVariables(@PathVariable id: Long): ResponseEntity<List<ProcessVariable>> {
+        return try {
+            ResponseEntity.ok(processService.getProcessVariables(id))
+        } catch (ex: IllegalArgumentException) {
+            ResponseEntity.notFound().build()
+        }
+    }
+
+    @PutMapping("/instances/{id}/variables")
+    @Operation(summary = "Assign process variables", description = "Create or update process variables for a process instance")
+    fun assignProcessVariables(
+        @PathVariable id: Long,
+        @RequestBody request: AssignProcessVariablesRequest
+    ): ResponseEntity<List<ProcessVariable>> {
+        return try {
+            ResponseEntity.ok(processService.assignProcessVariables(id, request.variables))
+        } catch (ex: IllegalArgumentException) {
+            ResponseEntity.badRequest().build()
+        }
+    }
+
+    @PostMapping("/instances/{id}/move-node")
+    @Operation(summary = "Move process token", description = "Manually move process execution from one node to another")
+    fun moveProcessNode(
+        @PathVariable id: Long,
+        @RequestBody request: MoveNodeRequest
+    ): ResponseEntity<ProcessInstance> {
+        return try {
+            ResponseEntity.ok(processService.moveProcessNode(id, request.fromNode, request.toNode))
+        } catch (ex: IllegalArgumentException) {
+            ResponseEntity.badRequest().build()
+        }
+    }
+
+    @PostMapping("/instances/{id}/stop")
+    @Operation(summary = "Stop process instance", description = "Cancel an active process instance and stop further execution")
+    fun stopProcessInstance(@PathVariable id: Long): ResponseEntity<ProcessInstance> {
+        return try {
+            ResponseEntity.ok(processService.stopProcessInstance(id))
+        } catch (ex: IllegalArgumentException) {
+            ResponseEntity.notFound().build()
+        }
+    }
+
+    @DeleteMapping("/instances/{id}")
+    @Operation(summary = "Delete process instance", description = "Hard delete a process instance and related runtime data")
+    fun deleteProcessInstance(@PathVariable id: Long): ResponseEntity<Void> {
+        return try {
+            processService.deleteProcessInstance(id)
+            ResponseEntity.noContent().build()
+        } catch (ex: IllegalArgumentException) {
+            ResponseEntity.notFound().build()
+        }
     }
 
     @GetMapping

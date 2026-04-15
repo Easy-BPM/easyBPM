@@ -105,4 +105,9 @@ class MessageSubscriptionService(
         subscription.status = MessageSubscriptionStatus.FAILED
         return messageSubscriptionRepository.save(subscription)
     }
+
+    @Transactional
+    fun deleteSubscriptionsForInstance(processInstanceId: Long) {
+        messageSubscriptionRepository.deleteByProcessInstanceId(processInstanceId)
+    }
 }

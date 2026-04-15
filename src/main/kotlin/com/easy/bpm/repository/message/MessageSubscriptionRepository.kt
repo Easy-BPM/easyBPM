@@ -24,6 +24,7 @@ interface MessageSubscriptionRepository : JpaRepository<MessageSubscription, Lon
     fun findExpiredSubscriptions(@Param("now") now: LocalDateTime): List<MessageSubscription>
 
     fun findByProcessInstanceId(processInstanceId: Long): List<MessageSubscription>
+    fun deleteByProcessInstanceId(processInstanceId: Long)
 
     @Query("FROM MessageSubscription WHERE status = 'AWAITING'")
     fun findAllPendingSubscriptions(): List<MessageSubscription>

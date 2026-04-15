@@ -1,7 +1,7 @@
 package com.easy.bpm.controller
 
+import com.easy.bpm.controller.data.TaskResponseDto
 import com.easy.bpm.enum.TaskStatus
-import com.easy.bpm.model.task.Task
 import com.easy.bpm.service.TaskService
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.kotest.core.spec.style.FunSpec
@@ -27,26 +27,37 @@ class TaskControllerTest : FunSpec({
     context("getTasks") {
         test("should retrieve paginated tasks") {
             // Arrange
-            val task1 = Task(
+            val task1 = TaskResponseDto(
                 id = 1,
-                processInstanceId = 100,
                 title = "Review Document",
+                name = "Review Document",
+                description = "Review Document",
+                processInstanceId = 100,
                 nodeId = "task-1",
                 status = TaskStatus.PENDING,
-                formId = 1
+                formId = 1,
+                assignee = null,
+                createdAt = java.time.LocalDateTime.now(),
+                completedAt = null,
+                variables = emptyMap()
             )
-            val task2 = Task(
+            val task2 = TaskResponseDto(
                 id = 2,
-                processInstanceId = 101,
                 title = "Approve Request",
+                name = "Approve Request",
+                description = "Approve Request",
+                processInstanceId = 101,
                 nodeId = "task-2",
                 status = TaskStatus.COMPLETED,
                 assignee = "alice@example.com",
-                formId = 2
+                formId = 2,
+                createdAt = java.time.LocalDateTime.now(),
+                completedAt = java.time.LocalDateTime.now(),
+                variables = emptyMap()
             )
 
-            val page: Page<Task> = PageImpl(listOf(task1, task2), PageRequest.of(0, 10), 2)
-            every { mockTaskService.getTasks(any()) } returns page
+            val page: Page<TaskResponseDto> = PageImpl(listOf(task1, task2), PageRequest.of(0, 10), 2)
+            every { mockTaskService.getTaskResponses(any()) } returns page
 
             // Act
             val result = taskController.getTasks(PageRequest.of(0, 10))
@@ -54,7 +65,7 @@ class TaskControllerTest : FunSpec({
             // Assert
             result.content shouldHaveSize 2
             result.totalElements shouldBe 2
-            verify { mockTaskService.getTasks(any()) }
+            verify { mockTaskService.getTaskResponses(any()) }
         }
     }
 
@@ -62,15 +73,21 @@ class TaskControllerTest : FunSpec({
         test("should return task when found") {
             // Arrange
             val taskId = 1L
-            val task = Task(
+            val task = TaskResponseDto(
                 id = taskId,
-                processInstanceId = 100,
                 title = "Review Document",
+                name = "Review Document",
+                description = "Review Document",
+                processInstanceId = 100,
                 nodeId = "task-1",
                 status = TaskStatus.PENDING,
-                formId = 1
+                formId = 1,
+                assignee = null,
+                createdAt = java.time.LocalDateTime.now(),
+                completedAt = null,
+                variables = emptyMap()
             )
-            every { mockTaskService.getTaskById(taskId) } returns task
+            every { mockTaskService.getTaskResponseById(taskId) } returns task
 
             // Act
             val result = taskController.getTaskById(taskId)
@@ -85,7 +102,7 @@ class TaskControllerTest : FunSpec({
         test("should return 404 when task not found") {
             // Arrange
             val taskId = 999L
-            every { mockTaskService.getTaskById(taskId) } returns null
+            every { mockTaskService.getTaskResponseById(taskId) } returns null
 
             // Act
             val result = taskController.getTaskById(taskId)
@@ -100,18 +117,23 @@ class TaskControllerTest : FunSpec({
         test("should search tasks by assignee") {
             // Arrange
             val assignee = "alice@example.com"
-            val task = Task(
+            val task = TaskResponseDto(
                 id = 1,
-                processInstanceId = 100,
                 title = "Review Document",
+                name = "Review Document",
+                description = "Review Document",
+                processInstanceId = 100,
                 nodeId = "task-1",
                 status = TaskStatus.COMPLETED,
                 assignee = assignee,
-                formId = 1
+                formId = 1,
+                createdAt = java.time.LocalDateTime.now(),
+                completedAt = java.time.LocalDateTime.now(),
+                variables = emptyMap()
             )
 
-            val page: Page<Task> = PageImpl(listOf(task), PageRequest.of(0, 10), 1)
-            every { mockTaskService.searchTasks(assignee, null, any()) } returns page
+            val page: Page<TaskResponseDto> = PageImpl(listOf(task), PageRequest.of(0, 10), 1)
+            every { mockTaskService.searchTaskResponses(assignee, null, any()) } returns page
 
             // Act
             val result = taskController.searchTasks(assignee = assignee, status = null, PageRequest.of(0, 10))
@@ -124,17 +146,23 @@ class TaskControllerTest : FunSpec({
         test("should search tasks by status") {
             // Arrange
             val status = TaskStatus.PENDING
-            val task = Task(
+            val task = TaskResponseDto(
                 id = 1,
-                processInstanceId = 100,
                 title = "Review Document",
+                name = "Review Document",
+                description = "Review Document",
+                processInstanceId = 100,
                 nodeId = "task-1",
                 status = status,
-                formId = 1
+                formId = 1,
+                assignee = null,
+                createdAt = java.time.LocalDateTime.now(),
+                completedAt = null,
+                variables = emptyMap()
             )
 
-            val page: Page<Task> = PageImpl(listOf(task), PageRequest.of(0, 10), 1)
-            every { mockTaskService.searchTasks(null, status, any()) } returns page
+            val page: Page<TaskResponseDto> = PageImpl(listOf(task), PageRequest.of(0, 10), 1)
+            every { mockTaskService.searchTaskResponses(null, status, any()) } returns page
 
             // Act
             val result = taskController.searchTasks(assignee = null, status = status, PageRequest.of(0, 10))
@@ -148,18 +176,23 @@ class TaskControllerTest : FunSpec({
             // Arrange
             val assignee = "alice@example.com"
             val status = TaskStatus.PENDING
-            val task = Task(
+            val task = TaskResponseDto(
                 id = 1,
-                processInstanceId = 100,
                 title = "Review Document",
+                name = "Review Document",
+                description = "Review Document",
+                processInstanceId = 100,
                 nodeId = "task-1",
                 status = status,
                 assignee = assignee,
-                formId = 1
+                formId = 1,
+                createdAt = java.time.LocalDateTime.now(),
+                completedAt = null,
+                variables = emptyMap()
             )
 
-            val page: Page<Task> = PageImpl(listOf(task), PageRequest.of(0, 10), 1)
-            every { mockTaskService.searchTasks(assignee, status, any()) } returns page
+            val page: Page<TaskResponseDto> = PageImpl(listOf(task), PageRequest.of(0, 10), 1)
+            every { mockTaskService.searchTaskResponses(assignee, status, any()) } returns page
 
             // Act
             val result = taskController.searchTasks(assignee = assignee, status = status, PageRequest.of(0, 10))

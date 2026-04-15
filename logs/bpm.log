@@ -30,3 +30,160 @@
 2026-04-15T09:33:54.697-03:00  INFO 11480 --- [SpringApplicationShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
 2026-04-15T09:33:54.700-03:00  INFO 11480 --- [SpringApplicationShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown initiated...
 2026-04-15T09:33:54.702-03:00  INFO 11480 --- [SpringApplicationShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown completed.
+2026-04-15T10:25:15.785-03:00  INFO 97508 --- [Test worker] c.e.b.i.ProcessIntegrationTest           : Starting ProcessIntegrationTest using Java 17.0.10 with PID 97508 (started by Admin in C:\Users\Admin\OneDrive\Ambiente de Trabalho\bpm)
+2026-04-15T10:25:15.786-03:00 DEBUG 97508 --- [Test worker] c.e.b.i.ProcessIntegrationTest           : Running with Spring Boot v3.5.3, Spring v6.2.8
+2026-04-15T10:25:15.786-03:00  INFO 97508 --- [Test worker] c.e.b.i.ProcessIntegrationTest           : The following 1 profile is active: "test"
+2026-04-15T10:25:16.895-03:00  INFO 97508 --- [Test worker] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-04-15T10:25:16.988-03:00  INFO 97508 --- [Test worker] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 82 ms. Found 8 JPA repository interfaces.
+2026-04-15T10:25:17.840-03:00  INFO 97508 --- [Test worker] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-04-15T10:25:18.122-03:00  INFO 97508 --- [Test worker] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection conn0: url=jdbc:h2:mem:testdb user=SA
+2026-04-15T10:25:18.126-03:00  INFO 97508 --- [Test worker] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-04-15T10:25:18.310-03:00  INFO 97508 --- [Test worker] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2026-04-15T10:25:18.407-03:00  INFO 97508 --- [Test worker] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.6.18.Final
+2026-04-15T10:25:18.476-03:00  INFO 97508 --- [Test worker] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2026-04-15T10:25:18.643-03:00  WARN 97508 --- [Test worker] org.hibernate.orm.deprecation            : HHH90000025: H2Dialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-04-15T10:25:18.667-03:00  INFO 97508 --- [Test worker] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-1)']
+	Database driver: undefined/unknown
+	Database version: 2.3.232
+	Autocommit mode: undefined/unknown
+	Isolation level: undefined/unknown
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-04-15T10:25:18.786-03:00  INFO 97508 --- [Test worker] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-04-15T10:25:20.115-03:00  INFO 97508 --- [Test worker] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-04-15T10:25:20.121-03:00  INFO 97508 --- [Test worker] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-04-15T10:25:20.617-03:00  INFO 97508 --- [Test worker] o.s.d.j.r.query.QueryEnhancerFactory     : Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-04-15T10:25:22.052-03:00  WARN 97508 --- [Test worker] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-04-15T10:25:22.150-03:00  INFO 97508 --- [Test worker] o.s.v.b.OptionalValidatorFactoryBean     : Failed to set up a Bean Validation provider: jakarta.validation.NoProviderFoundException: Unable to create a Configuration, because no Jakarta Bean Validation provider could be found. Add a provider like Hibernate Validator (RI) to your classpath.
+2026-04-15T10:25:22.996-03:00  INFO 97508 --- [Test worker] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 2 endpoints beneath base path '/actuator'
+2026-04-15T10:25:23.105-03:00  INFO 97508 --- [Test worker] c.e.b.i.ProcessIntegrationTest           : Started ProcessIntegrationTest in 7.684 seconds (process running for 16.146)
+2026-04-15T10:25:23.755-03:00  WARN 97508 --- [Test worker] i.m.core.instrument.MeterRegistry        : This Gauge has been already registered (MeterId{name='task.active', tags=[]}), the registration will be ignored. Note that subsequent logs will be logged at debug level.
+2026-04-15T10:25:24.028-03:00  INFO 97508 --- [SpringApplicationShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-04-15T10:25:24.030-03:00  INFO 97508 --- [SpringApplicationShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown initiated...
+2026-04-15T10:25:24.033-03:00  INFO 97508 --- [SpringApplicationShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown completed.
+2026-04-15T11:42:40.199-03:00  INFO 5956 --- [Test worker] c.e.b.i.ProcessIntegrationTest           : Starting ProcessIntegrationTest using Java 17.0.10 with PID 5956 (started by Admin in C:\Users\Admin\OneDrive\Ambiente de Trabalho\bpm)
+2026-04-15T11:42:40.200-03:00 DEBUG 5956 --- [Test worker] c.e.b.i.ProcessIntegrationTest           : Running with Spring Boot v3.5.3, Spring v6.2.8
+2026-04-15T11:42:40.201-03:00  INFO 5956 --- [Test worker] c.e.b.i.ProcessIntegrationTest           : The following 1 profile is active: "test"
+2026-04-15T11:42:41.323-03:00  INFO 5956 --- [Test worker] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-04-15T11:42:41.413-03:00  INFO 5956 --- [Test worker] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 82 ms. Found 8 JPA repository interfaces.
+2026-04-15T11:42:42.217-03:00  INFO 5956 --- [Test worker] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-04-15T11:42:42.487-03:00  INFO 5956 --- [Test worker] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection conn0: url=jdbc:h2:mem:testdb user=SA
+2026-04-15T11:42:42.490-03:00  INFO 5956 --- [Test worker] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-04-15T11:42:42.682-03:00  INFO 5956 --- [Test worker] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2026-04-15T11:42:42.772-03:00  INFO 5956 --- [Test worker] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.6.18.Final
+2026-04-15T11:42:42.840-03:00  INFO 5956 --- [Test worker] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2026-04-15T11:42:43.008-03:00  WARN 5956 --- [Test worker] org.hibernate.orm.deprecation            : HHH90000025: H2Dialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-04-15T11:42:43.030-03:00  INFO 5956 --- [Test worker] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-1)']
+	Database driver: undefined/unknown
+	Database version: 2.3.232
+	Autocommit mode: undefined/unknown
+	Isolation level: undefined/unknown
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-04-15T11:42:43.139-03:00  INFO 5956 --- [Test worker] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-04-15T11:42:44.488-03:00  INFO 5956 --- [Test worker] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-04-15T11:42:44.494-03:00  INFO 5956 --- [Test worker] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-04-15T11:42:45.014-03:00  INFO 5956 --- [Test worker] o.s.d.j.r.query.QueryEnhancerFactory     : Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-04-15T11:42:46.557-03:00  WARN 5956 --- [Test worker] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-04-15T11:42:46.675-03:00  INFO 5956 --- [Test worker] o.s.v.b.OptionalValidatorFactoryBean     : Failed to set up a Bean Validation provider: jakarta.validation.NoProviderFoundException: Unable to create a Configuration, because no Jakarta Bean Validation provider could be found. Add a provider like Hibernate Validator (RI) to your classpath.
+2026-04-15T11:42:47.711-03:00  INFO 5956 --- [Test worker] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 2 endpoints beneath base path '/actuator'
+2026-04-15T11:42:47.849-03:00  INFO 5956 --- [Test worker] c.e.b.i.ProcessIntegrationTest           : Started ProcessIntegrationTest in 8.064 seconds (process running for 16.817)
+2026-04-15T11:42:48.225-03:00  WARN 5956 --- [Test worker] o.h.engine.jdbc.spi.SqlExceptionHelper   : SQL Error: 42122, SQLState: 42S22
+2026-04-15T11:42:48.225-03:00 ERROR 5956 --- [Test worker] o.h.engine.jdbc.spi.SqlExceptionHelper   : Column "pd1_0.description" not found; SQL statement:
+select pd1_0."id",pd1_0."definition_json",pd1_0."description",pd1_0."process_key",pd1_0."name",pd1_0."version" from "process_definition" pd1_0 where pd1_0."process_key"=? order by pd1_0."version" desc fetch first ? rows only [42122-232]
+2026-04-15T11:42:48.298-03:00  WARN 5956 --- [Test worker] o.h.engine.jdbc.spi.SqlExceptionHelper   : SQL Error: 42122, SQLState: 42S22
+2026-04-15T11:42:48.298-03:00 ERROR 5956 --- [Test worker] o.h.engine.jdbc.spi.SqlExceptionHelper   : Column "pd1_0.description" not found; SQL statement:
+select pd1_0."id",pd1_0."definition_json",pd1_0."description",pd1_0."process_key",pd1_0."name",pd1_0."version" from "process_definition" pd1_0 where pd1_0."process_key"=? order by pd1_0."version" desc fetch first ? rows only [42122-232]
+2026-04-15T11:42:48.317-03:00  WARN 5956 --- [Test worker] o.h.engine.jdbc.spi.SqlExceptionHelper   : SQL Error: 42122, SQLState: 42S22
+2026-04-15T11:42:48.317-03:00 ERROR 5956 --- [Test worker] o.h.engine.jdbc.spi.SqlExceptionHelper   : Column "pd1_0.description" not found; SQL statement:
+select pd1_0."id",pd1_0."definition_json",pd1_0."description",pd1_0."process_key",pd1_0."name",pd1_0."version" from "process_definition" pd1_0 where pd1_0."process_key"=? order by pd1_0."version" desc fetch first ? rows only [42122-232]
+2026-04-15T11:42:48.337-03:00  WARN 5956 --- [Test worker] o.h.engine.jdbc.spi.SqlExceptionHelper   : SQL Error: 42122, SQLState: 42S22
+2026-04-15T11:42:48.337-03:00 ERROR 5956 --- [Test worker] o.h.engine.jdbc.spi.SqlExceptionHelper   : Column "pd1_0.description" not found; SQL statement:
+select pd1_0."id",pd1_0."definition_json",pd1_0."description",pd1_0."process_key",pd1_0."name",pd1_0."version" from "process_definition" pd1_0 where pd1_0."process_key"=? order by pd1_0."version" desc fetch first ? rows only [42122-232]
+2026-04-15T11:42:48.354-03:00  WARN 5956 --- [Test worker] o.h.engine.jdbc.spi.SqlExceptionHelper   : SQL Error: 42122, SQLState: 42S22
+2026-04-15T11:42:48.355-03:00 ERROR 5956 --- [Test worker] o.h.engine.jdbc.spi.SqlExceptionHelper   : Column "pd1_0.description" not found; SQL statement:
+select pd1_0."id",pd1_0."definition_json",pd1_0."description",pd1_0."process_key",pd1_0."name",pd1_0."version" from "process_definition" pd1_0 where pd1_0."process_key"=? order by pd1_0."version" desc fetch first ? rows only [42122-232]
+2026-04-15T11:42:48.373-03:00  WARN 5956 --- [Test worker] o.h.engine.jdbc.spi.SqlExceptionHelper   : SQL Error: 42122, SQLState: 42S22
+2026-04-15T11:42:48.374-03:00 ERROR 5956 --- [Test worker] o.h.engine.jdbc.spi.SqlExceptionHelper   : Column "pd1_0.description" not found; SQL statement:
+select pd1_0."id",pd1_0."definition_json",pd1_0."description",pd1_0."process_key",pd1_0."name",pd1_0."version" from "process_definition" pd1_0 where pd1_0."process_key"=? order by pd1_0."version" desc fetch first ? rows only [42122-232]
+2026-04-15T11:42:48.396-03:00  WARN 5956 --- [Test worker] o.h.engine.jdbc.spi.SqlExceptionHelper   : SQL Error: 42122, SQLState: 42S22
+2026-04-15T11:42:48.397-03:00 ERROR 5956 --- [Test worker] o.h.engine.jdbc.spi.SqlExceptionHelper   : Column "pd1_0.description" not found; SQL statement:
+select pd1_0."id",pd1_0."definition_json",pd1_0."description",pd1_0."process_key",pd1_0."name",pd1_0."version" from "process_definition" pd1_0 where pd1_0."process_key"=? order by pd1_0."version" desc fetch first ? rows only [42122-232]
+2026-04-15T11:42:48.418-03:00  WARN 5956 --- [Test worker] o.h.engine.jdbc.spi.SqlExceptionHelper   : SQL Error: 42122, SQLState: 42S22
+2026-04-15T11:42:48.418-03:00 ERROR 5956 --- [Test worker] o.h.engine.jdbc.spi.SqlExceptionHelper   : Column "pd1_0.description" not found; SQL statement:
+select pd1_0."id",pd1_0."definition_json",pd1_0."description",pd1_0."process_key",pd1_0."name",pd1_0."version" from "process_definition" pd1_0 where pd1_0."process_key"=? order by pd1_0."version" desc fetch first ? rows only [42122-232]
+2026-04-15T11:42:48.444-03:00  WARN 5956 --- [Test worker] o.h.engine.jdbc.spi.SqlExceptionHelper   : SQL Error: 42122, SQLState: 42S22
+2026-04-15T11:42:48.445-03:00 ERROR 5956 --- [Test worker] o.h.engine.jdbc.spi.SqlExceptionHelper   : Column "pd1_0.description" not found; SQL statement:
+select pd1_0."id",pd1_0."definition_json",pd1_0."description",pd1_0."process_key",pd1_0."name",pd1_0."version" from "process_definition" pd1_0 where pd1_0."process_key"=? order by pd1_0."version" desc fetch first ? rows only [42122-232]
+2026-04-15T11:42:48.464-03:00  WARN 5956 --- [Test worker] o.h.engine.jdbc.spi.SqlExceptionHelper   : SQL Error: 42122, SQLState: 42S22
+2026-04-15T11:42:48.464-03:00 ERROR 5956 --- [Test worker] o.h.engine.jdbc.spi.SqlExceptionHelper   : Column "pd1_0.description" not found; SQL statement:
+select pd1_0."id",pd1_0."definition_json",pd1_0."description",pd1_0."process_key",pd1_0."name",pd1_0."version" from "process_definition" pd1_0 where pd1_0."process_key"=? order by pd1_0."version" desc fetch first ? rows only [42122-232]
+2026-04-15T11:42:48.499-03:00  INFO 5956 --- [SpringApplicationShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-04-15T11:42:48.499-03:00  INFO 5956 --- [SpringApplicationShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown initiated...
+2026-04-15T11:42:48.499-03:00  INFO 5956 --- [SpringApplicationShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown completed.
+2026-04-15T11:46:11.928-03:00  INFO 8172 --- [Test worker] c.e.b.i.ProcessIntegrationTest           : Starting ProcessIntegrationTest using Java 17.0.10 with PID 8172 (started by Admin in C:\Users\Admin\OneDrive\Ambiente de Trabalho\bpm)
+2026-04-15T11:46:11.928-03:00 DEBUG 8172 --- [Test worker] c.e.b.i.ProcessIntegrationTest           : Running with Spring Boot v3.5.3, Spring v6.2.8
+2026-04-15T11:46:11.928-03:00  INFO 8172 --- [Test worker] c.e.b.i.ProcessIntegrationTest           : The following 1 profile is active: "test"
+2026-04-15T11:46:13.039-03:00  INFO 8172 --- [Test worker] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-04-15T11:46:13.141-03:00  INFO 8172 --- [Test worker] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 88 ms. Found 8 JPA repository interfaces.
+2026-04-15T11:46:14.047-03:00  INFO 8172 --- [Test worker] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-04-15T11:46:14.323-03:00  INFO 8172 --- [Test worker] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection conn0: url=jdbc:h2:mem:testdb user=SA
+2026-04-15T11:46:14.327-03:00  INFO 8172 --- [Test worker] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-04-15T11:46:14.509-03:00  INFO 8172 --- [Test worker] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2026-04-15T11:46:14.612-03:00  INFO 8172 --- [Test worker] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.6.18.Final
+2026-04-15T11:46:14.689-03:00  INFO 8172 --- [Test worker] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2026-04-15T11:46:14.923-03:00  WARN 8172 --- [Test worker] org.hibernate.orm.deprecation            : HHH90000025: H2Dialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-04-15T11:46:14.950-03:00  INFO 8172 --- [Test worker] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-1)']
+	Database driver: undefined/unknown
+	Database version: 2.3.232
+	Autocommit mode: undefined/unknown
+	Isolation level: undefined/unknown
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-04-15T11:46:15.092-03:00  INFO 8172 --- [Test worker] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-04-15T11:46:16.360-03:00  INFO 8172 --- [Test worker] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-04-15T11:46:16.363-03:00  INFO 8172 --- [Test worker] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-04-15T11:46:16.978-03:00  INFO 8172 --- [Test worker] o.s.d.j.r.query.QueryEnhancerFactory     : Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-04-15T11:46:18.431-03:00  WARN 8172 --- [Test worker] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-04-15T11:46:18.538-03:00  INFO 8172 --- [Test worker] o.s.v.b.OptionalValidatorFactoryBean     : Failed to set up a Bean Validation provider: jakarta.validation.NoProviderFoundException: Unable to create a Configuration, because no Jakarta Bean Validation provider could be found. Add a provider like Hibernate Validator (RI) to your classpath.
+2026-04-15T11:46:19.464-03:00  INFO 8172 --- [Test worker] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 2 endpoints beneath base path '/actuator'
+2026-04-15T11:46:19.581-03:00  INFO 8172 --- [Test worker] c.e.b.i.ProcessIntegrationTest           : Started ProcessIntegrationTest in 8.035 seconds (process running for 16.578)
+2026-04-15T11:46:20.089-03:00  WARN 8172 --- [Test worker] i.m.core.instrument.MeterRegistry        : This Gauge has been already registered (MeterId{name='task.active', tags=[]}), the registration will be ignored. Note that subsequent logs will be logged at debug level.
+2026-04-15T11:46:20.369-03:00  INFO 8172 --- [SpringApplicationShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-04-15T11:46:20.371-03:00  INFO 8172 --- [SpringApplicationShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown initiated...
+2026-04-15T11:46:20.372-03:00  INFO 8172 --- [SpringApplicationShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown completed.
+2026-04-15T11:58:02.502-03:00  INFO 79236 --- [Test worker] c.e.b.i.ProcessIntegrationTest           : Starting ProcessIntegrationTest using Java 17.0.10 with PID 79236 (started by Admin in C:\Users\Admin\OneDrive\Ambiente de Trabalho\bpm)
+2026-04-15T11:58:02.506-03:00 DEBUG 79236 --- [Test worker] c.e.b.i.ProcessIntegrationTest           : Running with Spring Boot v3.5.3, Spring v6.2.8
+2026-04-15T11:58:02.506-03:00  INFO 79236 --- [Test worker] c.e.b.i.ProcessIntegrationTest           : The following 1 profile is active: "test"
+2026-04-15T11:58:03.870-03:00  INFO 79236 --- [Test worker] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-04-15T11:58:03.967-03:00  INFO 79236 --- [Test worker] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 81 ms. Found 8 JPA repository interfaces.
+2026-04-15T11:58:04.918-03:00  INFO 79236 --- [Test worker] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-04-15T11:58:05.235-03:00  INFO 79236 --- [Test worker] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection conn0: url=jdbc:h2:mem:testdb user=SA
+2026-04-15T11:58:05.247-03:00  INFO 79236 --- [Test worker] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-04-15T11:58:05.452-03:00  INFO 79236 --- [Test worker] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2026-04-15T11:58:05.566-03:00  INFO 79236 --- [Test worker] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.6.18.Final
+2026-04-15T11:58:05.630-03:00  INFO 79236 --- [Test worker] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2026-04-15T11:58:05.817-03:00  WARN 79236 --- [Test worker] org.hibernate.orm.deprecation            : HHH90000025: H2Dialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-04-15T11:58:05.831-03:00  INFO 79236 --- [Test worker] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-1)']
+	Database driver: undefined/unknown
+	Database version: 2.3.232
+	Autocommit mode: undefined/unknown
+	Isolation level: undefined/unknown
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-04-15T11:58:05.947-03:00  INFO 79236 --- [Test worker] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-04-15T11:58:07.322-03:00  INFO 79236 --- [Test worker] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-04-15T11:58:07.327-03:00  INFO 79236 --- [Test worker] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-04-15T11:58:07.894-03:00  INFO 79236 --- [Test worker] o.s.d.j.r.query.QueryEnhancerFactory     : Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-04-15T11:58:09.621-03:00  WARN 79236 --- [Test worker] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-04-15T11:58:09.780-03:00  INFO 79236 --- [Test worker] o.s.v.b.OptionalValidatorFactoryBean     : Failed to set up a Bean Validation provider: jakarta.validation.NoProviderFoundException: Unable to create a Configuration, because no Jakarta Bean Validation provider could be found. Add a provider like Hibernate Validator (RI) to your classpath.
+2026-04-15T11:58:10.795-03:00  INFO 79236 --- [Test worker] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 2 endpoints beneath base path '/actuator'
+2026-04-15T11:58:10.930-03:00  INFO 79236 --- [Test worker] c.e.b.i.ProcessIntegrationTest           : Started ProcessIntegrationTest in 8.91 seconds (process running for 19.085)
+2026-04-15T11:58:11.524-03:00  WARN 79236 --- [Test worker] i.m.core.instrument.MeterRegistry        : This Gauge has been already registered (MeterId{name='task.active', tags=[]}), the registration will be ignored. Note that subsequent logs will be logged at debug level.
+2026-04-15T11:58:11.923-03:00  INFO 79236 --- [SpringApplicationShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-04-15T11:58:11.926-03:00  INFO 79236 --- [SpringApplicationShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown initiated...
+2026-04-15T11:58:11.928-03:00  INFO 79236 --- [SpringApplicationShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown completed.

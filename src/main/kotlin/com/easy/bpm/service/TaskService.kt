@@ -3,6 +3,7 @@ package com.easy.bpm.service
 import com.easy.bpm.enum.ProcessStatus
 import com.easy.bpm.enum.NodeType
 import com.easy.bpm.enum.TaskStatus
+import com.easy.bpm.controller.data.TaskResponseDto
 import com.easy.bpm.model.process.ProcessInstance
 import com.easy.bpm.model.task.Task
 import com.easy.bpm.model.variable.ProcessVariable
@@ -123,6 +124,18 @@ class TaskService(
         val duration = System.currentTimeMillis() - startTime
         metricsService.recordTaskQueryDuration(duration)
         return result
+    }
+
+    fun getTaskResponses(pageable: Pageable): Page<TaskResponseDto> {
+        return getTasks(pageable).map { toResponseDto(it) }
+    }
+
+    fun getTaskResponseById(id: Long): TaskResponseDto? {
+        return getTaskById(id)?.let { toResponseDto(it) }
+    }
+
+    fun searchTaskResponses(assignee: String?, status: TaskStatus?, pageable: Pageable): Page<TaskResponseDto> {
+        return searchTasks(assignee, status, pageable).map { toResponseDto(it) }
     }
 
     /* =========================
@@ -434,6 +447,26 @@ class TaskService(
         task.status = TaskStatus.COMPLETED
         task.completedAt = LocalDateTime.now()
         taskRepository.save(task)
+    }
+
+    private fun toResponseDto(task: Task): TaskResponseDto {
+        val variables = taskVariableRepository.findByTaskId(task.id)
+            .associate { it.name to objectMapper.convertValue(it.value, Any::class.java) }
+
+        return TaskResponseDto(
+            id = task.id,
+            title = task.title,
+            name = task.title ?: "Task ${task.id}",
+            description = task.title,
+            processInstanceId = task.processInstanceId,
+            nodeId = task.nodeId,
+            assignee = task.assignee,
+            status = task.status,
+            createdAt = task.createdAt,
+            completedAt = task.completedAt,
+            formId = task.formId,
+            variables = variables
+        )
     }
 
     private fun finishProcess(instance: ProcessInstance) {

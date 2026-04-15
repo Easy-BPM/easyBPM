@@ -1,7 +1,7 @@
 package com.easy.bpm.controller
 
+import com.easy.bpm.controller.data.TaskResponseDto
 import com.easy.bpm.enum.TaskStatus
-import com.easy.bpm.model.task.Task
 import com.easy.bpm.service.TaskService
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.swagger.v3.oas.annotations.Operation
@@ -21,14 +21,14 @@ class TaskController(
 
     @GetMapping
     @Operation(summary = "Get all tasks", description = "Retrieve all tasks with pagination")
-    fun getTasks(pageable: Pageable): Page<Task> {
-        return taskService.getTasks(pageable)
+    fun getTasks(pageable: Pageable): Page<TaskResponseDto> {
+        return taskService.getTaskResponses(pageable)
     }
 
     @GetMapping("/{id}")
     @Operation(summary = "Get task by ID", description = "Retrieve a specific task by its ID")
-    fun getTaskById(@PathVariable id: Long): ResponseEntity<Task> {
-        return taskService.getTaskById(id)
+    fun getTaskById(@PathVariable id: Long): ResponseEntity<TaskResponseDto> {
+        return taskService.getTaskResponseById(id)
             ?.let { ResponseEntity.ok(it) }
             ?: ResponseEntity.notFound().build()
     }
@@ -39,8 +39,8 @@ class TaskController(
         @RequestParam(required = false) assignee: String?,
         @RequestParam(required = false) status: TaskStatus?,
         pageable: Pageable
-    ): Page<Task> {
-        return taskService.searchTasks(assignee, status, pageable)
+    ): Page<TaskResponseDto> {
+        return taskService.searchTaskResponses(assignee, status, pageable)
     }
 
     @PostMapping("/{id}/complete")

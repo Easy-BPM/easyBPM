@@ -32,7 +32,17 @@ const sidebars: SidebarsConfig = {
       ],
     },
     {
-      label: '📚 Guides',
+      label: '�‍💼 Easy BPM Admin',
+      items: [
+        'easy-admin-overview',
+        'easy-admin-getting-started',
+        'easy-admin-architecture',
+        'easy-admin-features',
+        'easy-admin-api-integration',
+      ],
+    },
+    {
+      label: '�📚 Guides',
       items: [
         'developer-quick-reference',
         'examples',

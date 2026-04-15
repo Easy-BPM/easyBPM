@@ -12,6 +12,7 @@ import com.easy.bpm.repository.process.ProcessInstanceRepository
 import com.easy.bpm.repository.task.TaskRepository
 import com.easy.bpm.repository.variable.ProcessVariableRepository
 import com.easy.bpm.repository.variable.TaskVariableRepository
+import com.easy.bpm.repository.worker.WorkerRequestRepository
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import jakarta.transaction.Transactional
@@ -34,7 +35,8 @@ class ProcessService(
     private val rabbitPublisher: com.easy.bpm.messaging.RabbitPublisher,
     private val gatewayService: GatewayService,
     private val messageSubscriptionService: MessageSubscriptionService,
-    private val metricsService: MetricsService
+    private val metricsService: MetricsService,
+    private val workerRequestRepository: WorkerRequestRepository
 ) {
 
     /* =========================
@@ -46,15 +48,22 @@ class ProcessService(
         val json = validateAndParseDefinition(definitionJson)
 
         val processId = json.get("processId").asText()
+        val processKey = json.get("key")?.asText()?.takeIf { it.isNotBlank() } ?: processId
+        val processName = json.get("name")?.asText()?.takeIf { it.isNotBlank() } ?: processId
+        val processDescription =
+            json.get("description")?.asText()?.takeIf { it.isNotBlank() }
+                ?: json.get("metadata")?.get("description")?.asText()?.takeIf { it.isNotBlank() }
 
         val latestVersion =
-            processDefinitionRepository.findTopByNameOrderByVersionDesc(processId)
+            processDefinitionRepository.findTopByKeyOrderByVersionDesc(processKey)
 
         val nextVersion = (latestVersion?.version ?: 0) + 1
 
         return processDefinitionRepository.save(
             ProcessDefinition(
-                name = processId,
+                key = processKey,
+                name = processName,
+                description = processDescription,
                 definitionJson = json.toString(),
                 version = nextVersion
             )
@@ -106,8 +115,102 @@ class ProcessService(
     fun getProcessInstanceById(id: Long): ProcessInstance? =
         processInstanceRepository.findById(id).orElse(null)
 
+    fun getProcessVariables(processInstanceId: Long): List<ProcessVariable> {
+        processInstanceRepository.findById(processInstanceId)
+            .orElseThrow { IllegalArgumentException("Process instance not found") }
+
+        return processVariableRepository.findByProcessInstanceId(processInstanceId)
+    }
+
+    @Transactional
+    fun assignProcessVariables(processInstanceId: Long, variables: Map<String, Any?>): List<ProcessVariable> {
+        val instance = processInstanceRepository.findById(processInstanceId)
+            .orElseThrow { IllegalArgumentException("Process instance not found") }
+
+        variables.forEach { (name, value) ->
+            val jsonValue = if (value == null) objectMapper.nullNode() else objectMapper.valueToTree(value)
+            val existing = processVariableRepository.findByProcessInstanceIdAndName(processInstanceId, name)
+
+            if (existing != null) {
+                existing.value = jsonValue
+                processVariableRepository.save(existing)
+            } else {
+                processVariableRepository.save(
+                    ProcessVariable(
+                        processInstanceId = processInstanceId,
+                        name = name,
+                        value = jsonValue
+                    )
+                )
+            }
+        }
+
+        instance.updatedAt = LocalDateTime.now()
+        processInstanceRepository.save(instance)
+
+        return processVariableRepository.findByProcessInstanceId(processInstanceId)
+    }
+
+    @Transactional
+    fun moveProcessNode(processInstanceId: Long, fromNode: String, toNode: String): ProcessInstance {
+        val instance = processInstanceRepository.findById(processInstanceId)
+            .orElseThrow { IllegalArgumentException("Process instance not found") }
+
+        val currentNodes = instance.currentNode ?: emptyList()
+        if (!currentNodes.contains(fromNode)) {
+            throw IllegalArgumentException("Instance is not currently at node '$fromNode'")
+        }
+
+        val definition = parseDefinition(instance.processDefinition.definitionJson)
+        findNode(definition, fromNode)
+        findNode(definition, toNode)
+
+        val movedNodes = currentNodes.map { if (it == fromNode) toNode else it }
+        instance.currentNode = movedNodes
+        if (instance.nodeHistory.lastOrNull() != toNode) {
+            instance.nodeHistory = instance.nodeHistory + toNode
+        }
+        instance.updatedAt = LocalDateTime.now()
+
+        return processInstanceRepository.save(instance)
+    }
+
     fun getLatestProcessDefinitions(pageable: Pageable): Page<ProcessDefinition> =
         processDefinitionRepository.findLatestVersionProcesses(pageable)
+
+    @Transactional
+    fun stopProcessInstance(id: Long): ProcessInstance {
+        val instance = processInstanceRepository.findById(id)
+            .orElseThrow { IllegalArgumentException("Process instance not found") }
+
+        if (instance.status != ProcessStatus.ACTIVE) {
+            return instance
+        }
+
+        messageSubscriptionService.deleteSubscriptionsForInstance(id)
+
+        instance.status = ProcessStatus.CANCELLED
+        instance.currentNode = emptyList()
+        instance.updatedAt = LocalDateTime.now()
+        return processInstanceRepository.save(instance)
+    }
+
+    @Transactional
+    fun deleteProcessInstance(id: Long) {
+        val instance = processInstanceRepository.findById(id)
+            .orElseThrow { IllegalArgumentException("Process instance not found") }
+
+        val tasks = taskRepository.findByProcessInstanceId(id)
+        tasks.forEach { task ->
+            taskVariableRepository.deleteByTaskId(task.id)
+        }
+
+        taskRepository.deleteByProcessInstanceId(id)
+        processVariableRepository.deleteByProcessInstanceId(id)
+        messageSubscriptionService.deleteSubscriptionsForInstance(id)
+        workerRequestRepository.deleteByProcessInstanceId(id)
+        processInstanceRepository.delete(instance)
+    }
 
     /* =========================
        EXECUTION ENGINE CORE

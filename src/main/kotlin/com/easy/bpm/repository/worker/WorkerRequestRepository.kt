@@ -20,4 +20,6 @@ interface WorkerRequestRepository : JpaRepository<WorkerRequest, Long> {
     
     @Query("FROM WorkerRequest WHERE status = 'DLQ'")
     fun findDlqMessages(): List<WorkerRequest>
+
+    fun deleteByProcessInstanceId(processInstanceId: Long)
 }

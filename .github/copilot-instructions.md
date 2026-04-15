@@ -1,6 +1,44 @@
 # Copilot Project Instructions
 
-- This workspace will include a React documentation site (Docusaurus) that mirrors the structure of the Markdown documentation directories and files.
-- Follow the checklist in the previous message for systematic project setup, customization, and documentation migration.
-- Ensure all documentation sections (Overview, Getting Started, Message Events, Integration Testing, Examples) are included and navigation/search is enabled.
-- Keep this file up to date as you progress through the setup and migration steps.
+## Project Overview
+
+Easy BPM is a Spring Boot-based Business Process Management (BPM) orchestrator with:
+- **Backend**: Spring Boot 3.5.3 + Kotlin + PostgreSQL + RabbitMQ async execution
+- **Frontend**: React 19 admin UI (Easy BPM Admin) for process instance management
+- **Documentation**: Docusaurus 3.10 site with comprehensive guides
+
+## Documentation Structure
+
+**Single Source of Truth**: `docs-site-working/`
+- Contains all technical documentation in Markdown
+- Includes new Easy BPM Admin feature documentation (v1.0.0)
+- Built with Docusaurus for modern searchable interface
+- Deployment: `npm run build` → `dist/` directory
+
+**Do NOT create additional documentation directories.** Maintain single consolidated site.
+
+## Key Implementation Status
+
+✅ **Completed**:
+- Process metadata (key + description) with Flyway migration V15
+- Task response DTO with embedded variables
+- Stop/Delete instance operations for process management
+- Easy BPM Admin UI with lifecycle controls (Stop, Delete, Move Node)
+- Comprehensive documentation for Admin feature (5 documents, 10K+ lines)
+
+⏳ **Pending**:
+- POST /login endpoint (auth integration)
+- CORS configuration for localhost:5173 and localhost:3001
+- POST /processes/{key}/start endpoint (deprioritized per user request)
+
+## Quick Commands
+
+**Backend Tests**: `.\gradlew test` (113 tests passing)
+
+**Admin UI Dev**: `cd easy-bpm-admin && npm run dev` (http://localhost:5173)
+
+**Docs Build**: `cd docs-site-working && npm run build`
+
+## Keep This File Updated
+
+Document major changes, milestone completions, and architecture decisions here.

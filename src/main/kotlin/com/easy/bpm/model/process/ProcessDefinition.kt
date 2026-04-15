@@ -1,22 +1,22 @@
 package com.easy.bpm.model.process
 
 import com.vladmihalcea.hibernate.type.json.JsonBinaryType
-import jakarta.persistence.Entity
-import jakarta.persistence.GeneratedValue
-import jakarta.persistence.GenerationType
-import jakarta.persistence.Id
-
-
 import jakarta.persistence.*
+import com.fasterxml.jackson.annotation.JsonProperty
 import org.hibernate.annotations.Type
-import java.util.*
 
 @Entity
 data class ProcessDefinition(
         @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
         val id: Long = 0,
 
+        @Column(name = "process_key", nullable = false)
+        @get:JsonProperty("key")
+        val key: String = "",
+
         val name: String,
+
+        val description: String? = null,
 
         val version: Int = 1,
 
