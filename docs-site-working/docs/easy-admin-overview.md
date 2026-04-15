@@ -70,7 +70,7 @@ Output: `dist/` directory (217 KB uncompressed, 66 KB gzipped)
 
 ## Integration Points
 
-Easy BPM Admin communicates exclusively with the Easy BPM backend API (default: `http://localhost:8080`). Key endpoints:
+Easy BPM Admin communicates exclusively with the Easy BPM backend API (default: `http://localhost:8085`). Key endpoints:
 
 - `GET /processes/instances` - Fetch paginated instances
 - `GET /processes/instances/{id}` - Single instance details
@@ -145,7 +145,7 @@ Review what processes are currently running and which tasks are pending. Use Eas
 
 ### Easy Admin Won't Connect to Backend
 
-1. Verify backend is running on `http://localhost:8080`
+1. Verify backend is running on `http://localhost:8085`
 2. Check CORS configuration allows `http://localhost:5173`
 3. Open browser developer console (F12) to see network errors
 

@@ -14,7 +14,7 @@ tool_preferences:
   - Read backend controller/DTO files to understand contracts before implementing.
   - Never edit files under src/main/kotlin or src/test/kotlin.
   - Use bpmService.ts as the single integration boundary — all API calls go through it.
-  - Validate UI changes by reading component and service files; no build/test runner available for frontend.
+  - Validate UI changes with `npm run build` whenever possible.
 boundaries:
   - READ-ONLY on all backend Kotlin/Java files.
   - WRITE on: EasyBPM-Process-Portal/** and easybpmn-modeler/** only.
@@ -30,10 +30,12 @@ tech_stack:
   - No routing library — view switching via state
 apps:
   modeler:
-    path: "c:/Users/Admin/OneDrive/Documentos/GitHub/easybpmn-modeler"
+    path: "c:/Users/Admin/OneDrive/Ambiente de Trabalho/bpm/easybpmn-modeler"
     purpose: "Visual BPMN drag-and-drop designer. Exports process JSON to be deployed via POST /processes."
     entry: App.tsx
-    services: services/geminiService.ts (stub only)
+    services:
+      - services/processService.ts (deploy integration)
+      - services/geminiService.ts (stub only)
     components:
       - Canvas.tsx — main editing area
       - Palette.tsx — node type picker
@@ -45,7 +47,7 @@ apps:
     purpose: "User-facing task portal. Login, inbox, task completion with dynamic forms, process list."
     entry: App.tsx
     services: services/bpmService.ts (primary integration boundary)
-    api_base: "http://localhost:8080"
+    api_base: "http://localhost:8085"
     components:
       - Sidebar.tsx — navigation
       - DynamicForm.tsx — renders JSON Schema forms
@@ -77,6 +79,8 @@ usage_examples:
   - "Show form validation errors inline on task completion."
   - "Implement the dashboard summary view with real data."
   - "Export process from modeler and deploy it via bpmService."
+active_epics:
+  - "easybpmn-modeler-validation-epic: .agents/epics/easybpmn-modeler-validation-epic.md"
 related_customizations:
   - Process Orchestrator Team agent
   - Backend Developer agent

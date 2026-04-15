@@ -194,7 +194,7 @@ scrape_configs:
   - job_name: 'bpm-engine'
     metrics_path: '/actuator/prometheus'
     static_configs:
-      - targets: ['localhost:8080']
+      - targets: ['localhost:8085']
 ```
 
 Start Prometheus:

@@ -11,6 +11,9 @@ data class Form(
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long = 0,
 
+    @Column(name = "form_key", nullable = false)
+    val key: String,
+
     val name: String,
 
     @JdbcTypeCode(SqlTypes.JSON)

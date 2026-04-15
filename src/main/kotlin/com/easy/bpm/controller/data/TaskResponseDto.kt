@@ -15,5 +15,6 @@ data class TaskResponseDto(
     val createdAt: LocalDateTime,
     val completedAt: LocalDateTime?,
     val formId: Long?,
+    val formKey: String? = null,
     val variables: Map<String, Any?>
 )

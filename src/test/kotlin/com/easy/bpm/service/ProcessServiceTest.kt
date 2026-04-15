@@ -28,6 +28,7 @@ import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Pageable
+import org.springframework.data.domain.Sort
 import java.time.LocalDateTime
 import java.util.*
 
@@ -226,6 +227,21 @@ class ProcessServiceTest : FunSpec({
             result.content.shouldBeEmpty()
             result.totalElements shouldBe 0
         }
+
+        test("should ignore unsupported sort fields for process instances") {
+            // Arrange
+            val page: Page<ProcessInstance> = PageImpl(emptyList(), PageRequest.of(0, 10), 0)
+            val capturedPageable = slot<Pageable>()
+            every { mockProcessInstanceRepository.findAll(capture(capturedPageable)) } returns page
+
+            // Act
+            processService.getProcessInstances(PageRequest.of(0, 10, Sort.by("string").ascending()))
+
+            // Assert
+            capturedPageable.captured.sort.getOrderFor("string") shouldBe null
+            capturedPageable.captured.sort.getOrderFor("createdAt")?.direction shouldBe Sort.Direction.DESC
+            capturedPageable.captured.sort.getOrderFor("id")?.direction shouldBe Sort.Direction.DESC
+        }
     }
 
     context("getProcessInstanceById") {
@@ -281,6 +297,53 @@ class ProcessServiceTest : FunSpec({
             result.content shouldHaveSize 2
             result.content[0].version shouldBe 2
             result.content[1].version shouldBe 1
+        }
+
+        test("should ignore unsupported sort fields and apply safe default sort") {
+            // Arrange
+            val definition = ProcessDefinition(id = 1, name = "proc-1", definitionJson = "{}", version = 2)
+            val page: Page<ProcessDefinition> = PageImpl(
+                listOf(definition),
+                PageRequest.of(0, 10),
+                1
+            )
+            val capturedPageable = slot<Pageable>()
+            every { mockProcessDefinitionRepository.findLatestVersionProcesses(capture(capturedPageable)) } returns page
+
+            // Act
+            processService.getLatestProcessDefinitions(PageRequest.of(0, 10, Sort.by("string").ascending()))
+
+            // Assert
+            capturedPageable.captured.sort.getOrderFor("string") shouldBe null
+            capturedPageable.captured.sort.getOrderFor("key")?.direction shouldBe Sort.Direction.ASC
+            capturedPageable.captured.sort.getOrderFor("version")?.direction shouldBe Sort.Direction.DESC
+        }
+    }
+
+    context("getProcessDefinitionById") {
+        test("should return process definition when it exists") {
+            // Arrange
+            val definitionId = 11L
+            val definition = ProcessDefinition(id = definitionId, key = "order", name = "order", definitionJson = "{}", version = 3)
+            every { mockProcessDefinitionRepository.findById(definitionId) } returns Optional.of(definition)
+
+            // Act
+            val result = processService.getProcessDefinitionById(definitionId)
+
+            // Assert
+            result shouldBe definition
+        }
+
+        test("should return null when process definition does not exist") {
+            // Arrange
+            val definitionId = 999L
+            every { mockProcessDefinitionRepository.findById(definitionId) } returns Optional.empty()
+
+            // Act
+            val result = processService.getProcessDefinitionById(definitionId)
+
+            // Assert
+            result shouldBe null
         }
     }
 })

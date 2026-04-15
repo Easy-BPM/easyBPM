@@ -7,7 +7,7 @@ import {
   VariableAssignmentPayload
 } from '../types';
 
-const API_BASE_URL = 'http://localhost:8080';
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? 'http://localhost:8085';
 const USE_MOCK = false;
 
 const MOCK_INSTANCES: ProcessInstance[] = [
@@ -34,8 +34,24 @@ const MOCK_INSTANCES: ProcessInstance[] = [
 ];
 
 const MOCK_DEFINITIONS: ProcessDefinition[] = [
-  { id: '1', name: 'Order Fulfillment', key: 'order-fulfillment', description: 'Handle customer orders end-to-end', version: 3 },
-  { id: '2', name: 'Expense Approval', key: 'expense-approval', description: 'Approval workflow for expenses', version: 2 }
+  {
+    id: 1,
+    name: 'Order Fulfillment',
+    key: 'order-fulfillment',
+    description: 'Handle customer orders end-to-end',
+    version: 3,
+    definitionJson:
+      '{"processId":"order-fulfillment","nodes":[{"id":"start","name":"Start","type":"StartEvent","position":{"x":120,"y":220},"next":["review"]},{"id":"review","name":"Review Order","type":"UserTask","position":{"x":320,"y":210},"next":["end"]},{"id":"end","name":"End","type":"EndEvent","position":{"x":560,"y":220},"next":[]}],"flows":[{"from":"start","to":"review","condition":null},{"from":"review","to":"end","condition":null}]}'
+  },
+  {
+    id: 2,
+    name: 'Expense Approval',
+    key: 'expense-approval',
+    description: 'Approval workflow for expenses',
+    version: 2,
+    definitionJson:
+      '{"processId":"expense-approval","nodes":[{"id":"start","name":"Start","type":"StartEvent","position":{"x":120,"y":220},"next":["managerApproval"]},{"id":"managerApproval","name":"Manager Approval","type":"UserTask","position":{"x":340,"y":210},"next":["end"]},{"id":"end","name":"End","type":"EndEvent","position":{"x":580,"y":220},"next":[]}],"flows":[{"from":"start","to":"managerApproval","condition":null},{"from":"managerApproval","to":"end","condition":null}]}'
+  }
 ];
 
 const MOCK_VARIABLES: Record<number, ProcessVariable[]> = {
@@ -99,6 +115,18 @@ export const adminService = {
     const params = new URLSearchParams({ page: String(page), size: String(size) });
     const res = await fetch(`${API_BASE_URL}/processes?${params.toString()}`);
     if (!res.ok) throw new Error(`Failed to fetch definitions: ${res.statusText}`);
+    return res.json();
+  },
+
+  getProcessDefinitionById: async (definitionId: number): Promise<ProcessDefinition | null> => {
+    if (USE_MOCK) {
+      await delay(250);
+      return MOCK_DEFINITIONS.find((d) => d.id === definitionId) ?? null;
+    }
+
+    const res = await fetch(`${API_BASE_URL}/processes/definitions/${definitionId}`);
+    if (res.status === 404) return null;
+    if (!res.ok) throw new Error(`Failed to fetch definition ${definitionId}: ${res.statusText}`);
     return res.json();
   },
 

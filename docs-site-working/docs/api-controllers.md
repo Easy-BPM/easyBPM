@@ -5,7 +5,7 @@ Complete REST API documentation for Easy BPM Engine.
 ## Base URL
 
 ```
-http://localhost:8080
+http://localhost:8085
 ```
 
 ## Authentication
@@ -293,6 +293,7 @@ Content-Type: application/json
 **Request Body**:
 ```json
 {
+  "key": "approvalForm",
   "name": "ApprovalForm",
   "schema": {
     "title": "Approval Form",
@@ -317,6 +318,7 @@ Content-Type: application/json
 ```json
 {
   "id": 50,
+  "key": "approvalForm",
   "name": "ApprovalForm",
   "schema": {...},
   "version": 1,
@@ -326,14 +328,15 @@ Content-Type: application/json
 
 ### Get Latest Form
 
-Get latest version of a form by name.
+Get latest version of a form by stable form key.
 
 ```http
-GET /forms/latest?name=ApprovalForm
+GET /forms/latest?key=approvalForm
 ```
 
 **Query Parameters**:
-- `name`: Form name (required)
+- `key`: Form key (recommended)
+- `name`: Form display name (legacy fallback)
 
 **Response** (200): Form object (see Deploy).
 
@@ -354,26 +357,29 @@ GET /forms/{formId}
 
 ### Get All Form Versions
 
-Get all versions of a form.
+Get all versions of a form lineage.
 
 ```http
-GET /forms?name=ApprovalForm
+GET /forms?key=approvalForm
 ```
 
 **Query Parameters**:
-- `name`: Form name (required)
+- `key`: Form key (recommended)
+- `name`: Form display name (legacy fallback)
 
 **Response** (200):
 ```json
 [
   {
     "id": 50,
+    "key": "approvalForm",
     "name": "ApprovalForm",
     "version": 2,
     "createdAt": "2026-04-14T10:05:00Z"
   },
   {
     "id": 49,
+    "key": "approvalForm",
     "name": "ApprovalForm",
     "version": 1,
     "createdAt": "2026-04-14T10:00:00Z"
@@ -543,9 +549,9 @@ All list endpoints support pagination:
 
 Interactive API documentation is available at:
 
-**Swagger UI**: http://localhost:8080/swagger-ui.html
+**Swagger UI**: http://localhost:8085/swagger-ui.html
 
-**OpenAPI Spec**: http://localhost:8080/v3/api-docs
+**OpenAPI Spec**: http://localhost:8085/v3/api-docs
 
 All endpoints are documented with request/response examples and schema validation.
 

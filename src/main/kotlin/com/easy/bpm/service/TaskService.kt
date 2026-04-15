@@ -17,7 +17,9 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import jakarta.transaction.Transactional
 import org.springframework.stereotype.Service
 import org.springframework.data.domain.Page
+import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Pageable
+import org.springframework.data.domain.Sort
 import java.time.LocalDateTime
 import javax.script.ScriptEngineManager
 
@@ -37,6 +39,18 @@ class TaskService(
     private val metricsService: MetricsService
 ) {
 
+    private val taskSortableFields = setOf(
+        "id",
+        "processInstanceId",
+        "title",
+        "nodeId",
+        "assignee",
+        "status",
+        "createdAt",
+        "completedAt",
+        "formId"
+    )
+
     /* =========================
        TASK COMPLETION
      ========================= */
@@ -54,13 +68,16 @@ class TaskService(
         // 1️⃣ Salvar dados do formulário como TASK VARIABLES
         persistTaskVariables(task, variables)
 
-        // 2️⃣ OUTPUT mapping → TASK → PROCESS
+        // 2️⃣ Always sync submitted task variables to process globals.
+        syncTaskVariablesToProcess(instance, variables)
+
+        // 3️⃣ OUTPUT mapping → TASK → PROCESS (supports explicit remapping overrides)
         applyTaskOutputs(task, currentNode, instance)
 
-        // 3️⃣ Resolver próximos nós
+        // 4️⃣ Resolver próximos nós
         val nextNodeIds = getNextNodes(currentNode, definition, instance)
 
-        // 4️⃣ Atualizar Task
+        // 5️⃣ Atualizar Task
         completeTaskEntity(task, assignee)
         metricsService.recordTaskCompleted()
         val duration = System.currentTimeMillis() - startTime
@@ -80,10 +97,10 @@ class TaskService(
         } catch (_: Exception) {
         }
 
-        // 5️⃣ Atualizar instância
+        // 6️⃣ Atualizar instância
         advanceProcess(instance, nextNodeIds, definition)
 
-        // 6️⃣ Continuar execução
+        // 7️⃣ Continuar execução
         executeNextSteps(nextNodeIds, instance, definition)
     }
 
@@ -93,7 +110,7 @@ class TaskService(
 
     fun getTasks(pageable: Pageable): Page<Task> {
         val startTime = System.currentTimeMillis()
-        val result = taskRepository.findAll(pageable)
+        val result = taskRepository.findAll(sanitizeTaskPageable(pageable))
         val duration = System.currentTimeMillis() - startTime
         metricsService.recordTaskQueryDuration(duration)
         return result
@@ -109,21 +126,40 @@ class TaskService(
 
     fun searchTasks(assignee: String?, status: TaskStatus?, pageable: Pageable): Page<Task> {
         val startTime = System.currentTimeMillis()
+        val sanitizedPageable = sanitizeTaskPageable(pageable)
         val result = when {
             assignee != null && status != null ->
-                taskRepository.findByAssigneeAndStatus(assignee, status, pageable)
+                taskRepository.findByAssigneeAndStatus(assignee, status, sanitizedPageable)
 
             assignee != null ->
-                taskRepository.findByAssignee(assignee, pageable)
+                taskRepository.findByAssignee(assignee, sanitizedPageable)
 
             status != null ->
-                taskRepository.findByStatus(status, pageable)
+                taskRepository.findByStatus(status, sanitizedPageable)
 
-            else -> taskRepository.findAll(pageable)
+            else -> taskRepository.findAll(sanitizedPageable)
         }
         val duration = System.currentTimeMillis() - startTime
         metricsService.recordTaskQueryDuration(duration)
         return result
+    }
+
+    private fun sanitizeTaskPageable(pageable: Pageable): Pageable {
+        val sanitizedOrders = pageable.sort
+            .filter { it.property in taskSortableFields }
+            .toList()
+
+        val effectiveSort = if (sanitizedOrders.isNotEmpty()) {
+            Sort.by(sanitizedOrders)
+        } else {
+            Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id"))
+        }
+
+        return if (pageable.isPaged) {
+            PageRequest.of(pageable.pageNumber, pageable.pageSize, effectiveSort)
+        } else {
+            PageRequest.of(0, 100, effectiveSort)
+        }
     }
 
     fun getTaskResponses(pageable: Pageable): Page<TaskResponseDto> {
@@ -179,7 +215,7 @@ class TaskService(
         instance: ProcessInstance,
         node: JsonNode
     ) {
-        val form = formService.getLatestVersionByName(node.get("id").asText())
+        val form = resolveUserTaskForm(node)
 
         val task = taskRepository.save(
             Task(
@@ -198,7 +234,8 @@ class TaskService(
                     "processInstanceId" to task.processInstanceId,
                     "nodeId" to task.nodeId,
                     "title" to task.title,
-                    "formId" to task.formId
+                    "formId" to task.formId,
+                    "formKey" to form?.key
                 )
             )
         } catch (_: Exception) {
@@ -452,6 +489,7 @@ class TaskService(
     private fun toResponseDto(task: Task): TaskResponseDto {
         val variables = taskVariableRepository.findByTaskId(task.id)
             .associate { it.name to objectMapper.convertValue(it.value, Any::class.java) }
+        val formKey = task.formId?.let { formService.getById(it)?.key }
 
         return TaskResponseDto(
             id = task.id,
@@ -465,9 +503,17 @@ class TaskService(
             createdAt = task.createdAt,
             completedAt = task.completedAt,
             formId = task.formId,
+            formKey = formKey,
             variables = variables
         )
     }
+
+    private fun resolveUserTaskForm(node: JsonNode) =
+        node.get("config")?.get("formId")?.asText()?.trim()?.takeIf { it.isNotEmpty() }?.let { configuredFormRef ->
+            formService.getLatestVersionByKey(configuredFormRef)
+                ?: configuredFormRef.toLongOrNull()?.let(formService::getById)
+                ?: formService.getLatestVersionByName(configuredFormRef)
+        } ?: formService.getLatestVersionByName(node.get("id").asText())
 
     private fun finishProcess(instance: ProcessInstance) {
         instance.status = ProcessStatus.COMPLETED
@@ -489,6 +535,29 @@ class TaskService(
                     value = objectMapper.valueToTree(value)
                 )
             )
+        }
+    }
+
+    private fun syncTaskVariablesToProcess(
+        instance: ProcessInstance,
+        variables: Map<String, Any>
+    ) {
+        variables.forEach { (name, rawValue) ->
+            val parsedValue = objectMapper.valueToTree<JsonNode>(rawValue)
+            val existingVar = processVariableRepository.findByProcessInstanceIdAndName(instance.id, name)
+
+            if (existingVar != null) {
+                existingVar.value = parsedValue
+                processVariableRepository.save(existingVar)
+            } else {
+                processVariableRepository.save(
+                    ProcessVariable(
+                        processInstanceId = instance.id,
+                        name = name,
+                        value = parsedValue
+                    )
+                )
+            }
         }
     }
 

@@ -18,7 +18,9 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import jakarta.transaction.Transactional
 import org.springframework.stereotype.Service
 import org.springframework.data.domain.Page
+import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Pageable
+import org.springframework.data.domain.Sort
 import javax.script.ScriptEngineManager
 import java.time.LocalDateTime
 
@@ -38,6 +40,9 @@ class ProcessService(
     private val metricsService: MetricsService,
     private val workerRequestRepository: WorkerRequestRepository
 ) {
+
+    private val processDefinitionSortableFields = setOf("id", "key", "name", "description", "version")
+    private val processInstanceSortableFields = setOf("id", "status", "createdAt", "updatedAt")
 
     /* =========================
        DEPLOY
@@ -110,7 +115,7 @@ class ProcessService(
     }
 
     fun getProcessInstances(pageable: Pageable): Page<ProcessInstance> =
-        processInstanceRepository.findAll(pageable)
+        processInstanceRepository.findAll(sanitizeProcessInstancePageable(pageable))
 
     fun getProcessInstanceById(id: Long): ProcessInstance? =
         processInstanceRepository.findById(id).orElse(null)
@@ -176,7 +181,46 @@ class ProcessService(
     }
 
     fun getLatestProcessDefinitions(pageable: Pageable): Page<ProcessDefinition> =
-        processDefinitionRepository.findLatestVersionProcesses(pageable)
+        processDefinitionRepository.findLatestVersionProcesses(sanitizeProcessDefinitionPageable(pageable))
+
+    fun getProcessDefinitionById(id: Long): ProcessDefinition? =
+        processDefinitionRepository.findById(id).orElse(null)
+
+    private fun sanitizeProcessDefinitionPageable(pageable: Pageable): Pageable {
+        val sanitizedOrders = pageable.sort
+            .filter { it.property in processDefinitionSortableFields }
+            .toList()
+
+        val effectiveSort = if (sanitizedOrders.isNotEmpty()) {
+            Sort.by(sanitizedOrders)
+        } else {
+            Sort.by(Sort.Order.asc("key"), Sort.Order.desc("version"))
+        }
+
+        return if (pageable.isPaged) {
+            PageRequest.of(pageable.pageNumber, pageable.pageSize, effectiveSort)
+        } else {
+            PageRequest.of(0, 100, effectiveSort)
+        }
+    }
+
+    private fun sanitizeProcessInstancePageable(pageable: Pageable): Pageable {
+        val sanitizedOrders = pageable.sort
+            .filter { it.property in processInstanceSortableFields }
+            .toList()
+
+        val effectiveSort = if (sanitizedOrders.isNotEmpty()) {
+            Sort.by(sanitizedOrders)
+        } else {
+            Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id"))
+        }
+
+        return if (pageable.isPaged) {
+            PageRequest.of(pageable.pageNumber, pageable.pageSize, effectiveSort)
+        } else {
+            PageRequest.of(0, 100, effectiveSort)
+        }
+    }
 
     @Transactional
     fun stopProcessInstance(id: Long): ProcessInstance {
@@ -297,7 +341,7 @@ class ProcessService(
         instance: ProcessInstance,
         node: JsonNode
     ) {
-        val form = formService.getLatestVersionByName(node.get("id").asText())
+        val form = resolveUserTaskForm(node)
         val task = taskRepository.save(
             Task(
                 processInstanceId = instance.id,
@@ -317,7 +361,8 @@ class ProcessService(
                     "processInstanceId" to task.processInstanceId,
                     "nodeId" to task.nodeId,
                     "title" to task.title,
-                    "formId" to task.formId
+                    "formId" to task.formId,
+                    "formKey" to form?.key
                 )
             )
         } catch (_: Exception) {
@@ -325,6 +370,13 @@ class ProcessService(
 
         applyTaskInputs(task, node, instance)
     }
+
+    private fun resolveUserTaskForm(node: JsonNode) =
+        node.get("config")?.get("formId")?.asText()?.trim()?.takeIf { it.isNotEmpty() }?.let { configuredFormRef ->
+            formService.getLatestVersionByKey(configuredFormRef)
+                ?: configuredFormRef.toLongOrNull()?.let(formService::getById)
+                ?: formService.getLatestVersionByName(configuredFormRef)
+        } ?: formService.getLatestVersionByName(node.get("id").asText())
 
     private fun handleAPITask(
         instance: ProcessInstance,

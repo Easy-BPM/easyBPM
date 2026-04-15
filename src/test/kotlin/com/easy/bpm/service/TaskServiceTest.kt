@@ -24,6 +24,7 @@ import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Pageable
+import org.springframework.data.domain.Sort
 import java.util.*
 
 class TaskServiceTest : FunSpec({
@@ -104,6 +105,21 @@ class TaskServiceTest : FunSpec({
             // Assert
             result.content.shouldBeEmpty()
             result.totalElements shouldBe 0
+        }
+
+        test("should ignore unsupported sort fields for getTasks") {
+            // Arrange
+            val page: Page<Task> = PageImpl(emptyList(), PageRequest.of(0, 10), 0)
+            val capturedPageable = slot<Pageable>()
+            every { mockTaskRepository.findAll(capture(capturedPageable)) } returns page
+
+            // Act
+            taskService.getTasks(PageRequest.of(0, 10, Sort.by("string").ascending()))
+
+            // Assert
+            capturedPageable.captured.sort.getOrderFor("string") shouldBe null
+            capturedPageable.captured.sort.getOrderFor("createdAt")?.direction shouldBe Sort.Direction.DESC
+            capturedPageable.captured.sort.getOrderFor("id")?.direction shouldBe Sort.Direction.DESC
         }
     }
 
@@ -241,6 +257,22 @@ class TaskServiceTest : FunSpec({
             // Assert
             result.content shouldHaveSize 1
             verify { mockTaskRepository.findAll(any<Pageable>()) }
+        }
+
+        test("should ignore unsupported sort fields for searchTasks") {
+            // Arrange
+            val status = TaskStatus.PENDING
+            val page: Page<Task> = PageImpl(emptyList(), PageRequest.of(0, 10), 0)
+            val capturedPageable = slot<Pageable>()
+            every { mockTaskRepository.findByStatus(status, capture(capturedPageable)) } returns page
+
+            // Act
+            taskService.searchTasks(assignee = null, status = status, pageable = PageRequest.of(0, 10, Sort.by("string").ascending()))
+
+            // Assert
+            capturedPageable.captured.sort.getOrderFor("string") shouldBe null
+            capturedPageable.captured.sort.getOrderFor("createdAt")?.direction shouldBe Sort.Direction.DESC
+            capturedPageable.captured.sort.getOrderFor("id")?.direction shouldBe Sort.Direction.DESC
         }
     }
 

@@ -200,6 +200,41 @@ class ProcessControllerTest : FunSpec({
         }
     }
 
+    context("getProcessDefinitionById") {
+        test("should return process definition when found") {
+            // Arrange
+            val definitionId = 5L
+            val definition = ProcessDefinition(
+                id = definitionId,
+                key = "expense",
+                name = "Expense Approval",
+                definitionJson = "{}",
+                version = 2
+            )
+            every { mockProcessService.getProcessDefinitionById(definitionId) } returns definition
+
+            // Act
+            val response = processController.getProcessDefinitionById(definitionId)
+
+            // Assert
+            response.statusCode.value() shouldBe 200
+            response.body shouldBe definition
+        }
+
+        test("should return 404 when process definition is not found") {
+            // Arrange
+            val definitionId = 404L
+            every { mockProcessService.getProcessDefinitionById(definitionId) } returns null
+
+            // Act
+            val response = processController.getProcessDefinitionById(definitionId)
+
+            // Assert
+            response.statusCode.value() shouldBe 404
+            response.body shouldBe null
+        }
+    }
+
     context("sendMessage") {
         test("should send message successfully") {
             // Arrange

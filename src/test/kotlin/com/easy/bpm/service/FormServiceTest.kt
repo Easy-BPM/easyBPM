@@ -23,6 +23,7 @@ class FormServiceTest : FunSpec({
     context("deploy") {
         test("should deploy new form successfully") {
             // Arrange
+            val formKey = "applicationForm"
             val formName = "ApplicationForm"
             val schema = objectMapper.readTree("""
                 {
@@ -33,9 +34,10 @@ class FormServiceTest : FunSpec({
                 }
             """.trimIndent())
 
-            every { mockFormRepository.findTopByNameOrderByVersionDesc(formName) } returns null
+            every { mockFormRepository.findTopByKeyOrderByVersionDesc(formKey) } returns null
             val expectedForm = Form(
                 id = 1,
+                key = formKey,
                 name = formName,
                 schema = schema,
                 version = 1
@@ -43,11 +45,12 @@ class FormServiceTest : FunSpec({
             every { mockFormRepository.save(any()) } returns expectedForm
 
             // Act
-            val result = formService.deploy(formName, schema)
+            val result = formService.deploy(formKey, formName, schema)
 
             // Assert
             result shouldNotBe null
             result.id shouldBe 1
+            result.key shouldBe formKey
             result.name shouldBe formName
             result.version shouldBe 1
             verify { mockFormRepository.save(any()) }
@@ -55,9 +58,11 @@ class FormServiceTest : FunSpec({
 
         test("should increment version for existing form") {
             // Arrange
+            val formKey = "applicationForm"
             val formName = "ApplicationForm"
             val existingForm = Form(
                 id = 1,
+                key = formKey,
                 name = formName,
                 schema = objectMapper.readTree("{}"),
                 version = 2
@@ -68,9 +73,10 @@ class FormServiceTest : FunSpec({
                 }
             """.trimIndent())
 
-            every { mockFormRepository.findTopByNameOrderByVersionDesc(formName) } returns existingForm
+            every { mockFormRepository.findTopByKeyOrderByVersionDesc(formKey) } returns existingForm
             val expectedForm = Form(
                 id = 2,
+                key = formKey,
                 name = formName,
                 schema = schema,
                 version = 3
@@ -78,7 +84,7 @@ class FormServiceTest : FunSpec({
             every { mockFormRepository.save(any()) } returns expectedForm
 
             // Act
-            val result = formService.deploy(formName, schema)
+            val result = formService.deploy(formKey, formName, schema)
 
             // Assert
             result.version shouldBe 3
@@ -86,35 +92,37 @@ class FormServiceTest : FunSpec({
         }
     }
 
-    context("getLatestVersionByName") {
+    context("getLatestVersionByKey") {
         test("should retrieve latest version of form") {
             // Arrange
-            val formName = "ApplicationForm"
+            val formKey = "applicationForm"
             val form = Form(
                 id = 2,
-                name = formName,
+                key = formKey,
+                name = "ApplicationForm",
                 schema = objectMapper.readTree("{}"),
                 version = 3
             )
-            every { mockFormRepository.findTopByNameOrderByVersionDesc(formName) } returns form
+            every { mockFormRepository.findTopByKeyOrderByVersionDesc(formKey) } returns form
 
             // Act
-            val result = formService.getLatestVersionByName(formName)
+            val result = formService.getLatestVersionByKey(formKey)
 
             // Assert
             result shouldNotBe null
             result?.id shouldBe 2
+            result?.key shouldBe formKey
             result?.version shouldBe 3
-            verify { mockFormRepository.findTopByNameOrderByVersionDesc(formName) }
+            verify { mockFormRepository.findTopByKeyOrderByVersionDesc(formKey) }
         }
 
         test("should return null when form not found") {
             // Arrange
-            val formName = "NonExistentForm"
-            every { mockFormRepository.findTopByNameOrderByVersionDesc(formName) } returns null
+            val formKey = "missingForm"
+            every { mockFormRepository.findTopByKeyOrderByVersionDesc(formKey) } returns null
 
             // Act
-            val result = formService.getLatestVersionByName(formName)
+            val result = formService.getLatestVersionByKey(formKey)
 
             // Assert
             result shouldBe null
@@ -127,6 +135,7 @@ class FormServiceTest : FunSpec({
             val formId = 1L
             val form = Form(
                 id = formId,
+                key = "applicationForm",
                 name = "ApplicationForm",
                 schema = objectMapper.readTree("{}"),
                 version = 1
@@ -155,18 +164,19 @@ class FormServiceTest : FunSpec({
         }
     }
 
-    context("getAllVersionsByName") {
+    context("getAllVersionsByKey") {
         test("should retrieve all versions of a form") {
             // Arrange
+            val formKey = "applicationForm"
             val formName = "ApplicationForm"
-            val form1 = Form(id = 1, name = formName, schema = objectMapper.readTree("{}"), version = 1)
-            val form2 = Form(id = 2, name = formName, schema = objectMapper.readTree("{}"), version = 2)
-            val form3 = Form(id = 3, name = formName, schema = objectMapper.readTree("{}"), version = 3)
+            val form1 = Form(id = 1, key = formKey, name = formName, schema = objectMapper.readTree("{}"), version = 1)
+            val form2 = Form(id = 2, key = formKey, name = formName, schema = objectMapper.readTree("{}"), version = 2)
+            val form3 = Form(id = 3, key = formKey, name = formName, schema = objectMapper.readTree("{}"), version = 3)
 
-            every { mockFormRepository.findByName(formName) } returns listOf(form1, form2, form3)
+            every { mockFormRepository.findByKeyOrderByVersionAsc(formKey) } returns listOf(form1, form2, form3)
 
             // Act
-            val result = formService.getAllVersionsByName(formName)
+            val result = formService.getAllVersionsByKey(formKey)
 
             // Assert
             result shouldHaveSize 3
@@ -177,11 +187,11 @@ class FormServiceTest : FunSpec({
 
         test("should return empty list when form not found") {
             // Arrange
-            val formName = "NonExistentForm"
-            every { mockFormRepository.findByName(formName) } returns emptyList()
+            val formKey = "missingForm"
+            every { mockFormRepository.findByKeyOrderByVersionAsc(formKey) } returns emptyList()
 
             // Act
-            val result = formService.getAllVersionsByName(formName)
+            val result = formService.getAllVersionsByKey(formKey)
 
             // Assert
             result.shouldBeEmpty()

@@ -3,7 +3,6 @@ package com.easy.bpm.controller
 import com.easy.bpm.controller.data.TaskResponseDto
 import com.easy.bpm.enum.TaskStatus
 import com.easy.bpm.service.TaskService
-import com.fasterxml.jackson.databind.ObjectMapper
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
@@ -16,9 +15,8 @@ import org.springframework.http.HttpStatus
 
 class TaskControllerTest : FunSpec({
     val mockTaskService = mockk<TaskService>()
-    val objectMapper = ObjectMapper()
 
-    val taskController = TaskController(mockTaskService, objectMapper)
+    val taskController = TaskController(mockTaskService)
 
     beforeEach {
         clearAllMocks()
@@ -36,6 +34,7 @@ class TaskControllerTest : FunSpec({
                 nodeId = "task-1",
                 status = TaskStatus.PENDING,
                 formId = 1,
+                formKey = "reviewForm",
                 assignee = null,
                 createdAt = java.time.LocalDateTime.now(),
                 completedAt = null,
@@ -51,6 +50,7 @@ class TaskControllerTest : FunSpec({
                 status = TaskStatus.COMPLETED,
                 assignee = "alice@example.com",
                 formId = 2,
+                formKey = "approvalForm",
                 createdAt = java.time.LocalDateTime.now(),
                 completedAt = java.time.LocalDateTime.now(),
                 variables = emptyMap()
@@ -82,6 +82,7 @@ class TaskControllerTest : FunSpec({
                 nodeId = "task-1",
                 status = TaskStatus.PENDING,
                 formId = 1,
+                formKey = "reviewForm",
                 assignee = null,
                 createdAt = java.time.LocalDateTime.now(),
                 completedAt = null,
@@ -127,6 +128,7 @@ class TaskControllerTest : FunSpec({
                 status = TaskStatus.COMPLETED,
                 assignee = assignee,
                 formId = 1,
+                formKey = "reviewForm",
                 createdAt = java.time.LocalDateTime.now(),
                 completedAt = java.time.LocalDateTime.now(),
                 variables = emptyMap()
@@ -155,6 +157,7 @@ class TaskControllerTest : FunSpec({
                 nodeId = "task-1",
                 status = status,
                 formId = 1,
+                formKey = "reviewForm",
                 assignee = null,
                 createdAt = java.time.LocalDateTime.now(),
                 completedAt = null,
@@ -186,6 +189,7 @@ class TaskControllerTest : FunSpec({
                 status = status,
                 assignee = assignee,
                 formId = 1,
+                formKey = "reviewForm",
                 createdAt = java.time.LocalDateTime.now(),
                 completedAt = null,
                 variables = emptyMap()

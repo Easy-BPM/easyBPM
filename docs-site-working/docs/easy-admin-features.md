@@ -63,10 +63,10 @@ From dashboard, you can:
 **Scene: Monday Morning Check-In**
 
 1. Open Easy Admin Dashboard
-2. Check "Active Instances" count (should be <10 for normal operation)
+2. Check "Active Instances" count (should be &lt;10 for normal operation)
 3. Check "Pending Tasks" count (should be assignable)
 4. Check "Recent Errors" (any overnight failures?)
-5. Verify "System Uptime" (expect >99%)
+5. Verify "System Uptime" (expect &gt;99%)
 
 If all metrics are green, system is healthy. If issues detected:
 - Click on error summary to see failed instances
@@ -933,7 +933,7 @@ Customize Easy Admin behavior and preferences.
 
 **API Configuration**:
 ```
-API Endpoint: [http://localhost:8080    ]
+API Endpoint: [http://localhost:8085    ]
 Timeout (seconds): [30]
 Retry on Failure: [✓]
 ```

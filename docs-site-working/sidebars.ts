@@ -5,6 +5,7 @@ const sidebars: SidebarsConfig = {
     'intro',
     'getting-started',
     {
+      type: 'category',
       label: '🏗️ Architecture',
       items: [
         'architecture',
@@ -13,18 +14,21 @@ const sidebars: SidebarsConfig = {
       ],
     },
     {
+      type: 'category',
       label: '📡 API Reference',
       items: [
         'api-controllers',
       ],
     },
     {
+      type: 'category',
       label: '📊 Observability',
       items: [
         'metrics-observability',
       ],
     },
     {
+      type: 'category',
       label: '🔄 Advanced',
       items: [
         'message-events',
@@ -32,6 +36,7 @@ const sidebars: SidebarsConfig = {
       ],
     },
     {
+      type: 'category',
       label: '�‍💼 Easy BPM Admin',
       items: [
         'easy-admin-overview',
@@ -42,6 +47,16 @@ const sidebars: SidebarsConfig = {
       ],
     },
     {
+      type: 'category',
+      label: 'Easy BPMN Modeler',
+      items: [
+        'easy-modeler-overview',
+        'easy-modeler-getting-started',
+        'easy-modeler-deploy-integration',
+      ],
+    },
+    {
+      type: 'category',
       label: '�📚 Guides',
       items: [
         'developer-quick-reference',

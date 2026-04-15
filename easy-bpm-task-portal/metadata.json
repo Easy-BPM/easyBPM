@@ -1,0 +1,5 @@
+{
+  "name": "Easy BPM Task Portal",
+  "description": "Task-focused BPM portal to list, open, complete, and synchronize task variables with process globals.",
+  "requestFramePermissions": []
+}

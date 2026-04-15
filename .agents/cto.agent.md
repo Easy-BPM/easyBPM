@@ -17,6 +17,8 @@ workflow:
   3. Backend Developer implements features with integration tests as validators.
   4. Document architecture changes as code is implemented.
   5. Architecture approved implicitly when all integration tests pass.
+active_epics:
+  - "easybpmn-modeler-validation-epic: .agents/epics/easybpmn-modeler-validation-epic.md"
 usage_examples:
   - "Draft architecture for Java integration component."
   - "Review error boundary handling design."

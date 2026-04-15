@@ -7,7 +7,7 @@ sidebar_position: 7
 ## Prerequisites
 
 - Node.js 18+ and npm 9+
-- Easy BPM backend running on `http://localhost:8080`
+- Easy BPM backend running on `http://localhost:8085`
 - Modern web browser (Chrome, Firefox, Safari, or Edge)
 
 ## Installation & Setup
@@ -64,6 +64,17 @@ In development, the login panel accepts any username:
 :::note Mock Authentication
 Production deployments require proper authentication. See [Security Configuration](#security-configuration) below.
 :::
+
+## Security Configuration
+
+Easy BPM Admin production environments should use real backend authentication and authorization.
+
+Recommended baseline:
+
+1. Enable backend `POST /login` and token validation middleware
+2. Enforce RBAC for all management endpoints
+3. Store auth token securely (short TTL + rotation strategy)
+4. Disable mock login behavior outside development
 
 ## Dashboard Walkthrough
 
@@ -227,7 +238,7 @@ The process will:
 
 1. Click **Settings** in the sidebar
 2. Configure:
-   - **API Endpoint**: Backend URL (default: `http://localhost:8080`)
+   - **API Endpoint**: Backend URL (default: `http://localhost:8085`)
    - **Page Size**: Instances per page (default: 20)
    - **Auto-Refresh**: Enable/disable polling (default: 30s interval)
    - **Theme**: Light/Dark mode
@@ -240,13 +251,13 @@ The process will:
 **Problem**: Easy Admin shows connection error on startup
 
 **Solutions**:
-1. Verify Easy BPM backend is running: `http://localhost:8080/swagger-ui.html`
+1. Verify Easy BPM backend is running: `http://localhost:8085/swagger-ui.html`
 2. Check CORS configuration in backend `application.yml`:
    ```yaml
    cors:
      allowed-origins: http://localhost:5173
    ```
-3. Verify network: `curl http://localhost:8080/health`
+3. Verify network: `curl http://localhost:8085/health`
 
 ### "Login Always Fails" Error
 
@@ -258,7 +269,7 @@ The process will:
 3. Check **Console** tab for error messages
 4. Verify backend authentication endpoint:
    ```bash
-   curl -X POST http://localhost:8080/login \
+   curl -X POST http://localhost:8085/login \
      -H "Content-Type: application/json" \
      -d '{"username":"admin","password":"password"}'
    ```

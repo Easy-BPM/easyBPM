@@ -42,11 +42,14 @@ CREATE TABLE "process_variable" (
 
 CREATE TABLE "form" (
     "id" BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    "form_key" VARCHAR(255) NOT NULL,
     "name" VARCHAR(255) NOT NULL,
     "schema" CLOB NOT NULL,
     "version" INTEGER NOT NULL,
     "created_at" TIMESTAMP
 );
+
+CREATE UNIQUE INDEX "uk_form_form_key_version" ON "form"("form_key", "version");
 
 CREATE TABLE "task" (
     "id" BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,

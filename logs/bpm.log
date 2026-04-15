@@ -187,3 +187,1026 @@ select pd1_0."id",pd1_0."definition_json",pd1_0."description",pd1_0."process_key
 2026-04-15T11:58:11.923-03:00  INFO 79236 --- [SpringApplicationShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
 2026-04-15T11:58:11.926-03:00  INFO 79236 --- [SpringApplicationShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown initiated...
 2026-04-15T11:58:11.928-03:00  INFO 79236 --- [SpringApplicationShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown completed.
+2026-04-15T13:30:50.102-03:00  INFO 101652 --- [main] com.easy.bpm.BpmApplicationKt            : Starting BpmApplicationKt using Java 17.0.10 with PID 101652 (C:\Users\Admin\OneDrive\Ambiente de Trabalho\bpm\build\classes\kotlin\main started by Admin in C:\Users\Admin\OneDrive\Ambiente de Trabalho\bpm)
+2026-04-15T13:30:50.102-03:00 DEBUG 101652 --- [main] com.easy.bpm.BpmApplicationKt            : Running with Spring Boot v3.5.3, Spring v6.2.8
+2026-04-15T13:30:50.102-03:00  INFO 101652 --- [main] com.easy.bpm.BpmApplicationKt            : No active profile set, falling back to 1 default profile: "default"
+2026-04-15T13:30:51.248-03:00  INFO 101652 --- [main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-04-15T13:30:51.311-03:00  INFO 101652 --- [main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 57 ms. Found 8 JPA repository interfaces.
+2026-04-15T13:30:51.775-03:00  INFO 101652 --- [main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8085 (http)
+2026-04-15T13:30:51.786-03:00  INFO 101652 --- [main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-04-15T13:30:51.786-03:00  INFO 101652 --- [main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.42]
+2026-04-15T13:30:51.843-03:00  INFO 101652 --- [main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2026-04-15T13:30:51.843-03:00  INFO 101652 --- [main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 1701 ms
+2026-04-15T13:30:52.053-03:00  INFO 101652 --- [main] o.f.c.internal.license.VersionPrinter    : Flyway Community Edition 9.16.1 by Redgate
+2026-04-15T13:30:52.053-03:00  INFO 101652 --- [main] o.f.c.internal.license.VersionPrinter    : See release notes here: https://rd.gt/416ObMi
+2026-04-15T13:30:52.053-03:00  INFO 101652 --- [main] o.f.c.internal.license.VersionPrinter    : 
+2026-04-15T13:30:52.074-03:00  INFO 101652 --- [main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-04-15T13:30:53.136-03:00  WARN 101652 --- [main] ConfigServletWebServerApplicationContext : Exception encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'entityManagerFactory' defined in class path resource [org/springframework/boot/autoconfigure/orm/jpa/HibernateJpaConfiguration.class]: Failed to initialize dependency 'flywayInitializer' of LoadTimeWeaverAware bean 'entityManagerFactory': Error creating bean with name 'flywayInitializer' defined in class path resource [org/springframework/boot/autoconfigure/flyway/FlywayAutoConfiguration$FlywayConfiguration.class]: Unable to obtain connection from database: Connection to localhost:5432 refused. Check that the hostname and port are correct and that the postmaster is accepting TCP/IP connections.
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+SQL State  : 08001
+Error Code : 0
+Message    : Connection to localhost:5432 refused. Check that the hostname and port are correct and that the postmaster is accepting TCP/IP connections.
+
+2026-04-15T13:30:53.136-03:00  INFO 101652 --- [main] o.apache.catalina.core.StandardService   : Stopping service [Tomcat]
+2026-04-15T13:30:53.151-03:00  INFO 101652 --- [main] .s.b.a.l.ConditionEvaluationReportLogger : 
+
+Error starting ApplicationContext. To display the condition evaluation report re-run your application with 'debug' enabled.
+2026-04-15T13:30:53.167-03:00 ERROR 101652 --- [main] o.s.boot.SpringApplication               : Application run failed
+
+org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'entityManagerFactory' defined in class path resource [org/springframework/boot/autoconfigure/orm/jpa/HibernateJpaConfiguration.class]: Failed to initialize dependency 'flywayInitializer' of LoadTimeWeaverAware bean 'entityManagerFactory': Error creating bean with name 'flywayInitializer' defined in class path resource [org/springframework/boot/autoconfigure/flyway/FlywayAutoConfiguration$FlywayConfiguration.class]: Unable to obtain connection from database: Connection to localhost:5432 refused. Check that the hostname and port are correct and that the postmaster is accepting TCP/IP connections.
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+SQL State  : 08001
+Error Code : 0
+Message    : Connection to localhost:5432 refused. Check that the hostname and port are correct and that the postmaster is accepting TCP/IP connections.
+
+	at org.springframework.beans.factory.support.AbstractBeanFactory.doGetBean(AbstractBeanFactory.java:328) ~[spring-beans-6.2.8.jar:6.2.8]
+	at org.springframework.beans.factory.support.AbstractBeanFactory.getBean(AbstractBeanFactory.java:207) ~[spring-beans-6.2.8.jar:6.2.8]
+	at org.springframework.context.support.AbstractApplicationContext.finishBeanFactoryInitialization(AbstractApplicationContext.java:970) ~[spring-context-6.2.8.jar:6.2.8]
+	at org.springframework.context.support.AbstractApplicationContext.refresh(AbstractApplicationContext.java:627) ~[spring-context-6.2.8.jar:6.2.8]
+	at org.springframework.boot.web.servlet.context.ServletWebServerApplicationContext.refresh(ServletWebServerApplicationContext.java:146) ~[spring-boot-3.5.3.jar:3.5.3]
+	at org.springframework.boot.SpringApplication.refresh(SpringApplication.java:752) ~[spring-boot-3.5.3.jar:3.5.3]
+	at org.springframework.boot.SpringApplication.refreshContext(SpringApplication.java:439) ~[spring-boot-3.5.3.jar:3.5.3]
+	at org.springframework.boot.SpringApplication.run(SpringApplication.java:318) ~[spring-boot-3.5.3.jar:3.5.3]
+	at org.springframework.boot.SpringApplication.run(SpringApplication.java:1361) ~[spring-boot-3.5.3.jar:3.5.3]
+	at org.springframework.boot.SpringApplication.run(SpringApplication.java:1350) ~[spring-boot-3.5.3.jar:3.5.3]
+	at com.easy.bpm.BpmApplicationKt.main(BpmApplication.kt:16) ~[main/:na]
+Caused by: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'flywayInitializer' defined in class path resource [org/springframework/boot/autoconfigure/flyway/FlywayAutoConfiguration$FlywayConfiguration.class]: Unable to obtain connection from database: Connection to localhost:5432 refused. Check that the hostname and port are correct and that the postmaster is accepting TCP/IP connections.
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+SQL State  : 08001
+Error Code : 0
+Message    : Connection to localhost:5432 refused. Check that the hostname and port are correct and that the postmaster is accepting TCP/IP connections.
+
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.initializeBean(AbstractAutowireCapableBeanFactory.java:1826) ~[spring-beans-6.2.8.jar:6.2.8]
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.doCreateBean(AbstractAutowireCapableBeanFactory.java:607) ~[spring-beans-6.2.8.jar:6.2.8]
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBean(AbstractAutowireCapableBeanFactory.java:529) ~[spring-beans-6.2.8.jar:6.2.8]
+	at org.springframework.beans.factory.support.AbstractBeanFactory.lambda$doGetBean$0(AbstractBeanFactory.java:339) ~[spring-beans-6.2.8.jar:6.2.8]
+	at org.springframework.beans.factory.support.DefaultSingletonBeanRegistry.getSingleton(DefaultSingletonBeanRegistry.java:373) ~[spring-beans-6.2.8.jar:6.2.8]
+	at org.springframework.beans.factory.support.AbstractBeanFactory.doGetBean(AbstractBeanFactory.java:337) ~[spring-beans-6.2.8.jar:6.2.8]
+	at org.springframework.beans.factory.support.AbstractBeanFactory.getBean(AbstractBeanFactory.java:202) ~[spring-beans-6.2.8.jar:6.2.8]
+	at org.springframework.beans.factory.support.AbstractBeanFactory.doGetBean(AbstractBeanFactory.java:315) ~[spring-beans-6.2.8.jar:6.2.8]
+	... 10 common frames omitted
+Caused by: org.flywaydb.core.internal.exception.FlywaySqlException: Unable to obtain connection from database: Connection to localhost:5432 refused. Check that the hostname and port are correct and that the postmaster is accepting TCP/IP connections.
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+SQL State  : 08001
+Error Code : 0
+Message    : Connection to localhost:5432 refused. Check that the hostname and port are correct and that the postmaster is accepting TCP/IP connections.
+
+	at org.flywaydb.core.internal.jdbc.JdbcUtils.openConnection(JdbcUtils.java:60) ~[flyway-core-9.16.1.jar:na]
+	at org.flywaydb.core.internal.jdbc.JdbcConnectionFactory.<init>(JdbcConnectionFactory.java:74) ~[flyway-core-9.16.1.jar:na]
+	at org.flywaydb.core.FlywayExecutor.execute(FlywayExecutor.java:140) ~[flyway-core-9.16.1.jar:na]
+	at org.flywaydb.core.Flyway.migrate(Flyway.java:140) ~[flyway-core-9.16.1.jar:na]
+	at org.springframework.boot.autoconfigure.flyway.FlywayMigrationInitializer.afterPropertiesSet(FlywayMigrationInitializer.java:66) ~[spring-boot-autoconfigure-3.5.3.jar:3.5.3]
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.invokeInitMethods(AbstractAutowireCapableBeanFactory.java:1873) ~[spring-beans-6.2.8.jar:6.2.8]
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.initializeBean(AbstractAutowireCapableBeanFactory.java:1822) ~[spring-beans-6.2.8.jar:6.2.8]
+	... 17 common frames omitted
+Caused by: org.postgresql.util.PSQLException: Connection to localhost:5432 refused. Check that the hostname and port are correct and that the postmaster is accepting TCP/IP connections.
+	at org.postgresql.core.v3.ConnectionFactoryImpl.openConnectionImpl(ConnectionFactoryImpl.java:342) ~[postgresql-42.7.1.jar:42.7.1]
+	at org.postgresql.core.ConnectionFactory.openConnection(ConnectionFactory.java:54) ~[postgresql-42.7.1.jar:42.7.1]
+	at org.postgresql.jdbc.PgConnection.<init>(PgConnection.java:263) ~[postgresql-42.7.1.jar:42.7.1]
+	at org.postgresql.Driver.makeConnection(Driver.java:444) ~[postgresql-42.7.1.jar:42.7.1]
+	at org.postgresql.Driver.connect(Driver.java:297) ~[postgresql-42.7.1.jar:42.7.1]
+	at com.zaxxer.hikari.util.DriverDataSource.getConnection(DriverDataSource.java:139) ~[HikariCP-6.3.0.jar:na]
+	at com.zaxxer.hikari.pool.PoolBase.newConnection(PoolBase.java:368) ~[HikariCP-6.3.0.jar:na]
+	at com.zaxxer.hikari.pool.PoolBase.newPoolEntry(PoolBase.java:205) ~[HikariCP-6.3.0.jar:na]
+	at com.zaxxer.hikari.pool.HikariPool.createPoolEntry(HikariPool.java:483) ~[HikariCP-6.3.0.jar:na]
+	at com.zaxxer.hikari.pool.HikariPool.checkFailFast(HikariPool.java:571) ~[HikariCP-6.3.0.jar:na]
+	at com.zaxxer.hikari.pool.HikariPool.<init>(HikariPool.java:101) ~[HikariCP-6.3.0.jar:na]
+	at com.zaxxer.hikari.HikariDataSource.getConnection(HikariDataSource.java:111) ~[HikariCP-6.3.0.jar:na]
+	at org.flywaydb.core.internal.jdbc.JdbcUtils.openConnection(JdbcUtils.java:48) ~[flyway-core-9.16.1.jar:na]
+	... 23 common frames omitted
+Caused by: java.net.ConnectException: Connection refused: no further information
+	at java.base/sun.nio.ch.Net.pollConnect(Native Method) ~[na:na]
+	at java.base/sun.nio.ch.Net.pollConnectNow(Net.java:672) ~[na:na]
+	at java.base/sun.nio.ch.NioSocketImpl.timedFinishConnect(NioSocketImpl.java:547) ~[na:na]
+	at java.base/sun.nio.ch.NioSocketImpl.connect(NioSocketImpl.java:602) ~[na:na]
+	at java.base/java.net.SocksSocketImpl.connect(SocksSocketImpl.java:327) ~[na:na]
+	at java.base/java.net.Socket.connect(Socket.java:633) ~[na:na]
+	at org.postgresql.core.PGStream.createSocket(PGStream.java:243) ~[postgresql-42.7.1.jar:42.7.1]
+	at org.postgresql.core.PGStream.<init>(PGStream.java:98) ~[postgresql-42.7.1.jar:42.7.1]
+	at org.postgresql.core.v3.ConnectionFactoryImpl.tryConnect(ConnectionFactoryImpl.java:132) ~[postgresql-42.7.1.jar:42.7.1]
+	at org.postgresql.core.v3.ConnectionFactoryImpl.openConnectionImpl(ConnectionFactoryImpl.java:258) ~[postgresql-42.7.1.jar:42.7.1]
+	... 35 common frames omitted
+
+2026-04-15T13:31:48.650-03:00  INFO 97940 --- [main] com.easy.bpm.BpmApplicationKt            : Starting BpmApplicationKt using Java 17.0.10 with PID 97940 (C:\Users\Admin\OneDrive\Ambiente de Trabalho\bpm\build\classes\kotlin\main started by Admin in C:\Users\Admin\OneDrive\Ambiente de Trabalho\bpm)
+2026-04-15T13:31:48.650-03:00 DEBUG 97940 --- [main] com.easy.bpm.BpmApplicationKt            : Running with Spring Boot v3.5.3, Spring v6.2.8
+2026-04-15T13:31:48.650-03:00  INFO 97940 --- [main] com.easy.bpm.BpmApplicationKt            : No active profile set, falling back to 1 default profile: "default"
+2026-04-15T13:31:49.844-03:00  INFO 97940 --- [main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-04-15T13:31:49.907-03:00  INFO 97940 --- [main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 57 ms. Found 8 JPA repository interfaces.
+2026-04-15T13:31:50.341-03:00  INFO 97940 --- [main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8085 (http)
+2026-04-15T13:31:50.341-03:00  INFO 97940 --- [main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-04-15T13:31:50.341-03:00  INFO 97940 --- [main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.42]
+2026-04-15T13:31:50.389-03:00  INFO 97940 --- [main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2026-04-15T13:31:50.389-03:00  INFO 97940 --- [main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 1697 ms
+2026-04-15T13:31:50.600-03:00  INFO 97940 --- [main] o.f.c.internal.license.VersionPrinter    : Flyway Community Edition 9.16.1 by Redgate
+2026-04-15T13:31:50.600-03:00  INFO 97940 --- [main] o.f.c.internal.license.VersionPrinter    : See release notes here: https://rd.gt/416ObMi
+2026-04-15T13:31:50.600-03:00  INFO 97940 --- [main] o.f.c.internal.license.VersionPrinter    : 
+2026-04-15T13:31:50.616-03:00  INFO 97940 --- [main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-04-15T13:31:50.781-03:00  INFO 97940 --- [main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@60c4cf2b
+2026-04-15T13:31:50.782-03:00  INFO 97940 --- [main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-04-15T13:31:50.802-03:00  INFO 97940 --- [main] o.f.c.i.database.base.BaseDatabaseType   : Database: jdbc:postgresql://localhost:5432/easybpm (PostgreSQL 15.13)
+2026-04-15T13:31:50.867-03:00  INFO 97940 --- [main] o.f.core.internal.command.DbValidate     : Successfully validated 15 migrations (execution time 00:00.034s)
+2026-04-15T13:31:50.905-03:00  INFO 97940 --- [main] o.f.core.internal.command.DbMigrate      : Current version of schema "public": 14
+2026-04-15T13:31:50.919-03:00  INFO 97940 --- [main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "15 - add process key and description"
+2026-04-15T13:31:50.961-03:00  INFO 97940 --- [main] o.f.core.internal.command.DbMigrate      : Successfully applied 1 migration to schema "public", now at version v15 (execution time 00:00.063s)
+2026-04-15T13:31:51.036-03:00  INFO 97940 --- [main] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2026-04-15T13:31:51.076-03:00  INFO 97940 --- [main] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.6.18.Final
+2026-04-15T13:31:51.092-03:00  INFO 97940 --- [main] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2026-04-15T13:31:51.204-03:00  WARN 97940 --- [main] org.hibernate.orm.deprecation            : HHH90000025: PostgreSQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-04-15T13:31:51.225-03:00  INFO 97940 --- [main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-1)']
+	Database driver: undefined/unknown
+	Database version: 15.13
+	Autocommit mode: undefined/unknown
+	Isolation level: undefined/unknown
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-04-15T13:31:51.404-03:00  INFO 97940 --- [main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-04-15T13:31:52.156-03:00  INFO 97940 --- [main] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-04-15T13:31:52.160-03:00  INFO 97940 --- [main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-04-15T13:31:52.605-03:00  INFO 97940 --- [main] o.s.d.j.r.query.QueryEnhancerFactory     : Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-04-15T13:31:53.557-03:00  WARN 97940 --- [main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-04-15T13:31:53.599-03:00  INFO 97940 --- [main] o.s.v.b.OptionalValidatorFactoryBean     : Failed to set up a Bean Validation provider: jakarta.validation.NoProviderFoundException: Unable to create a Configuration, because no Jakarta Bean Validation provider could be found. Add a provider like Hibernate Validator (RI) to your classpath.
+2026-04-15T13:31:53.953-03:00  INFO 97940 --- [main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 3 endpoints beneath base path '/actuator'
+2026-04-15T13:31:54.048-03:00  INFO 97940 --- [main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8085 (http) with context path '/'
+2026-04-15T13:31:54.048-03:00  INFO 97940 --- [main] o.s.a.r.c.CachingConnectionFactory       : Attempting to connect to: [localhost:5672]
+2026-04-15T13:31:54.099-03:00  INFO 97940 --- [main] o.s.a.r.c.CachingConnectionFactory       : Created new connection: rabbitConnectionFactory#13bd25ab:0/SimpleConnection@426ba1d5 [delegate=amqp://easybpm@127.0.0.1:5672/, localPort=49586]
+2026-04-15T13:31:54.171-03:00  INFO 97940 --- [main] com.easy.bpm.BpmApplicationKt            : Started BpmApplicationKt in 5.972 seconds (process running for 6.254)
+2026-04-15T13:36:12.847-03:00  INFO 97940 --- [http-nio-8085-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-04-15T13:36:12.847-03:00  INFO 97940 --- [http-nio-8085-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2026-04-15T13:36:12.850-03:00  INFO 97940 --- [http-nio-8085-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 3 ms
+2026-04-15T13:36:13.551-03:00  INFO 97940 --- [http-nio-8085-exec-3] o.springdoc.api.AbstractOpenApiResource  : Init duration for springdoc-openapi is: 342 ms
+2026-04-15T13:36:21.130-03:00 ERROR 97940 --- [http-nio-8085-exec-9] o.a.c.c.C.[.[.[/].[dispatcherServlet]    : Servlet.service() for servlet [dispatcherServlet] in context with path [] threw exception [Request processing failed: org.springframework.data.mapping.PropertyReferenceException: No property 'string' found for type 'ProcessInstance'] with root cause
+
+org.springframework.data.mapping.PropertyReferenceException: No property 'string' found for type 'ProcessInstance'
+	at org.springframework.data.mapping.PropertyPath.<init>(PropertyPath.java:94) ~[spring-data-commons-3.5.1.jar:3.5.1]
+	at org.springframework.data.mapping.PropertyPath.create(PropertyPath.java:455) ~[spring-data-commons-3.5.1.jar:3.5.1]
+	at org.springframework.data.mapping.PropertyPath.create(PropertyPath.java:431) ~[spring-data-commons-3.5.1.jar:3.5.1]
+	at org.springframework.data.mapping.PropertyPath.lambda$from$0(PropertyPath.java:384) ~[spring-data-commons-3.5.1.jar:3.5.1]
+	at java.base/java.util.concurrent.ConcurrentMap.computeIfAbsent(ConcurrentMap.java:330) ~[na:na]
+	at org.springframework.data.mapping.PropertyPath.from(PropertyPath.java:366) ~[spring-data-commons-3.5.1.jar:3.5.1]
+	at org.springframework.data.mapping.PropertyPath.from(PropertyPath.java:344) ~[spring-data-commons-3.5.1.jar:3.5.1]
+	at org.springframework.data.jpa.repository.query.QueryUtils.toJpaOrder(QueryUtils.java:725) ~[spring-data-jpa-3.5.1.jar:3.5.1]
+	at org.springframework.data.jpa.repository.query.QueryUtils.toOrders(QueryUtils.java:678) ~[spring-data-jpa-3.5.1.jar:3.5.1]
+	at org.springframework.data.jpa.repository.support.SimpleJpaRepository.getQuery(SimpleJpaRepository.java:847) ~[spring-data-jpa-3.5.1.jar:3.5.1]
+	at org.springframework.data.jpa.repository.support.SimpleJpaRepository.getQuery(SimpleJpaRepository.java:776) ~[spring-data-jpa-3.5.1.jar:3.5.1]
+	at org.springframework.data.jpa.repository.support.SimpleJpaRepository.getQuery(SimpleJpaRepository.java:743) ~[spring-data-jpa-3.5.1.jar:3.5.1]
+	at org.springframework.data.jpa.repository.support.SimpleJpaRepository.findAll(SimpleJpaRepository.java:468) ~[spring-data-jpa-3.5.1.jar:3.5.1]
+	at org.springframework.data.jpa.repository.support.SimpleJpaRepository.findAll(SimpleJpaRepository.java:462) ~[spring-data-jpa-3.5.1.jar:3.5.1]
+	at org.springframework.data.jpa.repository.support.SimpleJpaRepository.findAll(SimpleJpaRepository.java:442) ~[spring-data-jpa-3.5.1.jar:3.5.1]
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method) ~[na:na]
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77) ~[na:na]
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43) ~[na:na]
+	at java.base/java.lang.reflect.Method.invoke(Method.java:568) ~[na:na]
+	at org.springframework.aop.support.AopUtils.invokeJoinpointUsingReflection(AopUtils.java:359) ~[spring-aop-6.2.8.jar:6.2.8]
+	at org.springframework.data.repository.core.support.RepositoryMethodInvoker$RepositoryFragmentMethodInvoker.lambda$new$0(RepositoryMethodInvoker.java:277) ~[spring-data-commons-3.5.1.jar:3.5.1]
+	at org.springframework.data.repository.core.support.RepositoryMethodInvoker.doInvoke(RepositoryMethodInvoker.java:170) ~[spring-data-commons-3.5.1.jar:3.5.1]
+	at org.springframework.data.repository.core.support.RepositoryMethodInvoker.invoke(RepositoryMethodInvoker.java:158) ~[spring-data-commons-3.5.1.jar:3.5.1]
+	at org.springframework.data.repository.core.support.RepositoryComposition$RepositoryFragments.invoke(RepositoryComposition.java:515) ~[spring-data-commons-3.5.1.jar:3.5.1]
+	at org.springframework.data.repository.core.support.RepositoryComposition.invoke(RepositoryComposition.java:284) ~[spring-data-commons-3.5.1.jar:3.5.1]
+	at org.springframework.data.repository.core.support.RepositoryFactorySupport$ImplementationMethodExecutionInterceptor.invoke(RepositoryFactorySupport.java:734) ~[spring-data-commons-3.5.1.jar:3.5.1]
+	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:184) ~[spring-aop-6.2.8.jar:6.2.8]
+	at org.springframework.data.repository.core.support.QueryExecutorMethodInterceptor.doInvoke(QueryExecutorMethodInterceptor.java:174) ~[spring-data-commons-3.5.1.jar:3.5.1]
+	at org.springframework.data.repository.core.support.QueryExecutorMethodInterceptor.invoke(QueryExecutorMethodInterceptor.java:149) ~[spring-data-commons-3.5.1.jar:3.5.1]
+	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:184) ~[spring-aop-6.2.8.jar:6.2.8]
+	at org.springframework.data.projection.DefaultMethodInvokingMethodInterceptor.invoke(DefaultMethodInvokingMethodInterceptor.java:69) ~[spring-data-commons-3.5.1.jar:3.5.1]
+	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:184) ~[spring-aop-6.2.8.jar:6.2.8]
+	at org.springframework.transaction.interceptor.TransactionAspectSupport.invokeWithinTransaction(TransactionAspectSupport.java:380) ~[spring-tx-6.2.8.jar:6.2.8]
+	at org.springframework.transaction.interceptor.TransactionInterceptor.invoke(TransactionInterceptor.java:119) ~[spring-tx-6.2.8.jar:6.2.8]
+	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:184) ~[spring-aop-6.2.8.jar:6.2.8]
+	at org.springframework.dao.support.PersistenceExceptionTranslationInterceptor.invoke(PersistenceExceptionTranslationInterceptor.java:138) ~[spring-tx-6.2.8.jar:6.2.8]
+	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:184) ~[spring-aop-6.2.8.jar:6.2.8]
+	at org.springframework.data.jpa.repository.support.CrudMethodMetadataPostProcessor$CrudMethodMetadataPopulatingMethodInterceptor.invoke(CrudMethodMetadataPostProcessor.java:165) ~[spring-data-jpa-3.5.1.jar:3.5.1]
+	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:184) ~[spring-aop-6.2.8.jar:6.2.8]
+	at org.springframework.data.util.NullnessMethodInvocationValidator.invoke(NullnessMethodInvocationValidator.java:95) ~[spring-data-commons-3.5.1.jar:3.5.1]
+	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:184) ~[spring-aop-6.2.8.jar:6.2.8]
+	at org.springframework.aop.framework.JdkDynamicAopProxy.invoke(JdkDynamicAopProxy.java:223) ~[spring-aop-6.2.8.jar:6.2.8]
+	at jdk.proxy2/jdk.proxy2.$Proxy177.findAll(Unknown Source) ~[na:na]
+	at com.easy.bpm.service.ProcessService.getProcessInstances(ProcessService.kt:113) ~[main/:na]
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method) ~[na:na]
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77) ~[na:na]
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43) ~[na:na]
+	at java.base/java.lang.reflect.Method.invoke(Method.java:568) ~[na:na]
+	at org.springframework.aop.support.AopUtils.invokeJoinpointUsingReflection(AopUtils.java:359) ~[spring-aop-6.2.8.jar:6.2.8]
+	at org.springframework.aop.framework.CglibAopProxy$DynamicAdvisedInterceptor.intercept(CglibAopProxy.java:724) ~[spring-aop-6.2.8.jar:6.2.8]
+	at com.easy.bpm.service.ProcessService$$SpringCGLIB$$0.getProcessInstances(<generated>) ~[main/:na]
+	at com.easy.bpm.controller.ProcessController.getProcessInstances(ProcessController.kt:61) ~[main/:na]
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method) ~[na:na]
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77) ~[na:na]
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43) ~[na:na]
+	at java.base/java.lang.reflect.Method.invoke(Method.java:568) ~[na:na]
+	at kotlin.reflect.jvm.internal.calls.CallerImpl$Method.callMethod(CallerImpl.kt:97) ~[kotlin-reflect-1.9.25.jar:1.9.25-release-852]
+	at kotlin.reflect.jvm.internal.calls.CallerImpl$Method$Instance.call(CallerImpl.kt:113) ~[kotlin-reflect-1.9.25.jar:1.9.25-release-852]
+	at kotlin.reflect.jvm.internal.KCallableImpl.callDefaultMethod$kotlin_reflection(KCallableImpl.kt:207) ~[kotlin-reflect-1.9.25.jar:1.9.25-release-852]
+	at kotlin.reflect.jvm.internal.KCallableImpl.callBy(KCallableImpl.kt:112) ~[kotlin-reflect-1.9.25.jar:1.9.25-release-852]
+	at org.springframework.web.method.support.InvocableHandlerMethod$KotlinDelegate.invokeFunction(InvocableHandlerMethod.java:335) ~[spring-web-6.2.8.jar:6.2.8]
+	at org.springframework.web.method.support.InvocableHandlerMethod.doInvoke(InvocableHandlerMethod.java:255) ~[spring-web-6.2.8.jar:6.2.8]
+	at org.springframework.web.method.support.InvocableHandlerMethod.invokeForRequest(InvocableHandlerMethod.java:191) ~[spring-web-6.2.8.jar:6.2.8]
+	at org.springframework.web.servlet.mvc.method.annotation.ServletInvocableHandlerMethod.invokeAndHandle(ServletInvocableHandlerMethod.java:118) ~[spring-webmvc-6.2.8.jar:6.2.8]
+	at org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter.invokeHandlerMethod(RequestMappingHandlerAdapter.java:986) ~[spring-webmvc-6.2.8.jar:6.2.8]
+	at org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter.handleInternal(RequestMappingHandlerAdapter.java:891) ~[spring-webmvc-6.2.8.jar:6.2.8]
+	at org.springframework.web.servlet.mvc.method.AbstractHandlerMethodAdapter.handle(AbstractHandlerMethodAdapter.java:87) ~[spring-webmvc-6.2.8.jar:6.2.8]
+	at org.springframework.web.servlet.DispatcherServlet.doDispatch(DispatcherServlet.java:1089) ~[spring-webmvc-6.2.8.jar:6.2.8]
+	at org.springframework.web.servlet.DispatcherServlet.doService(DispatcherServlet.java:979) ~[spring-webmvc-6.2.8.jar:6.2.8]
+	at org.springframework.web.servlet.FrameworkServlet.processRequest(FrameworkServlet.java:1014) ~[spring-webmvc-6.2.8.jar:6.2.8]
+	at org.springframework.web.servlet.FrameworkServlet.doGet(FrameworkServlet.java:903) ~[spring-webmvc-6.2.8.jar:6.2.8]
+	at jakarta.servlet.http.HttpServlet.service(HttpServlet.java:564) ~[tomcat-embed-core-10.1.42.jar:6.0]
+	at org.springframework.web.servlet.FrameworkServlet.service(FrameworkServlet.java:885) ~[spring-webmvc-6.2.8.jar:6.2.8]
+	at jakarta.servlet.http.HttpServlet.service(HttpServlet.java:658) ~[tomcat-embed-core-10.1.42.jar:6.0]
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:195) ~[tomcat-embed-core-10.1.42.jar:10.1.42]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:140) ~[tomcat-embed-core-10.1.42.jar:10.1.42]
+	at org.apache.tomcat.websocket.server.WsFilter.doFilter(WsFilter.java:51) ~[tomcat-embed-websocket-10.1.42.jar:10.1.42]
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:164) ~[tomcat-embed-core-10.1.42.jar:10.1.42]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:140) ~[tomcat-embed-core-10.1.42.jar:10.1.42]
+	at org.springframework.web.filter.RequestContextFilter.doFilterInternal(RequestContextFilter.java:100) ~[spring-web-6.2.8.jar:6.2.8]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116) ~[spring-web-6.2.8.jar:6.2.8]
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:164) ~[tomcat-embed-core-10.1.42.jar:10.1.42]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:140) ~[tomcat-embed-core-10.1.42.jar:10.1.42]
+	at org.springframework.web.filter.FormContentFilter.doFilterInternal(FormContentFilter.java:93) ~[spring-web-6.2.8.jar:6.2.8]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116) ~[spring-web-6.2.8.jar:6.2.8]
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:164) ~[tomcat-embed-core-10.1.42.jar:10.1.42]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:140) ~[tomcat-embed-core-10.1.42.jar:10.1.42]
+	at org.springframework.web.filter.ServerHttpObservationFilter.doFilterInternal(ServerHttpObservationFilter.java:114) ~[spring-web-6.2.8.jar:6.2.8]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116) ~[spring-web-6.2.8.jar:6.2.8]
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:164) ~[tomcat-embed-core-10.1.42.jar:10.1.42]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:140) ~[tomcat-embed-core-10.1.42.jar:10.1.42]
+	at org.springframework.web.filter.CharacterEncodingFilter.doFilterInternal(CharacterEncodingFilter.java:201) ~[spring-web-6.2.8.jar:6.2.8]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116) ~[spring-web-6.2.8.jar:6.2.8]
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:164) ~[tomcat-embed-core-10.1.42.jar:10.1.42]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:140) ~[tomcat-embed-core-10.1.42.jar:10.1.42]
+	at org.apache.catalina.core.StandardWrapperValve.invoke(StandardWrapperValve.java:167) ~[tomcat-embed-core-10.1.42.jar:10.1.42]
+	at org.apache.catalina.core.StandardContextValve.invoke(StandardContextValve.java:90) ~[tomcat-embed-core-10.1.42.jar:10.1.42]
+	at org.apache.catalina.authenticator.AuthenticatorBase.invoke(AuthenticatorBase.java:483) ~[tomcat-embed-core-10.1.42.jar:10.1.42]
+	at org.apache.catalina.core.StandardHostValve.invoke(StandardHostValve.java:116) ~[tomcat-embed-core-10.1.42.jar:10.1.42]
+	at org.apache.catalina.valves.ErrorReportValve.invoke(ErrorReportValve.java:93) ~[tomcat-embed-core-10.1.42.jar:10.1.42]
+	at org.apache.catalina.core.StandardEngineValve.invoke(StandardEngineValve.java:74) ~[tomcat-embed-core-10.1.42.jar:10.1.42]
+	at org.apache.catalina.connector.CoyoteAdapter.service(CoyoteAdapter.java:344) ~[tomcat-embed-core-10.1.42.jar:10.1.42]
+	at org.apache.coyote.http11.Http11Processor.service(Http11Processor.java:398) ~[tomcat-embed-core-10.1.42.jar:10.1.42]
+	at org.apache.coyote.AbstractProcessorLight.process(AbstractProcessorLight.java:63) ~[tomcat-embed-core-10.1.42.jar:10.1.42]
+	at org.apache.coyote.AbstractProtocol$ConnectionHandler.process(AbstractProtocol.java:903) ~[tomcat-embed-core-10.1.42.jar:10.1.42]
+	at org.apache.tomcat.util.net.NioEndpoint$SocketProcessor.doRun(NioEndpoint.java:1769) ~[tomcat-embed-core-10.1.42.jar:10.1.42]
+	at org.apache.tomcat.util.net.SocketProcessorBase.run(SocketProcessorBase.java:52) ~[tomcat-embed-core-10.1.42.jar:10.1.42]
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1189) ~[tomcat-embed-core-10.1.42.jar:10.1.42]
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:658) ~[tomcat-embed-core-10.1.42.jar:10.1.42]
+	at org.apache.tomcat.util.threads.TaskThread$WrappingRunnable.run(TaskThread.java:63) ~[tomcat-embed-core-10.1.42.jar:10.1.42]
+	at java.base/java.lang.Thread.run(Thread.java:840) ~[na:na]
+
+2026-04-15T13:40:39.398-03:00  INFO 106864 --- [main] com.easy.bpm.BpmApplicationKt            : Starting BpmApplicationKt using Java 17.0.10 with PID 106864 (C:\Users\Admin\OneDrive\Ambiente de Trabalho\bpm\build\classes\kotlin\main started by Admin in C:\Users\Admin\OneDrive\Ambiente de Trabalho\bpm)
+2026-04-15T13:40:39.398-03:00 DEBUG 106864 --- [main] com.easy.bpm.BpmApplicationKt            : Running with Spring Boot v3.5.3, Spring v6.2.8
+2026-04-15T13:40:39.398-03:00  INFO 106864 --- [main] com.easy.bpm.BpmApplicationKt            : No active profile set, falling back to 1 default profile: "default"
+2026-04-15T13:40:40.607-03:00  INFO 106864 --- [main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-04-15T13:40:40.681-03:00  INFO 106864 --- [main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 63 ms. Found 8 JPA repository interfaces.
+2026-04-15T13:40:41.128-03:00  INFO 106864 --- [main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8085 (http)
+2026-04-15T13:40:41.138-03:00  INFO 106864 --- [main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-04-15T13:40:41.138-03:00  INFO 106864 --- [main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.42]
+2026-04-15T13:40:41.188-03:00  INFO 106864 --- [main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2026-04-15T13:40:41.188-03:00  INFO 106864 --- [main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 1749 ms
+2026-04-15T13:40:41.438-03:00  INFO 106864 --- [main] o.f.c.internal.license.VersionPrinter    : Flyway Community Edition 9.16.1 by Redgate
+2026-04-15T13:40:41.438-03:00  INFO 106864 --- [main] o.f.c.internal.license.VersionPrinter    : See release notes here: https://rd.gt/416ObMi
+2026-04-15T13:40:41.438-03:00  INFO 106864 --- [main] o.f.c.internal.license.VersionPrinter    : 
+2026-04-15T13:40:41.448-03:00  INFO 106864 --- [main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-04-15T13:40:41.564-03:00  INFO 106864 --- [main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@60c4cf2b
+2026-04-15T13:40:41.565-03:00  INFO 106864 --- [main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-04-15T13:40:41.580-03:00  INFO 106864 --- [main] o.f.c.i.database.base.BaseDatabaseType   : Database: jdbc:postgresql://localhost:5432/easybpm (PostgreSQL 15.13)
+2026-04-15T13:40:41.617-03:00  INFO 106864 --- [main] o.f.c.i.s.JdbcTableSchemaHistory         : Schema history table "public"."flyway_schema_history" does not exist yet
+2026-04-15T13:40:41.621-03:00  INFO 106864 --- [main] o.f.core.internal.command.DbValidate     : Successfully validated 15 migrations (execution time 00:00.020s)
+2026-04-15T13:40:41.638-03:00  INFO 106864 --- [main] o.f.c.i.s.JdbcTableSchemaHistory         : Creating Schema History table "public"."flyway_schema_history" ...
+2026-04-15T13:40:41.690-03:00  INFO 106864 --- [main] o.f.core.internal.command.DbMigrate      : Current version of schema "public": << Empty Schema >>
+2026-04-15T13:40:41.699-03:00  INFO 106864 --- [main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "1 - create process definition"
+2026-04-15T13:40:41.729-03:00  INFO 106864 --- [main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "2 - create process instance"
+2026-04-15T13:40:41.753-03:00  INFO 106864 --- [main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "3 - include version process"
+2026-04-15T13:40:41.773-03:00  INFO 106864 --- [main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "4 - convert current node to list"
+2026-04-15T13:40:41.799-03:00  INFO 106864 --- [main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "5 - create task table"
+2026-04-15T13:40:41.822-03:00  INFO 106864 --- [main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "6 - create process variable"
+2026-04-15T13:40:41.847-03:00  INFO 106864 --- [main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "7 - create task variable"
+2026-04-15T13:40:41.870-03:00  INFO 106864 --- [main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "8 - alter variable to jsonb"
+2026-04-15T13:40:41.897-03:00  INFO 106864 --- [main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "9 - include form table"
+2026-04-15T13:40:41.921-03:00  INFO 106864 --- [main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "10 - rename form schema"
+2026-04-15T13:40:41.940-03:00  INFO 106864 --- [main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "11 - add task title"
+2026-04-15T13:40:41.956-03:00  INFO 106864 --- [main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "12 - create message subscription"
+2026-04-15T13:40:41.985-03:00  INFO 106864 --- [main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "13 - add node history"
+2026-04-15T13:40:42.002-03:00  INFO 106864 --- [main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "14 - create worker request"
+2026-04-15T13:40:42.035-03:00  INFO 106864 --- [main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "15 - add process key and description"
+2026-04-15T13:40:42.056-03:00  INFO 106864 --- [main] o.f.core.internal.command.DbMigrate      : Successfully applied 15 migrations to schema "public", now at version v15 (execution time 00:00.372s)
+2026-04-15T13:40:42.134-03:00  INFO 106864 --- [main] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2026-04-15T13:40:42.168-03:00  INFO 106864 --- [main] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.6.18.Final
+2026-04-15T13:40:42.200-03:00  INFO 106864 --- [main] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2026-04-15T13:40:42.298-03:00  WARN 106864 --- [main] org.hibernate.orm.deprecation            : HHH90000025: PostgreSQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-04-15T13:40:42.318-03:00  INFO 106864 --- [main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-1)']
+	Database driver: undefined/unknown
+	Database version: 15.13
+	Autocommit mode: undefined/unknown
+	Isolation level: undefined/unknown
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-04-15T13:40:42.510-03:00  INFO 106864 --- [main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-04-15T13:40:43.309-03:00  INFO 106864 --- [main] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-04-15T13:40:43.309-03:00  INFO 106864 --- [main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-04-15T13:40:43.753-03:00  INFO 106864 --- [main] o.s.d.j.r.query.QueryEnhancerFactory     : Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-04-15T13:40:44.624-03:00  WARN 106864 --- [main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-04-15T13:40:44.667-03:00  INFO 106864 --- [main] o.s.v.b.OptionalValidatorFactoryBean     : Failed to set up a Bean Validation provider: jakarta.validation.NoProviderFoundException: Unable to create a Configuration, because no Jakarta Bean Validation provider could be found. Add a provider like Hibernate Validator (RI) to your classpath.
+2026-04-15T13:40:45.052-03:00  INFO 106864 --- [main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 3 endpoints beneath base path '/actuator'
+2026-04-15T13:40:45.138-03:00  INFO 106864 --- [main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8085 (http) with context path '/'
+2026-04-15T13:40:45.141-03:00  INFO 106864 --- [main] o.s.a.r.c.CachingConnectionFactory       : Attempting to connect to: [localhost:5672]
+2026-04-15T13:40:45.189-03:00  INFO 106864 --- [main] o.s.a.r.c.CachingConnectionFactory       : Created new connection: rabbitConnectionFactory#7ec65043:0/SimpleConnection@436ef272 [delegate=amqp://easybpm@127.0.0.1:5672/, localPort=56288]
+2026-04-15T13:40:45.317-03:00  INFO 106864 --- [main] com.easy.bpm.BpmApplicationKt            : Started BpmApplicationKt in 6.329 seconds (process running for 6.613)
+2026-04-15T13:41:17.228-03:00  INFO 106864 --- [http-nio-8085-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-04-15T13:41:17.228-03:00  INFO 106864 --- [http-nio-8085-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2026-04-15T13:41:17.228-03:00  INFO 106864 --- [http-nio-8085-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 0 ms
+2026-04-15T13:41:17.872-03:00  INFO 106864 --- [http-nio-8085-exec-5] o.springdoc.api.AbstractOpenApiResource  : Init duration for springdoc-openapi is: 380 ms
+2026-04-15T13:44:32.924-03:00  INFO 112256 --- [Test worker] c.e.b.i.ProcessIntegrationTest           : Starting ProcessIntegrationTest using Java 17.0.10 with PID 112256 (started by Admin in C:\Users\Admin\OneDrive\Ambiente de Trabalho\bpm)
+2026-04-15T13:44:32.925-03:00 DEBUG 112256 --- [Test worker] c.e.b.i.ProcessIntegrationTest           : Running with Spring Boot v3.5.3, Spring v6.2.8
+2026-04-15T13:44:32.926-03:00  INFO 112256 --- [Test worker] c.e.b.i.ProcessIntegrationTest           : The following 1 profile is active: "test"
+2026-04-15T13:44:34.383-03:00  INFO 112256 --- [Test worker] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-04-15T13:44:34.498-03:00  INFO 112256 --- [Test worker] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 100 ms. Found 8 JPA repository interfaces.
+2026-04-15T13:44:35.445-03:00  INFO 112256 --- [Test worker] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-04-15T13:44:35.752-03:00  INFO 112256 --- [Test worker] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection conn0: url=jdbc:h2:mem:testdb user=SA
+2026-04-15T13:44:35.757-03:00  INFO 112256 --- [Test worker] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-04-15T13:44:35.952-03:00  INFO 112256 --- [Test worker] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2026-04-15T13:44:36.046-03:00  INFO 112256 --- [Test worker] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.6.18.Final
+2026-04-15T13:44:36.117-03:00  INFO 112256 --- [Test worker] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2026-04-15T13:44:36.327-03:00  WARN 112256 --- [Test worker] org.hibernate.orm.deprecation            : HHH90000025: H2Dialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-04-15T13:44:36.352-03:00  INFO 112256 --- [Test worker] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-1)']
+	Database driver: undefined/unknown
+	Database version: 2.3.232
+	Autocommit mode: undefined/unknown
+	Isolation level: undefined/unknown
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-04-15T13:44:36.483-03:00  INFO 112256 --- [Test worker] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-04-15T13:44:37.816-03:00  INFO 112256 --- [Test worker] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-04-15T13:44:37.820-03:00  INFO 112256 --- [Test worker] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-04-15T13:44:38.403-03:00  INFO 112256 --- [Test worker] o.s.d.j.r.query.QueryEnhancerFactory     : Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-04-15T13:44:40.111-03:00  WARN 112256 --- [Test worker] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-04-15T13:44:40.213-03:00  INFO 112256 --- [Test worker] o.s.v.b.OptionalValidatorFactoryBean     : Failed to set up a Bean Validation provider: jakarta.validation.NoProviderFoundException: Unable to create a Configuration, because no Jakarta Bean Validation provider could be found. Add a provider like Hibernate Validator (RI) to your classpath.
+2026-04-15T13:44:41.174-03:00  INFO 112256 --- [Test worker] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 2 endpoints beneath base path '/actuator'
+2026-04-15T13:44:41.297-03:00  INFO 112256 --- [Test worker] c.e.b.i.ProcessIntegrationTest           : Started ProcessIntegrationTest in 8.837 seconds (process running for 19.838)
+2026-04-15T13:44:42.150-03:00  WARN 112256 --- [Test worker] i.m.core.instrument.MeterRegistry        : This Gauge has been already registered (MeterId{name='task.active', tags=[]}), the registration will be ignored. Note that subsequent logs will be logged at debug level.
+2026-04-15T13:44:42.545-03:00  INFO 112256 --- [SpringApplicationShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-04-15T13:44:42.548-03:00  INFO 112256 --- [SpringApplicationShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown initiated...
+2026-04-15T13:44:42.550-03:00  INFO 112256 --- [SpringApplicationShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown completed.
+2026-04-15T13:46:24.385-03:00  INFO 10924 --- [main] com.easy.bpm.BpmApplicationKt            : Starting BpmApplicationKt using Java 17.0.10 with PID 10924 (C:\Users\Admin\OneDrive\Ambiente de Trabalho\bpm\build\classes\kotlin\main started by Admin in C:\Users\Admin\OneDrive\Ambiente de Trabalho\bpm)
+2026-04-15T13:46:24.388-03:00 DEBUG 10924 --- [main] com.easy.bpm.BpmApplicationKt            : Running with Spring Boot v3.5.3, Spring v6.2.8
+2026-04-15T13:46:24.389-03:00  INFO 10924 --- [main] com.easy.bpm.BpmApplicationKt            : No active profile set, falling back to 1 default profile: "default"
+2026-04-15T13:46:25.658-03:00  INFO 10924 --- [main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-04-15T13:46:25.730-03:00  INFO 10924 --- [main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 61 ms. Found 8 JPA repository interfaces.
+2026-04-15T13:46:26.170-03:00  INFO 10924 --- [main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8085 (http)
+2026-04-15T13:46:26.180-03:00  INFO 10924 --- [main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-04-15T13:46:26.180-03:00  INFO 10924 --- [main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.42]
+2026-04-15T13:46:26.233-03:00  INFO 10924 --- [main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2026-04-15T13:46:26.233-03:00  INFO 10924 --- [main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 1792 ms
+2026-04-15T13:46:26.468-03:00  INFO 10924 --- [main] o.f.c.internal.license.VersionPrinter    : Flyway Community Edition 9.16.1 by Redgate
+2026-04-15T13:46:26.468-03:00  INFO 10924 --- [main] o.f.c.internal.license.VersionPrinter    : See release notes here: https://rd.gt/416ObMi
+2026-04-15T13:46:26.468-03:00  INFO 10924 --- [main] o.f.c.internal.license.VersionPrinter    : 
+2026-04-15T13:46:26.478-03:00  INFO 10924 --- [main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-04-15T13:46:26.627-03:00  INFO 10924 --- [main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@656c5818
+2026-04-15T13:46:26.628-03:00  INFO 10924 --- [main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-04-15T13:46:26.643-03:00  INFO 10924 --- [main] o.f.c.i.database.base.BaseDatabaseType   : Database: jdbc:postgresql://localhost:5432/easybpm (PostgreSQL 15.13)
+2026-04-15T13:46:26.690-03:00  INFO 10924 --- [main] o.f.core.internal.command.DbValidate     : Successfully validated 15 migrations (execution time 00:00.028s)
+2026-04-15T13:46:26.726-03:00  INFO 10924 --- [main] o.f.core.internal.command.DbMigrate      : Current version of schema "public": 15
+2026-04-15T13:46:26.727-03:00  INFO 10924 --- [main] o.f.core.internal.command.DbMigrate      : Schema "public" is up to date. No migration necessary.
+2026-04-15T13:46:26.819-03:00  INFO 10924 --- [main] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2026-04-15T13:46:26.866-03:00  INFO 10924 --- [main] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.6.18.Final
+2026-04-15T13:46:26.895-03:00  INFO 10924 --- [main] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2026-04-15T13:46:27.003-03:00  WARN 10924 --- [main] org.hibernate.orm.deprecation            : HHH90000025: PostgreSQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-04-15T13:46:27.017-03:00  INFO 10924 --- [main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-1)']
+	Database driver: undefined/unknown
+	Database version: 15.13
+	Autocommit mode: undefined/unknown
+	Isolation level: undefined/unknown
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-04-15T13:46:27.218-03:00  INFO 10924 --- [main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-04-15T13:46:28.058-03:00  INFO 10924 --- [main] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-04-15T13:46:28.058-03:00  INFO 10924 --- [main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-04-15T13:46:28.524-03:00  INFO 10924 --- [main] o.s.d.j.r.query.QueryEnhancerFactory     : Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-04-15T13:46:29.478-03:00  WARN 10924 --- [main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-04-15T13:46:29.538-03:00  INFO 10924 --- [main] o.s.v.b.OptionalValidatorFactoryBean     : Failed to set up a Bean Validation provider: jakarta.validation.NoProviderFoundException: Unable to create a Configuration, because no Jakarta Bean Validation provider could be found. Add a provider like Hibernate Validator (RI) to your classpath.
+2026-04-15T13:46:29.918-03:00  INFO 10924 --- [main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 3 endpoints beneath base path '/actuator'
+2026-04-15T13:46:30.008-03:00  INFO 10924 --- [main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8085 (http) with context path '/'
+2026-04-15T13:46:30.008-03:00  INFO 10924 --- [main] o.s.a.r.c.CachingConnectionFactory       : Attempting to connect to: [localhost:5672]
+2026-04-15T13:46:30.066-03:00  INFO 10924 --- [main] o.s.a.r.c.CachingConnectionFactory       : Created new connection: rabbitConnectionFactory#469c1292:0/SimpleConnection@69a4249 [delegate=amqp://easybpm@127.0.0.1:5672/, localPort=56843]
+2026-04-15T13:46:30.168-03:00  INFO 10924 --- [main] com.easy.bpm.BpmApplicationKt            : Started BpmApplicationKt in 6.25 seconds (process running for 6.543)
+2026-04-15T13:47:01.008-03:00  INFO 10924 --- [http-nio-8085-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-04-15T13:47:01.008-03:00  INFO 10924 --- [http-nio-8085-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2026-04-15T13:47:01.008-03:00  INFO 10924 --- [http-nio-8085-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 0 ms
+2026-04-15T13:47:01.588-03:00  INFO 10924 --- [http-nio-8085-exec-3] o.springdoc.api.AbstractOpenApiResource  : Init duration for springdoc-openapi is: 359 ms
+2026-04-15T13:48:46.124-03:00 ERROR 10924 --- [http-nio-8085-exec-7] o.a.c.c.C.[.[.[/].[dispatcherServlet]    : Servlet.service() for servlet [dispatcherServlet] in context with path [] threw exception [Request processing failed: org.springframework.dao.InvalidDataAccessApiUsageException: org.hibernate.query.sqm.UnknownPathException: Could not resolve attribute 'string' of 'com.easy.bpm.model.process.ProcessDefinition' [SELECT pd FROM ProcessDefinition pd WHERE pd.version = (SELECT MAX(pd2.version) FROM ProcessDefinition pd2 WHERE pd2.key = pd.key) order by pd.string asc]] with root cause
+
+org.hibernate.query.sqm.PathElementException: Could not resolve attribute 'string' of 'com.easy.bpm.model.process.ProcessDefinition'
+	at org.hibernate.query.sqm.SqmPathSource.getSubPathSource(SqmPathSource.java:95) ~[hibernate-core-6.6.18.Final.jar:6.6.18.Final]
+	at org.hibernate.query.sqm.tree.domain.AbstractSqmPath.get(AbstractSqmPath.java:198) ~[hibernate-core-6.6.18.Final.jar:6.6.18.Final]
+	at org.hibernate.query.sqm.tree.domain.AbstractSqmFrom.resolvePathPart(AbstractSqmFrom.java:198) ~[hibernate-core-6.6.18.Final.jar:6.6.18.Final]
+	at org.hibernate.query.hql.internal.DomainPathPart.resolvePathPart(DomainPathPart.java:42) ~[hibernate-core-6.6.18.Final.jar:6.6.18.Final]
+	at org.hibernate.query.hql.internal.BasicDotIdentifierConsumer.consumeIdentifier(BasicDotIdentifierConsumer.java:92) ~[hibernate-core-6.6.18.Final.jar:6.6.18.Final]
+	at org.hibernate.query.hql.internal.SemanticQueryBuilder.visitSimplePath(SemanticQueryBuilder.java:5465) ~[hibernate-core-6.6.18.Final.jar:6.6.18.Final]
+	at org.hibernate.query.hql.internal.SemanticQueryBuilder.visitGeneralPathFragment(SemanticQueryBuilder.java:5298) ~[hibernate-core-6.6.18.Final.jar:6.6.18.Final]
+	at org.hibernate.query.hql.internal.SemanticQueryBuilder.visitGeneralPathExpression(SemanticQueryBuilder.java:1891) ~[hibernate-core-6.6.18.Final.jar:6.6.18.Final]
+	at org.hibernate.grammars.hql.HqlParser$GeneralPathExpressionContext.accept(HqlParser.java:8268) ~[hibernate-core-6.6.18.Final.jar:6.6.18.Final]
+	at org.antlr.v4.runtime.tree.AbstractParseTreeVisitor.visitChildren(AbstractParseTreeVisitor.java:46) ~[antlr4-runtime-4.13.0.jar:4.13.0]
+	at org.hibernate.grammars.hql.HqlParserBaseVisitor.visitBarePrimaryExpression(HqlParserBaseVisitor.java:812) ~[hibernate-core-6.6.18.Final.jar:6.6.18.Final]
+	at org.hibernate.grammars.hql.HqlParser$BarePrimaryExpressionContext.accept(HqlParser.java:7726) ~[hibernate-core-6.6.18.Final.jar:6.6.18.Final]
+	at org.hibernate.query.hql.internal.SemanticQueryBuilder.resolveOrderByOrGroupByExpression(SemanticQueryBuilder.java:1712) ~[hibernate-core-6.6.18.Final.jar:6.6.18.Final]
+	at org.hibernate.query.hql.internal.SemanticQueryBuilder.visitSortExpression(SemanticQueryBuilder.java:1796) ~[hibernate-core-6.6.18.Final.jar:6.6.18.Final]
+	at org.hibernate.query.hql.internal.SemanticQueryBuilder.visitSortSpecification(SemanticQueryBuilder.java:1755) ~[hibernate-core-6.6.18.Final.jar:6.6.18.Final]
+	at org.hibernate.query.hql.internal.SemanticQueryBuilder.visitOrderByClause(SemanticQueryBuilder.java:1738) ~[hibernate-core-6.6.18.Final.jar:6.6.18.Final]
+	at org.hibernate.query.hql.internal.SemanticQueryBuilder.visitOrderByClause(SemanticQueryBuilder.java:1727) ~[hibernate-core-6.6.18.Final.jar:6.6.18.Final]
+	at org.hibernate.query.hql.internal.SemanticQueryBuilder.visitQueryOrder(SemanticQueryBuilder.java:1194) ~[hibernate-core-6.6.18.Final.jar:6.6.18.Final]
+	at org.hibernate.query.hql.internal.SemanticQueryBuilder.visitQuerySpecExpression(SemanticQueryBuilder.java:1043) ~[hibernate-core-6.6.18.Final.jar:6.6.18.Final]
+	at org.hibernate.query.hql.internal.SemanticQueryBuilder.visitQuerySpecExpression(SemanticQueryBuilder.java:277) ~[hibernate-core-6.6.18.Final.jar:6.6.18.Final]
+	at org.hibernate.grammars.hql.HqlParser$QuerySpecExpressionContext.accept(HqlParser.java:2134) ~[hibernate-core-6.6.18.Final.jar:6.6.18.Final]
+	at org.hibernate.query.hql.internal.SemanticQueryBuilder.visitSimpleQueryGroup(SemanticQueryBuilder.java:1025) ~[hibernate-core-6.6.18.Final.jar:6.6.18.Final]
+	at org.hibernate.query.hql.internal.SemanticQueryBuilder.visitSimpleQueryGroup(SemanticQueryBuilder.java:277) ~[hibernate-core-6.6.18.Final.jar:6.6.18.Final]
+	at org.hibernate.grammars.hql.HqlParser$SimpleQueryGroupContext.accept(HqlParser.java:2005) ~[hibernate-core-6.6.18.Final.jar:6.6.18.Final]
+	at org.hibernate.query.hql.internal.SemanticQueryBuilder.visitSelectStatement(SemanticQueryBuilder.java:492) ~[hibernate-core-6.6.18.Final.jar:6.6.18.Final]
+	at org.hibernate.query.hql.internal.SemanticQueryBuilder.visitStatement(SemanticQueryBuilder.java:451) ~[hibernate-core-6.6.18.Final.jar:6.6.18.Final]
+	at org.hibernate.query.hql.internal.SemanticQueryBuilder.buildSemanticModel(SemanticQueryBuilder.java:324) ~[hibernate-core-6.6.18.Final.jar:6.6.18.Final]
+	at org.hibernate.query.hql.internal.StandardHqlTranslator.translate(StandardHqlTranslator.java:71) ~[hibernate-core-6.6.18.Final.jar:6.6.18.Final]
+	at org.hibernate.query.internal.QueryInterpretationCacheStandardImpl.createHqlInterpretation(QueryInterpretationCacheStandardImpl.java:145) ~[hibernate-core-6.6.18.Final.jar:6.6.18.Final]
+	at org.hibernate.query.internal.QueryInterpretationCacheStandardImpl.resolveHqlInterpretation(QueryInterpretationCacheStandardImpl.java:132) ~[hibernate-core-6.6.18.Final.jar:6.6.18.Final]
+	at org.hibernate.query.spi.QueryEngine.interpretHql(QueryEngine.java:54) ~[hibernate-core-6.6.18.Final.jar:6.6.18.Final]
+	at org.hibernate.internal.AbstractSharedSessionContract.interpretHql(AbstractSharedSessionContract.java:832) ~[hibernate-core-6.6.18.Final.jar:6.6.18.Final]
+	at org.hibernate.internal.AbstractSharedSessionContract.createQuery(AbstractSharedSessionContract.java:878) ~[hibernate-core-6.6.18.Final.jar:6.6.18.Final]
+	at org.hibernate.internal.AbstractSharedSessionContract.createQuery(AbstractSharedSessionContract.java:796) ~[hibernate-core-6.6.18.Final.jar:6.6.18.Final]
+	at org.hibernate.internal.AbstractSharedSessionContract.createQuery(AbstractSharedSessionContract.java:143) ~[hibernate-core-6.6.18.Final.jar:6.6.18.Final]
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method) ~[na:na]
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77) ~[na:na]
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43) ~[na:na]
+	at java.base/java.lang.reflect.Method.invoke(Method.java:568) ~[na:na]
+	at org.springframework.orm.jpa.ExtendedEntityManagerCreator$ExtendedEntityManagerInvocationHandler.invoke(ExtendedEntityManagerCreator.java:364) ~[spring-orm-6.2.8.jar:6.2.8]
+	at jdk.proxy2/jdk.proxy2.$Proxy166.createQuery(Unknown Source) ~[na:na]
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method) ~[na:na]
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77) ~[na:na]
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43) ~[na:na]
+	at java.base/java.lang.reflect.Method.invoke(Method.java:568) ~[na:na]
+	at org.springframework.orm.jpa.SharedEntityManagerCreator$SharedEntityManagerInvocationHandler.invoke(SharedEntityManagerCreator.java:320) ~[spring-orm-6.2.8.jar:6.2.8]
+	at jdk.proxy2/jdk.proxy2.$Proxy166.createQuery(Unknown Source) ~[na:na]
+	at org.springframework.data.jpa.repository.query.AbstractStringBasedJpaQuery.createJpaQuery(AbstractStringBasedJpaQuery.java:229) ~[spring-data-jpa-3.5.1.jar:3.5.1]
+	at org.springframework.data.jpa.repository.query.AbstractStringBasedJpaQuery.doCreateQuery(AbstractStringBasedJpaQuery.java:129) ~[spring-data-jpa-3.5.1.jar:3.5.1]
+	at org.springframework.data.jpa.repository.query.AbstractJpaQuery.createQuery(AbstractJpaQuery.java:251) ~[spring-data-jpa-3.5.1.jar:3.5.1]
+	at org.springframework.data.jpa.repository.query.JpaQueryExecution$PagedExecution.doExecute(JpaQueryExecution.java:203) ~[spring-data-jpa-3.5.1.jar:3.5.1]
+	at org.springframework.data.jpa.repository.query.JpaQueryExecution.execute(JpaQueryExecution.java:93) ~[spring-data-jpa-3.5.1.jar:3.5.1]
+	at org.springframework.data.jpa.repository.query.AbstractJpaQuery.doExecute(AbstractJpaQuery.java:160) ~[spring-data-jpa-3.5.1.jar:3.5.1]
+	at org.springframework.data.jpa.repository.query.AbstractJpaQuery.execute(AbstractJpaQuery.java:148) ~[spring-data-jpa-3.5.1.jar:3.5.1]
+	at org.springframework.data.repository.core.support.RepositoryMethodInvoker.doInvoke(RepositoryMethodInvoker.java:170) ~[spring-data-commons-3.5.1.jar:3.5.1]
+	at org.springframework.data.repository.core.support.RepositoryMethodInvoker.invoke(RepositoryMethodInvoker.java:158) ~[spring-data-commons-3.5.1.jar:3.5.1]
+	at org.springframework.data.repository.core.support.QueryExecutorMethodInterceptor.doInvoke(QueryExecutorMethodInterceptor.java:170) ~[spring-data-commons-3.5.1.jar:3.5.1]
+	at org.springframework.data.repository.core.support.QueryExecutorMethodInterceptor.invoke(QueryExecutorMethodInterceptor.java:149) ~[spring-data-commons-3.5.1.jar:3.5.1]
+	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:184) ~[spring-aop-6.2.8.jar:6.2.8]
+	at org.springframework.data.projection.DefaultMethodInvokingMethodInterceptor.invoke(DefaultMethodInvokingMethodInterceptor.java:69) ~[spring-data-commons-3.5.1.jar:3.5.1]
+	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:184) ~[spring-aop-6.2.8.jar:6.2.8]
+	at org.springframework.transaction.interceptor.TransactionAspectSupport.invokeWithinTransaction(TransactionAspectSupport.java:380) ~[spring-tx-6.2.8.jar:6.2.8]
+	at org.springframework.transaction.interceptor.TransactionInterceptor.invoke(TransactionInterceptor.java:119) ~[spring-tx-6.2.8.jar:6.2.8]
+	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:184) ~[spring-aop-6.2.8.jar:6.2.8]
+	at org.springframework.dao.support.PersistenceExceptionTranslationInterceptor.invoke(PersistenceExceptionTranslationInterceptor.java:138) ~[spring-tx-6.2.8.jar:6.2.8]
+	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:184) ~[spring-aop-6.2.8.jar:6.2.8]
+	at org.springframework.data.jpa.repository.support.CrudMethodMetadataPostProcessor$CrudMethodMetadataPopulatingMethodInterceptor.invoke(CrudMethodMetadataPostProcessor.java:136) ~[spring-data-jpa-3.5.1.jar:3.5.1]
+	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:184) ~[spring-aop-6.2.8.jar:6.2.8]
+	at org.springframework.data.util.NullnessMethodInvocationValidator.invoke(NullnessMethodInvocationValidator.java:95) ~[spring-data-commons-3.5.1.jar:3.5.1]
+	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:184) ~[spring-aop-6.2.8.jar:6.2.8]
+	at org.springframework.aop.framework.JdkDynamicAopProxy.invoke(JdkDynamicAopProxy.java:223) ~[spring-aop-6.2.8.jar:6.2.8]
+	at jdk.proxy2/jdk.proxy2.$Proxy176.findLatestVersionProcesses(Unknown Source) ~[na:na]
+	at com.easy.bpm.service.ProcessService.getLatestProcessDefinitions(ProcessService.kt:179) ~[main/:na]
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method) ~[na:na]
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77) ~[na:na]
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43) ~[na:na]
+	at java.base/java.lang.reflect.Method.invoke(Method.java:568) ~[na:na]
+	at org.springframework.aop.support.AopUtils.invokeJoinpointUsingReflection(AopUtils.java:359) ~[spring-aop-6.2.8.jar:6.2.8]
+	at org.springframework.aop.framework.CglibAopProxy$DynamicAdvisedInterceptor.intercept(CglibAopProxy.java:724) ~[spring-aop-6.2.8.jar:6.2.8]
+	at com.easy.bpm.service.ProcessService$$SpringCGLIB$$0.getLatestProcessDefinitions(<generated>) ~[main/:na]
+	at com.easy.bpm.controller.ProcessController.getLatestProcesses(ProcessController.kt:216) ~[main/:na]
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method) ~[na:na]
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77) ~[na:na]
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43) ~[na:na]
+	at java.base/java.lang.reflect.Method.invoke(Method.java:568) ~[na:na]
+	at kotlin.reflect.jvm.internal.calls.CallerImpl$Method.callMethod(CallerImpl.kt:97) ~[kotlin-reflect-1.9.25.jar:1.9.25-release-852]
+	at kotlin.reflect.jvm.internal.calls.CallerImpl$Method$Instance.call(CallerImpl.kt:113) ~[kotlin-reflect-1.9.25.jar:1.9.25-release-852]
+	at kotlin.reflect.jvm.internal.KCallableImpl.callDefaultMethod$kotlin_reflection(KCallableImpl.kt:207) ~[kotlin-reflect-1.9.25.jar:1.9.25-release-852]
+	at kotlin.reflect.jvm.internal.KCallableImpl.callBy(KCallableImpl.kt:112) ~[kotlin-reflect-1.9.25.jar:1.9.25-release-852]
+	at org.springframework.web.method.support.InvocableHandlerMethod$KotlinDelegate.invokeFunction(InvocableHandlerMethod.java:335) ~[spring-web-6.2.8.jar:6.2.8]
+	at org.springframework.web.method.support.InvocableHandlerMethod.doInvoke(InvocableHandlerMethod.java:255) ~[spring-web-6.2.8.jar:6.2.8]
+	at org.springframework.web.method.support.InvocableHandlerMethod.invokeForRequest(InvocableHandlerMethod.java:191) ~[spring-web-6.2.8.jar:6.2.8]
+	at org.springframework.web.servlet.mvc.method.annotation.ServletInvocableHandlerMethod.invokeAndHandle(ServletInvocableHandlerMethod.java:118) ~[spring-webmvc-6.2.8.jar:6.2.8]
+	at org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter.invokeHandlerMethod(RequestMappingHandlerAdapter.java:986) ~[spring-webmvc-6.2.8.jar:6.2.8]
+	at org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter.handleInternal(RequestMappingHandlerAdapter.java:891) ~[spring-webmvc-6.2.8.jar:6.2.8]
+	at org.springframework.web.servlet.mvc.method.AbstractHandlerMethodAdapter.handle(AbstractHandlerMethodAdapter.java:87) ~[spring-webmvc-6.2.8.jar:6.2.8]
+	at org.springframework.web.servlet.DispatcherServlet.doDispatch(DispatcherServlet.java:1089) ~[spring-webmvc-6.2.8.jar:6.2.8]
+	at org.springframework.web.servlet.DispatcherServlet.doService(DispatcherServlet.java:979) ~[spring-webmvc-6.2.8.jar:6.2.8]
+	at org.springframework.web.servlet.FrameworkServlet.processRequest(FrameworkServlet.java:1014) ~[spring-webmvc-6.2.8.jar:6.2.8]
+	at org.springframework.web.servlet.FrameworkServlet.doGet(FrameworkServlet.java:903) ~[spring-webmvc-6.2.8.jar:6.2.8]
+	at jakarta.servlet.http.HttpServlet.service(HttpServlet.java:564) ~[tomcat-embed-core-10.1.42.jar:6.0]
+	at org.springframework.web.servlet.FrameworkServlet.service(FrameworkServlet.java:885) ~[spring-webmvc-6.2.8.jar:6.2.8]
+	at jakarta.servlet.http.HttpServlet.service(HttpServlet.java:658) ~[tomcat-embed-core-10.1.42.jar:6.0]
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:195) ~[tomcat-embed-core-10.1.42.jar:10.1.42]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:140) ~[tomcat-embed-core-10.1.42.jar:10.1.42]
+	at org.apache.tomcat.websocket.server.WsFilter.doFilter(WsFilter.java:51) ~[tomcat-embed-websocket-10.1.42.jar:10.1.42]
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:164) ~[tomcat-embed-core-10.1.42.jar:10.1.42]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:140) ~[tomcat-embed-core-10.1.42.jar:10.1.42]
+	at org.springframework.web.filter.RequestContextFilter.doFilterInternal(RequestContextFilter.java:100) ~[spring-web-6.2.8.jar:6.2.8]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116) ~[spring-web-6.2.8.jar:6.2.8]
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:164) ~[tomcat-embed-core-10.1.42.jar:10.1.42]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:140) ~[tomcat-embed-core-10.1.42.jar:10.1.42]
+	at org.springframework.web.filter.FormContentFilter.doFilterInternal(FormContentFilter.java:93) ~[spring-web-6.2.8.jar:6.2.8]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116) ~[spring-web-6.2.8.jar:6.2.8]
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:164) ~[tomcat-embed-core-10.1.42.jar:10.1.42]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:140) ~[tomcat-embed-core-10.1.42.jar:10.1.42]
+	at org.springframework.web.filter.ServerHttpObservationFilter.doFilterInternal(ServerHttpObservationFilter.java:114) ~[spring-web-6.2.8.jar:6.2.8]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116) ~[spring-web-6.2.8.jar:6.2.8]
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:164) ~[tomcat-embed-core-10.1.42.jar:10.1.42]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:140) ~[tomcat-embed-core-10.1.42.jar:10.1.42]
+	at org.springframework.web.filter.CharacterEncodingFilter.doFilterInternal(CharacterEncodingFilter.java:201) ~[spring-web-6.2.8.jar:6.2.8]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:116) ~[spring-web-6.2.8.jar:6.2.8]
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:164) ~[tomcat-embed-core-10.1.42.jar:10.1.42]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:140) ~[tomcat-embed-core-10.1.42.jar:10.1.42]
+	at org.apache.catalina.core.StandardWrapperValve.invoke(StandardWrapperValve.java:167) ~[tomcat-embed-core-10.1.42.jar:10.1.42]
+	at org.apache.catalina.core.StandardContextValve.invoke(StandardContextValve.java:90) ~[tomcat-embed-core-10.1.42.jar:10.1.42]
+	at org.apache.catalina.authenticator.AuthenticatorBase.invoke(AuthenticatorBase.java:483) ~[tomcat-embed-core-10.1.42.jar:10.1.42]
+	at org.apache.catalina.core.StandardHostValve.invoke(StandardHostValve.java:116) ~[tomcat-embed-core-10.1.42.jar:10.1.42]
+	at org.apache.catalina.valves.ErrorReportValve.invoke(ErrorReportValve.java:93) ~[tomcat-embed-core-10.1.42.jar:10.1.42]
+	at org.apache.catalina.core.StandardEngineValve.invoke(StandardEngineValve.java:74) ~[tomcat-embed-core-10.1.42.jar:10.1.42]
+	at org.apache.catalina.connector.CoyoteAdapter.service(CoyoteAdapter.java:344) ~[tomcat-embed-core-10.1.42.jar:10.1.42]
+	at org.apache.coyote.http11.Http11Processor.service(Http11Processor.java:398) ~[tomcat-embed-core-10.1.42.jar:10.1.42]
+	at org.apache.coyote.AbstractProcessorLight.process(AbstractProcessorLight.java:63) ~[tomcat-embed-core-10.1.42.jar:10.1.42]
+	at org.apache.coyote.AbstractProtocol$ConnectionHandler.process(AbstractProtocol.java:903) ~[tomcat-embed-core-10.1.42.jar:10.1.42]
+	at org.apache.tomcat.util.net.NioEndpoint$SocketProcessor.doRun(NioEndpoint.java:1769) ~[tomcat-embed-core-10.1.42.jar:10.1.42]
+	at org.apache.tomcat.util.net.SocketProcessorBase.run(SocketProcessorBase.java:52) ~[tomcat-embed-core-10.1.42.jar:10.1.42]
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1189) ~[tomcat-embed-core-10.1.42.jar:10.1.42]
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:658) ~[tomcat-embed-core-10.1.42.jar:10.1.42]
+	at org.apache.tomcat.util.threads.TaskThread$WrappingRunnable.run(TaskThread.java:63) ~[tomcat-embed-core-10.1.42.jar:10.1.42]
+	at java.base/java.lang.Thread.run(Thread.java:840) ~[na:na]
+
+2026-04-15T13:55:43.329-03:00  INFO 105796 --- [main] com.easy.bpm.BpmApplicationKt            : Starting BpmApplicationKt using Java 17.0.10 with PID 105796 (C:\Users\Admin\OneDrive\Ambiente de Trabalho\bpm\build\classes\kotlin\main started by Admin in C:\Users\Admin\OneDrive\Ambiente de Trabalho\bpm)
+2026-04-15T13:55:43.329-03:00 DEBUG 105796 --- [main] com.easy.bpm.BpmApplicationKt            : Running with Spring Boot v3.5.3, Spring v6.2.8
+2026-04-15T13:55:43.329-03:00  INFO 105796 --- [main] com.easy.bpm.BpmApplicationKt            : No active profile set, falling back to 1 default profile: "default"
+2026-04-15T13:55:44.529-03:00  INFO 105796 --- [main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-04-15T13:55:44.592-03:00  INFO 105796 --- [main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 59 ms. Found 8 JPA repository interfaces.
+2026-04-15T13:55:45.039-03:00  INFO 105796 --- [main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8085 (http)
+2026-04-15T13:55:45.039-03:00  INFO 105796 --- [main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-04-15T13:55:45.039-03:00  INFO 105796 --- [main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.42]
+2026-04-15T13:55:45.087-03:00  INFO 105796 --- [main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2026-04-15T13:55:45.087-03:00  INFO 105796 --- [main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 1701 ms
+2026-04-15T13:55:45.317-03:00  INFO 105796 --- [main] o.f.c.internal.license.VersionPrinter    : Flyway Community Edition 9.16.1 by Redgate
+2026-04-15T13:55:45.317-03:00  INFO 105796 --- [main] o.f.c.internal.license.VersionPrinter    : See release notes here: https://rd.gt/416ObMi
+2026-04-15T13:55:45.317-03:00  INFO 105796 --- [main] o.f.c.internal.license.VersionPrinter    : 
+2026-04-15T13:55:45.317-03:00  INFO 105796 --- [main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-04-15T13:55:45.442-03:00  INFO 105796 --- [main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@5621a671
+2026-04-15T13:55:45.444-03:00  INFO 105796 --- [main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-04-15T13:55:45.458-03:00  INFO 105796 --- [main] o.f.c.i.database.base.BaseDatabaseType   : Database: jdbc:postgresql://localhost:5432/easybpm (PostgreSQL 15.13)
+2026-04-15T13:55:45.503-03:00  INFO 105796 --- [main] o.f.core.internal.command.DbValidate     : Successfully validated 15 migrations (execution time 00:00.025s)
+2026-04-15T13:55:45.536-03:00  INFO 105796 --- [main] o.f.core.internal.command.DbMigrate      : Current version of schema "public": 15
+2026-04-15T13:55:45.537-03:00  INFO 105796 --- [main] o.f.core.internal.command.DbMigrate      : Schema "public" is up to date. No migration necessary.
+2026-04-15T13:55:45.596-03:00  INFO 105796 --- [main] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2026-04-15T13:55:45.652-03:00  INFO 105796 --- [main] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.6.18.Final
+2026-04-15T13:55:45.674-03:00  INFO 105796 --- [main] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2026-04-15T13:55:45.773-03:00  WARN 105796 --- [main] org.hibernate.orm.deprecation            : HHH90000025: PostgreSQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-04-15T13:55:45.793-03:00  INFO 105796 --- [main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-1)']
+	Database driver: undefined/unknown
+	Database version: 15.13
+	Autocommit mode: undefined/unknown
+	Isolation level: undefined/unknown
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-04-15T13:55:45.966-03:00  INFO 105796 --- [main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-04-15T13:55:46.722-03:00  INFO 105796 --- [main] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-04-15T13:55:46.726-03:00  INFO 105796 --- [main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-04-15T13:55:47.162-03:00  INFO 105796 --- [main] o.s.d.j.r.query.QueryEnhancerFactory     : Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-04-15T13:55:48.013-03:00  WARN 105796 --- [main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-04-15T13:55:48.073-03:00  INFO 105796 --- [main] o.s.v.b.OptionalValidatorFactoryBean     : Failed to set up a Bean Validation provider: jakarta.validation.NoProviderFoundException: Unable to create a Configuration, because no Jakarta Bean Validation provider could be found. Add a provider like Hibernate Validator (RI) to your classpath.
+2026-04-15T13:55:48.442-03:00  INFO 105796 --- [main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 3 endpoints beneath base path '/actuator'
+2026-04-15T13:55:48.521-03:00  INFO 105796 --- [main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8085 (http) with context path '/'
+2026-04-15T13:55:48.521-03:00  INFO 105796 --- [main] o.s.a.r.c.CachingConnectionFactory       : Attempting to connect to: [localhost:5672]
+2026-04-15T13:55:48.573-03:00  INFO 105796 --- [main] o.s.a.r.c.CachingConnectionFactory       : Created new connection: rabbitConnectionFactory#6fb03f5:0/SimpleConnection@4968eb3f [delegate=amqp://easybpm@127.0.0.1:5672/, localPort=49718]
+2026-04-15T13:55:48.661-03:00  INFO 105796 --- [main] com.easy.bpm.BpmApplicationKt            : Started BpmApplicationKt in 5.747 seconds (process running for 6.004)
+2026-04-15T13:56:08.055-03:00  INFO 105796 --- [http-nio-8085-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-04-15T13:56:08.055-03:00  INFO 105796 --- [http-nio-8085-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2026-04-15T13:56:08.058-03:00  INFO 105796 --- [http-nio-8085-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 3 ms
+2026-04-15T13:56:08.240-03:00  WARN 105796 --- [http-nio-8085-exec-1] ration$PageModule$WarningLoggingModifier : Serializing PageImpl instances as-is is not supported, meaning that there is no guarantee about the stability of the resulting JSON structure!
+	For a stable JSON structure, please use Spring Data's PagedModel (globally via @EnableSpringDataWebSupport(pageSerializationMode = VIA_DTO))
+	or Spring HATEOAS and Spring Data's PagedResourcesAssembler as documented in https://docs.spring.io/spring-data/commons/reference/repositories/core-extensions.html#core.web.pageables.
+
+2026-04-15T13:59:22.195-03:00  WARN 105796 --- [http-nio-8085-exec-8] i.m.p.PrometheusMeterRegistry            : The meter (MeterId{name='node.execution.duration', tags=[tag(nodeType=UserTask)]}) registration has failed: Prometheus requires that all meters with the same name have the same set of tag keys. There is already an existing meter named 'node_execution_duration_seconds' containing tag keys []. The meter you are attempting to register has keys [nodeType]. Note that subsequent logs will be logged at debug level.
+2026-04-15T14:15:53.964-03:00  INFO 111136 --- [main] com.easy.bpm.BpmApplicationKt            : Starting BpmApplicationKt using Java 17.0.10 with PID 111136 (C:\Users\Admin\OneDrive\Ambiente de Trabalho\bpm\build\classes\kotlin\main started by Admin in C:\Users\Admin\OneDrive\Ambiente de Trabalho\bpm)
+2026-04-15T14:15:53.964-03:00 DEBUG 111136 --- [main] com.easy.bpm.BpmApplicationKt            : Running with Spring Boot v3.5.3, Spring v6.2.8
+2026-04-15T14:15:53.964-03:00  INFO 111136 --- [main] com.easy.bpm.BpmApplicationKt            : No active profile set, falling back to 1 default profile: "default"
+2026-04-15T14:15:55.201-03:00  INFO 111136 --- [main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-04-15T14:15:55.266-03:00  INFO 111136 --- [main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 61 ms. Found 8 JPA repository interfaces.
+2026-04-15T14:15:55.734-03:00  INFO 111136 --- [main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8085 (http)
+2026-04-15T14:15:55.750-03:00  INFO 111136 --- [main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-04-15T14:15:55.750-03:00  INFO 111136 --- [main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.42]
+2026-04-15T14:15:55.811-03:00  INFO 111136 --- [main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2026-04-15T14:15:55.811-03:00  INFO 111136 --- [main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 1808 ms
+2026-04-15T14:15:56.043-03:00  INFO 111136 --- [main] o.f.c.internal.license.VersionPrinter    : Flyway Community Edition 9.16.1 by Redgate
+2026-04-15T14:15:56.043-03:00  INFO 111136 --- [main] o.f.c.internal.license.VersionPrinter    : See release notes here: https://rd.gt/416ObMi
+2026-04-15T14:15:56.043-03:00  INFO 111136 --- [main] o.f.c.internal.license.VersionPrinter    : 
+2026-04-15T14:15:56.052-03:00  INFO 111136 --- [main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-04-15T14:15:56.170-03:00  INFO 111136 --- [main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@4cd90c36
+2026-04-15T14:15:56.172-03:00  INFO 111136 --- [main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-04-15T14:15:56.187-03:00  INFO 111136 --- [main] o.f.c.i.database.base.BaseDatabaseType   : Database: jdbc:postgresql://localhost:5432/easybpm (PostgreSQL 15.13)
+2026-04-15T14:15:56.235-03:00  INFO 111136 --- [main] o.f.core.internal.command.DbValidate     : Successfully validated 15 migrations (execution time 00:00.027s)
+2026-04-15T14:15:56.269-03:00  INFO 111136 --- [main] o.f.core.internal.command.DbMigrate      : Current version of schema "public": 15
+2026-04-15T14:15:56.271-03:00  INFO 111136 --- [main] o.f.core.internal.command.DbMigrate      : Schema "public" is up to date. No migration necessary.
+2026-04-15T14:15:56.344-03:00  INFO 111136 --- [main] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2026-04-15T14:15:56.385-03:00  INFO 111136 --- [main] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.6.18.Final
+2026-04-15T14:15:56.409-03:00  INFO 111136 --- [main] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2026-04-15T14:15:56.517-03:00  WARN 111136 --- [main] org.hibernate.orm.deprecation            : HHH90000025: PostgreSQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-04-15T14:15:56.535-03:00  INFO 111136 --- [main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-1)']
+	Database driver: undefined/unknown
+	Database version: 15.13
+	Autocommit mode: undefined/unknown
+	Isolation level: undefined/unknown
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-04-15T14:15:56.718-03:00  INFO 111136 --- [main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-04-15T14:15:57.513-03:00  INFO 111136 --- [main] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-04-15T14:15:57.515-03:00  INFO 111136 --- [main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-04-15T14:15:57.994-03:00  INFO 111136 --- [main] o.s.d.j.r.query.QueryEnhancerFactory     : Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-04-15T14:15:58.969-03:00  WARN 111136 --- [main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-04-15T14:15:59.025-03:00  INFO 111136 --- [main] o.s.v.b.OptionalValidatorFactoryBean     : Failed to set up a Bean Validation provider: jakarta.validation.NoProviderFoundException: Unable to create a Configuration, because no Jakarta Bean Validation provider could be found. Add a provider like Hibernate Validator (RI) to your classpath.
+2026-04-15T14:15:59.393-03:00  INFO 111136 --- [main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 3 endpoints beneath base path '/actuator'
+2026-04-15T14:15:59.471-03:00  INFO 111136 --- [main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8085 (http) with context path '/'
+2026-04-15T14:15:59.480-03:00  INFO 111136 --- [main] o.s.a.r.c.CachingConnectionFactory       : Attempting to connect to: [localhost:5672]
+2026-04-15T14:15:59.531-03:00  INFO 111136 --- [main] o.s.a.r.c.CachingConnectionFactory       : Created new connection: rabbitConnectionFactory#29e3c7fe:0/SimpleConnection@441c8fa3 [delegate=amqp://easybpm@127.0.0.1:5672/, localPort=60958]
+2026-04-15T14:15:59.609-03:00  INFO 111136 --- [main] com.easy.bpm.BpmApplicationKt            : Started BpmApplicationKt in 6.089 seconds (process running for 6.38)
+2026-04-15T14:16:16.138-03:00  INFO 111136 --- [http-nio-8085-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-04-15T14:16:16.138-03:00  INFO 111136 --- [http-nio-8085-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2026-04-15T14:16:16.140-03:00  INFO 111136 --- [http-nio-8085-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 2 ms
+2026-04-15T14:16:16.479-03:00  WARN 111136 --- [http-nio-8085-exec-1] i.m.p.PrometheusMeterRegistry            : The meter (MeterId{name='node.execution.duration', tags=[tag(nodeType=UserTask)]}) registration has failed: Prometheus requires that all meters with the same name have the same set of tag keys. There is already an existing meter named 'node_execution_duration_seconds' containing tag keys []. The meter you are attempting to register has keys [nodeType]. Note that subsequent logs will be logged at debug level.
+2026-04-15T14:20:43.132-03:00  WARN 111136 --- [http-nio-8085-exec-10] .w.s.m.s.DefaultHandlerExceptionResolver : Resolved [org.springframework.web.HttpRequestMethodNotSupportedException: Request method 'GET' is not supported]
+2026-04-15T14:22:36.879-03:00  WARN 111136 --- [http-nio-8085-exec-8] ration$PageModule$WarningLoggingModifier : Serializing PageImpl instances as-is is not supported, meaning that there is no guarantee about the stability of the resulting JSON structure!
+	For a stable JSON structure, please use Spring Data's PagedModel (globally via @EnableSpringDataWebSupport(pageSerializationMode = VIA_DTO))
+	or Spring HATEOAS and Spring Data's PagedResourcesAssembler as documented in https://docs.spring.io/spring-data/commons/reference/repositories/core-extensions.html#core.web.pageables.
+
+2026-04-15T14:42:31.776-03:00  INFO 66696 --- [main] com.easy.bpm.BpmApplicationKt            : Starting BpmApplicationKt using Java 17.0.10 with PID 66696 (C:\Users\Admin\OneDrive\Ambiente de Trabalho\bpm\build\classes\kotlin\main started by Admin in C:\Users\Admin\OneDrive\Ambiente de Trabalho\bpm)
+2026-04-15T14:42:31.776-03:00 DEBUG 66696 --- [main] com.easy.bpm.BpmApplicationKt            : Running with Spring Boot v3.5.3, Spring v6.2.8
+2026-04-15T14:42:31.776-03:00  INFO 66696 --- [main] com.easy.bpm.BpmApplicationKt            : No active profile set, falling back to 1 default profile: "default"
+2026-04-15T14:42:33.274-03:00  INFO 66696 --- [main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-04-15T14:42:33.337-03:00  INFO 66696 --- [main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 57 ms. Found 8 JPA repository interfaces.
+2026-04-15T14:42:33.835-03:00  INFO 66696 --- [main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8085 (http)
+2026-04-15T14:42:33.835-03:00  INFO 66696 --- [main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-04-15T14:42:33.835-03:00  INFO 66696 --- [main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.42]
+2026-04-15T14:42:33.898-03:00  INFO 66696 --- [main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2026-04-15T14:42:33.898-03:00  INFO 66696 --- [main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 2063 ms
+2026-04-15T14:42:34.128-03:00  INFO 66696 --- [main] o.f.c.internal.license.VersionPrinter    : Flyway Community Edition 9.16.1 by Redgate
+2026-04-15T14:42:34.128-03:00  INFO 66696 --- [main] o.f.c.internal.license.VersionPrinter    : See release notes here: https://rd.gt/416ObMi
+2026-04-15T14:42:34.128-03:00  INFO 66696 --- [main] o.f.c.internal.license.VersionPrinter    : 
+2026-04-15T14:42:34.128-03:00  INFO 66696 --- [main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-04-15T14:42:34.308-03:00  INFO 66696 --- [main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@29592929
+2026-04-15T14:42:34.310-03:00  INFO 66696 --- [main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-04-15T14:42:34.325-03:00  INFO 66696 --- [main] o.f.c.i.database.base.BaseDatabaseType   : Database: jdbc:postgresql://localhost:5432/easybpm (PostgreSQL 15.13)
+2026-04-15T14:42:34.376-03:00  INFO 66696 --- [main] o.f.core.internal.command.DbValidate     : Successfully validated 15 migrations (execution time 00:00.029s)
+2026-04-15T14:42:34.413-03:00  INFO 66696 --- [main] o.f.core.internal.command.DbMigrate      : Current version of schema "public": 15
+2026-04-15T14:42:34.415-03:00  INFO 66696 --- [main] o.f.core.internal.command.DbMigrate      : Schema "public" is up to date. No migration necessary.
+2026-04-15T14:42:34.492-03:00  INFO 66696 --- [main] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2026-04-15T14:42:34.555-03:00  INFO 66696 --- [main] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.6.18.Final
+2026-04-15T14:42:34.591-03:00  INFO 66696 --- [main] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2026-04-15T14:42:34.708-03:00  WARN 66696 --- [main] org.hibernate.orm.deprecation            : HHH90000025: PostgreSQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-04-15T14:42:34.724-03:00  INFO 66696 --- [main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-1)']
+	Database driver: undefined/unknown
+	Database version: 15.13
+	Autocommit mode: undefined/unknown
+	Isolation level: undefined/unknown
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-04-15T14:42:34.939-03:00  INFO 66696 --- [main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-04-15T14:42:35.795-03:00  INFO 66696 --- [main] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-04-15T14:42:35.795-03:00  INFO 66696 --- [main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-04-15T14:42:36.243-03:00  INFO 66696 --- [main] o.s.d.j.r.query.QueryEnhancerFactory     : Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-04-15T14:42:37.214-03:00  WARN 66696 --- [main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-04-15T14:42:37.262-03:00  INFO 66696 --- [main] o.s.v.b.OptionalValidatorFactoryBean     : Failed to set up a Bean Validation provider: jakarta.validation.NoProviderFoundException: Unable to create a Configuration, because no Jakarta Bean Validation provider could be found. Add a provider like Hibernate Validator (RI) to your classpath.
+2026-04-15T14:42:37.613-03:00  INFO 66696 --- [main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 3 endpoints beneath base path '/actuator'
+2026-04-15T14:42:37.713-03:00  INFO 66696 --- [main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8085 (http) with context path '/'
+2026-04-15T14:42:37.713-03:00  INFO 66696 --- [main] o.s.a.r.c.CachingConnectionFactory       : Attempting to connect to: [localhost:5672]
+2026-04-15T14:42:37.761-03:00  INFO 66696 --- [main] o.s.a.r.c.CachingConnectionFactory       : Created new connection: rabbitConnectionFactory#5dd7f921:0/SimpleConnection@95d3dc8 [delegate=amqp://easybpm@127.0.0.1:5672/, localPort=60478]
+2026-04-15T14:42:37.845-03:00  INFO 66696 --- [main] com.easy.bpm.BpmApplicationKt            : Started BpmApplicationKt in 6.699 seconds (process running for 7.074)
+2026-04-15T14:44:52.535-03:00  INFO 66696 --- [http-nio-8085-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-04-15T14:44:52.535-03:00  INFO 66696 --- [http-nio-8085-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2026-04-15T14:44:52.537-03:00  INFO 66696 --- [http-nio-8085-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 2 ms
+2026-04-15T15:10:58.267-03:00  INFO 117436 --- [Test worker] c.e.b.i.ProcessIntegrationTest           : Starting ProcessIntegrationTest using Java 17.0.10 with PID 117436 (started by Admin in C:\Users\Admin\OneDrive\Ambiente de Trabalho\bpm)
+2026-04-15T15:10:58.268-03:00 DEBUG 117436 --- [Test worker] c.e.b.i.ProcessIntegrationTest           : Running with Spring Boot v3.5.3, Spring v6.2.8
+2026-04-15T15:10:58.269-03:00  INFO 117436 --- [Test worker] c.e.b.i.ProcessIntegrationTest           : The following 1 profile is active: "test"
+2026-04-15T15:10:59.608-03:00  INFO 117436 --- [Test worker] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-04-15T15:10:59.709-03:00  INFO 117436 --- [Test worker] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 87 ms. Found 8 JPA repository interfaces.
+2026-04-15T15:11:00.678-03:00  INFO 117436 --- [Test worker] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-04-15T15:11:01.002-03:00  INFO 117436 --- [Test worker] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection conn0: url=jdbc:h2:mem:testdb user=SA
+2026-04-15T15:11:01.007-03:00  INFO 117436 --- [Test worker] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-04-15T15:11:01.217-03:00  INFO 117436 --- [Test worker] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2026-04-15T15:11:01.324-03:00  INFO 117436 --- [Test worker] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.6.18.Final
+2026-04-15T15:11:01.406-03:00  INFO 117436 --- [Test worker] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2026-04-15T15:11:01.666-03:00  WARN 117436 --- [Test worker] org.hibernate.orm.deprecation            : HHH90000025: H2Dialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-04-15T15:11:01.689-03:00  INFO 117436 --- [Test worker] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-1)']
+	Database driver: undefined/unknown
+	Database version: 2.3.232
+	Autocommit mode: undefined/unknown
+	Isolation level: undefined/unknown
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-04-15T15:11:01.814-03:00  INFO 117436 --- [Test worker] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-04-15T15:11:03.119-03:00  INFO 117436 --- [Test worker] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-04-15T15:11:03.122-03:00  INFO 117436 --- [Test worker] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-04-15T15:11:03.646-03:00  INFO 117436 --- [Test worker] o.s.d.j.r.query.QueryEnhancerFactory     : Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-04-15T15:11:05.387-03:00  WARN 117436 --- [Test worker] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-04-15T15:11:05.509-03:00  INFO 117436 --- [Test worker] o.s.v.b.OptionalValidatorFactoryBean     : Failed to set up a Bean Validation provider: jakarta.validation.NoProviderFoundException: Unable to create a Configuration, because no Jakarta Bean Validation provider could be found. Add a provider like Hibernate Validator (RI) to your classpath.
+2026-04-15T15:11:06.426-03:00  INFO 117436 --- [Test worker] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 2 endpoints beneath base path '/actuator'
+2026-04-15T15:11:06.551-03:00  INFO 117436 --- [Test worker] c.e.b.i.ProcessIntegrationTest           : Started ProcessIntegrationTest in 8.73 seconds (process running for 19.268)
+2026-04-15T15:11:06.964-03:00  WARN 117436 --- [Test worker] o.h.engine.jdbc.spi.SqlExceptionHelper   : SQL Error: 42122, SQLState: 42S22
+2026-04-15T15:11:06.965-03:00 ERROR 117436 --- [Test worker] o.h.engine.jdbc.spi.SqlExceptionHelper   : Column "f1_0.form_key" not found; SQL statement:
+select f1_0."id",f1_0."created_at",f1_0."form_key",f1_0."name",f1_0."schema",f1_0."version" from "form" f1_0 where f1_0."name"=? order by f1_0."version" desc fetch first ? rows only [42122-232]
+2026-04-15T15:11:07.144-03:00  WARN 117436 --- [Test worker] o.h.engine.jdbc.spi.SqlExceptionHelper   : SQL Error: 42122, SQLState: 42S22
+2026-04-15T15:11:07.145-03:00 ERROR 117436 --- [Test worker] o.h.engine.jdbc.spi.SqlExceptionHelper   : Column "f1_0.form_key" not found; SQL statement:
+select f1_0."id",f1_0."created_at",f1_0."form_key",f1_0."name",f1_0."schema",f1_0."version" from "form" f1_0 where f1_0."name"=? order by f1_0."version" desc fetch first ? rows only [42122-232]
+2026-04-15T15:11:07.192-03:00  WARN 117436 --- [Test worker] o.h.engine.jdbc.spi.SqlExceptionHelper   : SQL Error: 42122, SQLState: 42S22
+2026-04-15T15:11:07.193-03:00 ERROR 117436 --- [Test worker] o.h.engine.jdbc.spi.SqlExceptionHelper   : Column "f1_0.form_key" not found; SQL statement:
+select f1_0."id",f1_0."created_at",f1_0."form_key",f1_0."name",f1_0."schema",f1_0."version" from "form" f1_0 where f1_0."name"=? order by f1_0."version" desc fetch first ? rows only [42122-232]
+2026-04-15T15:11:07.320-03:00  WARN 117436 --- [Test worker] o.h.engine.jdbc.spi.SqlExceptionHelper   : SQL Error: 42122, SQLState: 42S22
+2026-04-15T15:11:07.320-03:00 ERROR 117436 --- [Test worker] o.h.engine.jdbc.spi.SqlExceptionHelper   : Column "f1_0.form_key" not found; SQL statement:
+select f1_0."id",f1_0."created_at",f1_0."form_key",f1_0."name",f1_0."schema",f1_0."version" from "form" f1_0 where f1_0."name"=? order by f1_0."version" desc fetch first ? rows only [42122-232]
+2026-04-15T15:11:07.441-03:00  WARN 117436 --- [Test worker] o.h.engine.jdbc.spi.SqlExceptionHelper   : SQL Error: 42122, SQLState: 42S22
+2026-04-15T15:11:07.442-03:00 ERROR 117436 --- [Test worker] o.h.engine.jdbc.spi.SqlExceptionHelper   : Column "f1_0.form_key" not found; SQL statement:
+select f1_0."id",f1_0."created_at",f1_0."form_key",f1_0."name",f1_0."schema",f1_0."version" from "form" f1_0 where f1_0."name"=? order by f1_0."version" desc fetch first ? rows only [42122-232]
+2026-04-15T15:11:07.505-03:00  INFO 117436 --- [SpringApplicationShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-04-15T15:11:07.507-03:00  INFO 117436 --- [SpringApplicationShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown initiated...
+2026-04-15T15:11:07.509-03:00  INFO 117436 --- [SpringApplicationShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown completed.
+2026-04-15T15:21:55.362-03:00  INFO 117284 --- [main] com.easy.bpm.BpmApplicationKt            : Starting BpmApplicationKt using Java 17.0.10 with PID 117284 (C:\Users\Admin\OneDrive\Ambiente de Trabalho\bpm\build\classes\kotlin\main started by Admin in C:\Users\Admin\OneDrive\Ambiente de Trabalho\bpm)
+2026-04-15T15:21:55.362-03:00 DEBUG 117284 --- [main] com.easy.bpm.BpmApplicationKt            : Running with Spring Boot v3.5.3, Spring v6.2.8
+2026-04-15T15:21:55.362-03:00  INFO 117284 --- [main] com.easy.bpm.BpmApplicationKt            : No active profile set, falling back to 1 default profile: "default"
+2026-04-15T15:21:56.496-03:00  INFO 117284 --- [main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-04-15T15:21:56.581-03:00  INFO 117284 --- [main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 70 ms. Found 8 JPA repository interfaces.
+2026-04-15T15:21:57.040-03:00  INFO 117284 --- [main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8085 (http)
+2026-04-15T15:21:57.040-03:00  INFO 117284 --- [main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-04-15T15:21:57.040-03:00  INFO 117284 --- [main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.42]
+2026-04-15T15:21:57.088-03:00  INFO 117284 --- [main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2026-04-15T15:21:57.088-03:00  INFO 117284 --- [main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 1679 ms
+2026-04-15T15:21:57.325-03:00  INFO 117284 --- [main] o.f.c.internal.license.VersionPrinter    : Flyway Community Edition 9.16.1 by Redgate
+2026-04-15T15:21:57.325-03:00  INFO 117284 --- [main] o.f.c.internal.license.VersionPrinter    : See release notes here: https://rd.gt/416ObMi
+2026-04-15T15:21:57.325-03:00  INFO 117284 --- [main] o.f.c.internal.license.VersionPrinter    : 
+2026-04-15T15:21:57.341-03:00  INFO 117284 --- [main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-04-15T15:21:57.455-03:00  INFO 117284 --- [main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@4cd90c36
+2026-04-15T15:21:57.456-03:00  INFO 117284 --- [main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-04-15T15:21:57.470-03:00  INFO 117284 --- [main] o.f.c.i.database.base.BaseDatabaseType   : Database: jdbc:postgresql://localhost:5432/easybpm (PostgreSQL 15.13)
+2026-04-15T15:21:57.519-03:00  INFO 117284 --- [main] o.f.core.internal.command.DbValidate     : Successfully validated 16 migrations (execution time 00:00.027s)
+2026-04-15T15:21:57.554-03:00  INFO 117284 --- [main] o.f.core.internal.command.DbMigrate      : Current version of schema "public": 15
+2026-04-15T15:21:57.566-03:00  INFO 117284 --- [main] o.f.core.internal.command.DbMigrate      : Migrating schema "public" to version "16 - add form key"
+2026-04-15T15:21:57.637-03:00  INFO 117284 --- [main] o.f.core.internal.command.DbMigrate      : Successfully applied 1 migration to schema "public", now at version v16 (execution time 00:00.089s)
+2026-04-15T15:21:57.712-03:00  INFO 117284 --- [main] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2026-04-15T15:21:57.750-03:00  INFO 117284 --- [main] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.6.18.Final
+2026-04-15T15:21:57.776-03:00  INFO 117284 --- [main] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2026-04-15T15:21:57.874-03:00  WARN 117284 --- [main] org.hibernate.orm.deprecation            : HHH90000025: PostgreSQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-04-15T15:21:57.888-03:00  INFO 117284 --- [main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-1)']
+	Database driver: undefined/unknown
+	Database version: 15.13
+	Autocommit mode: undefined/unknown
+	Isolation level: undefined/unknown
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-04-15T15:21:58.056-03:00  INFO 117284 --- [main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-04-15T15:21:58.820-03:00  INFO 117284 --- [main] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-04-15T15:21:58.820-03:00  INFO 117284 --- [main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-04-15T15:21:59.241-03:00  INFO 117284 --- [main] o.s.d.j.r.query.QueryEnhancerFactory     : Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-04-15T15:22:00.116-03:00  WARN 117284 --- [main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-04-15T15:22:00.169-03:00  INFO 117284 --- [main] o.s.v.b.OptionalValidatorFactoryBean     : Failed to set up a Bean Validation provider: jakarta.validation.NoProviderFoundException: Unable to create a Configuration, because no Jakarta Bean Validation provider could be found. Add a provider like Hibernate Validator (RI) to your classpath.
+2026-04-15T15:22:00.519-03:00  INFO 117284 --- [main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 3 endpoints beneath base path '/actuator'
+2026-04-15T15:22:00.610-03:00  INFO 117284 --- [main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8085 (http) with context path '/'
+2026-04-15T15:22:00.614-03:00  INFO 117284 --- [main] o.s.a.r.c.CachingConnectionFactory       : Attempting to connect to: [localhost:5672]
+2026-04-15T15:22:00.664-03:00  INFO 117284 --- [main] o.s.a.r.c.CachingConnectionFactory       : Created new connection: rabbitConnectionFactory#408db405:0/SimpleConnection@4980460d [delegate=amqp://easybpm@127.0.0.1:5672/, localPort=53450]
+2026-04-15T15:22:00.745-03:00  INFO 117284 --- [main] com.easy.bpm.BpmApplicationKt            : Started BpmApplicationKt in 5.835 seconds (process running for 6.16)
+2026-04-15T15:24:07.543-03:00  INFO 80260 --- [Test worker] c.e.b.i.ProcessIntegrationTest           : Starting ProcessIntegrationTest using Java 17.0.10 with PID 80260 (started by Admin in C:\Users\Admin\OneDrive\Ambiente de Trabalho\bpm)
+2026-04-15T15:24:07.543-03:00 DEBUG 80260 --- [Test worker] c.e.b.i.ProcessIntegrationTest           : Running with Spring Boot v3.5.3, Spring v6.2.8
+2026-04-15T15:24:07.543-03:00  INFO 80260 --- [Test worker] c.e.b.i.ProcessIntegrationTest           : The following 1 profile is active: "test"
+2026-04-15T15:24:08.904-03:00  INFO 80260 --- [Test worker] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-04-15T15:24:08.998-03:00  INFO 80260 --- [Test worker] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 72 ms. Found 8 JPA repository interfaces.
+2026-04-15T15:24:09.940-03:00  INFO 80260 --- [Test worker] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-04-15T15:24:10.248-03:00  INFO 80260 --- [Test worker] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection conn0: url=jdbc:h2:mem:testdb user=SA
+2026-04-15T15:24:10.251-03:00  INFO 80260 --- [Test worker] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-04-15T15:24:10.467-03:00  INFO 80260 --- [Test worker] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2026-04-15T15:24:10.574-03:00  INFO 80260 --- [Test worker] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.6.18.Final
+2026-04-15T15:24:10.648-03:00  INFO 80260 --- [Test worker] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2026-04-15T15:24:10.842-03:00  WARN 80260 --- [Test worker] org.hibernate.orm.deprecation            : HHH90000025: H2Dialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-04-15T15:24:10.856-03:00  INFO 80260 --- [Test worker] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-1)']
+	Database driver: undefined/unknown
+	Database version: 2.3.232
+	Autocommit mode: undefined/unknown
+	Isolation level: undefined/unknown
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-04-15T15:24:10.982-03:00  INFO 80260 --- [Test worker] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-04-15T15:24:12.309-03:00  INFO 80260 --- [Test worker] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-04-15T15:24:12.313-03:00  INFO 80260 --- [Test worker] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-04-15T15:24:12.934-03:00  INFO 80260 --- [Test worker] o.s.d.j.r.query.QueryEnhancerFactory     : Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-04-15T15:24:14.655-03:00  WARN 80260 --- [Test worker] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-04-15T15:24:14.791-03:00  INFO 80260 --- [Test worker] o.s.v.b.OptionalValidatorFactoryBean     : Failed to set up a Bean Validation provider: jakarta.validation.NoProviderFoundException: Unable to create a Configuration, because no Jakarta Bean Validation provider could be found. Add a provider like Hibernate Validator (RI) to your classpath.
+2026-04-15T15:24:15.730-03:00  INFO 80260 --- [Test worker] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 2 endpoints beneath base path '/actuator'
+2026-04-15T15:24:15.808-03:00  INFO 80260 --- [Test worker] c.e.b.i.ProcessIntegrationTest           : Started ProcessIntegrationTest in 8.685 seconds (process running for 19.125)
+2026-04-15T15:24:16.197-03:00  WARN 80260 --- [Test worker] o.h.engine.jdbc.spi.SqlExceptionHelper   : SQL Error: 42122, SQLState: 42S22
+2026-04-15T15:24:16.198-03:00 ERROR 80260 --- [Test worker] o.h.engine.jdbc.spi.SqlExceptionHelper   : Column "f1_0.form_key" not found; SQL statement:
+select f1_0."id",f1_0."created_at",f1_0."form_key",f1_0."name",f1_0."schema",f1_0."version" from "form" f1_0 where f1_0."name"=? order by f1_0."version" desc fetch first ? rows only [42122-232]
+2026-04-15T15:24:16.401-03:00  WARN 80260 --- [Test worker] o.h.engine.jdbc.spi.SqlExceptionHelper   : SQL Error: 42122, SQLState: 42S22
+2026-04-15T15:24:16.402-03:00 ERROR 80260 --- [Test worker] o.h.engine.jdbc.spi.SqlExceptionHelper   : Column "f1_0.form_key" not found; SQL statement:
+select f1_0."id",f1_0."created_at",f1_0."form_key",f1_0."name",f1_0."schema",f1_0."version" from "form" f1_0 where f1_0."name"=? order by f1_0."version" desc fetch first ? rows only [42122-232]
+2026-04-15T15:24:16.442-03:00  WARN 80260 --- [Test worker] o.h.engine.jdbc.spi.SqlExceptionHelper   : SQL Error: 42122, SQLState: 42S22
+2026-04-15T15:24:16.443-03:00 ERROR 80260 --- [Test worker] o.h.engine.jdbc.spi.SqlExceptionHelper   : Column "f1_0.form_key" not found; SQL statement:
+select f1_0."id",f1_0."created_at",f1_0."form_key",f1_0."name",f1_0."schema",f1_0."version" from "form" f1_0 where f1_0."name"=? order by f1_0."version" desc fetch first ? rows only [42122-232]
+2026-04-15T15:24:16.542-03:00  WARN 80260 --- [Test worker] o.h.engine.jdbc.spi.SqlExceptionHelper   : SQL Error: 42122, SQLState: 42S22
+2026-04-15T15:24:16.542-03:00 ERROR 80260 --- [Test worker] o.h.engine.jdbc.spi.SqlExceptionHelper   : Column "f1_0.form_key" not found; SQL statement:
+select f1_0."id",f1_0."created_at",f1_0."form_key",f1_0."name",f1_0."schema",f1_0."version" from "form" f1_0 where f1_0."name"=? order by f1_0."version" desc fetch first ? rows only [42122-232]
+2026-04-15T15:24:16.630-03:00  WARN 80260 --- [Test worker] o.h.engine.jdbc.spi.SqlExceptionHelper   : SQL Error: 42122, SQLState: 42S22
+2026-04-15T15:24:16.630-03:00 ERROR 80260 --- [Test worker] o.h.engine.jdbc.spi.SqlExceptionHelper   : Column "f1_0.form_key" not found; SQL statement:
+select f1_0."id",f1_0."created_at",f1_0."form_key",f1_0."name",f1_0."schema",f1_0."version" from "form" f1_0 where f1_0."name"=? order by f1_0."version" desc fetch first ? rows only [42122-232]
+2026-04-15T15:24:16.673-03:00  INFO 80260 --- [SpringApplicationShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-04-15T15:24:16.673-03:00  INFO 80260 --- [SpringApplicationShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown initiated...
+2026-04-15T15:24:16.673-03:00  INFO 80260 --- [SpringApplicationShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown completed.
+2026-04-15T15:24:22.505-03:00  INFO 117284 --- [http-nio-8085-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-04-15T15:24:22.505-03:00  INFO 117284 --- [http-nio-8085-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2026-04-15T15:24:22.506-03:00  INFO 117284 --- [http-nio-8085-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 1 ms
+2026-04-15T15:24:30.156-03:00  INFO 48272 --- [Test worker] c.e.b.i.ProcessIntegrationTest           : Starting ProcessIntegrationTest using Java 17.0.10 with PID 48272 (started by Admin in C:\Users\Admin\OneDrive\Ambiente de Trabalho\bpm)
+2026-04-15T15:24:30.158-03:00 DEBUG 48272 --- [Test worker] c.e.b.i.ProcessIntegrationTest           : Running with Spring Boot v3.5.3, Spring v6.2.8
+2026-04-15T15:24:30.159-03:00  INFO 48272 --- [Test worker] c.e.b.i.ProcessIntegrationTest           : The following 1 profile is active: "test"
+2026-04-15T15:24:31.929-03:00  INFO 48272 --- [Test worker] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-04-15T15:24:32.061-03:00  INFO 48272 --- [Test worker] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 114 ms. Found 8 JPA repository interfaces.
+2026-04-15T15:24:33.783-03:00  INFO 48272 --- [Test worker] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-04-15T15:24:34.227-03:00  INFO 48272 --- [Test worker] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection conn0: url=jdbc:h2:mem:testdb user=SA
+2026-04-15T15:24:34.227-03:00  INFO 48272 --- [Test worker] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-04-15T15:24:34.627-03:00  INFO 48272 --- [Test worker] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2026-04-15T15:24:34.733-03:00  INFO 48272 --- [Test worker] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.6.18.Final
+2026-04-15T15:24:34.853-03:00  INFO 48272 --- [Test worker] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2026-04-15T15:24:35.193-03:00  WARN 48272 --- [Test worker] org.hibernate.orm.deprecation            : HHH90000025: H2Dialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-04-15T15:24:35.243-03:00  INFO 48272 --- [Test worker] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-1)']
+	Database driver: undefined/unknown
+	Database version: 2.3.232
+	Autocommit mode: undefined/unknown
+	Isolation level: undefined/unknown
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-04-15T15:24:35.494-03:00  INFO 48272 --- [Test worker] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-04-15T15:24:37.061-03:00  INFO 48272 --- [Test worker] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-04-15T15:24:37.075-03:00  INFO 48272 --- [Test worker] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-04-15T15:24:37.991-03:00  INFO 48272 --- [Test worker] o.s.d.j.r.query.QueryEnhancerFactory     : Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-04-15T15:24:39.907-03:00  WARN 48272 --- [Test worker] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-04-15T15:24:40.058-03:00  INFO 48272 --- [Test worker] o.s.v.b.OptionalValidatorFactoryBean     : Failed to set up a Bean Validation provider: jakarta.validation.NoProviderFoundException: Unable to create a Configuration, because no Jakarta Bean Validation provider could be found. Add a provider like Hibernate Validator (RI) to your classpath.
+2026-04-15T15:24:40.928-03:00  INFO 48272 --- [Test worker] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 2 endpoints beneath base path '/actuator'
+2026-04-15T15:24:41.053-03:00  INFO 48272 --- [Test worker] c.e.b.i.ProcessIntegrationTest           : Started ProcessIntegrationTest in 11.307 seconds (process running for 16.214)
+2026-04-15T15:24:41.462-03:00  WARN 48272 --- [Test worker] o.h.engine.jdbc.spi.SqlExceptionHelper   : SQL Error: 42122, SQLState: 42S22
+2026-04-15T15:24:41.463-03:00 ERROR 48272 --- [Test worker] o.h.engine.jdbc.spi.SqlExceptionHelper   : Column "f1_0.form_key" not found; SQL statement:
+select f1_0."id",f1_0."created_at",f1_0."form_key",f1_0."name",f1_0."schema",f1_0."version" from "form" f1_0 where f1_0."name"=? order by f1_0."version" desc fetch first ? rows only [42122-232]
+2026-04-15T15:24:41.524-03:00  INFO 48272 --- [SpringApplicationShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-04-15T15:24:41.524-03:00  INFO 48272 --- [SpringApplicationShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown initiated...
+2026-04-15T15:24:41.524-03:00  INFO 48272 --- [SpringApplicationShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown completed.
+2026-04-15T15:25:25.952-03:00  INFO 113500 --- [Test worker] c.e.b.i.ProcessIntegrationTest           : Starting ProcessIntegrationTest using Java 17.0.10 with PID 113500 (started by Admin in C:\Users\Admin\OneDrive\Ambiente de Trabalho\bpm)
+2026-04-15T15:25:25.954-03:00 DEBUG 113500 --- [Test worker] c.e.b.i.ProcessIntegrationTest           : Running with Spring Boot v3.5.3, Spring v6.2.8
+2026-04-15T15:25:25.955-03:00  INFO 113500 --- [Test worker] c.e.b.i.ProcessIntegrationTest           : The following 1 profile is active: "test"
+2026-04-15T15:25:27.955-03:00  INFO 113500 --- [Test worker] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-04-15T15:25:28.104-03:00  INFO 113500 --- [Test worker] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 129 ms. Found 8 JPA repository interfaces.
+2026-04-15T15:25:29.953-03:00  INFO 113500 --- [Test worker] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-04-15T15:25:30.402-03:00  INFO 113500 --- [Test worker] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection conn0: url=jdbc:h2:mem:testdb user=SA
+2026-04-15T15:25:30.409-03:00  INFO 113500 --- [Test worker] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-04-15T15:25:30.765-03:00  INFO 113500 --- [Test worker] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2026-04-15T15:25:30.919-03:00  INFO 113500 --- [Test worker] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.6.18.Final
+2026-04-15T15:25:30.978-03:00  INFO 113500 --- [Test worker] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2026-04-15T15:25:31.244-03:00  WARN 113500 --- [Test worker] org.hibernate.orm.deprecation            : HHH90000025: H2Dialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-04-15T15:25:31.299-03:00  INFO 113500 --- [Test worker] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-1)']
+	Database driver: undefined/unknown
+	Database version: 2.3.232
+	Autocommit mode: undefined/unknown
+	Isolation level: undefined/unknown
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-04-15T15:25:31.546-03:00  INFO 113500 --- [Test worker] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-04-15T15:25:33.548-03:00  INFO 113500 --- [Test worker] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-04-15T15:25:33.561-03:00  INFO 113500 --- [Test worker] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-04-15T15:25:34.490-03:00  INFO 113500 --- [Test worker] o.s.d.j.r.query.QueryEnhancerFactory     : Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-04-15T15:25:36.708-03:00  WARN 113500 --- [Test worker] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-04-15T15:25:36.843-03:00  INFO 113500 --- [Test worker] o.s.v.b.OptionalValidatorFactoryBean     : Failed to set up a Bean Validation provider: jakarta.validation.NoProviderFoundException: Unable to create a Configuration, because no Jakarta Bean Validation provider could be found. Add a provider like Hibernate Validator (RI) to your classpath.
+2026-04-15T15:25:38.045-03:00  INFO 113500 --- [Test worker] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 2 endpoints beneath base path '/actuator'
+2026-04-15T15:25:38.211-03:00  INFO 113500 --- [Test worker] c.e.b.i.ProcessIntegrationTest           : Started ProcessIntegrationTest in 12.74 seconds (process running for 18.433)
+2026-04-15T15:25:38.849-03:00  INFO 113500 --- [SpringApplicationShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-04-15T15:25:38.852-03:00  INFO 113500 --- [SpringApplicationShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown initiated...
+2026-04-15T15:25:38.854-03:00  INFO 113500 --- [SpringApplicationShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown completed.
+2026-04-15T15:25:41.062-03:00  WARN 117284 --- [http-nio-8085-exec-10] ration$PageModule$WarningLoggingModifier : Serializing PageImpl instances as-is is not supported, meaning that there is no guarantee about the stability of the resulting JSON structure!
+	For a stable JSON structure, please use Spring Data's PagedModel (globally via @EnableSpringDataWebSupport(pageSerializationMode = VIA_DTO))
+	or Spring HATEOAS and Spring Data's PagedResourcesAssembler as documented in https://docs.spring.io/spring-data/commons/reference/repositories/core-extensions.html#core.web.pageables.
+
+2026-04-15T15:25:52.377-03:00  INFO 27512 --- [Test worker] c.e.b.i.ProcessIntegrationTest           : Starting ProcessIntegrationTest using Java 17.0.10 with PID 27512 (started by Admin in C:\Users\Admin\OneDrive\Ambiente de Trabalho\bpm)
+2026-04-15T15:25:52.379-03:00 DEBUG 27512 --- [Test worker] c.e.b.i.ProcessIntegrationTest           : Running with Spring Boot v3.5.3, Spring v6.2.8
+2026-04-15T15:25:52.379-03:00  INFO 27512 --- [Test worker] c.e.b.i.ProcessIntegrationTest           : The following 1 profile is active: "test"
+2026-04-15T15:25:53.832-03:00  INFO 27512 --- [Test worker] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-04-15T15:25:53.959-03:00  INFO 27512 --- [Test worker] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 108 ms. Found 8 JPA repository interfaces.
+2026-04-15T15:25:55.183-03:00  INFO 27512 --- [Test worker] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-04-15T15:25:55.537-03:00  INFO 27512 --- [Test worker] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection conn0: url=jdbc:h2:mem:testdb user=SA
+2026-04-15T15:25:55.541-03:00  INFO 27512 --- [Test worker] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-04-15T15:25:55.759-03:00  INFO 27512 --- [Test worker] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2026-04-15T15:25:55.865-03:00  INFO 27512 --- [Test worker] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.6.18.Final
+2026-04-15T15:25:55.948-03:00  INFO 27512 --- [Test worker] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2026-04-15T15:25:56.162-03:00  WARN 27512 --- [Test worker] org.hibernate.orm.deprecation            : HHH90000025: H2Dialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-04-15T15:25:56.184-03:00  INFO 27512 --- [Test worker] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-1)']
+	Database driver: undefined/unknown
+	Database version: 2.3.232
+	Autocommit mode: undefined/unknown
+	Isolation level: undefined/unknown
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-04-15T15:25:56.298-03:00  INFO 27512 --- [Test worker] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-04-15T15:25:57.782-03:00  INFO 27512 --- [Test worker] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-04-15T15:25:57.782-03:00  INFO 27512 --- [Test worker] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-04-15T15:25:58.477-03:00  INFO 27512 --- [Test worker] o.s.d.j.r.query.QueryEnhancerFactory     : Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-04-15T15:26:00.282-03:00  WARN 27512 --- [Test worker] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-04-15T15:26:00.410-03:00  INFO 27512 --- [Test worker] o.s.v.b.OptionalValidatorFactoryBean     : Failed to set up a Bean Validation provider: jakarta.validation.NoProviderFoundException: Unable to create a Configuration, because no Jakarta Bean Validation provider could be found. Add a provider like Hibernate Validator (RI) to your classpath.
+2026-04-15T15:26:01.420-03:00  INFO 27512 --- [Test worker] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 2 endpoints beneath base path '/actuator'
+2026-04-15T15:26:01.560-03:00  INFO 27512 --- [Test worker] c.e.b.i.ProcessIntegrationTest           : Started ProcessIntegrationTest in 9.807 seconds (process running for 20.282)
+2026-04-15T15:26:02.228-03:00  WARN 27512 --- [Test worker] i.m.core.instrument.MeterRegistry        : This Gauge has been already registered (MeterId{name='task.active', tags=[]}), the registration will be ignored. Note that subsequent logs will be logged at debug level.
+2026-04-15T15:26:02.561-03:00  INFO 27512 --- [SpringApplicationShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-04-15T15:26:02.561-03:00  INFO 27512 --- [SpringApplicationShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown initiated...
+2026-04-15T15:26:02.561-03:00  INFO 27512 --- [SpringApplicationShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown completed.
+2026-04-15T15:26:13.919-03:00  WARN 117284 --- [http-nio-8085-exec-2] i.m.p.PrometheusMeterRegistry            : The meter (MeterId{name='node.execution.duration', tags=[tag(nodeType=UserTask)]}) registration has failed: Prometheus requires that all meters with the same name have the same set of tag keys. There is already an existing meter named 'node_execution_duration_seconds' containing tag keys []. The meter you are attempting to register has keys [nodeType]. Note that subsequent logs will be logged at debug level.
+2026-04-15T15:26:17.450-03:00  WARN 117284 --- [http-nio-8085-exec-7] i.m.core.instrument.MeterRegistry        : This Gauge has been already registered (MeterId{name='task.active', tags=[]}), the registration will be ignored. Note that subsequent logs will be logged at debug level.
+2026-04-15T15:36:11.739-03:00  INFO 115004 --- [Test worker] c.e.b.i.ProcessIntegrationTest           : Starting ProcessIntegrationTest using Java 17.0.10 with PID 115004 (started by Admin in C:\Users\Admin\OneDrive\Ambiente de Trabalho\bpm)
+2026-04-15T15:36:11.741-03:00 DEBUG 115004 --- [Test worker] c.e.b.i.ProcessIntegrationTest           : Running with Spring Boot v3.5.3, Spring v6.2.8
+2026-04-15T15:36:11.742-03:00  INFO 115004 --- [Test worker] c.e.b.i.ProcessIntegrationTest           : The following 1 profile is active: "test"
+2026-04-15T15:36:13.255-03:00  INFO 115004 --- [Test worker] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-04-15T15:36:13.357-03:00  INFO 115004 --- [Test worker] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 87 ms. Found 8 JPA repository interfaces.
+2026-04-15T15:36:14.454-03:00  INFO 115004 --- [Test worker] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-04-15T15:36:14.837-03:00  INFO 115004 --- [Test worker] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection conn0: url=jdbc:h2:mem:testdb user=SA
+2026-04-15T15:36:14.840-03:00  INFO 115004 --- [Test worker] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-04-15T15:36:15.097-03:00  INFO 115004 --- [Test worker] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2026-04-15T15:36:15.199-03:00  INFO 115004 --- [Test worker] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.6.18.Final
+2026-04-15T15:36:15.257-03:00  INFO 115004 --- [Test worker] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2026-04-15T15:36:15.461-03:00  WARN 115004 --- [Test worker] org.hibernate.orm.deprecation            : HHH90000025: H2Dialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-04-15T15:36:15.483-03:00  INFO 115004 --- [Test worker] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-1)']
+	Database driver: undefined/unknown
+	Database version: 2.3.232
+	Autocommit mode: undefined/unknown
+	Isolation level: undefined/unknown
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-04-15T15:36:15.590-03:00  INFO 115004 --- [Test worker] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-04-15T15:36:17.074-03:00  INFO 115004 --- [Test worker] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-04-15T15:36:17.078-03:00  INFO 115004 --- [Test worker] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-04-15T15:36:17.682-03:00  INFO 115004 --- [Test worker] o.s.d.j.r.query.QueryEnhancerFactory     : Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-04-15T15:36:19.637-03:00  WARN 115004 --- [Test worker] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-04-15T15:36:19.768-03:00  INFO 115004 --- [Test worker] o.s.v.b.OptionalValidatorFactoryBean     : Failed to set up a Bean Validation provider: jakarta.validation.NoProviderFoundException: Unable to create a Configuration, because no Jakarta Bean Validation provider could be found. Add a provider like Hibernate Validator (RI) to your classpath.
+2026-04-15T15:36:20.890-03:00  INFO 115004 --- [Test worker] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 2 endpoints beneath base path '/actuator'
+2026-04-15T15:36:21.031-03:00  INFO 115004 --- [Test worker] c.e.b.i.ProcessIntegrationTest           : Started ProcessIntegrationTest in 9.72 seconds (process running for 19.503)
+2026-04-15T15:36:21.667-03:00  WARN 115004 --- [Test worker] i.m.core.instrument.MeterRegistry        : This Gauge has been already registered (MeterId{name='task.active', tags=[]}), the registration will be ignored. Note that subsequent logs will be logged at debug level.
+2026-04-15T15:36:22.073-03:00  INFO 115004 --- [SpringApplicationShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-04-15T15:36:22.076-03:00  INFO 115004 --- [SpringApplicationShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown initiated...
+2026-04-15T15:36:22.080-03:00  INFO 115004 --- [SpringApplicationShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown completed.
+2026-04-15T15:42:37.084-03:00  INFO 113336 --- [main] com.easy.bpm.BpmApplicationKt            : Starting BpmApplicationKt using Java 17.0.10 with PID 113336 (C:\Users\Admin\OneDrive\Ambiente de Trabalho\bpm\build\classes\kotlin\main started by Admin in C:\Users\Admin\OneDrive\Ambiente de Trabalho\bpm)
+2026-04-15T15:42:37.084-03:00 DEBUG 113336 --- [main] com.easy.bpm.BpmApplicationKt            : Running with Spring Boot v3.5.3, Spring v6.2.8
+2026-04-15T15:42:37.084-03:00  INFO 113336 --- [main] com.easy.bpm.BpmApplicationKt            : No active profile set, falling back to 1 default profile: "default"
+2026-04-15T15:42:38.317-03:00  INFO 113336 --- [main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-04-15T15:42:38.396-03:00  INFO 113336 --- [main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 70 ms. Found 8 JPA repository interfaces.
+2026-04-15T15:42:38.817-03:00  INFO 113336 --- [main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8085 (http)
+2026-04-15T15:42:38.832-03:00  INFO 113336 --- [main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-04-15T15:42:38.832-03:00  INFO 113336 --- [main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.42]
+2026-04-15T15:42:38.880-03:00  INFO 113336 --- [main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2026-04-15T15:42:38.880-03:00  INFO 113336 --- [main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 1744 ms
+2026-04-15T15:42:39.106-03:00  INFO 113336 --- [main] o.f.c.internal.license.VersionPrinter    : Flyway Community Edition 9.16.1 by Redgate
+2026-04-15T15:42:39.106-03:00  INFO 113336 --- [main] o.f.c.internal.license.VersionPrinter    : See release notes here: https://rd.gt/416ObMi
+2026-04-15T15:42:39.106-03:00  INFO 113336 --- [main] o.f.c.internal.license.VersionPrinter    : 
+2026-04-15T15:42:39.106-03:00  INFO 113336 --- [main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-04-15T15:42:39.228-03:00  INFO 113336 --- [main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@4cf5d999
+2026-04-15T15:42:39.229-03:00  INFO 113336 --- [main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-04-15T15:42:39.243-03:00  INFO 113336 --- [main] o.f.c.i.database.base.BaseDatabaseType   : Database: jdbc:postgresql://localhost:5432/easybpm (PostgreSQL 15.13)
+2026-04-15T15:42:39.288-03:00  INFO 113336 --- [main] o.f.core.internal.command.DbValidate     : Successfully validated 16 migrations (execution time 00:00.025s)
+2026-04-15T15:42:39.319-03:00  INFO 113336 --- [main] o.f.core.internal.command.DbMigrate      : Current version of schema "public": 16
+2026-04-15T15:42:39.320-03:00  INFO 113336 --- [main] o.f.core.internal.command.DbMigrate      : Schema "public" is up to date. No migration necessary.
+2026-04-15T15:42:39.384-03:00  INFO 113336 --- [main] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2026-04-15T15:42:39.429-03:00  INFO 113336 --- [main] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.6.18.Final
+2026-04-15T15:42:39.454-03:00  INFO 113336 --- [main] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2026-04-15T15:42:39.555-03:00  WARN 113336 --- [main] org.hibernate.orm.deprecation            : HHH90000025: PostgreSQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-04-15T15:42:39.568-03:00  INFO 113336 --- [main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-1)']
+	Database driver: undefined/unknown
+	Database version: 15.13
+	Autocommit mode: undefined/unknown
+	Isolation level: undefined/unknown
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-04-15T15:42:39.752-03:00  INFO 113336 --- [main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-04-15T15:42:40.519-03:00  INFO 113336 --- [main] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-04-15T15:42:40.519-03:00  INFO 113336 --- [main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-04-15T15:42:40.954-03:00  INFO 113336 --- [main] o.s.d.j.r.query.QueryEnhancerFactory     : Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-04-15T15:42:41.824-03:00  WARN 113336 --- [main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-04-15T15:42:41.871-03:00  INFO 113336 --- [main] o.s.v.b.OptionalValidatorFactoryBean     : Failed to set up a Bean Validation provider: jakarta.validation.NoProviderFoundException: Unable to create a Configuration, because no Jakarta Bean Validation provider could be found. Add a provider like Hibernate Validator (RI) to your classpath.
+2026-04-15T15:42:42.273-03:00  INFO 113336 --- [main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 3 endpoints beneath base path '/actuator'
+2026-04-15T15:42:42.365-03:00  INFO 113336 --- [main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8085 (http) with context path '/'
+2026-04-15T15:42:42.365-03:00  INFO 113336 --- [main] o.s.a.r.c.CachingConnectionFactory       : Attempting to connect to: [localhost:5672]
+2026-04-15T15:42:42.429-03:00  INFO 113336 --- [main] o.s.a.r.c.CachingConnectionFactory       : Created new connection: rabbitConnectionFactory#630f24a5:0/SimpleConnection@74e72805 [delegate=amqp://easybpm@127.0.0.1:5672/, localPort=49701]
+2026-04-15T15:42:42.514-03:00  INFO 113336 --- [main] com.easy.bpm.BpmApplicationKt            : Started BpmApplicationKt in 5.871 seconds (process running for 6.27)
+2026-04-15T15:43:51.013-03:00  INFO 113336 --- [http-nio-8085-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-04-15T15:43:51.013-03:00  INFO 113336 --- [http-nio-8085-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2026-04-15T15:43:51.013-03:00  INFO 113336 --- [http-nio-8085-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 0 ms
+2026-04-15T15:43:51.228-03:00  WARN 113336 --- [http-nio-8085-exec-8] ration$PageModule$WarningLoggingModifier : Serializing PageImpl instances as-is is not supported, meaning that there is no guarantee about the stability of the resulting JSON structure!
+	For a stable JSON structure, please use Spring Data's PagedModel (globally via @EnableSpringDataWebSupport(pageSerializationMode = VIA_DTO))
+	or Spring HATEOAS and Spring Data's PagedResourcesAssembler as documented in https://docs.spring.io/spring-data/commons/reference/repositories/core-extensions.html#core.web.pageables.
+

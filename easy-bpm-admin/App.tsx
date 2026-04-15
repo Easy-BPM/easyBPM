@@ -17,8 +17,9 @@ import {
   Workflow
 } from 'lucide-react';
 import { Sidebar } from './components/Sidebar';
+import { WorkflowCanvas } from './components/WorkflowCanvas';
 import { adminService } from './services/adminService';
-import { ProcessDefinition, ProcessInstance, ProcessVariable } from './types';
+import { ProcessDefinition, ProcessInstance, ProcessVariable, WorkflowDefinition } from './types';
 
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<string | null>(null);
@@ -186,6 +187,38 @@ const InstanceExplorerView: React.FC = () => {
   const [moveFrom, setMoveFrom] = useState('');
   const [moveTo, setMoveTo] = useState('');
   const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [workflowDefinition, setWorkflowDefinition] = useState<WorkflowDefinition | null>(null);
+  const [workflowLoading, setWorkflowLoading] = useState(false);
+  const [workflowError, setWorkflowError] = useState<string | null>(null);
+
+  const loadDefinitionForInstance = async (targetInstance: ProcessInstance | null) => {
+    setWorkflowDefinition(null);
+    setWorkflowError(null);
+    if (!targetInstance) return;
+
+    const definitionId = targetInstance.processDefinitionId ?? targetInstance.processDefinition?.id;
+    if (!definitionId) {
+      setWorkflowError('Definition id is not available for this instance.');
+      return;
+    }
+
+    setWorkflowLoading(true);
+    try {
+      const definition = await adminService.getProcessDefinitionById(definitionId);
+      if (!definition?.definitionJson) {
+        setWorkflowError('Definition JSON is not available for this deployed version.');
+        return;
+      }
+
+      const parsed = JSON.parse(definition.definitionJson) as WorkflowDefinition;
+      setWorkflowDefinition(parsed);
+    } catch (error) {
+      console.error(error);
+      setWorkflowError('Failed to load workflow definition for this instance version.');
+    } finally {
+      setWorkflowLoading(false);
+    }
+  };
 
   const handleSearch = async () => {
     const parsedId = Number(instanceIdInput);
@@ -198,12 +231,15 @@ const InstanceExplorerView: React.FC = () => {
       setInstance(found);
       if (found) {
         setVariables(await adminService.getProcessVariables(found.id));
+        await loadDefinitionForInstance(found);
       } else {
         setVariables([]);
+        setWorkflowDefinition(null);
       }
     } catch (error) {
       console.error(error);
       setActionMessage('Failed to search process instance.');
+      setWorkflowDefinition(null);
     } finally {
       setLoading(false);
     }
@@ -232,6 +268,7 @@ const InstanceExplorerView: React.FC = () => {
       await adminService.moveNode(instance.id, { fromNode: moveFrom, toNode: moveTo, reason: 'Manual admin operation' });
       const refreshed = await adminService.findInstanceById(instance.id);
       setInstance(refreshed);
+      await loadDefinitionForInstance(refreshed);
       setActionMessage('Node moved successfully.');
     } catch (error) {
       console.error(error);
@@ -245,6 +282,7 @@ const InstanceExplorerView: React.FC = () => {
       await adminService.stopInstance(instance.id);
       const refreshed = await adminService.findInstanceById(instance.id);
       setInstance(refreshed);
+      await loadDefinitionForInstance(refreshed);
       setActionMessage('Instance stopped successfully.');
     } catch (error) {
       console.error(error);
@@ -261,6 +299,7 @@ const InstanceExplorerView: React.FC = () => {
       await adminService.deleteInstance(instance.id);
       setInstance(null);
       setVariables([]);
+      setWorkflowDefinition(null);
       setActionMessage('Instance deleted successfully.');
     } catch (error) {
       console.error(error);
@@ -410,6 +449,39 @@ const InstanceExplorerView: React.FC = () => {
                 </span>
               ))}
             </div>
+          </div>
+
+          <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4">
+            <div className="flex items-center justify-between gap-3">
+              <h3 className="font-semibold text-slate-800 flex items-center gap-2">
+                <Workflow size={18} className="text-indigo-600" /> Workflow Path Visualizer
+              </h3>
+              {workflowLoading && <Loader2 className="animate-spin text-indigo-600" size={16} />}
+            </div>
+            <p className="text-sm text-slate-500">
+              The canvas below uses the exact deployed process definition version linked to this instance and highlights its traveled path.
+            </p>
+
+            {workflowError && (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700">
+                {workflowError}
+              </div>
+            )}
+
+            {workflowDefinition && (
+              <>
+                <div className="flex flex-wrap items-center gap-3 text-xs">
+                  <span className="px-2 py-1 rounded bg-slate-100 text-slate-700 border border-slate-200">Total nodes: {workflowDefinition.nodes?.length ?? 0}</span>
+                  <span className="px-2 py-1 rounded bg-blue-50 text-blue-700 border border-blue-200">Visited nodes: {instance.nodeHistory?.length ?? 0}</span>
+                  <span className="px-2 py-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">Current nodes: {instance.currentNode?.length ?? 0}</span>
+                </div>
+                <WorkflowCanvas
+                  definition={workflowDefinition}
+                  nodeHistory={instance.nodeHistory ?? []}
+                  currentNodes={instance.currentNode ?? []}
+                />
+              </>
+            )}
           </div>
         </>
       )}

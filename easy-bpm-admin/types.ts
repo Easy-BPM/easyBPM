@@ -7,17 +7,51 @@ export interface Page<T> {
 }
 
 export interface ProcessDefinition {
-  id: string;
+  id: number;
+  name: string;
+  key?: string;
+  description?: string;
+  version: number;
+  definitionJson?: string;
+}
+
+export interface ProcessDefinitionSummary {
+  id: number;
   name: string;
   key?: string;
   description?: string;
   version: number;
 }
 
+export interface WorkflowNode {
+  id: string;
+  name?: string;
+  type: string;
+  position?: { x: number; y: number };
+  next?: string[];
+}
+
+export interface WorkflowFlow {
+  from: string;
+  to: string;
+  condition?: string | null;
+}
+
+export interface WorkflowDefinition {
+  processId?: string;
+  key?: string;
+  name?: string;
+  description?: string;
+  metadata?: Record<string, unknown>;
+  nodes: WorkflowNode[];
+  flows?: WorkflowFlow[];
+}
+
 export interface ProcessInstance {
   id: number;
   processDefinitionId?: number;
   processDefinitionName?: string;
+  processDefinition?: ProcessDefinitionSummary;
   status: string;
   currentNode?: string[];
   nodeHistory?: string[];

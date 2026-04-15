@@ -11,10 +11,10 @@ Easy BPM Admin communicates exclusively with the Easy BPM backend REST API. This
 ## Base URL
 
 ```
-http://localhost:8080
+http://localhost:8085
 ```
 
-All examples assume this base URL. In production, modify in `easy-bpm-admin/services/adminService.ts`:
+All examples assume this base URL. In production, configure `VITE_API_BASE_URL` or update the default in `easy-bpm-admin/services/adminService.ts`:
 
 ```typescript
 const API_BASE_URL = 'http://your-production-api.com';
@@ -79,6 +79,15 @@ const handleSubmit = async (e) => {
 :::note Development Mode
 Current implementation uses mock login (no real authentication). See [Security Configuration](#security-configuration) to enable real authentication.
 :::
+
+## Security Configuration
+
+For production readiness:
+
+1. Enable real `POST /login` implementation in backend
+2. Require and validate bearer token on admin API calls
+3. Enforce role-based access (`ADMIN`, `OPERATOR`, `VIEWER`) per endpoint
+4. Disable mock login paths in frontend build configuration
 
 ---
 
@@ -152,7 +161,7 @@ useEffect(() => {
 
 ---
 
-### GET /processes/instances/{id}
+### `GET /processes/instances/{id}`
 
 Get a single process instance by ID.
 
@@ -205,7 +214,7 @@ const handleSelectInstance = async (instanceId: number) => {
 
 ---
 
-### POST /processes/instances/{id}/stop
+### `POST /processes/instances/{id}/stop`
 
 Stop (cancel) a running process instance.
 
@@ -276,7 +285,7 @@ Stopping is reversible. Tasks remain in the database and can be queried. Impleme
 
 ---
 
-### DELETE /processes/instances/{id}
+### `DELETE /processes/instances/{id}`
 
 Permanently delete a process instance and all related data.
 
@@ -352,7 +361,7 @@ Deletion permanently removes all instance data. No recovery possible after compl
 
 ## Process Variables
 
-### GET /processes/instances/{id}/variables
+### `GET /processes/instances/{id}/variables`
 
 Get all variables for a process instance.
 
@@ -426,7 +435,7 @@ const handleFetchVariables = async (instanceId: number) => {
 
 ---
 
-### PUT /processes/instances/{id}/variables
+### `PUT /processes/instances/{id}/variables`
 
 Assign or update variables in a process instance.
 
@@ -520,7 +529,7 @@ const handleSaveVariables = async (e) => {
 
 ## Node Control
 
-### POST /processes/instances/{id}/move-node
+### `POST /processes/instances/{id}/move-node`
 
 Manually move process execution from one node to another.
 
@@ -701,7 +710,7 @@ useEffect(() => {
 
 ---
 
-### GET /processes/definitions/{id}
+### `GET /processes/definitions/{id}`
 
 Get a single process definition by ID.
 

@@ -25,8 +25,8 @@ This starts:
 ./gradlew bootRun
 ```
 
-**Server**: http://localhost:8080
-**OpenAPI**: http://localhost:8080/swagger-ui.html
+**Server**: http://localhost:8085
+**OpenAPI**: http://localhost:8085/swagger-ui.html
 
 ### Start Worker (Optional)
 In a separate terminal:
@@ -42,7 +42,7 @@ cd worker
 ### Deploy a Process
 
 ```bash
-curl -X POST http://localhost:8080/processes \
+curl -X POST http://localhost:8085/processes \
   -H "Content-Type: application/json" \
   -d '{
     "nodes": [
@@ -60,15 +60,16 @@ curl -X POST http://localhost:8080/processes \
 ### Start Process Instance
 
 ```bash
-curl -X POST http://localhost:8080/processes/{processId}/start
+curl -X POST http://localhost:8085/processes/{processId}/start
 ```
 
 ### Deploy Form
 
 ```bash
-curl -X POST http://localhost:8080/forms \
+curl -X POST http://localhost:8085/forms \
   -H "Content-Type: application/json" \
   -d '{
+    "key": "approvalForm",
     "name": "ApprovalForm",
     "schema": {
       "type": "object",
@@ -80,16 +81,18 @@ curl -X POST http://localhost:8080/forms \
   }'
 ```
 
+Use the form `key` as the stable identifier for versioning and for user-task attachment in process definitions.
+
 ### Get Tasks
 
 ```bash
-curl http://localhost:8080/tasks?page=0&size=20
+curl http://localhost:8085/tasks?page=0&size=20
 ```
 
 ### Complete Task
 
 ```bash
-curl -X POST http://localhost:8080/tasks/{taskId}/complete \
+curl -X POST http://localhost:8085/tasks/{taskId}/complete \
   -H "Content-Type: application/json" \
   -d '{
     "assignee": "john",
@@ -103,7 +106,7 @@ curl -X POST http://localhost:8080/tasks/{taskId}/complete \
 ### Send Message to Process
 
 ```bash
-curl -X POST http://localhost:8080/processes/messages \
+curl -X POST http://localhost:8085/processes/messages \
   -H "Content-Type: application/json" \
   -d '{
     "messageName": "approvalReceived",
@@ -118,13 +121,13 @@ curl -X POST http://localhost:8080/processes/messages \
 
 ```bash
 # Health check
-curl http://localhost:8080/actuator/health
+curl http://localhost:8085/actuator/health
 
 # Available metrics
-curl http://localhost:8080/actuator/metrics
+curl http://localhost:8085/actuator/metrics
 
 # Prometheus format
-curl http://localhost:8080/actuator/prometheus
+curl http://localhost:8085/actuator/prometheus
 ```
 
 ---

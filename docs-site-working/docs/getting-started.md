@@ -36,9 +36,9 @@ Or on Windows:
 .\gradlew.bat bootRun
 ```
 
-Server URL: http://localhost:8080
+Server URL: http://localhost:8085
 
-API Docs: http://localhost:8080/swagger-ui.html
+API Docs: http://localhost:8085/swagger-ui.html
 
 ## Step 3: Start Worker (Optional)
 
@@ -52,7 +52,7 @@ cd worker
 ## Step 4: Verify Installation
 
 ```bash
-curl http://localhost:8080/actuator/health
+curl http://localhost:8085/actuator/health
 ```
 
 Expected: `{"status":"UP"}`
@@ -61,7 +61,7 @@ Expected: `{"status":"UP"}`
 
 Deploy:
 ```bash
-curl -X POST http://localhost:8080/processes \
+curl -X POST http://localhost:8085/processes \
   -H "Content-Type: application/json" \
   -d '{
     "nodes": [
@@ -78,17 +78,17 @@ curl -X POST http://localhost:8080/processes \
 
 Start (save `id` from response):
 ```bash
-curl -X POST http://localhost:8080/processes/{id}/start
+curl -X POST http://localhost:8085/processes/{id}/start
 ```
 
 Get tasks:
 ```bash
-curl http://localhost:8080/tasks
+curl http://localhost:8085/tasks
 ```
 
 Complete:
 ```bash
-curl -X POST http://localhost:8080/tasks/1/complete \
+curl -X POST http://localhost:8085/tasks/1/complete \
   -H "Content-Type: application/json" \
   -d '{"assignee": "john", "variables": {}}'
 ```

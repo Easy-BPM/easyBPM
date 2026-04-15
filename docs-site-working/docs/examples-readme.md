@@ -17,15 +17,15 @@ This directory contains example BPMN process definitions that demonstrate variou
 **Example Execution**:
 ```bash
 # Deploy process
-curl -X POST http://localhost:8080/processes \
+curl -X POST http://localhost:8085/processes \
   -H "Content-Type: application/json" \
   -d @simple-message-example.json
 
 # Start instance (returns processDefinitionId from deploy response)
-curl -X POST http://localhost:8080/processes/{processDefinitionId}/start
+curl -X POST http://localhost:8085/processes/{processDefinitionId}/start
 
 # Send message to resume process
-curl -X POST http://localhost:8080/processes/messages \
+curl -X POST http://localhost:8085/processes/messages \
   -H "Content-Type: application/json" \
   -d '{
     "messageName": "MyMessage",

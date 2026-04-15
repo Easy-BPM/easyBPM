@@ -3,7 +3,7 @@ version: '3.8'
 services:
   postgres:
     image: postgres:15
-    container_name: meu_postgres
+    container_name: Easy_BPM_Postgres
     environment:
       POSTGRES_USER: meu_usuario
       POSTGRES_PASSWORD: minha_senha
@@ -16,7 +16,7 @@ services:
 
   rabbitmq:
     image: rabbitmq:3-management
-    container_name: bpm_rabbitmq
+    container_name: Easy_BPM_RabbitMQ
     ports:
       - "5672:5672"
       - "15672:15672"

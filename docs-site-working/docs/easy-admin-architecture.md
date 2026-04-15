@@ -55,7 +55,7 @@ App (root component)
 │           TypeScript Types (types.ts)       │
 │  (Interface contracts, runtime validation)  │
 ├─────────────────────────────────────────────┤
-│          Backend API (localhost:8080)       │
+│          Backend API (localhost:8085)       │
 │  (Spring Boot REST endpoints)               │
 └─────────────────────────────────────────────┘
 ```
@@ -299,7 +299,7 @@ const handleSubmit = async (e: React.FormEvent) => {
 ### Configuration
 
 ```typescript
-const API_BASE_URL = 'http://localhost:8080';
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? 'http://localhost:8085';
 const USE_MOCK = false; // Toggle mock/real API
 ```
 
