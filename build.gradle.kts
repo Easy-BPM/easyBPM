@@ -38,6 +38,10 @@ dependencies {
 	testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 	testImplementation("com.h2database:h2")
+	// Kotest and Mockk for unit testing
+	testImplementation("io.kotest:kotest-runner-junit5:5.8.1")
+	testImplementation("io.kotest:kotest-assertions-core:5.8.1")
+	testImplementation("io.mockk:mockk:1.13.8")
 	implementation("org.jboss.logging:jboss-logging:3.5.3.Final")
 }
 

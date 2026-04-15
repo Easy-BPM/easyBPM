@@ -26,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional
 @ActiveProfiles("test")
 @AutoConfigureTestDatabase(replace = Replace.NONE)
 @Transactional
+
 class ProcessIntegrationTest(
     @Autowired private val processService: ProcessService,
     @Autowired private val taskService: TaskService,
@@ -35,6 +36,28 @@ class ProcessIntegrationTest(
     @Autowired private val taskVariableRepository: TaskVariableRepository,
     @Autowired private val objectMapper: ObjectMapper
 ) {
+
+    @Test
+    fun `service task error should trigger error boundary event and route to after-error user task`() {
+        val processDefinitionJson = objectMapper.readTree(ClassPathResource("examples/error-boundary.json").inputStream)
+
+        val processDefinition = processService.deployProcess(processDefinitionJson)
+
+        // Set shouldFail to true to simulate error in service task
+        val processInstance = processService.startProcessInstance(processDefinition.id)
+
+        // Reload instance to get latest state after error boundary routing
+        val updatedInstance = processInstanceRepository.findById(processInstance.id).orElseThrow()
+
+        // Debug output
+        println("DEBUG: currentNode = ${updatedInstance.currentNode}")
+        println("DEBUG: nodeHistory = ${updatedInstance.nodeHistory}")
+
+        // The process should route to the error boundary's next node (after-error user task)
+        assertThat(updatedInstance.status).isEqualTo(ProcessStatus.ACTIVE)
+        assertThat(updatedInstance.currentNode).containsExactly("after-error")
+        assertThat(updatedInstance.nodeHistory).contains("after-error")
+    }
 
     @MockBean
     private lateinit var rabbitPublisher: RabbitPublisher

@@ -19,115 +19,113 @@ class GatewayService(
 
     fun getNextNodes(node: JsonNode, definition: JsonNode, instance: ProcessInstance): List<String> {
         val nodeType = NodeType.fromString(node.get("type").asText())
-
-        if (nodeType == NodeType.ParallelGateway) {
-            val nodeId = node.get("id").asText()
-            // Check if this parallel gateway is being used as a JOIN (convergence point)
-            val flows = definition.get("flows") ?: return node.get("next")?.map { it.asText() } ?: emptyList()
-            val incomingFlows = flows.filter { 
-                (it.get("target") ?: it.get("to"))?.asText() == nodeId 
-            }
-            
-            // If there are multiple incoming flows, this is a join gateway that needs to synchronize
-            if (incomingFlows.size > 1) {
-                val tokenVarName = "__pg_${nodeId}_arrivals"
-                val existing = processVariableRepository.findByProcessInstanceIdAndName(instance.id, tokenVarName)
-                val currentCount = existing?.value?.asInt() ?: 0
-                val newCount = currentCount + 1
-
-                if (existing != null) {
-                    existing.value = objectMapper.valueToTree(newCount)
-                    processVariableRepository.save(existing)
-                } else {
-                    processVariableRepository.save(ProcessVariable(processInstanceId = instance.id, name = tokenVarName, value = objectMapper.valueToTree(newCount)))
-                }
-
-                // Don't proceed until all paths have arrived
-                if (newCount < incomingFlows.size) {
-                    return emptyList()  // Wait for other paths
-                } else {
-                    // All paths arrived, reset and proceed
-                    val reset = processVariableRepository.findByProcessInstanceIdAndName(instance.id, tokenVarName)
-                    if (reset != null) {
-                        reset.value = objectMapper.valueToTree(0)
-                        processVariableRepository.save(reset)
-                    }
-                }
-            }
-            
-            return node.get("next")?.map { it.asText() } ?: emptyList()
-        }
-
-        if (nodeType != NodeType.ExclusiveGateway) {
-            return node.get("next")?.map { it.asText() } ?: emptyList()
-        }
-
-        val flows = definition.get("flows") ?: return node.get("next")?.map { it.asText() } ?: emptyList()
-
         val nodeId = node.get("id").asText()
-        val outgoing = flows.filter {
-            val s = it.get("source") ?: it.get("from")
-            s?.asText() == nodeId
-        }
+        val flows = definition.get("flows")
 
-        for (flow in outgoing) {
-            val target = flow.get("target")?.asText() ?: flow.get("to")?.asText() ?: continue
-            val conditionNode = flow.get("condition") ?: flow.get("expression")
-
-            val passes = if (conditionNode == null || conditionNode.isNull) {
-                true
-            } else {
-                val conditionText = conditionNode.asText()
-                try {
-                    evaluateCondition(conditionText, instance)
-                } catch (ex: Exception) {
-                    throw IllegalArgumentException("Failed to evaluate condition '$conditionText' for flow to '$target': ${ex.message}")
-                }
+        // Always use flows array for outgoing connections if present
+        if (flows != null && flows.isArray) {
+            val outgoing = flows.filter {
+                val s = it.get("source") ?: it.get("from")
+                s?.asText() == nodeId
             }
 
-            if (!passes) continue
+            // For gateways, handle conditions and parallel join logic as before
+            if (nodeType == NodeType.ExclusiveGateway) {
+                for (flow in outgoing) {
+                    val target = flow.get("target")?.asText() ?: flow.get("to")?.asText() ?: continue
+                    val conditionNode = flow.get("condition") ?: flow.get("expression")
 
-            val targetNode = definition.get("nodes").find { it.get("id").asText() == target }
-            if (targetNode != null && NodeType.fromString(targetNode.get("type").asText()) == NodeType.ParallelGateway) {
-                val incoming = definition.get("flows").filter { (it.get("target") ?: it.get("to"))?.asText() == target }.map { (it.get("source") ?: it.get("from"))?.asText() }
-                    .filterNotNull()
-                if (incoming.size <= 1) {
-                    return listOf(target)
-                }
-
-                val tokenVarName = "__pg_${target}_arrivals"
-                val existing = processVariableRepository.findByProcessInstanceIdAndName(instance.id, tokenVarName)
-                val currentCount = existing?.value?.asInt() ?: 0
-                val newCount = currentCount + 1
-
-                if (existing != null) {
-                    existing.value = objectMapper.valueToTree(newCount)
-                    processVariableRepository.save(existing)
-                } else {
-                    processVariableRepository.save(ProcessVariable(processInstanceId = instance.id, name = tokenVarName, value = objectMapper.valueToTree(newCount)))
-                }
-
-                if (newCount >= incoming.size) {
-                    val reset = processVariableRepository.findByProcessInstanceIdAndName(instance.id, tokenVarName)
-                    if (reset != null) {
-                        reset.value = objectMapper.valueToTree(0)
-                        processVariableRepository.save(reset)
+                    val passes = if (conditionNode == null || conditionNode.isNull) {
+                        true
+                    } else {
+                        val conditionText = conditionNode.asText()
+                        try {
+                            evaluateCondition(conditionText, instance)
+                        } catch (ex: Exception) {
+                            throw IllegalArgumentException("Failed to evaluate condition '$conditionText' for flow to '$target': ${ex.message}")
+                        }
                     }
+
+                    if (!passes) continue
+
+                    val targetNode = definition.get("nodes").find { it.get("id").asText() == target }
+                    if (targetNode != null && NodeType.fromString(targetNode.get("type").asText()) == NodeType.ParallelGateway) {
+                        val incoming = definition.get("flows").filter { (it.get("target") ?: it.get("to"))?.asText() == target }.map { (it.get("source") ?: it.get("from"))?.asText() }
+                            .filterNotNull()
+                        if (incoming.size <= 1) {
+                            return listOf(target)
+                        }
+
+                        val tokenVarName = "__pg_${target}_arrivals"
+                        val existing = processVariableRepository.findByProcessInstanceIdAndName(instance.id, tokenVarName)
+                        val currentCount = existing?.value?.asInt() ?: 0
+                        val newCount = currentCount + 1
+
+                        if (existing != null) {
+                            existing.value = objectMapper.valueToTree(newCount)
+                            processVariableRepository.save(existing)
+                        } else {
+                            processVariableRepository.save(ProcessVariable(processInstanceId = instance.id, name = tokenVarName, value = objectMapper.valueToTree(newCount)))
+                        }
+
+                        if (newCount >= incoming.size) {
+                            val reset = processVariableRepository.findByProcessInstanceIdAndName(instance.id, tokenVarName)
+                            if (reset != null) {
+                                reset.value = objectMapper.valueToTree(0)
+                                processVariableRepository.save(reset)
+                            }
+                            return listOf(target)
+                        } else {
+                            continue
+                        }
+                    }
+
                     return listOf(target)
-                } else {
-                    continue
                 }
+
+                val elseFlow = outgoing.find { (it.get("condition") ?: it.get("expression")) == null || (it.get("condition") ?: it.get("expression"))?.isNull == true }
+                if (elseFlow != null) {
+                    val t = elseFlow.get("target")?.asText() ?: elseFlow.get("to")?.asText()
+                    if (!t.isNullOrBlank()) return listOf(t)
+                }
+
+                return emptyList()
+            } else if (nodeType == NodeType.ParallelGateway) {
+                // Parallel gateway join logic as before
+                val incomingFlows = flows.filter { 
+                    (it.get("target") ?: it.get("to"))?.asText() == nodeId 
+                }
+                if (incomingFlows.size > 1) {
+                    val tokenVarName = "__pg_${nodeId}_arrivals"
+                    val existing = processVariableRepository.findByProcessInstanceIdAndName(instance.id, tokenVarName)
+                    val currentCount = existing?.value?.asInt() ?: 0
+                    val newCount = currentCount + 1
+
+                    if (existing != null) {
+                        existing.value = objectMapper.valueToTree(newCount)
+                        processVariableRepository.save(existing)
+                    } else {
+                        processVariableRepository.save(ProcessVariable(processInstanceId = instance.id, name = tokenVarName, value = objectMapper.valueToTree(newCount)))
+                    }
+
+                    if (newCount < incomingFlows.size) {
+                        return emptyList()  // Wait for other paths
+                    } else {
+                        val reset = processVariableRepository.findByProcessInstanceIdAndName(instance.id, tokenVarName)
+                        if (reset != null) {
+                            reset.value = objectMapper.valueToTree(0)
+                            processVariableRepository.save(reset)
+                        }
+                    }
+                }
+                return outgoing.mapNotNull { it.get("target")?.asText() ?: it.get("to")?.asText() }
+            } else {
+                // For all other node types, just return outgoing targets
+                return outgoing.mapNotNull { it.get("target")?.asText() ?: it.get("to")?.asText() }
             }
-
-            return listOf(target)
         }
 
-        val elseFlow = outgoing.find { (it.get("condition") ?: it.get("expression")) == null || (it.get("condition") ?: it.get("expression"))?.isNull == true }
-        if (elseFlow != null) {
-            val t = elseFlow.get("target")?.asText() ?: elseFlow.get("to")?.asText()
-            if (!t.isNullOrBlank()) return listOf(t)
-        }
-
+        // Fallback to legacy 'next' property if no flows array
         return node.get("next")?.map { it.asText() } ?: emptyList()
     }
 

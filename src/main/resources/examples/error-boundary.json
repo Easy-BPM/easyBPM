@@ -1,0 +1,19 @@
+{
+  "processId": "error-boundary-test",
+  "variables": [
+    { "name": "shouldFail", "initialValue": true }
+  ],
+  "nodes": [
+    { "id": "start", "type": "StartEvent", "name": "Start" },
+    { "id": "service-task", "type": "ServiceTask", "name": "Service Task", "config": { "shouldFail": "${shouldFail}" } },
+    { "id": "error-boundary", "type": "ErrorBoundaryEvent", "name": "Error Boundary", "attachedTo": "service-task" },
+    { "id": "after-error", "type": "UserTask", "name": "After Error" },
+    { "id": "end", "type": "EndEvent", "name": "End" }
+  ],
+  "flows": [
+    { "from": "start", "to": "service-task" },
+    { "from": "service-task", "to": "end" },
+    { "from": "error-boundary", "to": "after-error" },
+    { "from": "after-error", "to": "end" }
+  ]
+}

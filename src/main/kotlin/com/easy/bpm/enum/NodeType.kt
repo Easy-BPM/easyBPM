@@ -15,6 +15,7 @@ enum class NodeType(val typeName: String) {
     MessageEvent("MessageEvent"),
     MessageIntermediateCatchEvent("MessageIntermediateCatchEvent"),
     MessageIntermediateThrowEvent("MessageIntermediateThrowEvent"),
+    ErrorBoundaryEvent("ErrorBoundaryEvent"),
     CallActivity("CallActivity");
 
     companion object {

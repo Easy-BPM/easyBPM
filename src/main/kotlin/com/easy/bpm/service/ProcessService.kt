@@ -118,38 +118,76 @@ class ProcessService(
         instance: ProcessInstance,
         definition: JsonNode
     ) {
-        nodeIds.forEach { nodeId ->
+        for (nodeId in nodeIds) {
             val node = findNode(definition, nodeId)
-            executeNode(instance, node, definition)
+            val handled = executeNode(instance, node, definition)
+            if (handled) {
+                // Error boundary was triggered and handled, stop further execution
+                return
+            }
         }
     }
 
+    /**
+     * Returns true if error boundary was triggered and handled, false otherwise.
+     */
     private fun executeNode(
         instance: ProcessInstance,
         node: JsonNode,
         definition: JsonNode
-    ) {
+    ): Boolean {
         val startTime = System.currentTimeMillis()
         val nodeType = NodeType.fromString(node.get("type").asText())
-        
-        when (nodeType) {
-            NodeType.UserTask -> handleUserTask(instance, node)
-            NodeType.APITask -> handleAPITask(instance, node)
-            NodeType.ServiceTask -> handleServiceTaskNode(instance, node, definition)
-            NodeType.MessageEvent -> handleMessageEvent(instance, node)
-            NodeType.MessageIntermediateCatchEvent -> handleMessageIntermediateCatchEvent(instance, node)
-            NodeType.MessageIntermediateThrowEvent -> handleMessageIntermediateThrowEvent(instance, node, definition)
-            NodeType.EndEvent -> finishProcess(instance)
-            NodeType.ExclusiveGateway, NodeType.ParallelGateway, NodeType.InclusiveGateway -> {
-                val nextNodes = getNextNodes(node, definition, instance)
-                advanceProcess(instance, nextNodes, definition)
-                executeNodes(nextNodes, instance, definition)
+
+        try {
+            when (nodeType) {
+                NodeType.UserTask -> handleUserTask(instance, node)
+                NodeType.APITask -> handleAPITask(instance, node)
+                NodeType.ServiceTask -> handleServiceTaskNode(instance, node, definition)
+                NodeType.MessageEvent -> handleMessageEvent(instance, node)
+                NodeType.MessageIntermediateCatchEvent -> handleMessageIntermediateCatchEvent(instance, node)
+                NodeType.MessageIntermediateThrowEvent -> handleMessageIntermediateThrowEvent(instance, node, definition)
+                NodeType.EndEvent -> finishProcess(instance)
+                NodeType.ExclusiveGateway, NodeType.ParallelGateway, NodeType.InclusiveGateway -> {
+                    val nextNodes = getNextNodes(node, definition, instance)
+                    advanceProcess(instance, nextNodes, definition)
+                    executeNodes(nextNodes, instance, definition)
+                }
+                else -> { /* no-op for other node types */ }
             }
-            else -> { /* no-op for other node types */ }
+        } catch (ex: Exception) {
+            // Check for attached error boundary event
+            val errorBoundaryNode = findAttachedErrorBoundary(node, definition)
+            if (errorBoundaryNode != null) {
+                // Route to error boundary's next node(s) (do NOT execute the ErrorBoundaryEvent node itself)
+                val nextNodes = getNextNodes(errorBoundaryNode, definition, instance)
+                advanceProcess(instance, nextNodes, definition)
+                println("DEBUG: error boundary nextNodes = $nextNodes")
+                println("DEBUG: currentNode after advanceProcess = ${instance.currentNode}")
+                executeNodes(nextNodes, instance, definition)
+                val duration = System.currentTimeMillis() - startTime
+                metricsService.recordNodeExecution(duration, nodeType.toString())
+                return true // Signal to stop further execution
+            } else {
+                throw ex
+            }
         }
-        
+
         val duration = System.currentTimeMillis() - startTime
         metricsService.recordNodeExecution(duration, nodeType.toString())
+        return false
+    }
+
+    /**
+     * Find an ErrorBoundaryEvent node attached to the given node, if any.
+     */
+    private fun findAttachedErrorBoundary(node: JsonNode, definition: JsonNode): JsonNode? {
+        val nodeId = node.get("id").asText()
+        val nodes = definition.get("nodes")
+        return nodes.firstOrNull {
+            NodeType.fromString(it.get("type").asText()) == NodeType.ErrorBoundaryEvent &&
+            it.has("attachedTo") && it.get("attachedTo").asText() == nodeId
+        }
     }
 
     private fun handleUserTask(
@@ -205,7 +243,36 @@ class ProcessService(
         node: JsonNode,
         definition: JsonNode
     ) {
-        val config = node.get("config")
+        var config = node.get("config")
+
+        // Variable substitution for config fields
+        if (config != null && config.isObject) {
+            val configObj = (config.deepCopy() as com.fasterxml.jackson.databind.node.ObjectNode)
+            configObj.fieldNames().forEachRemaining { field ->
+                val valueNode = configObj.get(field)
+                if (valueNode.isTextual && valueNode.asText().startsWith("\${") && valueNode.asText().endsWith("}")) {
+                    val varName = valueNode.asText().removePrefix("\${").removeSuffix("}")
+                    val variable = processVariableRepository.findByProcessInstanceIdAndName(instance.id, varName)
+                    if (variable != null) {
+                        configObj.replace(field, variable.value)
+                    }
+                }
+            }
+            config = configObj
+        }
+
+        // Simulate failure for error boundary test
+        if (config != null && config.has("shouldFail")) {
+            val shouldFailNode = config.get("shouldFail")
+            val shouldFail = when {
+                shouldFailNode.isBoolean -> shouldFailNode.asBoolean(false)
+                shouldFailNode.isTextual -> shouldFailNode.asText().equals("true", ignoreCase = true)
+                else -> false
+            }
+            if (shouldFail) {
+                throw RuntimeException("Simulated service task failure for error boundary test")
+            }
+        }
 
         // If service task declares "variables", treat as internal (auto-execute)
         if (config != null && config.has("variables")) {
