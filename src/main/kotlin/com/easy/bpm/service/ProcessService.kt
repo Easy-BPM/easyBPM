@@ -41,6 +41,10 @@ class ProcessService(
     private val workerRequestRepository: WorkerRequestRepository
 ) {
 
+    companion object {
+        const val INTERNAL_TIMER_MESSAGE_NAME = "__internal.timer__"
+    }
+
     private val processDefinitionSortableFields = setOf("id", "key", "name", "description", "version")
     private val processInstanceSortableFields = setOf("id", "status", "createdAt", "updatedAt")
 
@@ -291,6 +295,7 @@ class ProcessService(
                 NodeType.UserTask -> handleUserTask(instance, node)
                 NodeType.APITask -> handleAPITask(instance, node)
                 NodeType.ServiceTask -> handleServiceTaskNode(instance, node, definition)
+                NodeType.TimerEvent -> handleTimerEvent(instance, node)
                 NodeType.MessageEvent -> handleMessageEvent(instance, node)
                 NodeType.MessageIntermediateCatchEvent -> handleMessageIntermediateCatchEvent(instance, node)
                 NodeType.MessageIntermediateThrowEvent -> handleMessageIntermediateThrowEvent(instance, node, definition)
@@ -383,7 +388,8 @@ class ProcessService(
         node: JsonNode
     ) {
         val config = node.get("properties")
-            ?: throw IllegalArgumentException("APITask ${node.get("id").asText()} missing properties")
+            ?: node.get("service")
+            ?: throw IllegalArgumentException("APITask ${node.get("id").asText()} missing properties/service")
 
         // Publish a service task request to RabbitMQ; worker will send a completion event.
         rabbitPublisher.publishServiceTaskRequest(instance.id, node.get("id").asText(), config)
@@ -529,6 +535,34 @@ class ProcessService(
         }
 
         // Persist instance updated timestamp; instance remains on this node until message arrival
+        instance.updatedAt = LocalDateTime.now()
+        processInstanceRepository.save(instance)
+    }
+
+    private fun handleTimerEvent(
+        instance: ProcessInstance,
+        node: JsonNode
+    ) {
+        val nodeId = node.get("id").asText()
+        val properties = node.get("properties")
+            ?: throw IllegalArgumentException("TimerEvent $nodeId missing properties")
+
+        val timeoutSeconds = properties.get("timeoutSeconds")?.asLong()
+            ?: throw IllegalArgumentException("TimerEvent $nodeId missing timeoutSeconds")
+
+        require(timeoutSeconds > 0) { "TimerEvent $nodeId timeoutSeconds must be > 0" }
+
+        val timeoutAt = LocalDateTime.now().plusSeconds(timeoutSeconds)
+
+        messageSubscriptionService.subscribeToMessage(
+            processInstanceId = instance.id,
+            nodeId = nodeId,
+            messageName = INTERNAL_TIMER_MESSAGE_NAME,
+            correlationKey = "timer-${instance.id}-$nodeId",
+            timeoutAt = timeoutAt
+        )
+
+        // Instance remains on this node until timer timeout is processed by scheduler
         instance.updatedAt = LocalDateTime.now()
         processInstanceRepository.save(instance)
     }
@@ -732,6 +766,46 @@ class ProcessService(
         executeNodes(nextNodes, instance, definition)
     }
 
+    /**
+     * Handle a message subscription timeout by routing to an attached ErrorBoundaryEvent
+     * if present. Returns true if the timeout was handled by a boundary, false otherwise.
+     */
+    @Transactional
+    fun handleSubscriptionTimeout(processInstanceId: Long, nodeId: String): Boolean {
+        val instance = processInstanceRepository.findById(processInstanceId).orElse(null) ?: return false
+        val definition = parseDefinition(instance.processDefinition.definitionJson)
+        val node = findNode(definition, nodeId)
+
+        val errorBoundaryNode = findAttachedErrorBoundary(node, definition)
+        if (errorBoundaryNode != null) {
+            val nextNodes = getNextNodes(errorBoundaryNode, definition, instance)
+            advanceProcess(instance, nextNodes, definition)
+            executeNodes(nextNodes, instance, definition)
+            return true
+        }
+
+        return false
+    }
+
+    /**
+     * Continue process execution after a TimerEvent timeout is reached.
+     */
+    @Transactional
+    fun handleTimerTimeout(processInstanceId: Long, nodeId: String): Boolean {
+        val instance = processInstanceRepository.findById(processInstanceId).orElse(null) ?: return false
+        val definition = parseDefinition(instance.processDefinition.definitionJson)
+        val node = findNode(definition, nodeId)
+
+        if (NodeType.fromString(node.get("type").asText()) != NodeType.TimerEvent) {
+            return false
+        }
+
+        val nextNodes = getNextNodes(node, definition, instance)
+        advanceProcess(instance, nextNodes, definition)
+        executeNodes(nextNodes, instance, definition)
+        return true
+    }
+
     private fun finishProcess(instance: ProcessInstance) {
         instance.status = ProcessStatus.COMPLETED
         instance.currentNode = emptyList()
@@ -764,6 +838,7 @@ class ProcessService(
                 NodeType.MessageEvent,
                 NodeType.MessageIntermediateCatchEvent,
                 NodeType.MessageIntermediateThrowEvent,
+                NodeType.TimerEvent,
                 NodeType.ScriptTask,
                 NodeType.EndEvent -> appendable.add(id)
                 else -> { /* ignore other node types */ }
@@ -1030,8 +1105,49 @@ class ProcessService(
 
             // Validate ServiceTask properties
             if (nodeType == NodeType.APITask) {
-                node.get("properties")
-                    ?: throw IllegalArgumentException("ServiceTask $id missing 'properties'")
+                val properties = node.get("properties") ?: node.get("service")
+                    ?: throw IllegalArgumentException("APITask $id missing 'properties' or legacy 'service'")
+
+                if (node.get("properties") == null && node.get("service") != null && node is com.fasterxml.jackson.databind.node.ObjectNode) {
+                    node.set<JsonNode>("properties", node.get("service"))
+                }
+
+                val url = properties.get("url")?.asText()?.trim()
+                    ?: throw IllegalArgumentException("APITask $id missing 'url' in properties")
+                if (url.isEmpty()) {
+                    throw IllegalArgumentException("APITask $id has empty 'url' in properties")
+                }
+
+                val auth = properties.get("auth")
+                if (auth != null && !auth.isNull) {
+                    if (!auth.isObject) {
+                        throw IllegalArgumentException("APITask $id has invalid 'auth' format")
+                    }
+
+                    val authType = auth.get("type")?.asText()?.trim()?.lowercase()
+                        ?: throw IllegalArgumentException("APITask $id auth missing 'type'")
+                    if (authType !in setOf("bearer", "basic", "apikey")) {
+                        throw IllegalArgumentException("APITask $id auth.type '$authType' is unsupported")
+                    }
+
+                    val authRef = auth.get("ref")?.asText()?.trim()
+                        ?: throw IllegalArgumentException("APITask $id auth missing 'ref'")
+                    if (authRef.isEmpty()) {
+                        throw IllegalArgumentException("APITask $id auth.ref cannot be blank")
+                    }
+
+                    if (authType == "apikey") {
+                        val target = auth.get("in")?.asText()?.trim()?.lowercase() ?: "header"
+                        if (target !in setOf("header", "query")) {
+                            throw IllegalArgumentException("APITask $id auth.in must be 'header' or 'query'")
+                        }
+
+                        val keyName = auth.get("key")?.asText()?.trim() ?: "X-API-Key"
+                        if (keyName.isEmpty()) {
+                            throw IllegalArgumentException("APITask $id auth.key cannot be blank")
+                        }
+                    }
+                }
             }
 
             if (!nodeIds.add(id)) {

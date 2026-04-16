@@ -92,6 +92,102 @@ This behavior is implemented in:
 - `2xx`: success toast (`Process deployed successfully.`)
 - non-`2xx`: throws with status and response body
 
+## API Task Authentication (Reference-Based)
+
+### Design Goal
+
+API Task credentials are not stored in process JSON as raw secrets.
+
+- Modeler remains design-time only
+- Process definition carries only an auth reference (`auth.ref`)
+- Worker resolves real secrets at runtime from environment variables
+
+This keeps the modeler independent from database-managed secret stores.
+
+### APITask Payload Contract
+
+For `type: APITask`, modeler exports `properties` with optional `auth`:
+
+```json
+{
+  "id": "call_partner_api",
+  "type": "APITask",
+  "name": "Call Partner API",
+  "properties": {
+    "url": "https://api.partner.com/orders",
+    "method": "POST",
+    "body": {
+      "orderId": "${orderId}"
+    },
+    "auth": {
+      "type": "bearer",
+      "ref": "PARTNER_API_TOKEN"
+    }
+  }
+}
+```
+
+Supported `auth.type` values:
+
+- `bearer`
+- `basic`
+- `apikey`
+
+APITask without auth should omit the `auth` object.
+
+### API Key Options
+
+When `auth.type = apikey`, two optional fields are supported:
+
+- `in`: `header` (default) or `query`
+- `key`: header/query parameter name (default: `X-API-Key`)
+
+Example:
+
+```json
+{
+  "auth": {
+    "type": "apikey",
+    "ref": "PARTNER_API_KEY",
+    "in": "header",
+    "key": "X-Partner-Key"
+  }
+}
+```
+
+### Runtime Resolution in Worker
+
+Worker resolves secrets from environment variables using this convention:
+
+- `bearer`: reads env var named exactly as `auth.ref`
+- `basic`: reads `${auth.ref}_USERNAME` and `${auth.ref}_PASSWORD`
+- `apikey`: reads env var named exactly as `auth.ref`
+
+If a required env var is missing, the worker fails the call and applies retry/DLQ policies.
+
+### Environment Examples
+
+```bash
+# Bearer
+PARTNER_API_TOKEN=eyJhbGciOi...
+
+# Basic
+ERP_CREDENTIALS_USERNAME=integration-user
+ERP_CREDENTIALS_PASSWORD=super-secret-password
+
+# API Key
+PARTNER_API_KEY=pk_live_xxxxx
+```
+
+### Compatibility Note
+
+Backend currently accepts both:
+
+- `node.properties` (current format)
+- `node.service` (legacy format)
+
+For new definitions, always prefer `properties`.
+
 ## Form Deployment
 
 ### Endpoint

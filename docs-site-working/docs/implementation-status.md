@@ -1,6 +1,94 @@
 # BPM Engine - Implementation Status
 
-Complete status of the Easy BPM Engine implementation including Phase 1 (Data Integrity), Phase 2 (Worker Architecture), and Phase 3 (Observability).
+Complete status of the Easy BPM Engine implementation across all four phases.
+
+---
+
+## Phase 5: APITask Auth References (Modeler Independent) ✅ COMPLETE
+
+### Goal
+
+Enable authenticated API task calls without storing raw secrets in process definitions and without coupling modeler to database-managed credential profiles.
+
+### Delivered
+
+- Modeler APITask supports auth configuration with:
+  - `auth.type`: `bearer`, `basic`, `apikey`
+  - `auth.ref`: runtime credential reference
+  - API key extras: `auth.in` (`header` or `query`) and `auth.key`
+- Process deploy validation now enforces APITask auth contract (`url`, `auth.type`, `auth.ref`, API key rules).
+- Worker resolves credentials from environment variables at runtime:
+  - bearer -> `${ref}`
+  - basic -> `${ref}_USERNAME` + `${ref}_PASSWORD`
+  - apikey -> `${ref}`
+- Legacy payload compatibility kept for APITask (`service`) while standardizing on `properties`.
+
+### Security Impact
+
+- Secrets are no longer embedded in modeled process JSON.
+- Process definition remains portable across environments.
+- Credential values stay in runtime configuration (environment variables).
+
+### Validation Status
+
+- Backend tests: `./gradlew test` -> BUILD SUCCESSFUL
+- Modeler build: `npm run build` -> SUCCESS
+- Docs build: `cd docs-site-working && npm run build` -> SUCCESS
+
+---
+
+## Phase 4: UI Ecosystem + Variable Synchronisation ✅ COMPLETE
+
+### Form Key Support
+
+**Feature**: Every form now carries a stable `form_key` identifier that decouples form references from internal DB IDs.
+
+**Backend changes**:
+- `V16__add_form_key.sql` — adds `form_key VARCHAR(255)` column to `form` table with a `UNIQUE(form_key, version)` index.
+- `FormService` and `FormController` updated to accept and return `form_key`.
+- `TaskResponseDto` includes `formKey` so task consumers know which form to load.
+
+**Modeler changes**:
+- Form Modeler exposes a **Form Key (ID)** input field.
+- User Task node's Properties Panel exposes an **Attached Form** field that stores the key.
+- Both the form definition and the process XML carry the key on deploy.
+
+### Easy BPM Task Portal ✅ NEW
+
+A brand-new React 19 + Vite SPA that gives human task performers a task inbox.
+
+**Folder**: `easy-bpm-task-portal/`
+
+**Capabilities**:
+- Lists pending user tasks from `GET /tasks`.
+- Loads form schema from `GET /forms/{formKey}` when a task has an attached form.
+- Renders all form field types dynamically (text, number, boolean, select, radio, date, textarea).
+- Falls back to an editable variable-editor table when no form is attached.
+- Allows performers to add typed variables (`string`, `number`, `boolean`, `json`) in the no-form path.
+- Completes tasks via `POST /tasks/{id}/complete` with full variable payload.
+
+**Variable Synchronisation guarantee**:
+- `TaskService.syncTaskVariablesToProcess()` is called at every task completion.
+- All submitted values are upserted into `process_variable` for the current instance.
+- Explicit output mappings in the process definition are applied as a second pass (for remapping / override).
+- Result: every form/variable submission becomes globally available to subsequent tasks and gateway conditions — no extra output-mapping configuration required.
+
+**TypeScript validation**: `tsc --noEmit` passes with 0 errors.
+**Build**: `vite build` succeeds, 1 694 modules transformed.
+
+**Files created/modified**:
+- `easy-bpm-task-portal/App.tsx`
+- `easy-bpm-task-portal/services/bpmService.ts`
+- `easy-bpm-task-portal/components/Sidebar.tsx`
+- `easy-bpm-task-portal/components/DynamicForm.tsx`
+- `easy-bpm-task-portal/types.ts`
+- `easy-bpm-task-portal/tsconfig.json`
+- `src/main/kotlin/com/easy/bpm/service/TaskService.kt` — added `syncTaskVariablesToProcess()`
+- `src/main/kotlin/com/easy/bpm/controller/TaskController.kt` — removed forced string serialisation of variable values
+- `src/main/kotlin/com/easy/bpm/controller/data/TaskResponseDto.kt` — added `formKey` field
+
+### Test Status
+✅ **All backend tests passing** (Gradle `test` task, BUILD SUCCESSFUL)
 
 ---
 

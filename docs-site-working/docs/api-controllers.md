@@ -76,6 +76,40 @@ Content-Type: application/json
 }
 ```
 
+### APITask Authentication in Process JSON
+
+When deploying process definitions containing `APITask` nodes, the backend validates API auth in this shape:
+
+```json
+{
+  "type": "APITask",
+  "properties": {
+    "url": "https://api.partner.com/resource",
+    "method": "GET",
+    "auth": {
+      "type": "bearer",
+      "ref": "PARTNER_API_TOKEN"
+    }
+  }
+}
+```
+
+**Rules**:
+
+- `properties.url` is required and cannot be empty
+- `auth.type` supports: `bearer`, `basic`, `apikey`
+- `auth.ref` is required when `auth` is provided
+- For `apikey`: `auth.in` must be `header` or `query`
+- For `apikey`: `auth.key` cannot be empty (defaults to `X-API-Key` when omitted)
+
+**Runtime secret resolution (worker)**:
+
+- `bearer`: env `${ref}`
+- `basic`: env `${ref}_USERNAME` and `${ref}_PASSWORD`
+- `apikey`: env `${ref}`
+
+If required env vars are missing, worker execution fails and retry/DLQ behavior applies.
+
 ### Start Process Instance
 
 Create and start a new instance of a process definition.

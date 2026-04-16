@@ -9,6 +9,10 @@ Complete architecture guide for the Easy BPM Engine.
 
 ## System Architecture
 
+![Platform overview](/img/architecture/platform-overview.svg)
+
+![Deployment context](/img/architecture/deployment-context.svg)
+
 ```
 ┌──────────────────────────────────────────────────┐
 │   REST API Layer (Port 8080)                     │

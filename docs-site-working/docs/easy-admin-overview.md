@@ -4,6 +4,8 @@ sidebar_position: 6
 
 # Easy BPM Admin: Overview
 
+![Easy BPM Admin home](/img/screenshots/admin-home.png)
+
 ## What is Easy BPM Admin?
 
 Easy BPM Admin is a React-based web application designed to manage and monitor active process instances in the Easy BPM orchestrator. It provides a user-friendly interface for administrators and process operators to:

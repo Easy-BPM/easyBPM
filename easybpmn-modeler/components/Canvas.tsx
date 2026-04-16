@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { BpmnNode, BpmnEdge, NodeType, Position } from '../types';
 import { getEdgePath, generateId, snapToGrid } from '../utils/geometry';
-import { User, Settings, GitFork, Plus, Mail, Zap } from 'lucide-react';
+import { User, Settings, GitFork, Plus, Mail, Zap, Clock3 } from 'lucide-react';
 
 interface CanvasProps {
   nodes: BpmnNode[];
@@ -142,7 +142,7 @@ export const Canvas: React.FC<CanvasProps> = ({
   const handleMouseUp = (e: React.MouseEvent) => {
     if (isDraggingNodes) {
         const updatedNodes = nodes.map(node => {
-            if ((node.type === 'error-boundary' || node.type === 'message-boundary') && initialNodePositions.has(node.uid)) {
+            if ((node.type === 'error-boundary' || node.type === 'message-boundary' || node.type === 'timer-boundary') && initialNodePositions.has(node.uid)) {
                 // Try to snap to a task
                 const parent = nodes.find(n => 
                     (n.type === 'user-task' || n.type === 'service-task' || n.type === 'api-task') &&
@@ -275,15 +275,16 @@ export const Canvas: React.FC<CanvasProps> = ({
 
         {nodes.map((node) => {
           const isTask = node.type === 'user-task' || node.type === 'service-task' || node.type === 'api-task';
+          const isBoxMessageCatch = node.type === 'message-intermediate-catch';
           const isMessageEvent = ['message-start', 'message-intermediate-catch', 'message-intermediate-throw'].includes(node.type);
           const isSelected = selectedNodeUids.includes(node.uid);
           const hasError = invalidNodeUids.includes(node.uid);
           const hasWarning = warningNodeUids.includes(node.uid);
           return (
           <g key={node.uid} transform={`translate(${node.position.x + node.width / 2}, ${node.position.y + node.height / 2})`} onMouseDown={(e) => handleMouseDownNode(e, node)} onMouseUp={(e) => handleNodeMouseUp(e, node)} onMouseEnter={() => setHoveredNodeUid(node.uid)} onMouseLeave={() => setHoveredNodeUid(null)} className="cursor-move group">
-            {isSelected && <rect x={-node.width/2-4} y={-node.height/2-4} width={node.width+8} height={node.height+8} rx={isTask ? 8 : (['gateway', 'parallel-gateway'].includes(node.type) ? 4 : '50%')} fill="none" stroke="#3b82f6" strokeWidth="1.5" strokeDasharray="4 2" />}
-            {!isSelected && hasError && <rect x={-node.width/2-6} y={-node.height/2-6} width={node.width+12} height={node.height+12} rx={isTask ? 10 : (['gateway', 'parallel-gateway'].includes(node.type) ? 6 : '50%')} fill="none" stroke="#dc2626" strokeWidth="2" strokeDasharray="5 3" />}
-            {!isSelected && !hasError && hasWarning && <rect x={-node.width/2-6} y={-node.height/2-6} width={node.width+12} height={node.height+12} rx={isTask ? 10 : (['gateway', 'parallel-gateway'].includes(node.type) ? 6 : '50%')} fill="none" stroke="#d97706" strokeWidth="2" strokeDasharray="5 3" />}
+            {isSelected && <rect x={-node.width/2-4} y={-node.height/2-4} width={node.width+8} height={node.height+8} rx={(isTask || isBoxMessageCatch) ? 8 : (['gateway', 'parallel-gateway'].includes(node.type) ? 4 : '50%')} fill="none" stroke="#3b82f6" strokeWidth="1.5" strokeDasharray="4 2" />}
+            {!isSelected && hasError && <rect x={-node.width/2-6} y={-node.height/2-6} width={node.width+12} height={node.height+12} rx={(isTask || isBoxMessageCatch) ? 10 : (['gateway', 'parallel-gateway'].includes(node.type) ? 6 : '50%')} fill="none" stroke="#dc2626" strokeWidth="2" strokeDasharray="5 3" />}
+            {!isSelected && !hasError && hasWarning && <rect x={-node.width/2-6} y={-node.height/2-6} width={node.width+12} height={node.height+12} rx={(isTask || isBoxMessageCatch) ? 10 : (['gateway', 'parallel-gateway'].includes(node.type) ? 6 : '50%')} fill="none" stroke="#d97706" strokeWidth="2" strokeDasharray="5 3" />}
             {node.type === 'start' && <circle r="20" filter="url(#shadow)" className="fill-white stroke-green-500 stroke-[2px]" />}
             {node.type === 'message-start' && (
               <g>
@@ -291,11 +292,18 @@ export const Canvas: React.FC<CanvasProps> = ({
                 <Mail x="-8" y="-8" className="w-4 h-4 text-green-600 pointer-events-none opacity-80" />
               </g>
             )}
+            {node.type === 'timer-event' && (
+              <g>
+                <circle r="20" filter="url(#shadow)" className="fill-white stroke-amber-600 stroke-[1px]" />
+                <circle r="17" className="fill-none stroke-amber-600 stroke-[1px]" />
+                <Clock3 x="-8" y="-8" className="w-4 h-4 text-amber-600 pointer-events-none opacity-80" />
+              </g>
+            )}
             {node.type === 'message-intermediate-catch' && (
               <g>
-                <circle r="20" filter="url(#shadow)" className="fill-white stroke-blue-500 stroke-[1px]" />
-                <circle r="17" className="fill-none stroke-blue-500 stroke-[1px]" />
-                <Mail x="-8" y="-8" className="w-4 h-4 text-blue-500 pointer-events-none opacity-80" />
+                <rect x={-node.width/2} y={-node.height/2} width={node.width} height={node.height} rx="6" filter="url(#shadow)" className="fill-white stroke-blue-500 stroke-[2px]" />
+                <rect x={-node.width/2+4} y={-node.height/2+4} width={node.width-8} height={node.height-8} rx="4" className="fill-none stroke-blue-500 stroke-[1px]" />
+                <Mail x={-node.width/2+8} y={-node.height/2+8} className="w-4 h-4 text-blue-500 pointer-events-none opacity-80" />
               </g>
             )}
             {node.type === 'message-intermediate-throw' && (
@@ -306,7 +314,7 @@ export const Canvas: React.FC<CanvasProps> = ({
               </g>
             )}
             {(isMessageEvent || isTask) && ((node.data.inputVariables?.length || 0) > 0 || (node.data.outputVariables?.length || 0) > 0) && (
-              <g transform={`translate(${isTask ? node.width/2 : 12}, ${isTask ? -node.height/2 : -18})`}>
+              <g transform={`translate(${(isTask || isBoxMessageCatch) ? node.width/2 : 12}, ${(isTask || isBoxMessageCatch) ? -node.height/2 : -18})`}>
                 <circle r="6" className="fill-blue-500 stroke-white stroke-[1.5px]" />
                 <text y="3" textAnchor="middle" className="text-[8px] fill-white font-bold pointer-events-none">{ (node.data.inputVariables?.length || 0) + (node.data.outputVariables?.length || 0) }</text>
               </g>
@@ -323,6 +331,12 @@ export const Canvas: React.FC<CanvasProps> = ({
                 <Mail x="-6" y="-6" className="w-3 h-3 text-blue-500 pointer-events-none" />
               </g>
             )}
+            {node.type === 'timer-boundary' && (
+              <g>
+                <circle r="15" filter="url(#shadow)" className="fill-white stroke-slate-500 stroke-[1px] stroke-dasharray-[2,2]" />
+                <Clock3 x="-6" y="-6" className="w-3 h-3 text-amber-600 pointer-events-none" />
+              </g>
+            )}
             {node.type === 'end' && <circle r="20" filter="url(#shadow)" className="fill-white stroke-red-500 stroke-[4px]" />}
             {['gateway', 'parallel-gateway'].includes(node.type) && <rect width="28" height="28" transform="rotate(45)" x="-14" y="-14" filter="url(#shadow)" className="fill-white stroke-orange-500 stroke-[2px]" />}
             {isTask && <rect x={-node.width/2} y={-node.height/2} width={node.width} height={node.height} rx="6" filter="url(#shadow)" className={`fill-white stroke-[2px] ${node.type === 'user-task' ? 'stroke-blue-600' : (node.type === 'api-task' ? 'stroke-purple-600' : 'stroke-amber-600')}`} />}
@@ -332,14 +346,14 @@ export const Canvas: React.FC<CanvasProps> = ({
             {node.type === 'gateway' && <GitFork x="-8" y="-8" className="w-4 h-4 text-orange-600 pointer-events-none opacity-80" />}
             {node.type === 'parallel-gateway' && <Plus x="-8" y="-8" className="w-4 h-4 text-orange-600 pointer-events-none opacity-80" />}
             <foreignObject 
-              x={isTask ? -node.width/2 : -(node.width+80)/2} 
-              y={isTask ? -node.height/2 : node.height/2+1} 
-              width={isTask ? node.width : node.width+80} 
-              height={isTask ? node.height : 40} 
+              x={(isTask || isBoxMessageCatch) ? -node.width/2 : -(node.width+80)/2} 
+              y={(isTask || isBoxMessageCatch) ? -node.height/2 : node.height/2+1} 
+              width={(isTask || isBoxMessageCatch) ? node.width : node.width+80} 
+              height={(isTask || isBoxMessageCatch) ? node.height : 40} 
               style={{ pointerEvents: 'none' }}
             >
                 <div className="flex items-center justify-center h-full px-1 text-center">
-                  <span className={`font-medium leading-tight line-clamp-3 ${isTask ? 'text-[11px] text-slate-700' : 'text-[10px] text-slate-600'}`}>
+                  <span className={`font-medium leading-tight line-clamp-3 ${(isTask || isBoxMessageCatch) ? 'text-[11px] text-slate-700' : 'text-[10px] text-slate-600'}`}>
                     {node.data.label}
                   </span>
                 </div>

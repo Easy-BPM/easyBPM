@@ -369,6 +369,20 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                   placeholder="e.g. OrderReceived" 
                 />
               </div>
+              {['message-start', 'message-intermediate-catch'].includes(selectedNode.type) && (
+                <div>
+                  <label className="block text-[10px] text-slate-400 mb-1 font-bold">TIMEOUT (seconds)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={selectedNode.data.timeoutSeconds ?? ''}
+                    onChange={e => onUpdateNode(selectedNode.uid, { timeoutSeconds: e.target.value ? Number(e.target.value) : null })}
+                    className={inputClassName}
+                    placeholder="e.g. 30"
+                  />
+                  <p className="text-[10px] text-slate-400 mt-1 leading-tight">Optional timer for message wait. Empty means no timeout.</p>
+                </div>
+              )}
               {['message-intermediate-catch', 'message-intermediate-throw'].includes(selectedNode.type) && (
                 <div>
                   <label className="block text-[10px] text-slate-400 mb-1 font-bold uppercase">Correlation Keys (CSV)</label>
@@ -393,11 +407,28 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
             </div>
           </div>
         )}
-        {(selectedNode.type === 'error-boundary' || selectedNode.type === 'message-boundary') && (
+        {selectedNode.type === 'timer-event' && (
+          <div className="border-t border-slate-100 pt-6 space-y-4 px-4">
+            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider">Timer Configuration</label>
+            <div>
+              <label className="block text-[10px] text-slate-400 mb-1 font-bold">TIMEOUT (seconds)</label>
+              <input
+                type="number"
+                min={1}
+                value={selectedNode.data.timeoutSeconds ?? ''}
+                onChange={e => onUpdateNode(selectedNode.uid, { timeoutSeconds: e.target.value ? Number(e.target.value) : null })}
+                className={inputClassName}
+                placeholder="e.g. 30"
+              />
+              <p className="text-[10px] text-slate-400 mt-1 leading-tight">Process will wait this duration before moving to the next node.</p>
+            </div>
+          </div>
+        )}
+        {(selectedNode.type === 'error-boundary' || selectedNode.type === 'message-boundary' || selectedNode.type === 'timer-boundary') && (
           <div className="border-t border-slate-100 pt-6 space-y-4 px-4">
             <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
-              {selectedNode.type === 'error-boundary' ? <Zap className="w-4 h-4 text-red-500" /> : <Mail className="w-4 h-4 text-blue-500" />} 
-              {selectedNode.type === 'error-boundary' ? 'Error Configuration' : 'Message Configuration'}
+              {selectedNode.type === 'error-boundary' ? <Zap className="w-4 h-4 text-red-500" /> : selectedNode.type === 'message-boundary' ? <Mail className="w-4 h-4 text-blue-500" /> : <Zap className="w-4 h-4 text-amber-600" />} 
+              {selectedNode.type === 'error-boundary' ? 'Error Configuration' : selectedNode.type === 'message-boundary' ? 'Message Configuration' : 'Timer Configuration'}
             </label>
             
             {selectedNode.type === 'error-boundary' ? (
@@ -412,7 +443,7 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                 />
                 <p className="text-[10px] text-slate-400 mt-1 leading-tight">The code of the exception to catch from the parent task.</p>
               </div>
-            ) : (
+            ) : selectedNode.type === 'message-boundary' ? (
               <div className="space-y-4">
                 <div>
                   <label className="block text-[10px] text-slate-400 mb-1 font-bold">MESSAGE NAME (UCA)</label>
@@ -435,6 +466,31 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                   />
                 </div>
                 {renderVarList('Message Payload to Process', 'outputVariables', <LogOut className="w-3.5 h-3.5 text-green-500" />)}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-[10px] text-slate-400 mb-1 font-bold">TIMEOUT (seconds)</label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={selectedNode.data.timeoutSeconds ?? ''}
+                    onChange={e => onUpdateNode(selectedNode.uid, { timeoutSeconds: e.target.value ? Number(e.target.value) : null })}
+                    className={inputClassName}
+                    placeholder="e.g. 30"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] text-slate-400 mb-1 font-bold">INTERRUPTING</label>
+                  <select
+                    className={inputClassName}
+                    value={selectedNode.data.interrupting === false ? 'false' : 'true'}
+                    onChange={e => onUpdateNode(selectedNode.uid, { interrupting: e.target.value === 'true' })}
+                  >
+                    <option value="true">Yes (interrupt task)</option>
+                    <option value="false">No (non-interrupting)</option>
+                  </select>
+                </div>
               </div>
             )}
 
@@ -480,6 +536,60 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider">System Endpoint</label>
                <div><label className="text-[10px] text-slate-400 uppercase font-bold mb-1 block">URL</label><input className={`${inputClassName} font-mono`} value={selectedNode.data.apiEndpoint || ''} onChange={e => onUpdateNode(selectedNode.uid, { apiEndpoint: e.target.value })} placeholder="https://api..." /></div>
                <div className="grid grid-cols-2 gap-3"><div><label className="text-[10px] text-slate-400 uppercase font-bold mb-1 block">Method</label><select className={inputClassName} value={selectedNode.data.method || 'GET'} onChange={e => onUpdateNode(selectedNode.uid, { method: e.target.value as any })}><option>GET</option><option>POST</option><option>PUT</option><option>DELETE</option></select></div></div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] text-slate-400 uppercase font-bold mb-1 block">Auth Type</label>
+                  <select
+                    className={inputClassName}
+                    value={selectedNode.data.apiAuthType || 'none'}
+                    onChange={e => onUpdateNode(selectedNode.uid, {
+                      apiAuthType: e.target.value as any,
+                      apiAuthIn: e.target.value === 'apikey' ? (selectedNode.data.apiAuthIn || 'header') : undefined,
+                      apiAuthKey: e.target.value === 'apikey' ? (selectedNode.data.apiAuthKey || 'X-API-Key') : undefined
+                    })}
+                  >
+                    <option value="none">None</option>
+                    <option value="bearer">Bearer</option>
+                    <option value="basic">Basic</option>
+                    <option value="apikey">API Key</option>
+                  </select>
+                </div>
+                {(selectedNode.data.apiAuthType || 'none') !== 'none' && (
+                  <div>
+                    <label className="text-[10px] text-slate-400 uppercase font-bold mb-1 block">Auth Ref</label>
+                    <input
+                      className={`${inputClassName} font-mono`}
+                      value={selectedNode.data.apiAuthRef || ''}
+                      onChange={e => onUpdateNode(selectedNode.uid, { apiAuthRef: e.target.value })}
+                      placeholder="e.g. EXT_API_AUTH"
+                    />
+                  </div>
+                )}
+              </div>
+              {(selectedNode.data.apiAuthType || 'none') === 'apikey' && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[10px] text-slate-400 uppercase font-bold mb-1 block">API Key In</label>
+                    <select
+                      className={inputClassName}
+                      value={selectedNode.data.apiAuthIn || 'header'}
+                      onChange={e => onUpdateNode(selectedNode.uid, { apiAuthIn: e.target.value as any })}
+                    >
+                      <option value="header">Header</option>
+                      <option value="query">Query</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-slate-400 uppercase font-bold mb-1 block">API Key Name</label>
+                    <input
+                      className={`${inputClassName} font-mono`}
+                      value={selectedNode.data.apiAuthKey || 'X-API-Key'}
+                      onChange={e => onUpdateNode(selectedNode.uid, { apiAuthKey: e.target.value })}
+                      placeholder="X-API-Key"
+                    />
+                  </div>
+                </div>
+              )}
                <div><label className="text-[10px] text-slate-400 uppercase font-bold mb-1 block">Request Body (JSON)</label><textarea className={`${inputClassName} h-28 font-mono`} value={selectedNode.data.body || ''} onChange={e => onUpdateNode(selectedNode.uid, { body: e.target.value })} placeholder='{ "id": "${userId}" }' /></div>
              </div>
              

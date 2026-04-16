@@ -1,0 +1,21 @@
+flowchart LR
+  subgraph UIs[Frontend UIs]
+    Admin[Easy BPM Admin\nReact 19\n:5173]
+    Modeler[Easy BPMN Modeler\nReact 19\n:3000]
+    Portal[Easy BPM Task Portal\nReact 19\n:5174]
+  end
+
+  API[Easy BPM Backend\nSpring Boot/Kotlin\n:8085]
+  DB[(PostgreSQL)]
+  MQ[(RabbitMQ)]
+  Worker[Async Worker\nService Tasks]
+
+  Admin -->|REST| API
+  Modeler -->|REST /processes /forms| API
+  Portal -->|REST /tasks /forms /complete| API
+
+  API --> DB
+  API --> MQ
+  MQ --> Worker
+  Worker --> MQ
+  MQ --> API

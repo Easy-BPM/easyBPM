@@ -9,7 +9,7 @@ import { generateId, snapToGrid } from './utils/geometry';
 import { Toaster, toast } from 'sonner';
 import { processService } from './services/processService';
 
-const BOUNDARY_TYPES: NodeType[] = ['error-boundary', 'message-boundary'];
+const BOUNDARY_TYPES: NodeType[] = ['error-boundary', 'message-boundary', 'timer-boundary'];
 const START_TYPES: NodeType[] = ['start', 'message-start'];
 const END_TYPES: NodeType[] = ['end'];
 const TASK_TYPES: NodeType[] = ['user-task', 'service-task', 'api-task'];
@@ -158,9 +158,16 @@ const App: React.FC = () => {
         if (outgoing > 0) addIssue('error', `End node ${node.id} cannot have outgoing flows.`, { nodeUid: node.uid, nodeId: node.id });
       }
 
-      if (TASK_TYPES.includes(node.type)) {
+      if (TASK_TYPES.includes(node.type) || node.type === 'timer-event') {
         if (incoming < 1) addIssue('error', `Task node ${node.id} must have at least one incoming flow.`, { nodeUid: node.uid, nodeId: node.id });
         if (outgoing < 1) addIssue('error', `Task node ${node.id} must have at least one outgoing flow.`, { nodeUid: node.uid, nodeId: node.id });
+      }
+
+      if (node.type === 'timer-event') {
+        const timeout = Number(node.data.timeoutSeconds);
+        if (!Number.isFinite(timeout) || timeout <= 0) {
+          addIssue('error', `Timer event ${node.id} must define timeoutSeconds > 0.`, { nodeUid: node.uid, nodeId: node.id });
+        }
       }
 
       if (node.type === 'user-task') {
@@ -206,6 +213,12 @@ const App: React.FC = () => {
         }
         if (outgoing < 1) {
           addIssue('error', `Boundary event ${node.id} must have at least one outgoing flow.`, { nodeUid: node.uid, nodeId: node.id });
+        }
+        if (node.type === 'timer-boundary') {
+          const timeout = Number(node.data.timeoutSeconds);
+          if (!Number.isFinite(timeout) || timeout <= 0) {
+            addIssue('error', `Timer boundary ${node.id} must define timeoutSeconds > 0.`, { nodeUid: node.uid, nodeId: node.id });
+          }
         }
       }
     });
@@ -287,12 +300,12 @@ const App: React.FC = () => {
 
     let width = 120; 
     let height = 60;
-    if (['start', 'end', 'gateway', 'parallel-gateway', 'message-start', 'message-intermediate-catch', 'message-intermediate-throw', 'error-boundary', 'message-boundary'].includes(type)) {
+    if (['start', 'end', 'gateway', 'parallel-gateway', 'timer-event', 'message-start', 'message-intermediate-throw', 'error-boundary', 'message-boundary', 'timer-boundary'].includes(type)) {
       width = 40; height = 40;
     } else {
       width = 120; height = 60;
     }
-    if (type === 'error-boundary' || type === 'message-boundary') {
+    if (type === 'error-boundary' || type === 'message-boundary' || type === 'timer-boundary') {
       width = 30; height = 30;
     }
 
@@ -300,7 +313,7 @@ const App: React.FC = () => {
     let attachedTo: string | undefined = undefined;
     let finalPosition = { x: snapToGrid(x - width/2), y: snapToGrid(y - height/2) };
 
-    if (type === 'error-boundary' || type === 'message-boundary') {
+    if (type === 'error-boundary' || type === 'message-boundary' || type === 'timer-boundary') {
       const parent = nodes.find(n => 
         (n.type === 'user-task' || n.type === 'service-task' || n.type === 'api-task') &&
         x > n.position.x && x < n.position.x + n.width &&
@@ -343,11 +356,13 @@ const App: React.FC = () => {
       'api-task': 'APITask',
       'gateway': 'ExclusiveGateway', 
       'parallel-gateway': 'ParallelGateway',
+      'timer-event': 'TimerEvent',
       'message-start': 'MessageStartEvent',
       'message-intermediate-catch': 'MessageIntermediateCatchEvent',
       'message-intermediate-throw': 'MessageIntermediateThrowEvent',
       'error-boundary': 'ErrorBoundaryEvent',
-      'message-boundary': 'MessageBoundaryEvent'
+      'message-boundary': 'MessageBoundaryEvent',
+      'timer-boundary': 'TimerEvent'
     };
 
     const nodesData = nodes.map(node => {
@@ -384,7 +399,7 @@ const App: React.FC = () => {
       }
 
       if (node.type === 'api-task') {
-        base.service = { 
+        base.properties = { 
           url: node.data.apiEndpoint, 
           method: node.data.method || 'GET',
           outputs: (node.data.outputVariables || []).map(v => ({
@@ -394,9 +409,22 @@ const App: React.FC = () => {
              targetVariable: v.value
           }))
         };
+        const authType = node.data.apiAuthType || 'none';
+        const authRef = (node.data.apiAuthRef || '').trim();
+        if (authType !== 'none' && authRef) {
+          const auth: any = {
+            type: authType,
+            ref: authRef
+          };
+          if (authType === 'apikey') {
+            auth.in = node.data.apiAuthIn || 'header';
+            auth.key = (node.data.apiAuthKey || 'X-API-Key').trim() || 'X-API-Key';
+          }
+          base.properties.auth = auth;
+        }
         if (node.data.body) { 
-          try { base.service.body = JSON.parse(node.data.body); } 
-          catch(e) { base.service.body = node.data.body; } 
+          try { base.properties.body = JSON.parse(node.data.body); } 
+          catch(e) { base.properties.body = node.data.body; } 
         }
       }
 
@@ -417,11 +445,18 @@ const App: React.FC = () => {
         };
       }
 
+      if (node.type === 'timer-event') {
+        base.properties = {
+          timeoutSeconds: node.data.timeoutSeconds ?? null
+        };
+      }
+
       if (['message-start', 'message-intermediate-catch', 'message-intermediate-throw'].includes(node.type)) {
         const isCatch = ['message-start', 'message-intermediate-catch'].includes(node.type);
         base.message = {
           name: node.data.messageName,
           correlationKeys: node.data.correlationKeys ? node.data.correlationKeys.split(',').map(k => k.trim()) : [],
+          timeoutSeconds: node.data.timeoutSeconds ?? null,
           payload: isCatch 
             ? (node.data.outputVariables || []).map(v => ({
                 source: v.mappingType,
@@ -436,6 +471,15 @@ const App: React.FC = () => {
                 value: v.value
               }))
         };
+
+        // Backward-compatible shape used by backend MessageEvent handler
+        if (isCatch) {
+          base.properties = {
+            messageName: node.data.messageName,
+            correlationKey: node.data.correlationKeys || '',
+            timeoutSeconds: node.data.timeoutSeconds ?? null
+          };
+        }
       }
 
       if (node.type === 'error-boundary') {
@@ -455,6 +499,14 @@ const App: React.FC = () => {
             type: v.type,
             targetVariable: v.value
           }))
+        };
+        base.attachedTo = node.attachedTo;
+      }
+
+      if (node.type === 'timer-boundary') {
+        base.properties = {
+          timeoutSeconds: node.data.timeoutSeconds ?? null,
+          interrupting: node.data.interrupting !== false
         };
         base.attachedTo = node.attachedTo;
       }
@@ -526,6 +578,7 @@ const App: React.FC = () => {
       'APITask': 'api-task',
       'ExclusiveGateway': 'gateway',
       'ParallelGateway': 'parallel-gateway',
+      'TimerEvent': 'timer-event',
       'MessageStartEvent': 'message-start',
       'MessageIntermediateCatchEvent': 'message-intermediate-catch',
       'MessageIntermediateThrowEvent': 'message-intermediate-throw',
@@ -549,11 +602,17 @@ const App: React.FC = () => {
 
       let width = 140; 
       let height = 80;
-      const type = reverseTypeMapping[node.type] || node.type as NodeType;
-      if (['start', 'end', 'gateway', 'parallel-gateway'].includes(type)) {
+      let type = reverseTypeMapping[node.type] || node.type as NodeType;
+      if (type === 'timer-event' && node.attachedTo) {
+        type = 'timer-boundary';
+      }
+      if (['start', 'end', 'gateway', 'parallel-gateway', 'timer-event'].includes(type)) {
         width = 40; height = 40;
       } else {
         width = 120; height = 60;
+      }
+      if (type === 'timer-boundary') {
+        width = 30; height = 30;
       }
 
       const newNode: BpmnNode = {
@@ -589,13 +648,23 @@ const App: React.FC = () => {
         }));
       }
 
-      if (type === 'api-task' && node.service) {
-        newNode.data.apiEndpoint = node.service.url;
-        newNode.data.method = node.service.method;
-        newNode.data.body = typeof node.service.body === 'object' ? JSON.stringify(node.service.body, null, 2) : node.service.body;
+      if (type === 'api-task' && (node.properties || node.service)) {
+        const apiConfig = node.properties || node.service;
+        newNode.data.apiEndpoint = apiConfig.url;
+        newNode.data.method = apiConfig.method;
+        newNode.data.body = typeof apiConfig.body === 'object' ? JSON.stringify(apiConfig.body, null, 2) : apiConfig.body;
+
+        if (apiConfig.auth && typeof apiConfig.auth === 'object') {
+          newNode.data.apiAuthType = apiConfig.auth.type || 'none';
+          newNode.data.apiAuthRef = apiConfig.auth.ref || '';
+          if (apiConfig.auth.type === 'apikey') {
+            newNode.data.apiAuthIn = apiConfig.auth.in || 'header';
+            newNode.data.apiAuthKey = apiConfig.auth.key || 'X-API-Key';
+          }
+        }
         
-        if (node.service.outputs) {
-          newNode.data.outputVariables = (node.service.outputs || []).map((o: any) => ({
+        if (apiConfig.outputs) {
+          newNode.data.outputVariables = (apiConfig.outputs || []).map((o: any) => ({
             id: Math.random().toString(36).substr(2, 9),
             name: o.sourceValue || o.sourceName,
             type: o.type,
@@ -626,9 +695,20 @@ const App: React.FC = () => {
         }
       }
 
+      if (type === 'timer-event') {
+        if (node.properties?.timeoutSeconds !== undefined && node.properties?.timeoutSeconds !== null) {
+          newNode.data.timeoutSeconds = Number(node.properties.timeoutSeconds);
+        }
+      }
+
       if (['message-start', 'message-intermediate-catch', 'message-intermediate-throw'].includes(type) && node.message) {
         newNode.data.messageName = node.message.name;
         newNode.data.correlationKeys = Array.isArray(node.message.correlationKeys) ? node.message.correlationKeys.join(', ') : node.message.correlationKeys;
+        if (node.message.timeoutSeconds !== undefined && node.message.timeoutSeconds !== null) {
+          newNode.data.timeoutSeconds = Number(node.message.timeoutSeconds);
+        } else if (node.properties?.timeoutSeconds !== undefined && node.properties?.timeoutSeconds !== null) {
+          newNode.data.timeoutSeconds = Number(node.properties.timeoutSeconds);
+        }
         
         const isCatch = ['message-start', 'message-intermediate-catch'].includes(type);
         if (node.message.payload) {
@@ -670,6 +750,14 @@ const App: React.FC = () => {
             value: o.value
           }));
         }
+      }
+
+      if (type === 'timer-boundary') {
+        if (node.properties?.timeoutSeconds !== undefined && node.properties?.timeoutSeconds !== null) {
+          newNode.data.timeoutSeconds = Number(node.properties.timeoutSeconds);
+        }
+        newNode.data.interrupting = node.properties?.interrupting !== false;
+        newNode.attachedTo = node.attachedTo;
       }
 
       return newNode;

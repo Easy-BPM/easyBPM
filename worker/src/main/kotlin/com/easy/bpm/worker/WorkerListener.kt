@@ -8,6 +8,7 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate
 import org.springframework.http.HttpEntity
 import org.springframework.http.HttpHeaders
 import org.springframework.stereotype.Service
+import org.springframework.web.util.UriComponentsBuilder
 import org.springframework.web.client.RestTemplate
 import org.springframework.web.client.RestClientException
 import java.security.MessageDigest
@@ -110,7 +111,7 @@ class WorkerListener(
 
             } else {
                 // Schedule retry with exponential backoff
-                val backoffMs = INITIAL_RETRY_DELAY_MS * (1 shl (workerRequest.retryCount - 1))
+                val backoffMs = INITIAL_RETRY_DELAY_MS.toLong() * (1L shl (workerRequest.retryCount - 1))
                 workerRequest.status = WorkerRequestStatus.PENDING
                 workerRequestRepository.save(workerRequest)
 
@@ -125,11 +126,49 @@ class WorkerListener(
         nodeId: String,
         properties: Map<*, *>
     ): Map<String, String> {
-        val url = properties["url"] as? String ?: throw IllegalArgumentException("Missing url")
+        var url = properties["url"] as? String ?: throw IllegalArgumentException("Missing url")
         val method = (properties["method"] as? String ?: "POST").uppercase()
 
         val headers = HttpHeaders()
         (properties["headers"] as? Map<*, *>)?.forEach { (k, v) -> headers[k.toString()] = v.toString() }
+
+        val auth = properties["auth"] as? Map<*, *>
+        if (auth != null) {
+            val authType = auth["type"]?.toString()?.trim()?.lowercase()
+                ?: throw IllegalArgumentException("Auth is missing 'type'")
+            val authRef = auth["ref"]?.toString()?.trim().orEmpty()
+            if (authRef.isEmpty()) {
+                throw IllegalArgumentException("Auth is missing 'ref'")
+            }
+
+            when (authType) {
+                "bearer" -> {
+                    val token = resolveEnv(authRef)
+                    headers.setBearerAuth(token)
+                }
+                "basic" -> {
+                    val username = resolveEnv("${authRef}_USERNAME")
+                    val password = resolveEnv("${authRef}_PASSWORD")
+                    headers.setBasicAuth(username, password)
+                }
+                "apikey" -> {
+                    val apiKeyValue = resolveEnv(authRef)
+                    val keyName = auth["key"]?.toString()?.trim().takeUnless { it.isNullOrEmpty() } ?: "X-API-Key"
+                    val target = auth["in"]?.toString()?.trim()?.lowercase() ?: "header"
+
+                    if (target == "query") {
+                        url = UriComponentsBuilder
+                            .fromHttpUrl(url)
+                            .queryParam(keyName, apiKeyValue)
+                            .build(true)
+                            .toUriString()
+                    } else {
+                        headers[keyName] = apiKeyValue
+                    }
+                }
+                else -> throw IllegalArgumentException("Unsupported auth type '$authType'")
+            }
+        }
 
         val body = properties["body"] ?: emptyMap<String, Any>()
         val entity = HttpEntity(body, headers)
@@ -143,6 +182,11 @@ class WorkerListener(
         }
 
         return (response as? Map<*, *>)?.mapKeys { it.key.toString() }?.mapValues { it.value.toString() } ?: emptyMap()
+    }
+
+    private fun resolveEnv(name: String): String {
+        return System.getenv(name)
+            ?: throw IllegalArgumentException("Missing environment variable '$name' for API task auth")
     }
 
     private fun sendCompletion(processInstanceId: Long, nodeId: String, outputs: Map<String, String>) {

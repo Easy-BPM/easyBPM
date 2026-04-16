@@ -118,7 +118,7 @@ class MessageSubscriptionServiceTest : FunSpec({
             )
 
             every {
-                mockMessageSubscriptionRepository.findByMessageNameAndCorrelationKeyAndStatus(
+                mockMessageSubscriptionRepository.findFirstByMessageNameAndCorrelationKeyAndStatusOrderByIdAsc(
                     messageName,
                     correlationKey,
                     MessageSubscriptionStatus.AWAITING
@@ -143,7 +143,7 @@ class MessageSubscriptionServiceTest : FunSpec({
             val correlationKey = "order-999"
 
             every {
-                mockMessageSubscriptionRepository.findByMessageNameAndCorrelationKeyAndStatus(
+                mockMessageSubscriptionRepository.findFirstByMessageNameAndCorrelationKeyAndStatusOrderByIdAsc(
                     messageName,
                     correlationKey,
                     MessageSubscriptionStatus.AWAITING
@@ -177,7 +177,7 @@ class MessageSubscriptionServiceTest : FunSpec({
             )
 
             every {
-                mockMessageSubscriptionRepository.findByMessageNameAndCorrelationKeyAndStatus(
+                mockMessageSubscriptionRepository.findFirstByMessageNameAndCorrelationKeyAndStatusOrderByIdAsc(
                     messageName,
                     correlationKey,
                     MessageSubscriptionStatus.AWAITING
@@ -209,7 +209,7 @@ class MessageSubscriptionServiceTest : FunSpec({
 
             val timedOutSubscription = subscription.copy(status = MessageSubscriptionStatus.TIMEOUT)
 
-            every { mockMessageSubscriptionRepository.findById(subscriptionId) } returns Optional.of(subscription)
+            every { mockMessageSubscriptionRepository.findByIdForUpdate(subscriptionId) } returns subscription
             every { mockMessageSubscriptionRepository.save(any()) } returns timedOutSubscription
 
             // Act
@@ -223,13 +223,35 @@ class MessageSubscriptionServiceTest : FunSpec({
         test("should return null when subscription not found") {
             // Arrange
             val subscriptionId = 999L
-            every { mockMessageSubscriptionRepository.findById(subscriptionId) } returns Optional.empty()
+            every { mockMessageSubscriptionRepository.findByIdForUpdate(subscriptionId) } returns null
 
             // Act
             val result = messageSubscriptionService.timeoutSubscription(subscriptionId)
 
             // Assert
             result shouldBe null
+        }
+
+        test("should not timeout subscription that was already received by another instance") {
+            // Arrange
+            val subscriptionId = 1L
+            val subscription = MessageSubscription(
+                id = subscriptionId,
+                processInstanceId = 100,
+                nodeId = "message-event-1",
+                messageName = "PaymentReceived",
+                correlationKey = "order-123",
+                status = MessageSubscriptionStatus.RECEIVED
+            )
+
+            every { mockMessageSubscriptionRepository.findByIdForUpdate(subscriptionId) } returns subscription
+
+            // Act
+            val result = messageSubscriptionService.timeoutSubscription(subscriptionId)
+
+            // Assert
+            result shouldBe null
+            verify(exactly = 0) { mockMessageSubscriptionRepository.save(any()) }
         }
     }
 

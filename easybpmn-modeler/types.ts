@@ -1,4 +1,4 @@
-export type NodeType = 'start' | 'end' | 'user-task' | 'service-task' | 'api-task' | 'gateway' | 'parallel-gateway' | 'message-start' | 'message-intermediate-catch' | 'message-intermediate-throw' | 'error-boundary' | 'message-boundary';
+export type NodeType = 'start' | 'end' | 'user-task' | 'service-task' | 'api-task' | 'gateway' | 'parallel-gateway' | 'timer-event' | 'message-start' | 'message-intermediate-catch' | 'message-intermediate-throw' | 'error-boundary' | 'message-boundary' | 'timer-boundary';
 
 export interface Position {
   x: number;
@@ -12,6 +12,8 @@ export interface TaskVariable {
   mappingType: 'static' | 'variable'; // Is it a literal value or a link to a global process variable?
   value: string; // The literal value OR the name of the global process variable
 }
+
+export type ApiAuthType = 'none' | 'bearer' | 'basic' | 'apikey';
 
 export interface NodeData {
   label: string;
@@ -27,13 +29,20 @@ export interface NodeData {
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
   headers?: string; 
   body?: string; 
+  apiAuthType?: ApiAuthType;
+  apiAuthRef?: string;
+  apiAuthIn?: 'header' | 'query';
+  apiAuthKey?: string;
   // Gateway specific
   condition?: string;
   // Message Event specific
   messageName?: string;
   correlationKeys?: string;
+  timeoutSeconds?: number | null;
   // Error Boundary specific
   errorCode?: string;
+  // Timer Boundary specific
+  interrupting?: boolean;
 }
 
 export interface BpmnNode {

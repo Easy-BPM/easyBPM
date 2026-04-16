@@ -1,6 +1,6 @@
 import React from 'react';
 import { NodeType } from '../types';
-import { Circle, User, Settings, Square, GitFork, Plus, Mail, Zap } from 'lucide-react';
+import { Circle, User, Settings, GitFork, Plus, Mail, Zap, Clock3 } from 'lucide-react';
 
 interface PaletteProps {
   onDragStart: (event: React.DragEvent, type: NodeType) => void;
@@ -13,6 +13,18 @@ export const Palette: React.FC<PaletteProps> = ({ onDragStart }) => {
       items: [
         { type: 'start', label: 'Start Event', icon: <Circle className="w-5 h-5" />, color: 'text-green-600' },
         { type: 'end', label: 'End Event', icon: <Circle className="w-5 h-5 border-2 rounded-full" style={{ borderWidth: '3px' }} />, color: 'text-red-600' },
+        {
+          type: 'timer-event',
+          label: 'Timer Event',
+          icon: (
+            <div className="relative w-5 h-5 flex items-center justify-center">
+              <Circle className="w-5 h-5 stroke-[1px]" />
+              <Circle className="w-3.5 h-3.5 absolute stroke-[1px]" />
+              <Clock3 className="w-2.5 h-2.5 absolute" />
+            </div>
+          ),
+          color: 'text-amber-600'
+        },
       ]
     },
     {
@@ -94,6 +106,17 @@ export const Palette: React.FC<PaletteProps> = ({ onDragStart }) => {
             </div>
           ), 
           color: 'text-slate-600' 
+        },
+        {
+          type: 'timer-boundary',
+          label: 'Timer Boundary',
+          icon: (
+            <div className="relative w-5 h-5 flex items-center justify-center">
+              <Circle className="w-5 h-5 stroke-[1px] border-dashed" />
+              <Clock3 className="w-2.5 h-2.5 absolute text-amber-600" />
+            </div>
+          ),
+          color: 'text-slate-600'
         },
       ]
     }

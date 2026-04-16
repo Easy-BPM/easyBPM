@@ -68,16 +68,13 @@ class TaskService(
         // 1️⃣ Salvar dados do formulário como TASK VARIABLES
         persistTaskVariables(task, variables)
 
-        // 2️⃣ Always sync submitted task variables to process globals.
-        syncTaskVariablesToProcess(instance, variables)
-
-        // 3️⃣ OUTPUT mapping → TASK → PROCESS (supports explicit remapping overrides)
+        // 2️⃣ OUTPUT mapping → TASK → PROCESS
         applyTaskOutputs(task, currentNode, instance)
 
-        // 4️⃣ Resolver próximos nós
+        // 3️⃣ Resolver próximos nós
         val nextNodeIds = getNextNodes(currentNode, definition, instance)
 
-        // 5️⃣ Atualizar Task
+        // 4️⃣ Atualizar Task
         completeTaskEntity(task, assignee)
         metricsService.recordTaskCompleted()
         val duration = System.currentTimeMillis() - startTime
@@ -97,10 +94,10 @@ class TaskService(
         } catch (_: Exception) {
         }
 
-        // 6️⃣ Atualizar instância
+        // 5️⃣ Atualizar instância
         advanceProcess(instance, nextNodeIds, definition)
 
-        // 7️⃣ Continuar execução
+        // 6️⃣ Continuar execução
         executeNextSteps(nextNodeIds, instance, definition)
     }
 
@@ -535,29 +532,6 @@ class TaskService(
                     value = objectMapper.valueToTree(value)
                 )
             )
-        }
-    }
-
-    private fun syncTaskVariablesToProcess(
-        instance: ProcessInstance,
-        variables: Map<String, Any>
-    ) {
-        variables.forEach { (name, rawValue) ->
-            val parsedValue = objectMapper.valueToTree<JsonNode>(rawValue)
-            val existingVar = processVariableRepository.findByProcessInstanceIdAndName(instance.id, name)
-
-            if (existingVar != null) {
-                existingVar.value = parsedValue
-                processVariableRepository.save(existingVar)
-            } else {
-                processVariableRepository.save(
-                    ProcessVariable(
-                        processInstanceId = instance.id,
-                        name = name,
-                        value = parsedValue
-                    )
-                )
-            }
         }
     }
 

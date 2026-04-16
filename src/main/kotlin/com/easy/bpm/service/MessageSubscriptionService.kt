@@ -43,7 +43,7 @@ class MessageSubscriptionService(
         correlationKey: String,
         messagePayload: Map<String, Any>? = null
     ): MessageSubscription? {
-        val subscription = messageSubscriptionRepository.findByMessageNameAndCorrelationKeyAndStatus(
+        val subscription = messageSubscriptionRepository.findFirstByMessageNameAndCorrelationKeyAndStatusOrderByIdAsc(
             messageName,
             correlationKey,
             MessageSubscriptionStatus.AWAITING
@@ -61,8 +61,12 @@ class MessageSubscriptionService(
      */
     @Transactional
     fun timeoutSubscription(subscriptionId: Long): MessageSubscription? {
-        val subscription = messageSubscriptionRepository.findById(subscriptionId).orElse(null) ?: return null
+        val subscription = messageSubscriptionRepository.findByIdForUpdate(subscriptionId) ?: return null
+        if (subscription.status != MessageSubscriptionStatus.AWAITING) {
+            return null
+        }
         subscription.status = MessageSubscriptionStatus.TIMEOUT
+        subscription.receivedAt = LocalDateTime.now()
         return messageSubscriptionRepository.save(subscription)
     }
 
@@ -100,6 +104,7 @@ class MessageSubscriptionService(
      * Mark subscription as failed
      */
     @Transactional
+    @Suppress("UNUSED_PARAMETER")
     fun failSubscription(subscriptionId: Long, reason: String = ""): MessageSubscription? {
         val subscription = messageSubscriptionRepository.findById(subscriptionId).orElse(null) ?: return null
         subscription.status = MessageSubscriptionStatus.FAILED

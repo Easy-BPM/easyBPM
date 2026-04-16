@@ -1,0 +1,28 @@
+{
+  "processId": "wf_boundary_message_recovery",
+  "metadata": {
+    "version": "1.0",
+    "purpose": "Message boundary interruption and alternate path"
+  },
+  "variables": [
+    { "name": "ticketId", "type": "string", "initialValue": "T-900" },
+    { "name": "path", "type": "string", "initialValue": "" }
+  ],
+  "nodes": [
+    { "id": "start", "name": "Start", "type": "StartEvent", "position": { "x": 80, "y": 260 }, "next": ["long_task"] },
+    { "id": "long_task", "name": "Long Running User Task", "type": "UserTask", "position": { "x": 300, "y": 260 }, "next": ["end_normal"], "config": { "assignee": "agent", "inputs": [], "outputs": [ { "source": "static", "sourceValue": "NORMAL", "type": "string", "targetVariable": "path" } ] } },
+    { "id": "boundary_msg", "name": "Message Boundary", "type": "MessageBoundaryEvent", "position": { "x": 375, "y": 225 }, "attachedTo": "long_task_uid_placeholder", "next": ["interrupt_task"], "message": { "name": "ticket.cancelled", "correlationKeys": ["ticketId"], "payload": [ { "sourceValue": "ticketId", "sourceName": "ticketId", "source": "variable", "target": "variable", "type": "string", "targetVariable": "ticketId", "value": "ticketId" } ] } },
+    { "id": "interrupt_task", "name": "Interrupt Handler", "type": "ServiceTask", "position": { "x": 540, "y": 120 }, "next": ["end_interrupted"], "config": { "inputs": [], "outputs": [ { "source": "static", "sourceValue": "INTERRUPTED", "type": "string", "targetVariable": "path" } ] } },
+    { "id": "end_normal", "name": "End Normal", "type": "EndEvent", "position": { "x": 560, "y": 260 }, "next": [] },
+    { "id": "end_interrupted", "name": "End Interrupted", "type": "EndEvent", "position": { "x": 780, "y": 120 }, "next": [] }
+  ],
+  "flows": [
+    { "from": "start", "to": "long_task", "condition": null },
+    { "from": "long_task", "to": "end_normal", "condition": null },
+    { "from": "boundary_msg", "to": "interrupt_task", "condition": null },
+    { "from": "interrupt_task", "to": "end_interrupted", "condition": null }
+  ],
+  "notes": [
+    "After importing, re-attach message boundary to Long Running User Task in canvas."
+  ]
+}

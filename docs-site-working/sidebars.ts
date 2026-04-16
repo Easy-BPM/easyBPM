@@ -6,7 +6,7 @@ const sidebars: SidebarsConfig = {
     'getting-started',
     {
       type: 'category',
-      label: '🏗️ Architecture',
+      label: 'Architecture',
       items: [
         'architecture',
         'features-architecture',
@@ -15,21 +15,21 @@ const sidebars: SidebarsConfig = {
     },
     {
       type: 'category',
-      label: '📡 API Reference',
+      label: 'API Reference',
       items: [
         'api-controllers',
       ],
     },
     {
       type: 'category',
-      label: '📊 Observability',
+      label: 'Observability',
       items: [
         'metrics-observability',
       ],
     },
     {
       type: 'category',
-      label: '🔄 Advanced',
+      label: 'Advanced',
       items: [
         'message-events',
         'integration-testing',
@@ -37,7 +37,7 @@ const sidebars: SidebarsConfig = {
     },
     {
       type: 'category',
-      label: '�‍💼 Easy BPM Admin',
+      label: 'Easy BPM Admin',
       items: [
         'easy-admin-overview',
         'easy-admin-getting-started',
@@ -57,8 +57,17 @@ const sidebars: SidebarsConfig = {
     },
     {
       type: 'category',
-      label: '�📚 Guides',
+      label: 'Easy BPM Task Portal',
       items: [
+        'easy-task-portal-overview',
+        'easy-task-portal-getting-started',
+      ],
+    },
+    {
+      type: 'category',
+      label: 'Guides',
+      items: [
+        'qa-first-phase-test-plan',
         'developer-quick-reference',
         'examples',
       ],
