@@ -205,7 +205,9 @@ const App: React.FC = () => {
       }
 
       if (BOUNDARY_TYPES.includes(node.type)) {
-        const parent = node.attachedTo ? nodesByUid.get(node.attachedTo) : undefined;
+        const parent = node.attachedTo
+          ? (nodesByUid.get(node.attachedTo) || nodes.find(candidate => candidate.id === node.attachedTo))
+          : undefined;
         if (!parent || !TASK_TYPES.includes(parent.type)) {
           addIssue('error', `Boundary event ${node.id} must be attached to a valid task node.`, { nodeUid: node.uid, nodeId: node.id });
         }
@@ -236,6 +238,19 @@ const App: React.FC = () => {
             queue.push(target);
           }
         });
+
+        // Boundary branches become reachable when their attached parent task is reachable.
+        nodes
+          .filter(node => BOUNDARY_TYPES.includes(node.type))
+          .forEach(boundaryNode => {
+            const parent = boundaryNode.attachedTo
+              ? (nodesByUid.get(boundaryNode.attachedTo) || nodes.find(candidate => candidate.id === boundaryNode.attachedTo))
+              : undefined;
+            if (parent?.uid === current && !visited.has(boundaryNode.uid)) {
+              visited.add(boundaryNode.uid);
+              queue.push(boundaryNode.uid);
+            }
+          });
       }
 
       const unreachable = nodes.filter(node => !visited.has(node.uid) && !BOUNDARY_TYPES.includes(node.type));
@@ -487,7 +502,9 @@ const App: React.FC = () => {
         base.error = {
           code: node.data.errorCode
         };
-        base.attachedTo = node.attachedTo;
+        base.attachedTo = node.attachedTo
+          ? (nodes.find(candidate => candidate.uid === node.attachedTo)?.id || node.attachedTo)
+          : undefined;
       }
 
       if (node.type === 'message-boundary') {
@@ -501,7 +518,9 @@ const App: React.FC = () => {
             targetVariable: v.value
           }))
         };
-        base.attachedTo = node.attachedTo;
+        base.attachedTo = node.attachedTo
+          ? (nodes.find(candidate => candidate.uid === node.attachedTo)?.id || node.attachedTo)
+          : undefined;
       }
 
       if (node.type === 'timer-boundary') {
@@ -509,7 +528,9 @@ const App: React.FC = () => {
           timeoutSeconds: node.data.timeoutSeconds ?? null,
           interrupting: node.data.interrupting !== false
         };
-        base.attachedTo = node.attachedTo;
+        base.attachedTo = node.attachedTo
+          ? (nodes.find(candidate => candidate.uid === node.attachedTo)?.id || node.attachedTo)
+          : undefined;
       }
       return base;
     });
@@ -737,13 +758,13 @@ const App: React.FC = () => {
 
       if (type === 'error-boundary' && node.error) {
         newNode.data.errorCode = node.error.code;
-        newNode.attachedTo = node.attachedTo;
+        newNode.attachedTo = idToUidMap.get(node.attachedTo) || node.attachedTo;
       }
 
       if (type === 'message-boundary' && node.message) {
         newNode.data.messageName = node.message.name;
         newNode.data.correlationKeys = Array.isArray(node.message.correlationKeys) ? node.message.correlationKeys.join(', ') : node.message.correlationKeys;
-        newNode.attachedTo = node.attachedTo;
+        newNode.attachedTo = idToUidMap.get(node.attachedTo) || node.attachedTo;
         if (node.message.payload) {
           newNode.data.outputVariables = (node.message.payload || []).map((o: any) => ({
             id: Math.random().toString(36).substr(2, 9),
@@ -760,7 +781,7 @@ const App: React.FC = () => {
           newNode.data.timeoutSeconds = Number(node.properties.timeoutSeconds);
         }
         newNode.data.interrupting = node.properties?.interrupting !== false;
-        newNode.attachedTo = node.attachedTo;
+        newNode.attachedTo = idToUidMap.get(node.attachedTo) || node.attachedTo;
       }
 
       return newNode;

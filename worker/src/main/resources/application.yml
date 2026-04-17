@@ -1,6 +1,15 @@
 spring:
   application:
     name: bpm-worker
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/easybpm}
+    username: ${SPRING_DATASOURCE_USERNAME:meu_usuario}
+    password: ${SPRING_DATASOURCE_PASSWORD:minha_senha}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+  flyway:
+    enabled: false
   rabbitmq:
     host: localhost
     port: 5672

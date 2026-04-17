@@ -45,6 +45,22 @@ services:
       - rabbitmq
     restart: unless-stopped
 
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    container_name: Easy_BPM_Worker
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/easybpm
+      SPRING_DATASOURCE_USERNAME: meu_usuario
+      SPRING_DATASOURCE_PASSWORD: minha_senha
+      SPRING_RABBITMQ_HOST: rabbitmq
+    depends_on:
+      - postgres
+      - rabbitmq
+      - backend
+    restart: unless-stopped
+
   easy-bpm-admin:
     image: node:18
     container_name: Easy_BPM_Admin

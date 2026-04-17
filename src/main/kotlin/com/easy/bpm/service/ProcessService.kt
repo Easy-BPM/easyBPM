@@ -283,6 +283,13 @@ class ProcessService(
             return instance
         }
 
+        val pendingTasks = taskRepository.findByProcessInstanceId(id)
+            .filter { it.status == TaskStatus.PENDING }
+        pendingTasks.forEach { task ->
+            taskVariableRepository.deleteByTaskId(task.id)
+            taskRepository.delete(task)
+        }
+
         messageSubscriptionService.deleteSubscriptionsForInstance(id)
 
         instance.status = ProcessStatus.CANCELLED
@@ -762,6 +769,37 @@ class ProcessService(
         
         val duration = System.currentTimeMillis() - startTime
         metricsService.recordServiceTaskExecution(duration, success = true)
+    }
+
+    @Transactional
+    fun handleServiceTaskFailed(processInstanceId: Long, nodeId: String, errorMessage: String? = null) {
+        val startTime = System.currentTimeMillis()
+
+        val instance = processInstanceRepository.findById(processInstanceId)
+            .orElseThrow { IllegalArgumentException("Process instance not found") }
+
+        val definition = parseDefinition(instance.processDefinition.definitionJson)
+        val node = findNode(definition, nodeId)
+
+        val errorBoundaryNode = findAttachedErrorBoundary(node, definition)
+        if (errorBoundaryNode != null) {
+            val nextNodes = getNextNodes(errorBoundaryNode, definition, instance)
+            advanceProcess(instance, nextNodes, definition)
+            executeNodes(nextNodes, instance, definition)
+
+            val duration = System.currentTimeMillis() - startTime
+            metricsService.recordServiceTaskExecution(duration, success = false)
+            return
+        }
+
+        // No boundary to recover from this failure; mark instance as failed.
+        instance.status = ProcessStatus.FAILED
+        instance.currentNode = emptyList()
+        instance.updatedAt = LocalDateTime.now()
+        processInstanceRepository.save(instance)
+
+        val duration = System.currentTimeMillis() - startTime
+        metricsService.recordServiceTaskExecution(duration, success = false)
     }
 
     @Transactional

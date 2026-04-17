@@ -10,23 +10,52 @@ class RabbitListenerService(
 
     @RabbitListener(queues = [AmqpConfig.SERVICE_TASK_COMPLETIONS_QUEUE])
     fun onServiceTaskCompleted(message: Map<String, Any>) {
-        val processInstanceIdAny = message["processInstanceId"]
-        val nodeId = message["nodeId"] as? String ?: return
+        try {
+            val processInstanceIdAny = message["processInstanceId"]
+            val nodeId = message["nodeId"] as? String ?: return
 
-        val processInstanceId = when (processInstanceIdAny) {
-            is Int -> processInstanceIdAny.toLong()
-            is Long -> processInstanceIdAny
-            is String -> processInstanceIdAny.toLong()
-            else -> throw IllegalArgumentException("Invalid processInstanceId type: ${processInstanceIdAny?.javaClass}")
+            val processInstanceId = when (processInstanceIdAny) {
+                is Int -> processInstanceIdAny.toLong()
+                is Long -> processInstanceIdAny
+                is String -> processInstanceIdAny.toLong()
+                else -> throw IllegalArgumentException("Invalid processInstanceId type: ${processInstanceIdAny?.javaClass}")
+            }
+
+            val outputsAny = message["outputs"]
+            val outputs = when (outputsAny) {
+                is Map<*, *> -> outputsAny.mapKeys { it.key.toString() }.mapValues { it.value.toString() }
+                else -> emptyMap()
+            }
+
+            processService.handleServiceTaskCompleted(processInstanceId, nodeId, outputs)
+        } catch (ex: Exception) {
+            // Log the error but don't re-throw; stale messages should be consumed gracefully
+            System.err.println("Failed to process completion message: ${ex.message}")
+            ex.printStackTrace()
         }
+    }
 
-        val outputsAny = message["outputs"]
-        val outputs = when (outputsAny) {
-            is Map<*, *> -> outputsAny.mapKeys { it.key.toString() }.mapValues { it.value.toString() }
-            else -> emptyMap()
+    @RabbitListener(queues = [AmqpConfig.SERVICE_TASK_DLQ])
+    fun onServiceTaskFailed(message: Map<String, Any>) {
+        try {
+            val processInstanceIdAny = message["processInstanceId"]
+            val nodeId = message["nodeId"] as? String ?: return
+
+            val processInstanceId = when (processInstanceIdAny) {
+                is Int -> processInstanceIdAny.toLong()
+                is Long -> processInstanceIdAny
+                is String -> processInstanceIdAny.toLong()
+                else -> throw IllegalArgumentException("Invalid processInstanceId type: ${processInstanceIdAny?.javaClass}")
+            }
+
+            val errorMessage = message["dlqReason"]?.toString()
+            processService.handleServiceTaskFailed(processInstanceId, nodeId, errorMessage)
+        } catch (ex: Exception) {
+            // Log the error but don't re-throw; we don't want to nack the message
+            // This prevents stale messages from blocking the listener indefinitely
+            System.err.println("Failed to process DLQ message: ${ex.message}")
+            ex.printStackTrace()
         }
-
-        processService.handleServiceTaskCompleted(processInstanceId, nodeId, outputs)
     }
 
     @RabbitListener(queues = [AmqpConfig.MESSAGE_EVENTS_QUEUE])

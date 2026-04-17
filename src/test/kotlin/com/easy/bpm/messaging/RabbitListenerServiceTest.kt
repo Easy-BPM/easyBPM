@@ -145,6 +145,43 @@ class RabbitListenerServiceTest : FunSpec({
         }
     }
 
+    context("onServiceTaskFailed") {
+        test("should handle service task failure from DLQ message") {
+            // Arrange
+            val processInstanceId = 200L
+            val nodeId = "api-task-1"
+            val dlqReason = "Connection refused"
+
+            val message = mapOf(
+                "processInstanceId" to processInstanceId,
+                "nodeId" to nodeId,
+                "dlqReason" to dlqReason
+            )
+
+            every { mockProcessService.handleServiceTaskFailed(processInstanceId, nodeId, dlqReason) } just runs
+
+            // Act
+            rabbitListenerService.onServiceTaskFailed(message)
+
+            // Assert
+            verify { mockProcessService.handleServiceTaskFailed(processInstanceId, nodeId, dlqReason) }
+        }
+
+        test("should skip processing when nodeId is missing") {
+            // Arrange
+            val message = mapOf(
+                "processInstanceId" to 200L,
+                "dlqReason" to "Connection refused"
+            )
+
+            // Act
+            rabbitListenerService.onServiceTaskFailed(message)
+
+            // Assert
+            verify(exactly = 0) { mockProcessService.handleServiceTaskFailed(any(), any(), any()) }
+        }
+    }
+
     context("onMessageReceived") {
         test("should handle message received event") {
             // Arrange

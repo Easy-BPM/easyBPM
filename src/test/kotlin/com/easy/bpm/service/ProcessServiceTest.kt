@@ -405,6 +405,52 @@ class ProcessServiceTest : FunSpec({
         }
     }
 
+    context("handleServiceTaskFailed") {
+        test("should mark instance as FAILED when no attached error boundary exists") {
+            // Arrange
+            val processInstanceId = 77L
+            val definitionJson = """
+                {
+                  "processId": "api-no-boundary",
+                  "nodes": [
+                    {"id": "api-task", "type": "APITask", "next": ["end"]},
+                    {"id": "end", "type": "EndEvent"}
+                  ],
+                  "flows": [
+                    {"from": "api-task", "to": "end", "condition": null}
+                  ]
+                }
+            """.trimIndent()
+
+            val definition = ProcessDefinition(
+                id = 30,
+                processName = "api-no-boundary",
+                definitionJson = definitionJson,
+                version = 1
+            )
+
+            val instance = ProcessInstance(
+                id = processInstanceId,
+                processDefinition = definition,
+                status = ProcessStatus.ACTIVE,
+                currentNode = listOf("api-task"),
+                nodeHistory = listOf("api-task")
+            )
+
+            every { mockProcessInstanceRepository.findById(processInstanceId) } returns Optional.of(instance)
+            every { mockObjectMapper.readTree(definitionJson) } returns objectMapper.readTree(definitionJson)
+            every { mockProcessInstanceRepository.save(any()) } answers { firstArg() }
+
+            // Act
+            processService.handleServiceTaskFailed(processInstanceId, "api-task", "network timeout")
+
+            // Assert
+            instance.status shouldBe ProcessStatus.FAILED
+            instance.currentNode shouldBe emptyList()
+            verify(exactly = 1) { mockProcessInstanceRepository.save(match { it.status == ProcessStatus.FAILED }) }
+        }
+    }
+
     context("getProcessDefinitionById") {
         test("should return process definition when it exists") {
             // Arrange

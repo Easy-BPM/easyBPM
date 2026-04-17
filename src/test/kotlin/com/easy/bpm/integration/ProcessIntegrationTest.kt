@@ -370,6 +370,85 @@ class ProcessIntegrationTest(
         assertThat(afterMovePendingNodes).doesNotContain("manual-review")
     }
 
+    @Test
+    fun `stop instance endpoint should remove pending tasks from tasks api`() {
+        val processDefinitionJson = objectMapper.readTree(
+            """
+            {
+              "processId": "stop-instance-approval",
+              "nodes": [
+                { "id": "start", "type": "StartEvent", "next": ["manual-review"] },
+                { "id": "manual-review", "type": "HumanTask", "name": "Manual Review", "next": ["end"] },
+                { "id": "end", "type": "EndEvent" }
+              ],
+              "flows": []
+            }
+            """.trimIndent()
+        )
+
+        val processDefinition = processService.deployProcess(processDefinitionJson)
+        val instance = processService.startProcessInstance(processDefinition.id)
+
+        val beforeStopPendingNodes = getPendingTaskNodesFromApi(instance.id)
+        assertThat(beforeStopPendingNodes).containsExactly("manual-review")
+
+        mockMvc.perform(
+            post("/processes/instances/${instance.id}/stop")
+                .contentType("application/json")
+        )
+            .andExpect(status().isOk)
+
+        val afterStopPendingNodes = getPendingTaskNodesFromApi(instance.id)
+        assertThat(afterStopPendingNodes).isEmpty()
+
+        val cancelledInstance = processInstanceRepository.findById(instance.id).orElseThrow()
+        assertThat(cancelledInstance.status).isEqualTo(ProcessStatus.CANCELLED)
+    }
+
+        @Test
+        fun `api task failure callback should route to attached error boundary workflow`() {
+                val processDefinitionJson = objectMapper.readTree(
+                        """
+                        {
+                            "processId": "api-failure-error-boundary",
+                            "nodes": [
+                                { "id": "start", "type": "StartEvent", "next": ["api-task"] },
+                                { "id": "api-task", "type": "APITask", "name": "Call API", "next": ["end-success"], "properties": { "url": "http://invalid.local", "method": "GET", "outputs": [] } },
+                                { "id": "error-boundary", "type": "ErrorBoundaryEvent", "attachedTo": "api-task", "next": ["error-task"] },
+                                { "id": "error-task", "type": "HumanTask", "name": "Handle Failure", "next": ["end-error"], "config": { "inputs": [], "outputs": [] } },
+                                { "id": "end-success", "type": "EndEvent" },
+                                { "id": "end-error", "type": "EndEvent" }
+                            ],
+                            "flows": [
+                                { "from": "start", "to": "api-task", "condition": null },
+                                { "from": "api-task", "to": "end-success", "condition": null },
+                                { "from": "error-boundary", "to": "error-task", "condition": null },
+                                { "from": "error-task", "to": "end-error", "condition": null }
+                            ]
+                        }
+                        """.trimIndent()
+                )
+
+                val processDefinition = processService.deployProcess(processDefinitionJson)
+                val instance = processService.startProcessInstance(processDefinition.id)
+
+                val startedInstance = processInstanceRepository.findById(instance.id).orElseThrow()
+                assertThat(startedInstance.status).isEqualTo(ProcessStatus.ACTIVE)
+                assertThat(startedInstance.currentNode).containsExactly("api-task")
+
+                processService.handleServiceTaskFailed(instance.id, "api-task", "Simulated worker failure")
+
+                val updatedInstance = processInstanceRepository.findById(instance.id).orElseThrow()
+                assertThat(updatedInstance.status).isEqualTo(ProcessStatus.ACTIVE)
+                assertThat(updatedInstance.currentNode).containsExactly("error-task")
+                assertThat(updatedInstance.nodeHistory).contains("error-task")
+
+                val pendingTasks = taskRepository.findByProcessInstanceId(instance.id)
+                        .filter { it.status == TaskStatus.PENDING }
+                assertThat(pendingTasks).hasSize(1)
+                assertThat(pendingTasks.first().nodeId).isEqualTo("error-task")
+        }
+
     private fun getPendingTaskNodesFromApi(processInstanceId: Long): List<String> {
         val responseBody = mockMvc.perform(get("/tasks?page=0&size=100"))
             .andExpect(status().isOk)
