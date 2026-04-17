@@ -1,6 +1,6 @@
 import { Task, TaskStatus, ProcessDefinition, CompleteTaskPayload, Page, Form } from '../types';
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8085').replace(/\/$/, '');
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080').replace(/\/$/, '');
 const USE_MOCK = false;
 
 const MOCK_PROCESSES: ProcessDefinition[] = [

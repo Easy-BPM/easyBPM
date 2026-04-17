@@ -1,0 +1,16 @@
+.gradle
+node_modules
+**/node_modules
+/.idea
+.vscode
+docs-site-working/build
+tmp
+test-results
+*.log
+**/*.iml
+gradle/wrapper/gradle-wrapper.jar
+
+# Ignore build output except packaged jars used for Docker dev build
+build/**
+!build/libs/
+!build/libs/*.jar

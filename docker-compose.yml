@@ -26,6 +26,83 @@ services:
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
 
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: Easy_BPM_Backend
+    environment:
+      SERVER_PORT: "8080"
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/easybpm
+      SPRING_DATASOURCE_USERNAME: meu_usuario
+      SPRING_DATASOURCE_PASSWORD: minha_senha
+      SPRING_RABBITMQ_HOST: rabbitmq
+    command: sh -c "java -jar /app/app.jar --server.port=8080"
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+      - rabbitmq
+    restart: unless-stopped
+
+  easy-bpm-admin:
+    image: node:18
+    container_name: Easy_BPM_Admin
+    working_dir: /app
+    volumes:
+      - ./easy-bpm-admin:/app
+    environment:
+      - VITE_API_BASE_URL=http://localhost:8080
+    command: sh -c "npm install --silent && npm run dev -- --host 0.0.0.0 --port 5173"
+    ports:
+      - "5173:5173"
+    restart: unless-stopped
+    depends_on:
+      - backend
+
+  easy-bpm-task-portal:
+    image: node:18
+    container_name: Easy_BPM_Task_Portal
+    working_dir: /app
+    volumes:
+      - ./easy-bpm-task-portal:/app
+    environment:
+      - VITE_API_BASE_URL=http://localhost:8080
+    command: sh -c "npm install --silent && npm run dev -- --host 0.0.0.0 --port 5174"
+    ports:
+      - "5174:5174"
+    restart: unless-stopped
+    depends_on:
+      - backend
+
+  easybpmn-modeler:
+    image: node:18
+    container_name: Easy_BPMN_Modeler
+    working_dir: /app
+    volumes:
+      - ./easybpmn-modeler:/app
+    environment:
+      - VITE_API_BASE_URL=http://localhost:8080
+    command: sh -c "npm install --silent && npm run dev -- --host 0.0.0.0 --port 3000"
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+    depends_on:
+      - backend
+
+  # DEV DOCS: temporary docs dev server for local documentation editing.
+  # Remove this service from docker-compose.yml when not needed.
+  docs:
+    image: node:20-bullseye
+    container_name: Easy_BPM_Docs
+    working_dir: /app
+    volumes:
+      - ./docs-site-working:/app
+    command: sh -c "npm install --silent && npm run start -- --host 0.0.0.0 --port 9000"
+    ports:
+      - "9000:9000"
+    restart: unless-stopped
+
 volumes:
   pg_data:
   rabbitmq_data:
