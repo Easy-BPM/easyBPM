@@ -84,7 +84,7 @@ class ProcessServiceTest : FunSpec({
             every { mockProcessDefinitionRepository.findTopByKeyOrderByVersionDesc("my-process") } returns null
             val expectedDefinition = ProcessDefinition(
                 id = 1,
-                name = "my-process",
+                processName = "my-process",
                 definitionJson = processJson.toString(),
                 version = 1
             )
@@ -95,7 +95,7 @@ class ProcessServiceTest : FunSpec({
 
             // Assert
             result shouldNotBe null
-            result.name shouldBe "my-process"
+            result.processName shouldBe "my-process"
             result.version shouldBe 1
             verify { mockProcessDefinitionRepository.save(any()) }
         }
@@ -113,7 +113,7 @@ class ProcessServiceTest : FunSpec({
 
             val existingDefinition = ProcessDefinition(
                 id = 1,
-                name = "my-process",
+                processName = "my-process",
                 definitionJson = "{}",
                 version = 1
             )
@@ -121,7 +121,7 @@ class ProcessServiceTest : FunSpec({
 
             val expectedDefinition = ProcessDefinition(
                 id = 2,
-                name = "my-process",
+                processName = "my-process",
                 definitionJson = processJson.toString(),
                 version = 2
             )
@@ -166,7 +166,7 @@ class ProcessServiceTest : FunSpec({
             val definitionId = 1L
             val definition = ProcessDefinition(
                 id = definitionId,
-                name = "simple-process",
+                processName = "simple-process",
                 definitionJson = """{"processId":"simple","nodes":[],"flows":[]}""",
                 version = 1
             )
@@ -192,13 +192,13 @@ class ProcessServiceTest : FunSpec({
             // Arrange
             val instance1 = ProcessInstance(
                 id = 1,
-                processDefinition = ProcessDefinition(id = 1, name = "proc-1", definitionJson = "{}", version = 1),
+                processDefinition = ProcessDefinition(id = 1, processName = "proc-1", definitionJson = "{}", version = 1),
                 status = ProcessStatus.ACTIVE,
                 currentNode = emptyList()
             )
             val instance2 = ProcessInstance(
                 id = 2,
-                processDefinition = ProcessDefinition(id = 2, name = "proc-2", definitionJson = "{}", version = 1),
+                processDefinition = ProcessDefinition(id = 2, processName = "proc-2", definitionJson = "{}", version = 1),
                 status = ProcessStatus.ACTIVE,
                 currentNode = emptyList()
             )
@@ -250,7 +250,7 @@ class ProcessServiceTest : FunSpec({
             val instanceId = 100L
             val instance = ProcessInstance(
                 id = instanceId,
-                processDefinition = ProcessDefinition(id = 1, name = "proc", definitionJson = "{}", version = 1),
+                processDefinition = ProcessDefinition(id = 1, processName = "proc", definitionJson = "{}", version = 1),
                 status = ProcessStatus.ACTIVE,
                 currentNode = listOf("node-1")
             )
@@ -280,8 +280,8 @@ class ProcessServiceTest : FunSpec({
     context("getLatestProcessDefinitions") {
         test("should retrieve latest versions of all processes") {
             // Arrange
-            val definition1 = ProcessDefinition(id = 1, name = "proc-1", definitionJson = "{}", version = 2)
-            val definition2 = ProcessDefinition(id = 2, name = "proc-2", definitionJson = "{}", version = 1)
+            val definition1 = ProcessDefinition(id = 1, processName = "proc-1", definitionJson = "{}", version = 2)
+            val definition2 = ProcessDefinition(id = 2, processName = "proc-2", definitionJson = "{}", version = 1)
 
             val page: Page<ProcessDefinition> = PageImpl(
                 listOf(definition1, definition2),
@@ -301,7 +301,7 @@ class ProcessServiceTest : FunSpec({
 
         test("should ignore unsupported sort fields and apply safe default sort") {
             // Arrange
-            val definition = ProcessDefinition(id = 1, name = "proc-1", definitionJson = "{}", version = 2)
+            val definition = ProcessDefinition(id = 1, processName = "proc-1", definitionJson = "{}", version = 2)
             val page: Page<ProcessDefinition> = PageImpl(
                 listOf(definition),
                 PageRequest.of(0, 10),
@@ -324,7 +324,7 @@ class ProcessServiceTest : FunSpec({
         test("should return process definition when it exists") {
             // Arrange
             val definitionId = 11L
-            val definition = ProcessDefinition(id = definitionId, key = "order", name = "order", definitionJson = "{}", version = 3)
+            val definition = ProcessDefinition(id = definitionId, key = "order", processName = "order", definitionJson = "{}", version = 3)
             every { mockProcessDefinitionRepository.findById(definitionId) } returns Optional.of(definition)
 
             // Act

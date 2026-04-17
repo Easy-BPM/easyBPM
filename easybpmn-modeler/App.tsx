@@ -20,6 +20,7 @@ const App: React.FC = () => {
   const [edges, setEdges] = useState<BpmnEdge[]>([]);
   const [variables, setVariables] = useState<ProcessVariable[]>([]);
   const [processId, setProcessId] = useState<string>(`process_${Date.now()}`);
+  const [processName, setProcessName] = useState<string>('');
   const [selectedNodeUids, setSelectedNodeUids] = useState<string[]>([]);
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
   const [currentView, setCurrentView] = useState<AppView>('bpmn');
@@ -515,6 +516,7 @@ const App: React.FC = () => {
 
     return {
       processId: processId,
+      processName: processName,
       metadata: {
         exportedAt: new Date().toISOString(),
         version: "1.0"
@@ -773,6 +775,7 @@ const App: React.FC = () => {
 
     // Update State
     setProcessId(data.processId || `process_${Date.now()}`);
+    setProcessName(data.processName || data.name || '');
     setVariables(importedVariables);
     setNodes(importedNodes);
     setEdges(importedEdges);
@@ -842,7 +845,9 @@ const App: React.FC = () => {
               selectedEdge={edges.find(e => e.id === selectedEdgeId) || null}
               processVariables={variables} 
               processId={processId}
+              processName={processName}
               onUpdateProcessId={setProcessId}
+              onUpdateProcessName={setProcessName}
               onUpdateNode={handleUpdateNode} 
               onUpdateNodeId={handleUpdateNodeId} 
               onUpdateEdge={handleUpdateEdge}

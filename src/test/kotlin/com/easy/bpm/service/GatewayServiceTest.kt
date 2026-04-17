@@ -44,7 +44,7 @@ class GatewayServiceTest : FunSpec({
 
             val processDefinition = ProcessDefinition(
                 id = 1,
-                name = "test-process",
+                processName = "test-process",
                 definitionJson = definition.toString(),
                 version = 1
             )
@@ -84,7 +84,7 @@ class GatewayServiceTest : FunSpec({
 
             val processDefinition = ProcessDefinition(
                 id = 1,
-                name = "test-process",
+                processName = "test-process",
                 definitionJson = definition.toString(),
                 version = 1
             )
@@ -126,7 +126,7 @@ class GatewayServiceTest : FunSpec({
 
             val processDefinition = ProcessDefinition(
                 id = 1,
-                name = "test-process",
+                processName = "test-process",
                 definitionJson = definition.toString(),
                 version = 1
             )
@@ -163,7 +163,7 @@ class GatewayServiceTest : FunSpec({
 
             val processDefinition = ProcessDefinition(
                 id = 1,
-                name = "test-process",
+                processName = "test-process",
                 definitionJson = definition.toString(),
                 version = 1
             )

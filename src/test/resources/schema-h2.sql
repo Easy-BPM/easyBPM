@@ -16,8 +16,8 @@ CREATE INDEX "idx_message_subscription_lookup" ON "message_subscription"("messag
 CREATE INDEX "idx_message_subscription_timeout" ON "message_subscription"("timeout_at");
 CREATE TABLE "process_definition" (
     "id" BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    "process_key" VARCHAR(255) NOT NULL,
-    "name" VARCHAR(255) NOT NULL,
+    "process_id" VARCHAR(255) NOT NULL,
+    "process_name" VARCHAR(255),
     "description" CLOB,
     "version" INTEGER NOT NULL,
     "definition_json" CLOB NOT NULL

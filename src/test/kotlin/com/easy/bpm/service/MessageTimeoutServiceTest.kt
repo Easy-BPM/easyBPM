@@ -45,7 +45,7 @@ class MessageTimeoutServiceTest : FunSpec({
             val definition = ProcessDefinition(
                 id = 1L,
                 key = "process-key",
-                name = "Process",
+                processName = "Process",
                 version = 1,
                 definitionJson = "{}"
             )
@@ -104,7 +104,7 @@ class MessageTimeoutServiceTest : FunSpec({
             val definition = ProcessDefinition(
                 id = 2L,
                 key = "proc-2",
-                name = "Proc2",
+                processName = "Proc2",
                 version = 1,
                 definitionJson = "{}"
             )
@@ -146,7 +146,7 @@ class MessageTimeoutServiceTest : FunSpec({
             val definition = ProcessDefinition(
                 id = 3L,
                 key = "proc-3",
-                name = "Proc3",
+                processName = "Proc3",
                 version = 1,
                 definitionJson = "{}"
             )

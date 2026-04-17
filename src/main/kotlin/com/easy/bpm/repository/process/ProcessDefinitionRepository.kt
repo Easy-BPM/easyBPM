@@ -8,7 +8,6 @@ import org.springframework.data.jpa.repository.Query
 
 interface ProcessDefinitionRepository : JpaRepository<ProcessDefinition, Long> {
     fun findTopByKeyOrderByVersionDesc(key: String): ProcessDefinition?
-    fun findTopByNameOrderByVersionDesc(name: String): ProcessDefinition?
 
     @Query("""
         SELECT pd FROM ProcessDefinition pd

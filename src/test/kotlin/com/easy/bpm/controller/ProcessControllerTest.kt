@@ -38,7 +38,7 @@ class ProcessControllerTest : FunSpec({
 
             val expectedDefinition = ProcessDefinition(
                 id = 1,
-                name = "my-process",
+                processName = "my-process",
                 definitionJson = processJson.toString(),
                 version = 1
             )
@@ -51,7 +51,7 @@ class ProcessControllerTest : FunSpec({
             // Assert
             result shouldNotBe null
             result.id shouldBe 1
-            result.name shouldBe "my-process"
+            result.processName shouldBe "my-process"
             result.version shouldBe 1
             verify { mockProcessService.deployProcess(processJson) }
         }
@@ -76,10 +76,11 @@ class ProcessControllerTest : FunSpec({
     context("startInstance") {
         test("should start process instance successfully") {
             // Arrange
+            val processKey = "my-process"
             val processDefinitionId = 1L
             val processDefinition = ProcessDefinition(
                 id = processDefinitionId,
-                name = "my-process",
+                processName = "my-process",
                 definitionJson = "{}",
                 version = 1
             )
@@ -90,26 +91,26 @@ class ProcessControllerTest : FunSpec({
                 currentNode = listOf("start-1")
             )
 
-            every { mockProcessService.startProcessInstance(processDefinitionId) } returns expectedInstance
+            every { mockProcessService.startProcessInstance(processKey) } returns expectedInstance
 
             // Act
-            val result = processController.startInstance(processDefinitionId)
+            val result = processController.startInstance(processKey)
 
             // Assert
             result shouldNotBe null
             result.id shouldBe 100
             result.processDefinition.id shouldBe processDefinitionId
-            verify { mockProcessService.startProcessInstance(processDefinitionId) }
+            verify { mockProcessService.startProcessInstance(processKey) }
         }
 
         test("should throw exception when process definition not found") {
             // Arrange
-            val processDefinitionId = 999L
-            every { mockProcessService.startProcessInstance(processDefinitionId) } throws IllegalArgumentException("Process definition not found")
+            val processKey = "unknown"
+            every { mockProcessService.startProcessInstance(processKey) } throws IllegalArgumentException("Process definition not found")
 
             // Act & Assert
             shouldThrow<IllegalArgumentException> {
-                processController.startInstance(processDefinitionId)
+                processController.startInstance(processKey)
             }
         }
     }
@@ -119,7 +120,7 @@ class ProcessControllerTest : FunSpec({
             // Arrange
             val processDefinition = ProcessDefinition(
                 id = 1,
-                name = "my-process",
+                processName = "my-process",
                 definitionJson = "{}",
                 version = 1
             )
@@ -172,13 +173,13 @@ class ProcessControllerTest : FunSpec({
             // Arrange
             val definition1 = ProcessDefinition(
                 id = 1,
-                name = "process-1",
+                processName = "process-1",
                 definitionJson = "{}",
                 version = 2
             )
             val definition2 = ProcessDefinition(
                 id = 2,
-                name = "process-2",
+                processName = "process-2",
                 definitionJson = "{}",
                 version = 1
             )
@@ -207,7 +208,7 @@ class ProcessControllerTest : FunSpec({
             val definition = ProcessDefinition(
                 id = definitionId,
                 key = "expense",
-                name = "Expense Approval",
+                processName = "Expense Approval",
                 definitionJson = "{}",
                 version = 2
             )

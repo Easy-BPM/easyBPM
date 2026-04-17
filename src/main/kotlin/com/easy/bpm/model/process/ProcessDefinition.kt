@@ -10,11 +10,13 @@ data class ProcessDefinition(
         @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
         val id: Long = 0,
 
-        @Column(name = "process_key", nullable = false)
+        @Column(name = "process_id", nullable = false)
         @get:JsonProperty("key")
         val key: String = "",
 
-        val name: String,
+        @get:JsonProperty("processName")
+        @Column(name = "process_name")
+        val processName: String? = null,
 
         val description: String? = null,
 

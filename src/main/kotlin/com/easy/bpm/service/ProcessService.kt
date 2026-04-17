@@ -58,7 +58,8 @@ class ProcessService(
 
         val processId = json.get("processId").asText()
         val processKey = json.get("key")?.asText()?.takeIf { it.isNotBlank() } ?: processId
-        val processName = json.get("name")?.asText()?.takeIf { it.isNotBlank() } ?: processId
+        val processName = json.get("processName")?.asText()?.takeIf { it.isNotBlank() }
+            ?: json.get("name")?.asText()?.takeIf { it.isNotBlank() } ?: processId
         val processDescription =
             json.get("description")?.asText()?.takeIf { it.isNotBlank() }
                 ?: json.get("metadata")?.get("description")?.asText()?.takeIf { it.isNotBlank() }
@@ -69,9 +70,9 @@ class ProcessService(
         val nextVersion = (latestVersion?.version ?: 0) + 1
 
         return processDefinitionRepository.save(
-            ProcessDefinition(
+                ProcessDefinition(
                 key = processKey,
-                name = processName,
+                    processName = processName,
                 description = processDescription,
                 definitionJson = json.toString(),
                 version = nextVersion
@@ -85,10 +86,22 @@ class ProcessService(
 
     @Transactional
     fun startProcessInstance(processDefinitionId: Long): ProcessInstance {
-        val startTime = System.currentTimeMillis()
-        
         val definition = processDefinitionRepository.findById(processDefinitionId)
             .orElseThrow { IllegalArgumentException("Process definition not found") }
+
+        return startWithDefinition(definition)
+    }
+
+    @Transactional
+    fun startProcessInstance(processId: String): ProcessInstance {
+        val definition = processDefinitionRepository.findTopByKeyOrderByVersionDesc(processId)
+            ?: throw IllegalArgumentException("Process definition not found for id: $processId")
+
+        return startWithDefinition(definition)
+    }
+
+    private fun startWithDefinition(definition: ProcessDefinition): ProcessInstance {
+        val startTime = System.currentTimeMillis()
 
         val json = parseDefinition(definition.definitionJson)
 

@@ -389,7 +389,7 @@ const ProcessListView: React.FC<{ onViewInbox: () => void }> = ({ onViewInbox })
           >
             <div>
               <div className="flex justify-between items-start">
-                <h3 className="font-bold text-lg text-slate-800">{processDefinition.name}</h3>
+                <h3 className="font-bold text-lg text-slate-800">{processDefinition.processName || processDefinition.key}</h3>
                 <span className="text-xs font-mono bg-slate-100 text-slate-500 px-2 py-1 rounded">v{processDefinition.version}</span>
               </div>
               <p className="text-slate-500 text-sm mt-2">{processDefinition.description}</p>

@@ -9,8 +9,8 @@ export enum TaskStatus {
 
 export interface ProcessDefinition {
   id: string;
-  name: string;
   key: string;
+  processName?: string;
   description: string;
   version: number;
 }

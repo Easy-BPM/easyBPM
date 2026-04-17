@@ -81,10 +81,10 @@ class ProcessController(
         return processService.deployProcess(request)
     }
 
-    @PostMapping("/{processDefinitionId}/start")
-    @Operation(summary = "Start a process instance", description = "Create and start a new instance of a process definition")
-    fun startInstance(@PathVariable processDefinitionId: Long): ProcessInstance {
-        return processService.startProcessInstance(processDefinitionId)
+    @PostMapping("/{processId}/start")
+    @Operation(summary = "Start a process instance", description = "Create and start a new instance of a process definition by processId")
+    fun startInstance(@PathVariable processId: String): ProcessInstance {
+        return processService.startProcessInstance(processId)
     }
 
     @GetMapping("/instances")

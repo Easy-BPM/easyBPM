@@ -8,7 +8,9 @@ interface PropertiesPanelProps {
   selectedEdge: BpmnEdge | null;
   processVariables: ProcessVariable[];
   processId: string;
+  processName: string;
   onUpdateProcessId: (id: string) => void;
+  onUpdateProcessName: (name: string) => void;
   onUpdateNode: (uid: string, data: Partial<BpmnNode['data']>) => void;
   onUpdateNodeId: (uid: string, newId: string) => void;
   onUpdateEdge: (edgeId: string, data: Partial<BpmnEdge>) => void;
@@ -29,7 +31,9 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
   selectedEdge,
   processVariables,
   processId,
+  processName,
   onUpdateProcessId,
+  onUpdateProcessName,
   onUpdateNode,
   onUpdateNodeId,
   onUpdateEdge,
@@ -280,16 +284,27 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
           <div className="space-y-4">
             <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider">Configuration</label>
             <div>
-              <label className="block text-[10px] text-slate-400 mb-1 font-bold flex items-center gap-1"><FileCode className="w-3 h-3" /> PROCESS NAME</label>
-              <input 
-                type="text" 
-                value={processId} 
-                onChange={e => onUpdateProcessId(e.target.value)} 
-                className={`${inputClassName} font-mono ${!processId.trim() ? '!border-red-500' : ''}`} 
-                placeholder="e.g. order_processing_01" 
-              />
-              {!processId.trim() && <p className="text-[10px] text-red-500 mt-1">Process Name cannot be empty</p>}
-            </div>
+                <label className="block text-[10px] text-slate-400 mb-1 font-bold flex items-center gap-1"><FileCode className="w-3 h-3" /> PROCESS ID</label>
+                <input 
+                  type="text" 
+                  value={processId} 
+                  onChange={e => onUpdateProcessId(e.target.value)} 
+                  className={`${inputClassName} font-mono ${!processId.trim() ? '!border-red-500' : ''}`} 
+                  placeholder="e.g. order_processing_01" 
+                />
+                {!processId.trim() && <p className="text-[10px] text-red-500 mt-1">Process ID cannot be empty</p>}
+              </div>
+
+              <div className="mt-3">
+                <label className="block text-[10px] text-slate-400 mb-1 font-bold flex items-center gap-1"><FileText className="w-3 h-3" /> PROCESS NAME (Title)</label>
+                <input
+                  type="text"
+                  value={processName}
+                  onChange={e => onUpdateProcessName(e.target.value)}
+                  className={`${inputClassName}`}
+                  placeholder="Human-friendly title e.g. Order Processing"
+                />
+              </div>
           </div>
 
           <div className="border-t border-slate-100 pt-6">
