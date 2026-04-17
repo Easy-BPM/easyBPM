@@ -540,9 +540,9 @@ const TaskDetailView: React.FC<{ taskId: number; onBack: () => void; currentUser
       setFormData(taskVariables);
       setVariableEntries(mapToVariableEntries(taskVariables));
 
-      if (selectedTask.formId) {
+      if (selectedTask.formDbId) {
         try {
-          const loadedForm = await bpmService.getFormById(selectedTask.formId);
+          const loadedForm = await bpmService.getFormById(selectedTask.formDbId);
           setFormDef(loadedForm);
         } catch (loadFormError) {
           setError((loadFormError as Error).message);
@@ -646,9 +646,9 @@ const TaskDetailView: React.FC<{ taskId: number; onBack: () => void; currentUser
               <span className="text-xs font-bold text-slate-500 tracking-wider uppercase bg-slate-100 px-2 py-1 rounded border border-slate-200">
                 Task #{task.id}
               </span>
-              {(task.formKey || formDef?.key) && (
+              {(task.formId || formDef?.formId) && (
                 <span className="text-xs font-bold text-emerald-600 tracking-wider uppercase bg-emerald-50 px-2 py-1 rounded border border-emerald-100">
-                  Form Key: {task.formKey || formDef?.key}
+                  Form ID: {task.formId || formDef?.formId}
                 </span>
               )}
             </div>

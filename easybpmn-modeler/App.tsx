@@ -174,7 +174,7 @@ const App: React.FC = () => {
       if (node.type === 'user-task') {
         const configuredFormKey = node.data.formId?.trim();
         if (configuredFormKey && !FORM_KEY_PATTERN.test(configuredFormKey)) {
-          addIssue('error', `User task ${node.id} has an invalid form key. Use letters, numbers, hyphens, or underscores, starting with a letter.`, { nodeUid: node.uid, nodeId: node.id });
+          addIssue('error', `Human task ${node.id} has an invalid form key. Use letters, numbers, hyphens, or underscores, starting with a letter.`, { nodeUid: node.uid, nodeId: node.id });
         }
       }
 
@@ -352,7 +352,7 @@ const App: React.FC = () => {
     const typeMapping: Record<NodeType, string> = {
       'start': 'StartEvent', 
       'end': 'EndEvent', 
-      'user-task': 'UserTask',
+      'user-task': 'HumanTask',
       'service-task': 'ServiceTask',
       'api-task': 'APITask',
       'gateway': 'ExclusiveGateway', 
@@ -575,6 +575,7 @@ const App: React.FC = () => {
     const reverseTypeMapping: Record<string, NodeType> = {
       'StartEvent': 'start',
       'EndEvent': 'end',
+      'HumanTask': 'user-task',
       'UserTask': 'user-task',
       'ServiceTask': 'service-task',
       'APITask': 'api-task',

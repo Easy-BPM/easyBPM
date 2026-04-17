@@ -99,11 +99,11 @@ Exports metrics in Prometheus-compatible format for scraping.
 - **Description**: Time to execute a single node within a process
 - **Percentiles**: 50th, 95th, 99th
 - **Unit**: Milliseconds
-- **Tags**: `nodeType` (values: `UserTask`, `ServiceTask`, `Gateway`, `MessageEvent`, etc.)
+- **Tags**: `nodeType` (values: `HumanTask`, `ServiceTask`, `Gateway`, `MessageEvent`, etc.)
 
 Example: Track performance by node type:
 ```
-node.execution.duration{nodeType="UserTask"}
+node.execution.duration{nodeType="HumanTask"}
 node.execution.duration{nodeType="ServiceTask"}
 node.execution.duration{nodeType="Gateway"}
 ```

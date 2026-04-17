@@ -12,7 +12,7 @@ const MOCK_PROCESSES: ProcessDefinition[] = [
 const MOCK_FORMS: Record<number, Form> = {
   100: {
     id: 100,
-    key: 'integrationResultForm',
+    formId: 'integrationResultForm',
     name: 'Integration Result Form',
     version: 1,
     createdAt: new Date().toISOString(),
@@ -29,7 +29,7 @@ const MOCK_FORMS: Record<number, Form> = {
   },
   101: {
     id: 101,
-    key: 'approvalForm',
+    formId: 'approvalForm',
     name: 'Approval Form',
     version: 1,
     createdAt: new Date().toISOString(),
@@ -57,8 +57,8 @@ const MOCK_TASKS: Task[] = [
     status: TaskStatus.PENDING,
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
     completedAt: null,
-    formId: 100,
-    formKey: 'integrationResultForm',
+    formDbId: 100,
+    formId: 'integrationResultForm',
     description: 'Please verify the output from the legacy system integration.',
     variables: {
       resultadoApi: 'Success: Transaction 998877',
@@ -75,8 +75,8 @@ const MOCK_TASKS: Task[] = [
     status: TaskStatus.PENDING,
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
     completedAt: null,
-    formId: 101,
-    formKey: 'approvalForm',
+    formDbId: 101,
+    formId: 'approvalForm',
     description: 'Approve the new expense report submitted by Alice.',
     variables: {
       comentarioInicial: 'Tudo certo'

@@ -54,12 +54,12 @@ object ParseXMLToJsonFormat {
             )
         }
 
-        // UserTask
+        // HumanTask
         doc.getElementsByTagName("bpmn:userTask").forEachElement { el ->
             nodes.add(
                 mutableMapOf(
                     "id" to el.getAttribute("id"),
-                    "type" to "UserTask",
+                    "type" to "HumanTask",
                     "name" to el.getAttribute("name"),
                     "taskVariables" to emptyList<String>(),
                     "next" to mutableListOf<String>()

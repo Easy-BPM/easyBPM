@@ -121,8 +121,8 @@ Stores BPMN process templates with versioning.
         "type": "StartEvent"
       },
       {
-        "id": "userTask_1",
-        "type": "UserTask",
+        "id": "humanTask_1",
+        "type": "HumanTask",
         "name": "Approve Order",
         "config": {
           "inputs": [...],
@@ -144,7 +144,7 @@ Tracks runtime execution of a process.
   "id": 100,
   "processDefinitionId": 1,
   "status": "ACTIVE",
-  "currentNode": ["userTask_1"],
+  "currentNode": ["humanTask_1"],
   "nodeHistory": ["start_1"],
   "createdAt": "2026-04-14T10:00:00Z",
   "updatedAt": "2026-04-14T10:05:00Z"
@@ -159,7 +159,7 @@ User-facing work item for human tasks.
   "id": 200,
   "processInstanceId": 100,
   "title": "Approve Order",
-  "nodeId": "userTask_1",
+  "nodeId": "humanTask_1",
   "assignee": "john@example.com",
   "status": "PENDING",
   "formId": 50,

@@ -3,7 +3,7 @@ package com.easy.bpm.enum
 enum class NodeType(val typeName: String) {
     StartEvent("StartEvent"),
     EndEvent("EndEvent"),
-    UserTask("UserTask"),
+    UserTask("HumanTask"),
     Integration("Integration"),
     InclusiveGateway("InclusiveGateway"),
     ExclusiveGateway("ExclusiveGateway"),
@@ -19,7 +19,10 @@ enum class NodeType(val typeName: String) {
     CallActivity("CallActivity");
 
     companion object {
-        private val map = values().associateBy { it.typeName }
+        private val map = values().associateBy { it.typeName } + mapOf(
+            // Backward compatibility for existing process definitions and imports.
+            "UserTask" to UserTask
+        )
         fun fromString(s: String): NodeType = map[s]
             ?: throw IllegalArgumentException("Invalid node type '$s'")
     }

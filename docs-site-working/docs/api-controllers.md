@@ -39,8 +39,8 @@ Content-Type: application/json
       "name": "Start Process"
     },
     {
-      "id": "userTask_1",
-      "type": "UserTask",
+      "id": "humanTask_1",
+      "type": "HumanTask",
       "name": "Review Document",
       "config": {
         "inputs": [],
@@ -56,10 +56,10 @@ Content-Type: application/json
   "edges": [
     {
       "source": "start_1",
-      "target": "userTask_1"
+      "target": "humanTask_1"
     },
     {
-      "source": "userTask_1",
+      "source": "humanTask_1",
       "target": "end_1"
     }
   ]
@@ -127,7 +127,7 @@ POST /processes/{processDefinitionId}/start
   "id": 100,
   "processDefinitionId": 1,
   "status": "ACTIVE",
-  "currentNode": ["userTask_1"],
+  "currentNode": ["humanTask_1"],
   "nodeHistory": ["start_1"],
   "createdAt": "2026-04-14T10:00:00Z",
   "updatedAt": "2026-04-14T10:00:00Z"
@@ -155,7 +155,7 @@ GET /processes/instances?page=0&size=20&sort=createdAt,desc
       "id": 100,
       "processDefinitionId": 1,
       "status": "ACTIVE",
-      "currentNode": ["userTask_1"],
+      "currentNode": ["humanTask_1"],
       "nodeHistory": ["start_1"],
       "createdAt": "2026-04-14T10:00:00Z",
       "updatedAt": "2026-04-14T10:00:00Z"
@@ -231,7 +231,7 @@ GET /tasks?page=0&size=20&sort=createdAt,desc
       "id": 200,
       "processInstanceId": 100,
       "title": "Review Document",
-      "nodeId": "userTask_1",
+      "nodeId": "humanTask_1",
       "assignee": null,
       "status": "PENDING",
       "createdAt": "2026-04-14T10:00:00Z",

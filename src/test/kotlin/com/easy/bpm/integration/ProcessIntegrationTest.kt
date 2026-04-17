@@ -15,16 +15,22 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Disabled
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase.Replace
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.mock.mockito.MockBean
 import org.springframework.core.io.ClassPathResource
 import org.springframework.test.context.ActiveProfiles
+import org.springframework.test.web.servlet.MockMvc
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import org.springframework.transaction.annotation.Transactional
 
 @SpringBootTest
 @ActiveProfiles("test")
 @AutoConfigureTestDatabase(replace = Replace.NONE)
+@AutoConfigureMockMvc
 @Transactional
 
 class ProcessIntegrationTest(
@@ -34,7 +40,8 @@ class ProcessIntegrationTest(
     @Autowired private val taskRepository: TaskRepository,
     @Autowired private val processVariableRepository: ProcessVariableRepository,
     @Autowired private val taskVariableRepository: TaskVariableRepository,
-    @Autowired private val objectMapper: ObjectMapper
+    @Autowired private val objectMapper: ObjectMapper,
+    @Autowired private val mockMvc: MockMvc
 ) {
 
     @Test
@@ -318,5 +325,64 @@ class ProcessIntegrationTest(
         val updatedCatchInstance = processInstanceRepository.findById(catchInstance.id).orElseThrow()
         assertThat(updatedCatchInstance.currentNode).isEmpty()
         assertThat(updatedCatchInstance.status).isEqualTo(ProcessStatus.COMPLETED)
+    }
+
+    @Test
+    fun `move node endpoint should remove old pending task and create new pending task in tasks api`() {
+        val processDefinitionJson = objectMapper.readTree(
+            """
+            {
+              "processId": "move-node-approval",
+              "nodes": [
+                { "id": "start", "type": "StartEvent", "next": ["manual-review"] },
+                { "id": "manual-review", "type": "HumanTask", "name": "Manual Review", "next": ["approve-request"] },
+                { "id": "approve-request", "type": "HumanTask", "name": "Approve Request", "next": ["end"] },
+                { "id": "end", "type": "EndEvent" }
+              ],
+              "flows": []
+            }
+            """.trimIndent()
+        )
+
+        val processDefinition = processService.deployProcess(processDefinitionJson)
+        val instance = processService.startProcessInstance(processDefinition.id)
+
+        val beforeMovePendingNodes = getPendingTaskNodesFromApi(instance.id)
+        assertThat(beforeMovePendingNodes).containsExactly("manual-review")
+
+        mockMvc.perform(
+            post("/processes/instances/${instance.id}/move-node")
+                .contentType("application/json")
+                .content(
+                    """
+                    {
+                      "fromNode": "manual-review",
+                      "toNode": "approve-request",
+                      "reason": "Admin correction"
+                    }
+                    """.trimIndent()
+                )
+        )
+            .andExpect(status().isOk)
+
+        val afterMovePendingNodes = getPendingTaskNodesFromApi(instance.id)
+        assertThat(afterMovePendingNodes).containsExactly("approve-request")
+        assertThat(afterMovePendingNodes).doesNotContain("manual-review")
+    }
+
+    private fun getPendingTaskNodesFromApi(processInstanceId: Long): List<String> {
+        val responseBody = mockMvc.perform(get("/tasks?page=0&size=100"))
+            .andExpect(status().isOk)
+            .andReturn()
+            .response
+            .contentAsString
+
+        val root = objectMapper.readTree(responseBody)
+        return root.get("content")
+            .filter {
+                it.get("processInstanceId")?.asLong() == processInstanceId &&
+                    it.get("status")?.asText() == TaskStatus.PENDING.name
+            }
+            .mapNotNull { it.get("nodeId")?.asText() }
     }
 }

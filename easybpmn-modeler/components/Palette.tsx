@@ -30,7 +30,7 @@ export const Palette: React.FC<PaletteProps> = ({ onDragStart }) => {
     {
       title: 'Activities',
       items: [
-        { type: 'user-task', label: 'User Task', icon: <User className="w-5 h-5" />, color: 'text-blue-600' },
+        { type: 'user-task', label: 'Human Task', icon: <User className="w-5 h-5" />, color: 'text-blue-600' },
         { type: 'api-task', label: 'API Task', icon: <Settings className="w-5 h-5" />, color: 'text-purple-600' },
         { type: 'service-task', label: 'Service Task', icon: <Zap className="w-5 h-5" />, color: 'text-amber-600' },
       ]

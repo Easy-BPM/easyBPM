@@ -62,7 +62,7 @@ This behavior is implemented in:
     {
       "id": "manager_review",
       "name": "Manager Review",
-      "type": "UserTask",
+      "type": "HumanTask",
       "position": { "x": 320, "y": 180 },
       "next": ["end_1"],
       "config": {

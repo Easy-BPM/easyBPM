@@ -29,7 +29,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { FormDefinition, FormField, FormTab } from '../types';
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? 'http://localhost:8085';
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? 'http://localhost:8080';
 const FORM_KEY_PATTERN = /^[A-Za-z][A-Za-z0-9_-]*$/;
 
 const FIELD_TYPES = [
@@ -235,11 +235,11 @@ export const FormModeler: React.FC = () => {
     }
 
     if (!trimmedKey) {
-      return 'Form key is required.';
+      return 'Form Id is required.';
     }
 
     if (!FORM_KEY_PATTERN.test(trimmedKey)) {
-      return 'Form key must start with a letter and contain only letters, numbers, hyphens, or underscores.';
+      return 'Form Id must start with a letter and contain only letters, numbers, hyphens, or underscores.';
     }
 
     const fieldNames = formDef.tabs.flatMap(tab => tab.fields.map(field => field.name.trim()));
@@ -276,7 +276,7 @@ export const FormModeler: React.FC = () => {
     });
 
     return {
-      key: formDef.id.trim(),
+      formId: formDef.id.trim(),
       name: formDef.name.trim(),
       schema: {
         title: formDef.name.trim(),
@@ -361,7 +361,7 @@ export const FormModeler: React.FC = () => {
             </div>
             <div className="h-8 w-px bg-slate-200" />
             <div className="flex flex-col">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Form Key (ID)</label>
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Form Id (ID)</label>
               <input 
                 value={form.id}
                 onChange={(e) => handleUpdateForm({ id: e.target.value.replace(/\s+/g, '') })}
@@ -530,7 +530,7 @@ export const FormModeler: React.FC = () => {
               <div className="mb-8 pb-4 border-b border-slate-100">
                 <h2 className="text-2xl font-bold text-slate-800">{activeTab?.name || 'Form Canvas'}</h2>
                 <p className="text-sm text-slate-400">Drag fields here to build your form</p>
-                <p className="text-xs text-slate-400 mt-2">Form key is the stable identifier used for versioning and user-task attachment.</p>
+                <p className="text-xs text-slate-400 mt-2">Form key is the stable identifier used for versioning and human-task attachment.</p>
               </div>
 
               <DndContext 

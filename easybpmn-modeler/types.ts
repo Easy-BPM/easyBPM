@@ -18,7 +18,7 @@ export type ApiAuthType = 'none' | 'bearer' | 'basic' | 'apikey';
 export interface NodeData {
   label: string;
   description?: string;
-  // User Task specific
+  // Human Task specific
   assignee?: string;
   candidateGroups?: string;
   formId?: string;

@@ -22,7 +22,7 @@ class FormController(
     fun deployForm(
         @io.swagger.v3.oas.annotations.parameters.RequestBody(
             required = true,
-            description = "Form deployment payload containing stable key, display name, and JSON schema",
+            description = "Form deployment payload containing stable formId, display name, and JSON schema",
             content = [
                 Content(
                     mediaType = "application/json",
@@ -33,7 +33,7 @@ class FormController(
                             summary = "Deploy expense request form",
                             value = """
                             {
-                                                            "key": "expenseRequest",
+                                                            "formId": "expenseRequest",
                               "name": "expense-request",
                               "schema": {
                                 "type": "object",
@@ -53,19 +53,19 @@ class FormController(
         )
         @RequestBody request: DeployFormRequest
     ): Form {
-        return formService.deploy(request.key, request.name, request.schema)
+        return formService.deploy(request.formId, request.name, request.schema)
     }
 
     @GetMapping("/latest")
-    @Operation(summary = "Get latest form version", description = "Retrieve the latest version of a form by key. The legacy name parameter is also supported for backward compatibility.")
+    @Operation(summary = "Get latest form version", description = "Retrieve the latest version of a form by formId. The name parameter is also supported for lookup by form name.")
     fun getLatest(
-        @RequestParam(required = false) key: String?,
+        @RequestParam(required = false) formId: String?,
         @RequestParam(required = false) name: String?
     ): Form? {
         return when {
-            !key.isNullOrBlank() -> formService.getLatestVersionByKey(key)
+            !formId.isNullOrBlank() -> formService.getLatestVersionByFormId(formId)
             !name.isNullOrBlank() -> formService.getLatestVersionByName(name)
-            else -> throw IllegalArgumentException("Either key or name query parameter is required")
+            else -> throw IllegalArgumentException("Either formId or name query parameter is required")
         }
     }
 
@@ -76,15 +76,15 @@ class FormController(
     }
 
     @GetMapping
-    @Operation(summary = "Get all form versions", description = "Retrieve all versions of a form by key. The legacy name parameter is also supported for backward compatibility.")
+    @Operation(summary = "Get all form versions", description = "Retrieve all versions of a form by formId. The name parameter is also supported for lookup by form name.")
     fun getAllVersions(
-        @RequestParam(required = false) key: String?,
+        @RequestParam(required = false) formId: String?,
         @RequestParam(required = false) name: String?
     ): List<Form> {
         return when {
-            !key.isNullOrBlank() -> formService.getAllVersionsByKey(key)
+            !formId.isNullOrBlank() -> formService.getAllVersionsByFormId(formId)
             !name.isNullOrBlank() -> formService.getAllVersionsByName(name)
-            else -> throw IllegalArgumentException("Either key or name query parameter is required")
+            else -> throw IllegalArgumentException("Either formId or name query parameter is required")
         }
     }
 }

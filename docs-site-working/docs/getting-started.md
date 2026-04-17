@@ -66,7 +66,7 @@ curl -X POST http://localhost:8085/processes \
   -d '{
     "nodes": [
       {"id": "start", "type": "StartEvent"},
-      {"id": "task1", "type": "UserTask", "name": "Review"},
+      {"id": "task1", "type": "HumanTask", "name": "Review"},
       {"id": "end", "type": "EndEvent"}
     ],
     "edges": [

@@ -320,6 +320,91 @@ class ProcessServiceTest : FunSpec({
         }
     }
 
+    context("moveProcessNode") {
+        test("should remove pending task on source node and create pending task on target user task") {
+            // Arrange
+            val processInstanceId = 55L
+            val definitionJson = """
+                {
+                  "processId": "approval",
+                  "nodes": [
+                    {"id": "manual-review", "type": "HumanTask", "name": "Manual Review"},
+                    {"id": "approve-request", "type": "HumanTask", "name": "Approve Request"}
+                  ],
+                  "flows": []
+                }
+            """.trimIndent()
+
+            val definition = ProcessDefinition(
+                id = 10,
+                processName = "approval",
+                definitionJson = definitionJson,
+                version = 1
+            )
+
+            val instance = ProcessInstance(
+                id = processInstanceId,
+                processDefinition = definition,
+                status = ProcessStatus.ACTIVE,
+                currentNode = listOf("manual-review"),
+                nodeHistory = listOf("manual-review")
+            )
+
+            val pendingSourceTask = Task(
+                id = 1001,
+                processInstanceId = processInstanceId,
+                title = "Manual Review",
+                nodeId = "manual-review"
+            )
+
+            every { mockProcessInstanceRepository.findById(processInstanceId) } returns Optional.of(instance)
+            every { mockObjectMapper.readTree(definitionJson) } returns objectMapper.readTree(definitionJson)
+
+            every {
+                mockTaskRepository.findByProcessInstanceIdAndNodeIdAndStatus(
+                    processInstanceId,
+                    "manual-review",
+                    com.easy.bpm.enum.TaskStatus.PENDING
+                )
+            } returns listOf(pendingSourceTask)
+
+            every {
+                mockTaskRepository.findByProcessInstanceIdAndNodeIdAndStatus(
+                    processInstanceId,
+                    "approve-request",
+                    com.easy.bpm.enum.TaskStatus.PENDING
+                )
+            } returns emptyList()
+
+            every { mockTaskVariableRepository.deleteByTaskId(pendingSourceTask.id) } just runs
+            every { mockTaskRepository.delete(pendingSourceTask) } just runs
+
+            every { mockFormService.getLatestVersionByName("approve-request") } returns null
+            every { mockTaskRepository.save(any()) } answers {
+                firstArg<Task>().copy(id = 2002)
+            }
+
+            every { mockProcessInstanceRepository.save(any()) } answers { firstArg() }
+
+            // Act
+            val result = processService.moveProcessNode(processInstanceId, "manual-review", "approve-request")
+
+            // Assert
+            result.currentNode shouldBe listOf("approve-request")
+            result.nodeHistory shouldContain "approve-request"
+
+            verify(exactly = 1) { mockTaskVariableRepository.deleteByTaskId(pendingSourceTask.id) }
+            verify(exactly = 1) { mockTaskRepository.delete(pendingSourceTask) }
+            verify(exactly = 1) {
+                mockTaskRepository.save(match {
+                    it.processInstanceId == processInstanceId &&
+                        it.nodeId == "approve-request" &&
+                        it.title == "Approve Request"
+                })
+            }
+        }
+    }
+
     context("getProcessDefinitionById") {
         test("should return process definition when it exists") {
             // Arrange

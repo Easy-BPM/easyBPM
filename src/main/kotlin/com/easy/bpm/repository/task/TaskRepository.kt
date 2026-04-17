@@ -11,6 +11,7 @@ interface TaskRepository : JpaRepository<Task, Long> {
     fun findByStatus(status: TaskStatus, pageable: Pageable): Page<Task>
     fun findByAssigneeAndStatus(assignee: String, status: TaskStatus, pageable: Pageable): Page<Task>
     fun findByProcessInstanceId(processInstanceId: Long): List<Task>
+    fun findByProcessInstanceIdAndNodeIdAndStatus(processInstanceId: Long, nodeId: String, status: TaskStatus): List<Task>
     fun deleteByProcessInstanceId(processInstanceId: Long)
 
 }

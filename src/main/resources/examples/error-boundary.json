@@ -7,7 +7,7 @@
     { "id": "start", "type": "StartEvent", "name": "Start" },
     { "id": "service-task", "type": "ServiceTask", "name": "Service Task", "config": { "shouldFail": "${shouldFail}" } },
     { "id": "error-boundary", "type": "ErrorBoundaryEvent", "name": "Error Boundary", "attachedTo": "service-task" },
-    { "id": "after-error", "type": "UserTask", "name": "After Error" },
+    { "id": "after-error", "type": "HumanTask", "name": "After Error" },
     { "id": "end", "type": "EndEvent", "name": "End" }
   ],
   "flows": [

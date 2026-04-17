@@ -34,14 +34,14 @@ class FormControllerTest : FunSpec({
             """.trimIndent())
 
             val request = DeployFormRequest(
-                key = "applicationForm",
+                formId = "applicationForm",
                 name = "ApplicationForm",
                 schema = schema
             )
 
             val expectedForm = Form(
                 id = 1,
-                key = "applicationForm",
+                formId = "applicationForm",
                 name = "ApplicationForm",
                 schema = schema,
                 version = 1
@@ -55,7 +55,7 @@ class FormControllerTest : FunSpec({
             // Assert
             result shouldNotBe null
             result.id shouldBe 1
-            result.key shouldBe "applicationForm"
+            result.formId shouldBe "applicationForm"
             result.name shouldBe "ApplicationForm"
             result.version shouldBe 1
             verify { mockFormService.deploy("applicationForm", "ApplicationForm", schema) }
@@ -63,35 +63,35 @@ class FormControllerTest : FunSpec({
     }
 
     context("getLatest") {
-        test("should retrieve latest form version by key") {
+        test("should retrieve latest form version by formId") {
             // Arrange
-            val formKey = "applicationForm"
+            val formId = "applicationForm"
             val form = Form(
                 id = 3,
-                key = formKey,
+                formId = formId,
                 name = "ApplicationForm",
                 schema = objectMapper.readTree("{}"),
                 version = 3
             )
 
-            every { mockFormService.getLatestVersionByKey(formKey) } returns form
+            every { mockFormService.getLatestVersionByFormId(formId) } returns form
 
             // Act
-            val result = formController.getLatest(formKey, null)
+            val result = formController.getLatest(formId, null)
 
             // Assert
             result shouldNotBe null
             result?.id shouldBe 3
-            result?.key shouldBe formKey
+            result?.formId shouldBe formId
             result?.version shouldBe 3
         }
 
-        test("should support legacy lookup by name") {
+        test("should support lookup by name") {
             // Arrange
             val formName = "ApplicationForm"
             val form = Form(
                 id = 2,
-                key = "applicationForm",
+                formId = "applicationForm",
                 name = formName,
                 schema = objectMapper.readTree("{}"),
                 version = 2
@@ -113,7 +113,7 @@ class FormControllerTest : FunSpec({
             val formId = 1L
             val form = Form(
                 id = formId,
-                key = "applicationForm",
+                formId = "applicationForm",
                 name = "ApplicationForm",
                 schema = objectMapper.readTree("{}"),
                 version = 1
@@ -144,19 +144,19 @@ class FormControllerTest : FunSpec({
     }
 
     context("getAllVersions") {
-        test("should retrieve all versions of a form by key") {
+        test("should retrieve all versions of a form by formId") {
             // Arrange
-            val formKey = "applicationForm"
+            val formId = "applicationForm"
             val forms = listOf(
-                Form(id = 1, key = formKey, name = "ApplicationForm", schema = objectMapper.readTree("{}"), version = 1),
-                Form(id = 2, key = formKey, name = "ApplicationForm", schema = objectMapper.readTree("{}"), version = 2),
-                Form(id = 3, key = formKey, name = "ApplicationForm", schema = objectMapper.readTree("{}"), version = 3)
+                Form(id = 1, formId = formId, name = "ApplicationForm", schema = objectMapper.readTree("{}"), version = 1),
+                Form(id = 2, formId = formId, name = "ApplicationForm", schema = objectMapper.readTree("{}"), version = 2),
+                Form(id = 3, formId = formId, name = "ApplicationForm", schema = objectMapper.readTree("{}"), version = 3)
             )
 
-            every { mockFormService.getAllVersionsByKey(formKey) } returns forms
+            every { mockFormService.getAllVersionsByFormId(formId) } returns forms
 
             // Act
-            val result = formController.getAllVersions(formKey, null)
+            val result = formController.getAllVersions(formId, null)
 
             // Assert
             result shouldHaveSize 3
@@ -165,11 +165,11 @@ class FormControllerTest : FunSpec({
             result[2].version shouldBe 3
         }
 
-        test("should support legacy version lookup by name") {
+        test("should support version lookup by name") {
             // Arrange
             val formName = "ApplicationForm"
             val forms = listOf(
-                Form(id = 1, key = "applicationForm", name = formName, schema = objectMapper.readTree("{}"), version = 1)
+                Form(id = 1, formId = "applicationForm", name = formName, schema = objectMapper.readTree("{}"), version = 1)
             )
             every { mockFormService.getAllVersionsByName(formName) } returns forms
 

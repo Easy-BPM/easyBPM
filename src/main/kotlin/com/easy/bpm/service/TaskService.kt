@@ -231,8 +231,8 @@ class TaskService(
                     "processInstanceId" to task.processInstanceId,
                     "nodeId" to task.nodeId,
                     "title" to task.title,
-                    "formId" to task.formId,
-                    "formKey" to form?.key
+                    "formDbId" to task.formId,
+                    "formId" to form?.formId
                 )
             )
         } catch (_: Exception) {
@@ -486,7 +486,7 @@ class TaskService(
     private fun toResponseDto(task: Task): TaskResponseDto {
         val variables = taskVariableRepository.findByTaskId(task.id)
             .associate { it.name to objectMapper.convertValue(it.value, Any::class.java) }
-        val formKey = task.formId?.let { formService.getById(it)?.key }
+        val formId = task.formId?.let { formService.getById(it)?.formId }
 
         return TaskResponseDto(
             id = task.id,
@@ -499,15 +499,15 @@ class TaskService(
             status = task.status,
             createdAt = task.createdAt,
             completedAt = task.completedAt,
-            formId = task.formId,
-            formKey = formKey,
+            formDbId = task.formId,
+            formId = formId,
             variables = variables
         )
     }
 
     private fun resolveUserTaskForm(node: JsonNode) =
         node.get("config")?.get("formId")?.asText()?.trim()?.takeIf { it.isNotEmpty() }?.let { configuredFormRef ->
-            formService.getLatestVersionByKey(configuredFormRef)
+            formService.getLatestVersionByFormId(configuredFormRef)
                 ?: configuredFormRef.toLongOrNull()?.let(formService::getById)
                 ?: formService.getLatestVersionByName(configuredFormRef)
         } ?: formService.getLatestVersionByName(node.get("id").asText())

@@ -38,7 +38,7 @@ const getNodeStyle = (type: string, visited: boolean, current: boolean): string 
   if (type === 'StartEvent') return 'fill-white stroke-green-600';
   if (type === 'EndEvent') return 'fill-white stroke-red-600';
   if (type.toLowerCase().includes('gateway')) return 'fill-white stroke-orange-600';
-  if (type === 'UserTask') return 'fill-white stroke-blue-700';
+  if (type === 'HumanTask' || type === 'UserTask' || type === 'humanTask' || type === 'userTask') return 'fill-white stroke-blue-700';
   if (type === 'ServiceTask') return 'fill-white stroke-amber-600';
   if (type === 'APITask') return 'fill-white stroke-purple-600';
   return 'fill-white stroke-slate-400';

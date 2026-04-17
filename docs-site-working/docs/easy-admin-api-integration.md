@@ -735,7 +735,7 @@ GET /processes/definitions/1
   "nodes": [
     { "id": "start", "type": "start", "name": "Start Order" },
     { "id": "validate-order", "type": "task", "name": "Validate Order" },
-    { "id": "user-review", "type": "userTask", "name": "User Review" },
+    { "id": "human-review", "type": "humanTask", "name": "Human Review" },
     { "id": "end", "type": "end", "name": "Order Complete" }
   ],
   "deployedAt": "2025-04-15T08:00:00Z"

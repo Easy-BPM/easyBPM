@@ -2,6 +2,7 @@ package com.easy.bpm.service
 
 import com.easy.bpm.enum.ProcessStatus
 import com.easy.bpm.enum.NodeType
+import com.easy.bpm.enum.TaskStatus
 import com.easy.bpm.model.process.ProcessDefinition
 import com.easy.bpm.model.process.ProcessInstance
 import com.easy.bpm.model.task.Task
@@ -184,8 +185,9 @@ class ProcessService(
         }
 
         val definition = parseDefinition(instance.processDefinition.definitionJson)
-        findNode(definition, fromNode)
-        findNode(definition, toNode)
+        val toNodeDefinition = findNode(definition, toNode)
+
+        syncTasksForManualMove(instance, fromNode, toNode, toNodeDefinition)
 
         val movedNodes = currentNodes.map { if (it == fromNode) toNode else it }
         instance.currentNode = movedNodes
@@ -195,6 +197,39 @@ class ProcessService(
         instance.updatedAt = LocalDateTime.now()
 
         return processInstanceRepository.save(instance)
+    }
+
+    private fun syncTasksForManualMove(
+        instance: ProcessInstance,
+        fromNode: String,
+        toNode: String,
+        toNodeDefinition: JsonNode
+    ) {
+        val fromPendingTasks = taskRepository.findByProcessInstanceIdAndNodeIdAndStatus(
+            instance.id,
+            fromNode,
+            TaskStatus.PENDING
+        )
+
+        fromPendingTasks.forEach { task ->
+            taskVariableRepository.deleteByTaskId(task.id)
+            taskRepository.delete(task)
+        }
+
+        val targetType = NodeType.fromString(toNodeDefinition.get("type").asText())
+        if (targetType != NodeType.UserTask) {
+            return
+        }
+
+        val existingTargetTasks = taskRepository.findByProcessInstanceIdAndNodeIdAndStatus(
+            instance.id,
+            toNode,
+            TaskStatus.PENDING
+        )
+
+        if (existingTargetTasks.isEmpty()) {
+            handleUserTask(instance, toNodeDefinition)
+        }
     }
 
     fun getLatestProcessDefinitions(pageable: Pageable): Page<ProcessDefinition> =
@@ -379,8 +414,8 @@ class ProcessService(
                     "processInstanceId" to task.processInstanceId,
                     "nodeId" to task.nodeId,
                     "title" to task.title,
-                    "formId" to task.formId,
-                    "formKey" to form?.key
+                    "formDbId" to task.formId,
+                    "formId" to form?.formId
                 )
             )
         } catch (_: Exception) {
@@ -391,7 +426,7 @@ class ProcessService(
 
     private fun resolveUserTaskForm(node: JsonNode) =
         node.get("config")?.get("formId")?.asText()?.trim()?.takeIf { it.isNotEmpty() }?.let { configuredFormRef ->
-            formService.getLatestVersionByKey(configuredFormRef)
+            formService.getLatestVersionByFormId(configuredFormRef)
                 ?: configuredFormRef.toLongOrNull()?.let(formService::getById)
                 ?: formService.getLatestVersionByName(configuredFormRef)
         } ?: formService.getLatestVersionByName(node.get("id").asText())

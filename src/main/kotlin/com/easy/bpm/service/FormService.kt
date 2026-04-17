@@ -10,18 +10,18 @@ class FormService(
     private val formRepository: FormDefinitionRepository
 ) {
 
-    private val formKeyPattern = Regex("^[A-Za-z][A-Za-z0-9_-]*$")
+    private val formIdPattern = Regex("^[A-Za-z][A-Za-z0-9_-]*$")
 
     // Corrigir o Form ID - to use Form Name
     // Bind Variables into the form
     // 
 
-    fun deploy(key: String, name: String, schema: JsonNode): Form {
-        val normalizedKey = normalizeKey(key)
+    fun deploy(formId: String, name: String, schema: JsonNode): Form {
+        val normalizedFormId = normalizeFormId(formId)
         val normalizedName = normalizeName(name)
-        val latestVersion = formRepository.findTopByKeyOrderByVersionDesc(normalizedKey)?.version ?: 0
+        val latestVersion = formRepository.findTopByFormIdOrderByVersionDesc(normalizedFormId)?.version ?: 0
         val newForm = Form(
-            key = normalizedKey,
+            formId = normalizedFormId,
             name = normalizedName,
             schema = schema,
             version = latestVersion + 1
@@ -29,8 +29,8 @@ class FormService(
         return formRepository.save(newForm)
     }
 
-    fun getLatestVersionByKey(key: String): Form? {
-        return formRepository.findTopByKeyOrderByVersionDesc(key.trim())
+    fun getLatestVersionByFormId(formId: String): Form? {
+        return formRepository.findTopByFormIdOrderByVersionDesc(formId.trim())
     }
 
     fun getLatestVersionByName(name: String): Form? {
@@ -41,21 +41,21 @@ class FormService(
         return formRepository.findById(id).orElse(null)
     }
 
-    fun getAllVersionsByKey(key: String): List<Form> {
-        return formRepository.findByKeyOrderByVersionAsc(key.trim())
+    fun getAllVersionsByFormId(formId: String): List<Form> {
+        return formRepository.findByFormIdOrderByVersionAsc(formId.trim())
     }
 
     fun getAllVersionsByName(name: String): List<Form> {
         return formRepository.findByName(name.trim())
     }
 
-    private fun normalizeKey(key: String): String {
-        val normalizedKey = key.trim()
-        require(normalizedKey.isNotBlank()) { "Form key must not be blank" }
-        require(formKeyPattern.matches(normalizedKey)) {
-            "Form key must start with a letter and contain only letters, numbers, hyphens, or underscores"
+    private fun normalizeFormId(formId: String): String {
+        val normalizedFormId = formId.trim()
+        require(normalizedFormId.isNotBlank()) { "Form formId must not be blank" }
+        require(formIdPattern.matches(normalizedFormId)) {
+            "Form formId must start with a letter and contain only letters, numbers, hyphens, or underscores"
         }
-        return normalizedKey
+        return normalizedFormId
     }
 
     private fun normalizeName(name: String): String {

@@ -67,6 +67,7 @@ const sidebars: SidebarsConfig = {
       type: 'category',
       label: 'Guides',
       items: [
+        'legal',
         'qa-first-phase-test-plan',
         'developer-quick-reference',
         'examples',

@@ -36,7 +36,7 @@ export interface JsonSchema {
 // Entity: com.easy.bpm.model.form.Form
 export interface Form {
   id: number;
-  key?: string;
+  formId: string;
   name: string;
   schema: JsonSchema; // Mapped to jsonb column
   version: number;
@@ -53,8 +53,8 @@ export interface Task {
   status: TaskStatus;
   createdAt: string; // ISO Date
   completedAt: string | null;
-  formId: number | null;
-  formKey?: string | null;
+  formDbId: number | null;
+  formId?: string | null;
 
   // UI Helper fields (might be enriched by the API or separate call)
   name?: string;
