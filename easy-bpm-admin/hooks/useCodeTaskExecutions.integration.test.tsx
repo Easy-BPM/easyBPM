@@ -8,16 +8,16 @@ import { useCodeTaskExecutions } from './useCodeTaskExecutions';
  * They can run against:
  * 1. Mock API server (uses jest-mock-fetch or msw)
  * 2. Real backend (set VITE_API_BASE_URL to backend server URL)
- * 3. Docker Compose environment (backend running on localhost:8085)
+ * 3. Docker Compose environment (backend running on localhost:8080)
  *
  * SETUP:
- * - Backend must be running on http://localhost:8085
+ * - Backend must be running on http://localhost:8080
  * - Database must have code_task_execution records
  * - Run: npm test -- useCodeTaskExecutions.integration.test.tsx
  */
 
 // Configuration for integration tests
-const API_BASE_URL = process.env.VITE_API_BASE_URL || 'http://localhost:8085';
+const API_BASE_URL = process.env.VITE_API_BASE_URL || 'http://localhost:8080';
 const INTEGRATION_TIMEOUT = 10000; // 10 seconds for real API calls
 
 // Mock API server (optional - for unit+integration hybrid tests)
