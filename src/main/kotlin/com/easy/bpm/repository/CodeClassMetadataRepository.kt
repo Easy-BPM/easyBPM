@@ -1,6 +1,6 @@
-package com.example.bpm.repository
+package com.easy.bpm.repository
 
-import com.example.bpm.entity.CodeClassMetadata
+import com.easy.bpm.entity.CodeClassMetadata
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.stereotype.Repository
 
@@ -34,3 +34,4 @@ interface CodeClassMetadataRepository : JpaRepository<CodeClassMetadata, Long> {
    */
   fun findByClassName(className: String): List<CodeClassMetadata>
 }
+

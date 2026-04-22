@@ -60,3 +60,4 @@ interface MessageSubscriptionRepository : JpaRepository<MessageSubscription, Lon
     @Query("FROM MessageSubscription WHERE status = 'AWAITING'")
     fun findAllPendingSubscriptions(): List<MessageSubscription>
 }
+

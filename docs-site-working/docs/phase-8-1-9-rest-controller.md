@@ -128,7 +128,7 @@ Error Cases:
 ## Implementation Details
 
 ### Controller: `CodeTaskController`
-- **Package**: `com.example.bpm.controller`
+- **Package**: `com.easy.bpm.controller`
 - **Annotations**: `@RestController`, `@RequestMapping("/code-tasks")`
 - **Methods**:
   - `uploadJar()` - POST endpoint

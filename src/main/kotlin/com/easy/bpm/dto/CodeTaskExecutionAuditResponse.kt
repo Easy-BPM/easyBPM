@@ -1,4 +1,4 @@
-package com.example.bpm.dto
+package com.easy.bpm.dto
 
 /**
  * DTO for Code Task execution audit record
@@ -45,3 +45,4 @@ data class ExecutionAuditPageResponse(
     val totalPages: Int,
     val currentPage: Int
 )
+

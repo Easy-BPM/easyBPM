@@ -1,4 +1,4 @@
-package com.example.bpm.dto
+package com.easy.bpm.dto
 
 import org.springframework.web.multipart.MultipartFile
 
@@ -12,3 +12,4 @@ data class CodeTaskJarUploadRequest(
     val jarFile: MultipartFile,
     val description: String? = null
 )
+

@@ -1,6 +1,6 @@
-package com.example.bpm.repository
+package com.easy.bpm.repository
 
-import com.example.bpm.entity.CodeTaskJar
+import com.easy.bpm.entity.CodeTaskJar
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -194,3 +194,4 @@ class CodeTaskJarRepositoryTest {
     assertEquals("Updated description", retrieved.description)
   }
 }
+

@@ -39,3 +39,4 @@ data class MessageSubscription(
 
         var receivedAt: LocalDateTime? = null
 )
+
