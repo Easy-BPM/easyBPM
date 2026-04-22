@@ -58,10 +58,46 @@ const sidebars: SidebarsConfig = {
     },
     {
       type: 'category',
+      label: 'Call Activity & Subprocesses',
+      items: [
+        'easy-modeler-call-activity',
+        'call-activity-variable-mapping',
+        'call-activity-error-handling',
+        'call-activity-examples',
+        'phase-7-qa-test-plan',
+      ],
+    },
+    {
+      type: 'category',
       label: 'Easy BPM Task Portal',
       items: [
         'easy-task-portal-overview',
         'easy-task-portal-getting-started',
+      ],
+    },
+    {
+      type: 'category',
+      label: 'Code Task (Phase 8)',
+      items: [
+        'code-task-quick-start',
+        'code-task-test-jar',
+        'phase-8-1-9-rest-controller',
+        'phase-8-2-modeler-ui',
+        'phase-8-3-admin-ui',
+        'phase-8-3-sprint-plan',
+        'phase-8-3-qa-test-scenarios',
+        'phase-8-1-9-8-2-delivery-summary',
+        'phase-8-progress-report',
+        'phase-8-documentation-index',
+      ],
+    },
+    {
+      type: 'category',
+      label: 'EPICs & Roadmap',
+      items: [
+        'epics/overview',
+        'epics/epic-call-activity-subprocess-support',
+        'epics/epic-code-task-support',
       ],
     },
     {

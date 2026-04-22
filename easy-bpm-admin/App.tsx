@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { Sidebar } from './components/Sidebar';
 import { WorkflowCanvas } from './components/WorkflowCanvas';
+import { CodeTaskExecutionListPage } from './components/CodeTaskExecutionListPage';
 import { adminService } from './services/adminService';
 import { ProcessDefinition, ProcessInstance, ProcessVariable, WorkflowDefinition } from './types';
 
@@ -47,6 +48,8 @@ const App: React.FC = () => {
         return <InstanceExplorerView />;
       case 'workflows':
         return <WorkflowCatalogView />;
+      case 'code-tasks':
+        return <CodeTaskExecutionListPage />;
       default:
         return <DashboardView onNavigate={setCurrentView} />;
     }

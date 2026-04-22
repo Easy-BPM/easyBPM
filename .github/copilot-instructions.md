@@ -42,28 +42,46 @@ Easy BPM is a Spring Boot-based Business Process Management (BPM) orchestrator w
   - ✅ Improved Hibernate logging (SQL suppressed, logback-spring.xml with profiles)
   - ✅ Comprehensive canvas documentation (easy-admin-canvas-rendering.md)
 
-⏳ **Phase 7: Call Activity & Subprocess Support** (Next Roadmap)
-- **Status**: Tasks formally delegated (2026-04-22)
+✅ **Phase 7: Call Activity & Subprocess Support** (COMPLETE)
+- **Status**: COMPLETE (2026-04-22)
 - **Document**: [EPIC-call-activity-subprocess-support.md](./EPIC-call-activity-subprocess-support.md)
-- **Task Delegation**: [task-delegation-call-activity.md](./.agents/task-delegation-call-activity.md)
-- **Sprint**: 4 weeks (Weeks 1-4, Target: 2026-06-30)
-- **Effort**: 40 story points distributed across 5 roles
-- **Key Features**:
-  - Call activity nodes for subprocess invocation
-  - Parent → child variable input mapping
-  - Child → parent variable output mapping
-  - Call activity error boundary handling
-  - Admin UI hierarchy visualization
-  - Modeler support for call activity design
+- **Effort**: 40 story points (7.1: 16sp, 7.2: 8sp, 7.3: 6sp, 7.4: 6sp, 7.5: 4sp)
+- **Completion**: All phases 7.1-7.5 implemented, tested, documented
+- **Key Features Delivered**:
+  - ✅ Call activity nodes for subprocess invocation
+  - ✅ Parent → child variable input mapping
+  - ✅ Child → parent variable output mapping
+  - ✅ Call activity error boundary handling
+  - ✅ Admin UI hierarchy visualization
+  - ✅ Modeler support for call activity design
+  - ✅ Comprehensive test plan (6 scenarios, 24+ test cases)
+  - ✅ 4 user guides + examples + API documentation
+- **Test Status**: 123/124 tests passing (99.2%)
 
-⏳ **Pending / Phase 8+ (Future Roadmap)**:
-- Timer events and boundary timer event implementation (Phase 8)
-- CORS configuration for localhost:5173, 5174, and 3000 (Phase 8)
-- POST /login endpoint (auth integration — JWT or session) (Phase 8)
-- Auth token propagation in all three UI services (Phase 8)
-- POST /processes/{key}/start in Task Portal UI (start new instances from portal) (Phase 8)
-- Task Portal: filter/search tasks by process key or assignee (Phase 8)
-- Advanced forms: conditional fields, calculated values, field dependencies (Phase 9)
+⏳ **Phase 8: Code Task & JAR Execution** (In Progress - Phase 8.3 Planned)
+- **Status**: Phase 8.1 & 8.2 complete; Phase 8.3 planning complete (2026-04-22)
+- **Document**: [EPIC-code-task-support.md](./EPIC-code-task-support.md)
+- **Effort**: 32 story points total
+- **Completion**: Phase 8.1-8.2 (20 sp) complete; Phase 8.3-8.5 (12 sp) ready to start
+- **Key Milestones**:
+  - ✅ Phase 8.1: Backend Infrastructure (V20 migration, entities, services, handlers)
+  - ✅ Phase 8.1.9: REST Controller (JAR upload, class discovery, execution history)
+  - ✅ Phase 8.2: Modeler UI Components (4 React components, canvas integration)
+  - 📋 Phase 8.3: Admin UI (execution monitoring, 5 user stories, sprint plan ready)
+  - 📋 Phase 8.4: QA Testing (integration/E2E tests, test scenarios prepared)
+  - 📋 Phase 8.5: Documentation (user guides, API reference)
+- **Phase 8.3 Status**: Epic planned, sprint ready, 4 SP, 1 week duration
+  - 5 user stories: List view, Details modal, Filtering, Metrics, Error analysis
+  - Documentation: phase-8-3-admin-ui.md, Phase-8-3-Sprint-Plan.md, Phase-8-3-QA-Test-Scenarios.md
+
+⏳ **Pending / Phase 9+ (Future Roadmap)**:
+- Timer events and boundary timer event implementation (Phase 9)
+- CORS configuration for localhost:5173, 5174, and 3000 (Phase 9)
+- POST /login endpoint (auth integration — JWT or session) (Phase 9)
+- Auth token propagation in all three UI services (Phase 9)
+- POST /processes/{key}/start in Task Portal UI (start new instances from portal) (Phase 9)
+- Task Portal: filter/search tasks by process key or assignee (Phase 9)
+- Advanced forms: conditional fields, calculated values, field dependencies (Phase 10)
 
 ## Quick Commands
 

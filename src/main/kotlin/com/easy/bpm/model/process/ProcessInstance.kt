@@ -62,5 +62,5 @@ data class ProcessInstance(
          * Populated by parent when creating this child instance.
          */
         @Column(name = "completion_node_id", nullable = true, length = 255)
-        val completionNodeId: String? = null
+        var completionNodeId: String? = null
 )

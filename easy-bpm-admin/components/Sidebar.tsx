@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, Workflow, Search, LogOut } from 'lucide-react';
+import { LayoutDashboard, Workflow, Search, LogOut, Code2 } from 'lucide-react';
 
 interface SidebarProps {
   currentView: string;
@@ -12,7 +12,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onChangeView, cur
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'instances', label: 'Instance Search', icon: Search },
-    { id: 'workflows', label: 'Deployed Workflows', icon: Workflow }
+    { id: 'workflows', label: 'Deployed Workflows', icon: Workflow },
+    { id: 'code-tasks', label: 'Code Task Executions', icon: Code2 }
   ];
 
   return (
