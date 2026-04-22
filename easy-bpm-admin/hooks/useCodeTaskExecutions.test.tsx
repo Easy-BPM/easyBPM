@@ -480,7 +480,7 @@ describe('useCodeTaskExecutions - Unit Tests', () => {
       });
 
       const url = mockFetch.mock.calls[0][0];
-      expect(url).toContain('http://localhost:8085');
+      expect(url).toContain('http://localhost:8080');
 
       process.env.VITE_API_BASE_URL = originalEnv;
     });

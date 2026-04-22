@@ -158,3 +158,69 @@ org.postgresql.util.PSQLException: ERROR: column pv1_0.created_at does not exist
 	at org.apache.tomcat.util.threads.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:658)
 	at org.apache.tomcat.util.threads.TaskThread$WrappingRunnable.run(TaskThread.java:63)
 	at java.base/java.lang.Thread.run(Thread.java:840)
+2026-04-22 20:54:24.023 [main] INFO  com.easy.bpm.BpmApplicationKt -  - Starting BpmApplicationKt using Java 17.0.10 with PID 61376 (C:\Users\Admin\OneDrive\Ambiente de Trabalho\bpm\build\classes\kotlin\main started by Admin in C:\Users\Admin\OneDrive\Ambiente de Trabalho\bpm)
+2026-04-22 20:54:24.024 [main] DEBUG com.easy.bpm.BpmApplicationKt -  - Running with Spring Boot v3.5.3, Spring v6.2.8
+2026-04-22 20:54:24.024 [main] INFO  com.easy.bpm.BpmApplicationKt -  - No active profile set, falling back to 1 default profile: "default"
+2026-04-22 20:54:25.005 [main] INFO  o.s.d.r.c.RepositoryConfigurationDelegate -  - Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-04-22 20:54:25.065 [main] INFO  o.s.d.r.c.RepositoryConfigurationDelegate -  - Finished Spring Data repository scanning in 54 ms. Found 12 JPA repository interfaces.
+2026-04-22 20:54:25.442 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer -  - Tomcat initialized with port 8080 (http)
+2026-04-22 20:54:25.451 [main] INFO  o.a.catalina.core.StandardService -  - Starting service [Tomcat]
+2026-04-22 20:54:25.452 [main] INFO  o.a.catalina.core.StandardEngine -  - Starting Servlet engine: [Apache Tomcat/10.1.42]
+2026-04-22 20:54:25.500 [main] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] -  - Initializing Spring embedded WebApplicationContext
+2026-04-22 20:54:25.500 [main] INFO  o.s.b.w.s.c.ServletWebServerApplicationContext -  - Root WebApplicationContext: initialization completed in 1443 ms
+2026-04-22 20:54:25.694 [main] INFO  o.f.c.i.license.VersionPrinter -  - Flyway Community Edition 9.16.1 by Redgate
+2026-04-22 20:54:25.694 [main] INFO  o.f.c.i.license.VersionPrinter -  - See release notes here: https://rd.gt/416ObMi
+2026-04-22 20:54:25.694 [main] INFO  o.f.c.i.license.VersionPrinter -  - 
+2026-04-22 20:54:25.701 [main] INFO  com.zaxxer.hikari.HikariDataSource -  - HikariPool-1 - Starting...
+2026-04-22 20:54:25.810 [main] INFO  com.zaxxer.hikari.pool.HikariPool -  - HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@49353d43
+2026-04-22 20:54:25.812 [main] INFO  com.zaxxer.hikari.HikariDataSource -  - HikariPool-1 - Start completed.
+2026-04-22 20:54:25.825 [main] INFO  o.f.c.i.d.base.BaseDatabaseType -  - Database: jdbc:postgresql://localhost:5432/easybpm (PostgreSQL 15.13)
+2026-04-22 20:54:25.869 [main] INFO  o.f.core.internal.command.DbValidate -  - Successfully validated 21 migrations (execution time 00:00.026s)
+2026-04-22 20:54:25.896 [main] INFO  o.f.core.internal.command.DbMigrate -  - Current version of schema "public": 20
+2026-04-22 20:54:25.904 [main] INFO  o.f.core.internal.command.DbMigrate -  - Migrating schema "public" to version "21 - add audit columns to process variable"
+2026-04-22 20:54:25.920 [main] INFO  o.f.core.internal.command.DbMigrate -  - Successfully applied 1 migration to schema "public", now at version v21 (execution time 00:00.029s)
+2026-04-22 20:54:26.123 [main] WARN  org.hibernate.orm.deprecation -  - HHH90000025: PostgreSQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-04-22 20:54:26.292 [main] INFO  o.s.o.j.p.SpringPersistenceUnitInfo -  - No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-04-22 20:54:26.983 [main] INFO  o.s.o.j.LocalContainerEntityManagerFactoryBean -  - Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-04-22 20:54:27.442 [main] INFO  o.s.d.j.r.query.QueryEnhancerFactory -  - Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-04-22 20:54:28.233 [main] WARN  o.s.b.a.o.j.JpaBaseConfiguration$JpaWebConfiguration -  - spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-04-22 20:54:28.266 [main] INFO  o.s.v.b.OptionalValidatorFactoryBean -  - Failed to set up a Bean Validation provider: jakarta.validation.NoProviderFoundException: Unable to create a Configuration, because no Jakarta Bean Validation provider could be found. Add a provider like Hibernate Validator (RI) to your classpath.
+2026-04-22 20:54:28.552 [main] INFO  o.s.b.a.e.web.EndpointLinksResolver -  - Exposing 3 endpoints beneath base path '/actuator'
+2026-04-22 20:54:28.617 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer -  - Tomcat started on port 8080 (http) with context path '/'
+2026-04-22 20:54:28.620 [main] INFO  o.s.a.r.c.CachingConnectionFactory -  - Attempting to connect to: [localhost:5672]
+2026-04-22 20:54:28.656 [main] INFO  o.s.a.r.c.CachingConnectionFactory -  - Created new connection: rabbitConnectionFactory#de1b4dd:0/SimpleConnection@1ac28194 [delegate=amqp://easybpm@127.0.0.1:5672/, localPort=57830]
+2026-04-22 20:54:28.718 [main] INFO  com.easy.bpm.BpmApplicationKt -  - Started BpmApplicationKt in 5.125 seconds (process running for 5.365)
+2026-04-22 20:54:45.552 [http-nio-8080-exec-1] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] -  - Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-04-22 20:54:45.552 [http-nio-8080-exec-1] INFO  o.s.web.servlet.DispatcherServlet -  - Initializing Servlet 'dispatcherServlet'
+2026-04-22 20:54:45.554 [http-nio-8080-exec-1] INFO  o.s.web.servlet.DispatcherServlet -  - Completed initialization in 2 ms
+2026-04-22 20:56:28.184 [main] INFO  com.easy.bpm.BpmApplicationKt -  - Starting BpmApplicationKt using Java 17.0.10 with PID 57124 (C:\Users\Admin\OneDrive\Ambiente de Trabalho\bpm\build\classes\kotlin\main started by Admin in C:\Users\Admin\OneDrive\Ambiente de Trabalho\bpm)
+2026-04-22 20:56:28.185 [main] DEBUG com.easy.bpm.BpmApplicationKt -  - Running with Spring Boot v3.5.3, Spring v6.2.8
+2026-04-22 20:56:28.185 [main] INFO  com.easy.bpm.BpmApplicationKt -  - No active profile set, falling back to 1 default profile: "default"
+2026-04-22 20:56:29.284 [main] INFO  o.s.d.r.c.RepositoryConfigurationDelegate -  - Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-04-22 20:56:29.348 [main] INFO  o.s.d.r.c.RepositoryConfigurationDelegate -  - Finished Spring Data repository scanning in 57 ms. Found 12 JPA repository interfaces.
+2026-04-22 20:56:29.735 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer -  - Tomcat initialized with port 8080 (http)
+2026-04-22 20:56:29.744 [main] INFO  o.a.catalina.core.StandardService -  - Starting service [Tomcat]
+2026-04-22 20:56:29.744 [main] INFO  o.a.catalina.core.StandardEngine -  - Starting Servlet engine: [Apache Tomcat/10.1.42]
+2026-04-22 20:56:29.790 [main] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] -  - Initializing Spring embedded WebApplicationContext
+2026-04-22 20:56:29.791 [main] INFO  o.s.b.w.s.c.ServletWebServerApplicationContext -  - Root WebApplicationContext: initialization completed in 1572 ms
+2026-04-22 20:56:29.977 [main] INFO  o.f.c.i.license.VersionPrinter -  - Flyway Community Edition 9.16.1 by Redgate
+2026-04-22 20:56:29.977 [main] INFO  o.f.c.i.license.VersionPrinter -  - See release notes here: https://rd.gt/416ObMi
+2026-04-22 20:56:29.977 [main] INFO  o.f.c.i.license.VersionPrinter -  - 
+2026-04-22 20:56:29.984 [main] INFO  com.zaxxer.hikari.HikariDataSource -  - HikariPool-1 - Starting...
+2026-04-22 20:56:30.088 [main] INFO  com.zaxxer.hikari.pool.HikariPool -  - HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@147059f8
+2026-04-22 20:56:30.089 [main] INFO  com.zaxxer.hikari.HikariDataSource -  - HikariPool-1 - Start completed.
+2026-04-22 20:56:30.101 [main] INFO  o.f.c.i.d.base.BaseDatabaseType -  - Database: jdbc:postgresql://localhost:5432/easybpm (PostgreSQL 15.13)
+2026-04-22 20:56:30.144 [main] INFO  o.f.core.internal.command.DbValidate -  - Successfully validated 21 migrations (execution time 00:00.026s)
+2026-04-22 20:56:30.174 [main] INFO  o.f.core.internal.command.DbMigrate -  - Current version of schema "public": 21
+2026-04-22 20:56:30.175 [main] INFO  o.f.core.internal.command.DbMigrate -  - Schema "public" is up to date. No migration necessary.
+2026-04-22 20:56:30.418 [main] WARN  org.hibernate.orm.deprecation -  - HHH90000025: PostgreSQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-04-22 20:56:30.597 [main] INFO  o.s.o.j.p.SpringPersistenceUnitInfo -  - No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-04-22 20:56:31.326 [main] INFO  o.s.o.j.LocalContainerEntityManagerFactoryBean -  - Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-04-22 20:56:31.842 [main] INFO  o.s.d.j.r.query.QueryEnhancerFactory -  - Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-04-22 20:56:32.629 [main] WARN  o.s.b.a.o.j.JpaBaseConfiguration$JpaWebConfiguration -  - spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-04-22 20:56:32.664 [main] INFO  o.s.v.b.OptionalValidatorFactoryBean -  - Failed to set up a Bean Validation provider: jakarta.validation.NoProviderFoundException: Unable to create a Configuration, because no Jakarta Bean Validation provider could be found. Add a provider like Hibernate Validator (RI) to your classpath.
+2026-04-22 20:56:32.960 [main] INFO  o.s.b.a.e.web.EndpointLinksResolver -  - Exposing 3 endpoints beneath base path '/actuator'
+2026-04-22 20:56:33.032 [main] INFO  o.s.b.w.e.tomcat.TomcatWebServer -  - Tomcat started on port 8080 (http) with context path '/'
+2026-04-22 20:56:33.036 [main] INFO  o.s.a.r.c.CachingConnectionFactory -  - Attempting to connect to: [localhost:5672]
+2026-04-22 20:56:33.075 [main] INFO  o.s.a.r.c.CachingConnectionFactory -  - Created new connection: rabbitConnectionFactory#75a46b:0/SimpleConnection@602532b9 [delegate=amqp://easybpm@127.0.0.1:5672/, localPort=57533]
+2026-04-22 20:56:33.143 [main] INFO  com.easy.bpm.BpmApplicationKt -  - Started BpmApplicationKt in 5.383 seconds (process running for 5.618)

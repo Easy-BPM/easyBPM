@@ -33,7 +33,7 @@ interface ExecutionResponse {
   currentPage: number;
 }
 
-const API_BASE_URL = process.env.VITE_API_BASE_URL || 'http://localhost:8085';
+const API_BASE_URL = process.env.VITE_API_BASE_URL || 'http://localhost:8080';
 
 export const useCodeTaskExecutions = (props: UseCodeTaskExecutionsProps) => {
   const {
