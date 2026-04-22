@@ -6,6 +6,7 @@ import { Toolbar } from './components/Toolbar';
 import { FormModeler } from './components/FormModeler';
 import { BpmnNode, BpmnEdge, ProcessVariable, NodeType, AppView, ValidationIssue, ValidationSummary } from './types';
 import { generateId, snapToGrid } from './utils/geometry';
+import { validateId } from './utils/validation';
 import { Toaster, toast } from 'sonner';
 import { processService } from './services/processService';
 
@@ -70,8 +71,10 @@ const App: React.FC = () => {
     if (variables.some(v => v.name.trim() === '')) {
       addIssue('error', 'Global variables cannot have empty names.');
     }
-    if (processId.trim() === '') {
-      addIssue('error', 'Process ID cannot be empty.');
+    
+    const processIdError = validateId(processId);
+    if (processIdError) {
+      addIssue('error', `Process ID error: ${processIdError}`);
     }
 
     let hasTaskVarDuplicates = false;
@@ -499,8 +502,9 @@ const App: React.FC = () => {
       }
 
       if (node.type === 'error-boundary') {
-        base.error = {
-          code: node.data.errorCode
+        base.config = {
+          errorCode: node.data.errorCode,
+          exceptionVariable: node.data.exceptionVariable || undefined
         };
         base.attachedTo = node.attachedTo
           ? (nodes.find(candidate => candidate.uid === node.attachedTo)?.id || node.attachedTo)

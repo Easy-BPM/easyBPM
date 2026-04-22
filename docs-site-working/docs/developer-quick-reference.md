@@ -271,35 +271,77 @@ Observability framework.
 
 ## Debugging
 
-### Enable Debug Logging
-Add to `application.yml`:
+### Logging Configuration
+
+**Production** (default): Suppresses verbose logging, keeps only warnings and errors
 ```yaml
 logging:
   level:
+    root: INFO
+    com.easy.bpm: INFO
+    org.hibernate: WARN  # Suppress SQL queries
+```
+
+**Development**: Enhanced logging for troubleshooting
+```yaml
+logging:
+  level:
+    root: INFO
     com.easy.bpm: DEBUG
-    org.springframework: DEBUG
+    org.hibernate: WARN  # Still suppress SQL by default
 ```
 
-### Check Logs
-```bash
-# BPM logs (development)
-./gradlew bootRun 2>&1 | grep com.easy.bpm
-
-# Check production logs
-tail -f logs/application.log
-```
-
-### Debug SQL Queries
-Add to `application.yml`:
+**Enable Hibernate Query Logging** (debugging only, not recommended for production):
 ```yaml
 spring:
   jpa:
-    hibernate:
-      show-sql: true
+    show-sql: true
     properties:
       hibernate:
         format_sql: true
+logging:
+  level:
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
 ```
+
+**Log Files**:
+- Location: `logs/bpm.log`
+- Rotation: Daily or when 10MB is exceeded
+- History: Last 10 days retained
+- Format: Timestamp, thread, level, logger, correlation ID, message
+
+### Check Logs
+```bash
+# Watch real-time logs (development)
+./gradlew bootRun 2>&1 | grep -E "com.easy.bpm|ERROR|WARN"
+
+# Check production logs
+tail -f logs/bpm.log
+
+# Filter by error level only
+grep "ERROR" logs/bpm.log | tail -20
+```
+
+### Debug Common Components
+
+**Enable RabbitMQ Debug Logging**:
+```yaml
+logging:
+  level:
+    com.rabbitmq: DEBUG
+    org.springframework.amqp: DEBUG
+```
+
+**Enable Spring Framework Debug Logging**:
+```yaml
+logging:
+  level:
+    org.springframework: DEBUG
+    org.springframework.boot: DEBUG
+```
+
+### View Logs by Component
 
 ---
 

@@ -44,6 +44,7 @@ const sidebars: SidebarsConfig = {
         'easy-admin-architecture',
         'easy-admin-features',
         'easy-admin-api-integration',
+        'easy-admin-canvas-rendering',
       ],
     },
     {
@@ -67,7 +68,7 @@ const sidebars: SidebarsConfig = {
       type: 'category',
       label: 'Guides',
       items: [
-        'legal',
+        'LEGAL',
         'qa-first-phase-test-plan',
         'developer-quick-reference',
         'examples',

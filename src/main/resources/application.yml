@@ -10,11 +10,11 @@ spring:
     locations: classpath:db/migration
 
   jpa:
-    show-sql: true
+    show-sql: false
     properties:
       hibernate:
-        format_sql: true
-    database-platform: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: false
+        dialect: org.hibernate.dialect.PostgreSQLDialect
 
   rabbitmq:
     host: ${SPRING_RABBITMQ_HOST:localhost}
@@ -48,6 +48,9 @@ logging:
   level:
     root: INFO
     com.easy.bpm: DEBUG
+    org.hibernate: WARN
+    org.hibernate.SQL: WARN
+    org.hibernate.type.descriptor.sql.BasicBinder: WARN
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %X{correlationId} - %msg%n"
   file:

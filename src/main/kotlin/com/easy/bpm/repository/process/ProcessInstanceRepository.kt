@@ -2,5 +2,34 @@ package com.easy.bpm.repository.process
 
 import com.easy.bpm.model.process.ProcessInstance
 import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.Query
 
-interface ProcessInstanceRepository : JpaRepository<ProcessInstance, Long>
+interface ProcessInstanceRepository : JpaRepository<ProcessInstance, Long> {
+
+    /**
+     * Find all child process instances for a given parent instance.
+     * Used for hierarchy visualization in Admin UI and parent-child navigation.
+     */
+    @Query("SELECT pi FROM ProcessInstance pi WHERE pi.parentInstanceId = ?1 ORDER BY pi.id DESC")
+    fun findByParentInstanceId(parentInstanceId: Long): List<ProcessInstance>
+
+    /**
+     * Find a parent process instance for a given child instance.
+     * Used to navigate up the hierarchy (child → parent).
+     */
+    @Query("SELECT pi FROM ProcessInstance pi WHERE pi.id = ?1")
+    fun findParentOfChild(childInstanceId: Long): ProcessInstance?
+
+    /**
+     * Check if an instance is a subprocess (has a parent).
+     */
+    @Query("SELECT COUNT(pi) > 0 FROM ProcessInstance pi WHERE pi.id = ?1 AND pi.parentInstanceId IS NOT NULL")
+    fun isSubprocess(instanceId: Long): Boolean
+
+    /**
+     * Find all process instances at a specific nesting level.
+     * Used for filtering and analytics.
+     */
+    @Query("SELECT pi FROM ProcessInstance pi WHERE pi.nestingLevel = ?1 ORDER BY pi.id DESC")
+    fun findByNestingLevel(level: Int): List<ProcessInstance>
+}

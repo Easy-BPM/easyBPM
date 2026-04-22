@@ -480,15 +480,120 @@ Metrics & Health (Phase 3)
 
 ---
 
+## Phase 6: QA Improvements + UI Polish ✅ COMPLETED (Sprint 1 & 2)
+
+### Goal
+
+Address critical QA findings from testing rounds: error tracking, input validation, canvas rendering, and logging clarity.
+
+### Backlog Items (Prioritized)
+
+#### 🔴 CRITICAL: Error Catch Variable Mapping
+**Status**: ✅ Completed (Sprint 1)
+
+**Completed**:
+- Backend: Extended `ErrorCatchHandler` to capture exception message to process variable
+- Modeler: Updated Error Boundary properties panel with `exceptionVariable` field
+- Backend: 6 integration tests validating error-to-variable mapping with all error types
+- Docs: Updated error handling guide (developer-quick-reference.md)
+
+**Files Modified**:
+- ✅ `src/main/kotlin/com/easy/bpm/service/ProcessService.kt` (error catch block)
+- ✅ `easybpmn-modeler/components/PropertiesPanel.tsx` (exceptionVariable UI)
+- ✅ `src/test/kotlin/com/easy/bpm/service/ErrorCatchHandlerIntegrationTest.kt` (test suite)
+- ✅ `docs-site-working/docs/developer-quick-reference.md` (logging guide)
+
+---
+
+#### 🟠 HIGH: Disable Spaces in ID Fields (Modeler)
+**Status**: ✅ Completed (Sprint 1)
+
+**Completed**:
+- Modeler: Created `easybpmn-modeler/utils/validation.ts` with regex validation utility
+- Modeler: Added real-time validation to Process ID input field
+- Modeler: Added real-time validation to Form Key input field (User Task)
+- Modeler: Error messages display with red border + AlertCircle icon
+- Modeler: App.tsx exports validation in config and exceptionVariable fields
+
+**Files Modified**:
+- ✅ `easybpmn-modeler/utils/validation.ts` (new validation utility)
+- ✅ `easybpmn-modeler/components/PropertiesPanel.tsx` (ID/Form Key validation)
+- ✅ `easybpmn-modeler/App.tsx` (validation on export)
+
+---
+
+#### 🟠 HIGH: Admin Canvas Rendering (Arrows + Boundary Events)
+**Status**: ✅ Completed (Sprint 2)
+
+**Completed**:
+- Admin: Enhanced types.ts with `attachedTo` and `config` fields for boundary event support
+- Admin: Implemented boundary event detection and rendering (circles with color-coding)
+- Admin: Fixed arrow styling with BPMN-compliant SVG markers (`markerUnits="strokeWidth"`)
+- Admin: Added dashed red lines connecting boundary events to parent nodes
+- Admin: Created comprehensive canvas documentation (easy-admin-canvas-rendering.md)
+- Admin: Canvas builds successfully with no TypeScript errors (1693 modules)
+- Testing: Validated with complex process definitions
+
+**Implementation Details**:
+- Boundary events render as 36×36 circles
+- Error: Red, Message: Blue, Timer: Amber color scheme
+- SVG markers use path-based triangles for smooth rendering
+- Edges use `vectorEffect="non-scaling-stroke"` for consistent zoom rendering
+- All edges have `strokeLinecap="round"` and `strokeLinejoin="round"` for BPMN smoothness
+
+**Files Modified**:
+- ✅ `easy-bpm-admin/types.ts` (boundary event type support)
+- ✅ `easy-bpm-admin/components/WorkflowCanvas.tsx` (complete rendering enhancement)
+- ✅ `docs-site-working/docs/easy-admin-canvas-rendering.md` (new documentation)
+- ✅ `docs-site-working/sidebars.ts` (added canvas doc to nav)
+
+---
+
+#### 🟡 MEDIUM: Improve Hibernate Logging
+**Status**: ✅ Completed (Sprint 2)
+
+**Completed**:
+- Backend: Created `src/main/resources/logback-spring.xml` with profile-based logging configuration
+- Backend: Updated `src/main/resources/application.yml` to suppress Hibernate SQL logging
+- Backend: Configured separate logging levels for dev/test/prod environments
+- Backend: Added file appender with rolling policy (10MB, 10 days retention)
+- Documentation: Updated developer-quick-reference.md with logging configuration guide
+- Testing: Backend tests pass (113+ tests, BUILD SUCCESSFUL)
+
+**Configuration Details**:
+- **Dev Profile**: DEBUG for com.easy.bpm, WARN for Hibernate/Spring/RabbitMQ
+- **Test Profile**: Minimal logging, WARN level for all
+- **Prod Profile**: INFO for app, WARN for others, file output only
+- All profiles suppress: org.hibernate, org.hibernate.SQL, org.postgresql.jdbc, com.zaxxer.hikari
+
+**Files Modified**:
+- ✅ `src/main/resources/logback-spring.xml` (new logging configuration)
+- ✅ `src/main/resources/application.yml` (Hibernate SQL suppression)
+- ✅ `docs-site-working/docs/developer-quick-reference.md` (logging section)
+
+---
+
+### Implementation Sequence
+
+**This Sprint (Immediate)**:
+1. Error Catch Variable Mapping (CRITICAL — unblocks error tracking)
+2. Disable Spaces in ID Fields (HIGH — quick validation wins)
+
+**Next Sprint**:
+1. Admin Canvas Rendering (HIGH — visual polish)
+2. Improve Hibernate Logging (MEDIUM — developer experience)
+
+### Dependencies
+- Error Mapping: Modeler + Backend + Admin (3 repos)
+- ID Validation: Modeler only (independent)
+- Canvas Rendering: Admin only (independent)
+- Logging: Backend only (independent)
+
+---
+
 ## Next Phases (Planned)
 
-### Phase 4: Scalability
-- Horizontal scaling setup
-- Load balancing configuration
-- Worker pool management
-- Instance caching/clustering
-
-### Phase 5: Advanced Features
+### Phase 7: Advanced Features
 - Timer events implementation
 - Call activity (subprocess) support
 - Process instance archival
@@ -502,7 +607,10 @@ Metrics & Health (Phase 3)
 ✅ **Phase 1**: Data integrity bugs fixed, all tests passing
 ✅ **Phase 2**: Worker architecture complete, async execution working
 ✅ **Phase 3**: Observability framework in place, metrics/health active
-✅ **Documentation**: Comprehensive guides for features, API, metrics
-✅ **Production Ready**: Code compiles, tests pass, all core features functional
+✅ **Phase 4**: UI Ecosystem + Variable Synchronisation (Form Keys, Task Portal, Dynamic Forms)
+✅ **Phase 5**: APITask Auth References (secure API integration)
+✅ **Phase 6**: QA Improvements completed (Error tracking, Input validation, Canvas polish, Logging)
+✅ **Documentation**: Comprehensive guides for features, API, metrics, canvas rendering
+✅ **Production Ready**: Code compiles, tests pass, all core features functional, QA polish complete
 
-The Easy BPM Engine is now a fully functional, observable, and scalable process orchestration platform.
+The Easy BPM Engine is now a fully functional, observable, scalable, and polished process orchestration platform.

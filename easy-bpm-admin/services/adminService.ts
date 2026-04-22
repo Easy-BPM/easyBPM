@@ -1,4 +1,5 @@
 import {
+  CallActivityMapping,
   MoveNodePayload,
   Page,
   ProcessDefinition,
@@ -211,5 +212,42 @@ export const adminService = {
       method: 'DELETE'
     });
     if (!res.ok) throw new Error(`Failed to delete instance: ${res.statusText}`);
+  },
+
+  getChildInstances: async (parentInstanceId: number): Promise<ProcessInstance[]> => {
+    if (USE_MOCK) {
+      await delay(250);
+      return MOCK_INSTANCES.filter((i) => i.parentInstanceId === parentInstanceId) ?? [];
+    }
+
+    const res = await fetch(`${API_BASE_URL}/processes/instances/${parentInstanceId}/children`);
+    if (!res.ok) throw new Error(`Failed to fetch child instances: ${res.statusText}`);
+    return res.json();
+  },
+
+  getParentInstance: async (childInstanceId: number): Promise<ProcessInstance | null> => {
+    if (USE_MOCK) {
+      await delay(250);
+      const child = MOCK_INSTANCES.find((i) => i.id === childInstanceId);
+      if (!child || !child.parentInstanceId) return null;
+      return MOCK_INSTANCES.find((i) => i.id === child.parentInstanceId) ?? null;
+    }
+
+    const res = await fetch(`${API_BASE_URL}/processes/instances/${childInstanceId}/parent`);
+    if (res.status === 404) return null;
+    if (!res.ok) throw new Error(`Failed to fetch parent instance: ${res.statusText}`);
+    return res.json();
+  },
+
+  getCallActivityMapping: async (parentInstanceId: number, childInstanceId: number): Promise<CallActivityMapping | null> => {
+    if (USE_MOCK) {
+      await delay(250);
+      return null;
+    }
+
+    const res = await fetch(`${API_BASE_URL}/processes/instances/${parentInstanceId}/children/${childInstanceId}/mapping`);
+    if (res.status === 404) return null;
+    if (!res.ok) throw new Error(`Failed to fetch call activity mapping: ${res.statusText}`);
+    return res.json();
   }
 };

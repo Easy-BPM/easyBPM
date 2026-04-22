@@ -29,6 +29,8 @@ export interface WorkflowNode {
   type: string;
   position?: { x: number; y: number };
   next?: string[];
+  attachedTo?: string;  // For boundary events: parent node ID
+  config?: Record<string, unknown>;  // For error/message/timer boundaries
 }
 
 export interface WorkflowFlow {
@@ -57,6 +59,9 @@ export interface ProcessInstance {
   nodeHistory?: string[];
   createdAt: string;
   updatedAt: string;
+  parentInstanceId?: number;
+  callActivityNodeId?: string;
+  nestingLevel?: number;
 }
 
 export interface ProcessVariable {
@@ -67,6 +72,16 @@ export interface ProcessVariable {
 export interface NodeHistoryItem {
   nodeId: string;
   timestamp?: string;
+}
+
+export interface CallActivityMapping {
+  id?: number;
+  parentInstanceId: number;
+  childInstanceId: number;
+  callActivityNodeId: string;
+  inputMappings?: Record<string, string>;
+  outputMappings?: Record<string, string>;
+  propagateAllVariables?: boolean;
 }
 
 export interface MoveNodePayload {

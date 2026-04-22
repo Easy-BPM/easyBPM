@@ -28,6 +28,7 @@ const labelForNode = (node: WorkflowNode): string => {
 const nodeSizeByType = (type: string): { width: number; height: number } => {
   if (type === 'StartEvent' || type === 'EndEvent') return { width: 44, height: 44 };
   if (type.toLowerCase().includes('gateway')) return { width: 54, height: 54 };
+  if (type.toLowerCase().includes('boundary')) return { width: 36, height: 36 };
   return { width: 150, height: 72 };
 };
 
@@ -38,6 +39,9 @@ const getNodeStyle = (type: string, visited: boolean, current: boolean): string 
   if (type === 'StartEvent') return 'fill-white stroke-green-600';
   if (type === 'EndEvent') return 'fill-white stroke-red-600';
   if (type.toLowerCase().includes('gateway')) return 'fill-white stroke-orange-600';
+  if (type === 'ErrorBoundaryEvent') return 'fill-white stroke-red-600';
+  if (type === 'MessageBoundaryEvent') return 'fill-white stroke-blue-600';
+  if (type === 'TimerEvent' && type.toLowerCase().includes('boundary')) return 'fill-white stroke-amber-600';
   if (type === 'HumanTask' || type === 'UserTask' || type === 'humanTask' || type === 'userTask') return 'fill-white stroke-blue-700';
   if (type === 'ServiceTask') return 'fill-white stroke-amber-600';
   if (type === 'APITask') return 'fill-white stroke-purple-600';
@@ -85,6 +89,10 @@ const collectEdges = (definition: WorkflowDefinition): Edge[] => {
   return edges;
 };
 
+const isBoundaryEvent = (node: WorkflowNode): boolean => {
+  return node.type.toLowerCase().includes('boundary') || !!node.attachedTo;
+};
+
 export const WorkflowCanvas: React.FC<Props> = ({ definition, nodeHistory, currentNodes }) => {
   const nodes = definition.nodes ?? [];
   if (nodes.length === 0) {
@@ -101,8 +109,12 @@ export const WorkflowCanvas: React.FC<Props> = ({ definition, nodeHistory, curre
   }
 
   const nodeById = new Map(nodes.map((n) => [n.id, n]));
+  
+  // Separate regular nodes and boundary events
+  const regularNodes = nodes.filter(n => !isBoundaryEvent(n));
+  const boundaryNodes = nodes.filter(n => isBoundaryEvent(n));
 
-  const bounds = nodes.reduce(
+  const bounds = regularNodes.reduce(
     (acc, node) => {
       const size = nodeSizeByType(node.type);
       const x = node.position?.x ?? 0;
@@ -127,18 +139,25 @@ export const WorkflowCanvas: React.FC<Props> = ({ definition, nodeHistory, curre
     <div className="w-full overflow-auto rounded-xl border border-slate-200 bg-slate-50">
       <svg width={width} height={height} className="min-w-full">
         <defs>
-          <marker id="wf-arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-            <polygon points="0 0, 10 3.5, 0 7" fill="#64748b" />
+          {/* Standard flow arrow (inactive) */}
+          <marker id="wf-arrow" markerWidth="12" markerHeight="12" refX="11" refY="6" orient="auto" markerUnits="strokeWidth">
+            <path d="M 0 0 L 12 6 L 0 12 Z" fill="#64748b" stroke="none" />
           </marker>
-          <marker id="wf-arrow-active" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-            <polygon points="0 0, 10 3.5, 0 7" fill="#2563eb" />
+          {/* Active flow arrow (visited) */}
+          <marker id="wf-arrow-active" markerWidth="12" markerHeight="12" refX="11" refY="6" orient="auto" markerUnits="strokeWidth">
+            <path d="M 0 0 L 12 6 L 0 12 Z" fill="#2563eb" stroke="none" />
+          </marker>
+          {/* Boundary event exception arrow */}
+          <marker id="wf-arrow-boundary" markerWidth="12" markerHeight="12" refX="11" refY="6" orient="auto" markerUnits="strokeWidth">
+            <path d="M 0 0 L 12 6 L 0 12 Z" fill="#dc2626" stroke="none" />
           </marker>
         </defs>
 
+        {/* Draw regular edges */}
         {edges.map((edge) => {
           const source = nodeById.get(edge.from);
           const target = nodeById.get(edge.to);
-          if (!source || !target) return null;
+          if (!source || !target || isBoundaryEvent(source) || isBoundaryEvent(target)) return null;
 
           const edgeKey = `${edge.from}::${edge.to}`;
           const isVisitedEdge = visitedEdges.has(edgeKey);
@@ -153,14 +172,51 @@ export const WorkflowCanvas: React.FC<Props> = ({ definition, nodeHistory, curre
               d={path}
               fill="none"
               stroke={isVisitedEdge ? '#2563eb' : '#94a3b8'}
-              strokeWidth={isVisitedEdge ? 3 : 2}
+              strokeWidth={isVisitedEdge ? '3' : '2'}
               markerEnd={isVisitedEdge ? 'url(#wf-arrow-active)' : 'url(#wf-arrow)'}
+              strokeLinecap="round"
               strokeLinejoin="round"
+              vectorEffect="non-scaling-stroke"
             />
           );
         })}
 
-        {nodes.map((node) => {
+        {/* Draw boundary event connections */}
+        {boundaryNodes.map((boundaryNode) => {
+          if (!boundaryNode.attachedTo) return null;
+          
+          const parentNode = nodeById.get(boundaryNode.attachedTo);
+          if (!parentNode) return null;
+
+          const parentSize = nodeSizeByType(parentNode.type);
+          const parentX = (parentNode.position?.x ?? 0) + offsetX;
+          const parentY = (parentNode.position?.y ?? 0) + offsetY;
+          
+          // Draw line from parent to boundary (visual indication)
+          const parentCenter = getCenter(parentNode, parentSize);
+          const boundaryX = (boundaryNode.position?.x ?? 0) + offsetX;
+          const boundaryY = (boundaryNode.position?.y ?? 0) + offsetY;
+          const boundarySize = nodeSizeByType(boundaryNode.type);
+          const boundaryCenter = getCenter(boundaryNode, boundarySize);
+
+          return (
+            <path
+              key={`boundary-${boundaryNode.id}`}
+              d={`M ${parentCenter.x + offsetX} ${parentCenter.y + offsetY} L ${boundaryCenter.x} ${boundaryCenter.y}`}
+              fill="none"
+              stroke="#dc2626"
+              strokeWidth="1.5"
+              strokeDasharray="4,3"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              markerEnd="url(#wf-arrow-boundary)"
+              vectorEffect="non-scaling-stroke"
+            />
+          );
+        })}
+
+        {/* Draw regular nodes */}
+        {regularNodes.map((node) => {
           const size = nodeSizeByType(node.type);
           const x = (node.position?.x ?? 0) + offsetX;
           const y = (node.position?.y ?? 0) + offsetY;
@@ -261,6 +317,46 @@ export const WorkflowCanvas: React.FC<Props> = ({ definition, nodeHistory, curre
               >
                 {node.type}
               </text>
+              {current && <CurrentTokenPin x={x + size.width + 8} y={y - 4} />}
+            </g>
+          );
+        })}
+
+        {/* Draw boundary event nodes */}
+        {boundaryNodes.map((node) => {
+          const size = nodeSizeByType(node.type);
+          const x = (node.position?.x ?? 0) + offsetX;
+          const y = (node.position?.y ?? 0) + offsetY;
+          const visited = visitedSet.has(node.id);
+          const current = currentSet.has(node.id);
+          const className = getNodeStyle(node.type, visited, current);
+
+          return (
+            <g key={node.id}>
+              <circle
+                cx={x + size.width / 2}
+                cy={y + size.height / 2}
+                r={size.width / 2}
+                className={`${className} stroke-[2.5]`}
+              />
+              <text
+                x={x + size.width / 2}
+                y={y + size.height + 18}
+                textAnchor="middle"
+                className="fill-slate-700 text-[10px] font-medium"
+              >
+                {labelForNode(node)}
+              </text>
+              {node.name && node.name.trim().length > 0 && (
+                <text
+                  x={x + size.width / 2}
+                  y={y + size.height + 28}
+                  textAnchor="middle"
+                  className="fill-slate-500 text-[9px] font-mono"
+                >
+                  {node.id}
+                </text>
+              )}
               {current && <CurrentTokenPin x={x + size.width + 8} y={y - 4} />}
             </g>
           );

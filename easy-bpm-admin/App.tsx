@@ -190,6 +190,11 @@ const InstanceExplorerView: React.FC = () => {
   const [workflowDefinition, setWorkflowDefinition] = useState<WorkflowDefinition | null>(null);
   const [workflowLoading, setWorkflowLoading] = useState(false);
   const [workflowError, setWorkflowError] = useState<string | null>(null);
+  const [parentInstance, setParentInstance] = useState<ProcessInstance | null>(null);
+  const [childInstances, setChildInstances] = useState<ProcessInstance[]>([]);
+  const [hierarchyLoading, setHierarchyLoading] = useState(false);
+  const [selectedChildId, setSelectedChildId] = useState<number | null>(null);
+  const [childMapping, setChildMapping] = useState<any>(null);
 
   const loadDefinitionForInstance = async (targetInstance: ProcessInstance | null) => {
     setWorkflowDefinition(null);
@@ -220,6 +225,40 @@ const InstanceExplorerView: React.FC = () => {
     }
   };
 
+  const loadHierarchy = async (targetInstance: ProcessInstance | null) => {
+    setParentInstance(null);
+    setChildInstances([]);
+    if (!targetInstance) return;
+
+    setHierarchyLoading(true);
+    try {
+      // Load parent if this is a subprocess
+      if (targetInstance.parentInstanceId) {
+        const parent = await adminService.getParentInstance(targetInstance.id);
+        setParentInstance(parent);
+      }
+
+      // Load children if this instance has subprocesses
+      const children = await adminService.getChildInstances(targetInstance.id);
+      setChildInstances(children);
+    } catch (error) {
+      console.error('Error loading hierarchy:', error);
+    } finally {
+      setHierarchyLoading(false);
+    }
+  };
+
+  const loadChildMapping = async (parentId: number, childId: number) => {
+    setChildMapping(null);
+    setSelectedChildId(childId);
+    try {
+      const mapping = await adminService.getCallActivityMapping(parentId, childId);
+      setChildMapping(mapping);
+    } catch (error) {
+      console.error('Error loading child mapping:', error);
+    }
+  };
+
   const handleSearch = async () => {
     const parsedId = Number(instanceIdInput);
     if (!parsedId) return;
@@ -232,6 +271,7 @@ const InstanceExplorerView: React.FC = () => {
       if (found) {
         setVariables(await adminService.getProcessVariables(found.id));
         await loadDefinitionForInstance(found);
+        await loadHierarchy(found);
       } else {
         setVariables([]);
         setWorkflowDefinition(null);
@@ -352,6 +392,56 @@ const InstanceExplorerView: React.FC = () => {
               tone="purple"
             />
           </div>
+
+          {/* Instance Hierarchy Breadcrumb */}
+          {(parentInstance || childInstances.length > 0) && (
+            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4">
+              <h3 className="font-semibold text-slate-800 flex items-center gap-2">
+                <GitBranch size={18} className="text-indigo-600" /> Instance Hierarchy
+              </h3>
+
+              {/* Parent Link */}
+              {parentInstance && (
+                <div className="flex items-center gap-2 pb-3 border-b border-slate-200">
+                  <span className="text-xs uppercase tracking-wide text-slate-500 font-bold">Parent</span>
+                  <button
+                    onClick={() => setInstanceIdInput(String(parentInstance.id))}
+                    className="text-sm px-3 py-1.5 rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors border border-indigo-200 font-medium"
+                  >
+                    Instance #{parentInstance.id}
+                  </button>
+                  <span className="text-xs text-slate-500">{parentInstance.status}</span>
+                  {instance.callActivityNodeId && <span className="text-xs px-2 py-1 rounded bg-slate-100 text-slate-600">Node: {instance.callActivityNodeId}</span>}
+                </div>
+              )}
+
+              {/* Current Instance (with nesting level indicator) */}
+              <div className="flex items-center gap-2 py-2 px-3 rounded-lg bg-blue-50 border border-blue-200">
+                <span className="text-xs uppercase tracking-wide text-blue-600 font-bold">Current</span>
+                <span className="text-sm px-3 py-1.5 rounded-lg bg-white text-blue-700 font-mono font-medium">Instance #{instance.id}</span>
+                {instance.nestingLevel !== undefined && <span className="text-xs px-2 py-1 rounded bg-blue-100 text-blue-700">Level {instance.nestingLevel}</span>}
+              </div>
+
+              {/* Child Instances */}
+              {childInstances.length > 0 && (
+                <div className="pt-3 border-t border-slate-200 space-y-2">
+                  <p className="text-xs uppercase tracking-wide text-slate-500 font-bold">Children ({childInstances.length})</p>
+                  <div className="space-y-2">
+                    {childInstances.map((child) => (
+                      <button
+                        key={child.id}
+                        onClick={() => setInstanceIdInput(String(child.id))}
+                        className="w-full flex items-center justify-between text-sm px-3 py-2.5 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors border border-emerald-200"
+                      >
+                        <span className="font-medium">Instance #{child.id}</span>
+                        <span className="text-xs text-emerald-600">{child.status}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4">
@@ -483,6 +573,106 @@ const InstanceExplorerView: React.FC = () => {
               </>
             )}
           </div>
+
+          {/* Child Instances Inspection */}
+          {childInstances.length > 0 && (
+            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4">
+              <h3 className="font-semibold text-slate-800 flex items-center gap-2">
+                <Layers size={18} className="text-emerald-600" /> Child Process Instances ({childInstances.length})
+              </h3>
+              <p className="text-sm text-slate-500">
+                Subprocesses invoked by this instance. Click to inspect details, variables, and execution history.
+              </p>
+              <div className="space-y-3">
+                {childInstances.map((child) => (
+                  <div key={child.id} className="border border-slate-200 rounded-lg p-4 hover:bg-slate-50 transition-colors">
+                    <div className="flex items-start justify-between gap-4 mb-3">
+                      <div className="flex-1">
+                        <h4 className="font-medium text-slate-800">
+                          Child Instance #{child.id}
+                        </h4>
+                        <p className="text-sm text-slate-500 mt-0.5">
+                          {child.processDefinition?.name || 'Unknown Process'} (v{child.processDefinition?.version || '?'})
+                        </p>
+                        {child.callActivityNodeId && (
+                          <p className="text-xs text-slate-400 mt-1">Called from node: <span className="font-mono bg-slate-100 px-1 rounded">{child.callActivityNodeId}</span></p>
+                        )}
+                      </div>
+                      <div className="flex flex-col items-end gap-2">
+                        <span className={`px-3 py-1 rounded-full text-xs font-medium border ${
+                          child.status === 'COMPLETED' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                          child.status === 'ACTIVE' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                          child.status === 'FAILED' ? 'bg-red-50 text-red-700 border-red-200' :
+                          'bg-slate-50 text-slate-700 border-slate-200'
+                        }`}>
+                          {child.status}
+                        </span>
+                        {child.nestingLevel !== undefined && (
+                          <span className="text-xs text-slate-500 bg-slate-100 px-2 py-1 rounded">Level {child.nestingLevel}</span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 text-xs mb-3">
+                      <div className="bg-slate-50 rounded p-2">
+                        <p className="text-slate-500 uppercase tracking-wide font-bold">Created</p>
+                        <p className="text-slate-700 font-mono text-[11px] mt-0.5">{new Date(child.createdAt).toLocaleString()}</p>
+                      </div>
+                      <div className="bg-slate-50 rounded p-2">
+                        <p className="text-slate-500 uppercase tracking-wide font-bold">Updated</p>
+                        <p className="text-slate-700 font-mono text-[11px] mt-0.5">{new Date(child.updatedAt).toLocaleString()}</p>
+                      </div>
+                      <div className="bg-slate-50 rounded p-2">
+                        <p className="text-slate-500 uppercase tracking-wide font-bold">Node History</p>
+                        <p className="text-slate-700 font-medium mt-0.5">{child.nodeHistory?.length ?? 0} nodes</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setInstanceIdInput(String(child.id));
+                        loadChildMapping(instance.id, child.id);
+                      }}
+                      className="w-full px-3 py-2 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors text-sm font-medium border border-emerald-200"
+                    >
+                      Inspect Instance
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Variable Mapping Display */}
+          {childMapping && selectedChildId && (
+            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4">
+              <h3 className="font-semibold text-slate-800 flex items-center gap-2">
+                <ArrowRightLeft size={18} className="text-amber-600" /> Variable Mappings for Instance #{selectedChildId}
+              </h3>
+              <p className="text-sm text-slate-500">
+                Variables mapped from parent to child instance.
+              </p>
+              {childMapping.inputMappings && Object.keys(childMapping.inputMappings).length > 0 && (
+                <div>
+                  <h4 className="text-sm font-medium text-slate-700 mb-2">Input Mappings</h4>
+                  <div className="space-y-1 text-xs text-slate-600">
+                    {Object.entries(childMapping.inputMappings).map(([parentVar, childVar]) => (
+                      <div key={parentVar}>{parentVar} → {childVar}</div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {childMapping.outputMappings && Object.keys(childMapping.outputMappings).length > 0 && (
+                <div>
+                  <h4 className="text-sm font-medium text-slate-700 mb-2">Output Mappings</h4>
+                  <div className="space-y-1 text-xs text-slate-600">
+                    {Object.entries(childMapping.outputMappings).map(([childVar, parentVar]) => (
+                      <div key={childVar}>{childVar} → {parentVar}</div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
         </>
       )}
     </div>

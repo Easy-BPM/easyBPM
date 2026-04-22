@@ -32,16 +32,38 @@ Easy BPM is a Spring Boot-based Business Process Management (BPM) orchestrator w
 - Easy BPM Task Portal: task inbox, dynamic form rendering, variable editor fallback, complete-task with global variable sync
 - Backend: `TaskService.syncTaskVariablesToProcess()` guarantees all submitted task variables become process globals
 - Form key feature: V16 Flyway migration, `form_key` column + unique index on form table
-- Docs: Task Portal overview + getting-started pages, implementation-status Phase 4, updated sidebars
+- Docs: Task Portal overview + getting-started pages, implementation-status Phase 4 & 5, updated sidebars
+- Phase 5: APITask Auth References (auth.type, auth.ref, environment variable credential resolution)
 - All backend tests passing (113+ tests, Gradle BUILD SUCCESSFUL)
+- **Phase 6: QA Improvements** (All items completed):
+  - ✅ Error Catch Handler - capture error message to variable (exceptionVariable mapping)
+  - ✅ Disable spaces in ID fields (Modeler: Process ID, Form ID, Form Key validation)
+  - ✅ Admin Canvas rendering - fixed arrow styles, render boundary events with BPMN compliance
+  - ✅ Improved Hibernate logging (SQL suppressed, logback-spring.xml with profiles)
+  - ✅ Comprehensive canvas documentation (easy-admin-canvas-rendering.md)
 
-⏳ **Pending / Next Sprint**:
-- CORS configuration for localhost:5173, 5174, and 3000 (all three UIs)
-- POST /login endpoint (auth integration — JWT or session)
-- Auth token propagation in all three UI services
-- POST /processes/{key}/start in Task Portal UI (start new instances from portal)
-- Task Portal: filter/search tasks by process key or assignee
-- Integration tests: complete-task → assert all submitted variables promoted to process globals
+⏳ **Phase 7: Call Activity & Subprocess Support** (Next Roadmap)
+- **Status**: Tasks formally delegated (2026-04-22)
+- **Document**: [EPIC-call-activity-subprocess-support.md](./EPIC-call-activity-subprocess-support.md)
+- **Task Delegation**: [task-delegation-call-activity.md](./.agents/task-delegation-call-activity.md)
+- **Sprint**: 4 weeks (Weeks 1-4, Target: 2026-06-30)
+- **Effort**: 40 story points distributed across 5 roles
+- **Key Features**:
+  - Call activity nodes for subprocess invocation
+  - Parent → child variable input mapping
+  - Child → parent variable output mapping
+  - Call activity error boundary handling
+  - Admin UI hierarchy visualization
+  - Modeler support for call activity design
+
+⏳ **Pending / Phase 8+ (Future Roadmap)**:
+- Timer events and boundary timer event implementation (Phase 8)
+- CORS configuration for localhost:5173, 5174, and 3000 (Phase 8)
+- POST /login endpoint (auth integration — JWT or session) (Phase 8)
+- Auth token propagation in all three UI services (Phase 8)
+- POST /processes/{key}/start in Task Portal UI (start new instances from portal) (Phase 8)
+- Task Portal: filter/search tasks by process key or assignee (Phase 8)
+- Advanced forms: conditional fields, calculated values, field dependencies (Phase 9)
 
 ## Quick Commands
 

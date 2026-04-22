@@ -17,6 +17,7 @@ import com.easy.bpm.repository.worker.WorkerRequestRepository
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import jakarta.transaction.Transactional
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageRequest
@@ -39,11 +40,13 @@ class ProcessService(
     private val gatewayService: GatewayService,
     private val messageSubscriptionService: MessageSubscriptionService,
     private val metricsService: MetricsService,
-    private val workerRequestRepository: WorkerRequestRepository
+    private val workerRequestRepository: WorkerRequestRepository,
+    private val callActivityHandler: CallActivityHandler
 ) {
 
     companion object {
         const val INTERNAL_TIMER_MESSAGE_NAME = "__internal.timer__"
+        private val logger = LoggerFactory.getLogger(ProcessService::class.java)
     }
 
     private val processDefinitionSortableFields = setOf("id", "key", "name", "description", "version")
@@ -354,6 +357,7 @@ class ProcessService(
                 NodeType.MessageEvent -> handleMessageEvent(instance, node)
                 NodeType.MessageIntermediateCatchEvent -> handleMessageIntermediateCatchEvent(instance, node)
                 NodeType.MessageIntermediateThrowEvent -> handleMessageIntermediateThrowEvent(instance, node, definition)
+                NodeType.CallActivity -> handleCallActivity(instance, node, definition)
                 NodeType.EndEvent -> finishProcess(instance)
                 NodeType.ExclusiveGateway, NodeType.ParallelGateway, NodeType.InclusiveGateway -> {
                     val nextNodes = getNextNodes(node, definition, instance)
@@ -366,6 +370,19 @@ class ProcessService(
             // Check for attached error boundary event
             val errorBoundaryNode = findAttachedErrorBoundary(node, definition)
             if (errorBoundaryNode != null) {
+                // Capture error message and log for observability
+                val errorMessage = ex.message ?: ex.javaClass.simpleName
+                val errorCode = errorBoundaryNode.get("config")?.get("errorCode")?.asText() ?: "ERROR"
+                val exceptionVariableName = errorBoundaryNode.get("config")?.get("exceptionVariable")?.asText()
+                
+                logger.warn("Error caught by boundary [$errorCode] on node ${node.get("id").asText()}: $errorMessage", ex)
+                
+                // Capture error message to process variable if exceptionVariable is mapped
+                if (!exceptionVariableName.isNullOrBlank()) {
+                    assignProcessVariables(instance.id, mapOf(exceptionVariableName to errorMessage))
+                    logger.debug("Error message captured to variable '$exceptionVariableName'")
+                }
+                
                 // Route to error boundary's next node(s) (do NOT execute the ErrorBoundaryEvent node itself)
                 val nextNodes = getNextNodes(errorBoundaryNode, definition, instance)
                 advanceProcess(instance, nextNodes, definition)
@@ -730,6 +747,24 @@ class ProcessService(
         val nextNodes = getNextNodes(node, definition, instance)
         advanceProcess(instance, nextNodes, definition)
         executeNodes(nextNodes, instance, definition)
+    }
+
+    /**
+     * Handle Call Activity (Subprocess) node execution.
+     * Creates a child process instance and manages parent-child relationship.
+     */
+    private fun handleCallActivity(
+        instance: ProcessInstance,
+        node: JsonNode,
+        definition: JsonNode
+    ) {
+        try {
+            callActivityHandler.executeCallActivity(instance, node, definition)
+            logger.info("Call activity node '${node.get("id").asText()}' executed successfully")
+        } catch (ex: Exception) {
+            logger.error("Error executing call activity node", ex)
+            throw ex
+        }
     }
 
     @Transactional

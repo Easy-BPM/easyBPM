@@ -1,4 +1,4 @@
-export type NodeType = 'start' | 'end' | 'user-task' | 'service-task' | 'api-task' | 'gateway' | 'parallel-gateway' | 'timer-event' | 'message-start' | 'message-intermediate-catch' | 'message-intermediate-throw' | 'error-boundary' | 'message-boundary' | 'timer-boundary';
+export type NodeType = 'start' | 'end' | 'user-task' | 'service-task' | 'api-task' | 'call-activity' | 'gateway' | 'parallel-gateway' | 'timer-event' | 'message-start' | 'message-intermediate-catch' | 'message-intermediate-throw' | 'error-boundary' | 'message-boundary' | 'timer-boundary';
 
 export interface Position {
   x: number;
@@ -33,6 +33,11 @@ export interface NodeData {
   apiAuthRef?: string;
   apiAuthIn?: 'header' | 'query';
   apiAuthKey?: string;
+  // Call Activity specific
+  callActivityProcessKey?: string;      // Target subprocess process key
+  inputMappings?: Record<string, string>;  // parent var -> child var
+  outputMappings?: Record<string, string>; // child var -> parent var
+  propagateAllVariables?: boolean;      // Copy all variables (default false)
   // Gateway specific
   condition?: string;
   // Message Event specific

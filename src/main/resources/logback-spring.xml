@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <!-- Spring Boot default logback configuration with customizations for EasyBPM -->
+    
+    <!-- Import Spring Boot's default configuration -->
+    <include resource="org/springframework/boot/logging/logback/defaults.xml" />
+    
+    <!-- Define log patterns -->
+    <property name="LOG_FILE_MAX_SIZE" value="10MB" />
+    <property name="LOG_FILE_MAX_HISTORY" value="10" />
+    <property name="LOG_PATTERN" value="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %X{correlationId} - %msg%n" />
+    
+    <!-- Console appender -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${LOG_PATTERN}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+    
+    <!-- File appender -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/bpm.log</file>
+        <encoder>
+            <pattern>${LOG_PATTERN}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>logs/bpm-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>${LOG_FILE_MAX_SIZE}</maxFileSize>
+            <maxHistory>${LOG_FILE_MAX_HISTORY}</maxHistory>
+            <totalSizeCap>100MB</totalSizeCap>
+        </rollingPolicy>
+    </appender>
+    
+    <!-- Spring Profiles Configuration -->
+    <springProfile name="default,dev">
+        <!-- Development: DEBUG for EasyBPM, suppress Hibernate SQL -->
+        <logger name="com.easy.bpm" level="DEBUG" additivity="false">
+            <appender-ref ref="CONSOLE" />
+            <appender-ref ref="FILE" />
+        </logger>
+        
+        <!-- Suppress verbose Hibernate logging -->
+        <logger name="org.hibernate" level="WARN" />
+        <logger name="org.hibernate.SQL" level="WARN" />
+        <logger name="org.hibernate.type.descriptor.sql" level="WARN" />
+        
+        <!-- Suppress Spring verbose logs -->
+        <logger name="org.springframework" level="INFO" />
+        <logger name="org.springframework.boot.actuate" level="INFO" />
+        
+        <!-- Suppress RabbitMQ verbose logs -->
+        <logger name="com.rabbitmq" level="WARN" />
+        <logger name="org.springframework.amqp" level="INFO" />
+        
+        <!-- Suppress database connection pool logs -->
+        <logger name="org.postgresql.jdbc" level="WARN" />
+        <logger name="com.zaxxer.hikari" level="INFO" />
+        
+        <root level="INFO">
+            <appender-ref ref="CONSOLE" />
+            <appender-ref ref="FILE" />
+        </root>
+    </springProfile>
+    
+    <springProfile name="test">
+        <!-- Test: Minimal logging, only errors and warnings -->
+        <logger name="com.easy.bpm" level="INFO" />
+        <logger name="org.hibernate" level="WARN" />
+        <logger name="org.springframework" level="WARN" />
+        
+        <root level="WARN">
+            <appender-ref ref="CONSOLE" />
+        </root>
+    </springProfile>
+    
+    <springProfile name="prod">
+        <!-- Production: INFO for EasyBPM, no SQL logging, file only -->
+        <logger name="com.easy.bpm" level="INFO" />
+        <logger name="org.hibernate" level="WARN" />
+        <logger name="org.springframework" level="WARN" />
+        
+        <root level="WARN">
+            <appender-ref ref="FILE" />
+        </root>
+    </springProfile>
+</configuration>

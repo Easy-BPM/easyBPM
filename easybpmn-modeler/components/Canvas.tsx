@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { BpmnNode, BpmnEdge, NodeType, Position } from '../types';
 import { getEdgePath, generateId, snapToGrid } from '../utils/geometry';
-import { User, Settings, GitFork, Plus, Mail, Zap, Clock3 } from 'lucide-react';
+import { User, Settings, GitFork, Plus, Mail, Zap, Clock3, Layers } from 'lucide-react';
 
 interface CanvasProps {
   nodes: BpmnNode[];
@@ -274,7 +274,7 @@ export const Canvas: React.FC<CanvasProps> = ({
         )}
 
         {nodes.map((node) => {
-          const isTask = node.type === 'user-task' || node.type === 'service-task' || node.type === 'api-task';
+          const isTask = node.type === 'user-task' || node.type === 'service-task' || node.type === 'api-task' || node.type === 'call-activity';
           const isBoxMessageCatch = node.type === 'message-intermediate-catch';
           const isMessageEvent = ['message-start', 'message-intermediate-catch', 'message-intermediate-throw'].includes(node.type);
           const isSelected = selectedNodeUids.includes(node.uid);
@@ -339,10 +339,11 @@ export const Canvas: React.FC<CanvasProps> = ({
             )}
             {node.type === 'end' && <circle r="20" filter="url(#shadow)" className="fill-white stroke-red-500 stroke-[4px]" />}
             {['gateway', 'parallel-gateway'].includes(node.type) && <rect width="28" height="28" transform="rotate(45)" x="-14" y="-14" filter="url(#shadow)" className="fill-white stroke-orange-500 stroke-[2px]" />}
-            {isTask && <rect x={-node.width/2} y={-node.height/2} width={node.width} height={node.height} rx="6" filter="url(#shadow)" className={`fill-white stroke-[2px] ${node.type === 'user-task' ? 'stroke-blue-600' : (node.type === 'api-task' ? 'stroke-purple-600' : 'stroke-amber-600')}`} />}
+            {isTask && <rect x={-node.width/2} y={-node.height/2} width={node.width} height={node.height} rx="6" filter="url(#shadow)" className={`fill-white stroke-[2px] ${node.type === 'user-task' ? 'stroke-blue-600' : (node.type === 'api-task' ? 'stroke-purple-600' : (node.type === 'call-activity' ? 'stroke-cyan-600' : 'stroke-amber-600'))}`} />}
             {node.type === 'user-task' && <User x={-node.width/2+8} y={-node.height/2+8} className="w-4 h-4 text-blue-600 pointer-events-none opacity-80" />}
             {node.type === 'api-task' && <Settings x={-node.width/2+8} y={-node.height/2+8} className="w-4 h-4 text-purple-600 pointer-events-none opacity-80" />}
             {node.type === 'service-task' && <Zap x={-node.width/2+8} y={-node.height/2+8} className="w-4 h-4 text-amber-600 pointer-events-none opacity-80" />}
+            {node.type === 'call-activity' && <Layers x={-node.width/2+8} y={-node.height/2+8} className="w-4 h-4 text-cyan-600 pointer-events-none opacity-80" />}
             {node.type === 'gateway' && <GitFork x="-8" y="-8" className="w-4 h-4 text-orange-600 pointer-events-none opacity-80" />}
             {node.type === 'parallel-gateway' && <Plus x="-8" y="-8" className="w-4 h-4 text-orange-600 pointer-events-none opacity-80" />}
             <foreignObject 
