@@ -1,4 +1,4 @@
-package com.example.bpm.dto
+package com.easy.bpm.dto
 
 /**
  * Response DTO for successful JAR upload
@@ -19,3 +19,4 @@ data class CodeTaskJarUploadResponse(
     val methodCount: Int,
     val classes: List<String>
 )
+

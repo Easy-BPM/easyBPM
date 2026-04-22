@@ -1,4 +1,4 @@
-package com.example.bpm.entity
+package com.easy.bpm.entity
 
 import jakarta.persistence.*
 import java.time.LocalDateTime
@@ -57,3 +57,4 @@ class CodeTaskJar(
     return result
   }
 }
+

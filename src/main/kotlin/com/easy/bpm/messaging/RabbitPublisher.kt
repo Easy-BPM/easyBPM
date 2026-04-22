@@ -84,3 +84,4 @@ class RabbitPublisher(
         rabbitTemplate.convertAndSend(AmqpConfig.EXCHANGE, AmqpConfig.MESSAGE_EVENTS_ROUTING_KEY, payload)
     }
 }
+

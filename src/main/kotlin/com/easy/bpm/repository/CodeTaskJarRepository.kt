@@ -1,6 +1,6 @@
-package com.example.bpm.repository
+package com.easy.bpm.repository
 
-import com.example.bpm.entity.CodeTaskJar
+import com.easy.bpm.entity.CodeTaskJar
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.stereotype.Repository
 
@@ -25,3 +25,4 @@ interface CodeTaskJarRepository : JpaRepository<CodeTaskJar, Long> {
    */
   override fun findAll(): List<CodeTaskJar>
 }
+

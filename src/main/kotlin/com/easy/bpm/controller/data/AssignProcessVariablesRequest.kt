@@ -9,3 +9,4 @@ data class AssignProcessVariablesRequest(
     )
     val variables: Map<String, Any?> = emptyMap()
 )
+

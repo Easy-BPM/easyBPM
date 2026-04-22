@@ -1,9 +1,9 @@
-package com.example.bpm.service
+package com.easy.bpm.service
 
-import com.example.bpm.entity.CodeClassMetadata
-import com.example.bpm.entity.CodeTaskJar
-import com.example.bpm.repository.CodeClassMetadataRepository
-import com.example.bpm.repository.CodeTaskJarRepository
+import com.easy.bpm.entity.CodeClassMetadata
+import com.easy.bpm.entity.CodeTaskJar
+import com.easy.bpm.repository.CodeClassMetadataRepository
+import com.easy.bpm.repository.CodeTaskJarRepository
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -256,3 +256,4 @@ data class DiscoveredMethod(
     return result
   }
 }
+

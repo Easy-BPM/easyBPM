@@ -661,3 +661,4 @@ class TaskService(
     private fun parseStaticValue(valueNode: JsonNode): JsonNode =
         if (valueNode.isTextual) objectMapper.readTree(valueNode.asText()) else valueNode
 }
+

@@ -18,3 +18,4 @@ data class TaskVariable(
     @Column(columnDefinition = "jsonb")
     val value: JsonNode
 )
+

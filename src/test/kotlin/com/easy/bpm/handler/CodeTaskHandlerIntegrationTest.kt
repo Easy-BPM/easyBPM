@@ -1,12 +1,12 @@
-package com.example.bpm.handler
+package com.easy.bpm.handler
 
-import com.example.bpm.entity.CodeClassMetadata
-import com.example.bpm.entity.CodeTaskJar
-import com.example.bpm.repository.CodeClassMetadataRepository
-import com.example.bpm.repository.CodeTaskExecutionAuditRepository
-import com.example.bpm.repository.CodeTaskJarRepository
-import com.example.bpm.service.CodeClassDiscoveryService
-import com.example.bpm.service.CodeExecutionService
+import com.easy.bpm.entity.CodeClassMetadata
+import com.easy.bpm.entity.CodeTaskJar
+import com.easy.bpm.repository.CodeClassMetadataRepository
+import com.easy.bpm.repository.CodeTaskExecutionAuditRepository
+import com.easy.bpm.repository.CodeTaskJarRepository
+import com.easy.bpm.service.CodeClassDiscoveryService
+import com.easy.bpm.service.CodeExecutionService
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -386,3 +386,4 @@ class CodeTaskHandlerDetailedExamplesTest {
     println(code)
   }
 }
+

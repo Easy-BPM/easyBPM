@@ -1,4 +1,4 @@
-package com.example.bpm.service
+package com.easy.bpm.service
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.slf4j.LoggerFactory
@@ -224,3 +224,4 @@ class CodeExecutionService(
     return "${method.name}($params) -> $returnType"
   }
 }
+

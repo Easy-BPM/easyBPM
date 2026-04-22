@@ -1,4 +1,4 @@
-package com.example.bpm.dto
+package com.easy.bpm.dto
 
 /**
  * DTO for method metadata with parameter information
@@ -41,3 +41,4 @@ data class JarClassesResponse(
     val fileName: String,
     val classes: List<String>
 )
+

@@ -10,3 +10,4 @@ data class MoveNodeRequest(
     @field:Schema(description = "Business reason for manual intervention", example = "SLA escalation approved by supervisor")
     val reason: String? = null
 )
+

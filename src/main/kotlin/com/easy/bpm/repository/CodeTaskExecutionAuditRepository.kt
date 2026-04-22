@@ -1,6 +1,6 @@
-package com.example.bpm.repository
+package com.easy.bpm.repository
 
-import com.example.bpm.entity.CodeTaskExecutionAudit
+import com.easy.bpm.entity.CodeTaskExecutionAudit
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.JpaRepository
@@ -72,3 +72,4 @@ interface CodeTaskExecutionAuditRepository : JpaRepository<CodeTaskExecutionAudi
     pageable: Pageable
   ): Page<CodeTaskExecutionAudit>
 }
+

@@ -1,12 +1,12 @@
-package com.example.bpm.controller
+package com.easy.bpm.controller
 
-import com.example.bpm.dto.*
-import com.example.bpm.entity.CodeTaskJar
-import com.example.bpm.entity.CodeTaskExecutionAudit
-import com.example.bpm.repository.CodeTaskJarRepository
-import com.example.bpm.repository.CodeClassMetadataRepository
-import com.example.bpm.repository.CodeTaskExecutionAuditRepository
-import com.example.bpm.service.CodeClassDiscoveryService
+import com.easy.bpm.dto.*
+import com.easy.bpm.entity.CodeTaskJar
+import com.easy.bpm.entity.CodeTaskExecutionAudit
+import com.easy.bpm.repository.CodeTaskJarRepository
+import com.easy.bpm.repository.CodeClassMetadataRepository
+import com.easy.bpm.repository.CodeTaskExecutionAuditRepository
+import com.easy.bpm.service.CodeClassDiscoveryService
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
@@ -292,3 +292,4 @@ class CodeTaskController(
         )
     }
 }
+

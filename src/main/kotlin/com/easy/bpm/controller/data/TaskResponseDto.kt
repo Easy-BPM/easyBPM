@@ -18,3 +18,4 @@ data class TaskResponseDto(
     val formId: String? = null,
     val variables: Map<String, Any?>
 )
+

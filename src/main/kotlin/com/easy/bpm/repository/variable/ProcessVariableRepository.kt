@@ -8,3 +8,4 @@ interface ProcessVariableRepository : JpaRepository<ProcessVariable, Long> {
     fun findByProcessInstanceIdAndName(processInstanceId: Long, name: String): ProcessVariable?
     fun deleteByProcessInstanceId(processInstanceId: Long)
 }
+

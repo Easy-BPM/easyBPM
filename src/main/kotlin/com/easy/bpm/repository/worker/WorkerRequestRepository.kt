@@ -23,3 +23,4 @@ interface WorkerRequestRepository : JpaRepository<WorkerRequest, Long> {
 
     fun deleteByProcessInstanceId(processInstanceId: Long)
 }
+

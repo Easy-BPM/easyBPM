@@ -172,3 +172,4 @@ class MetricsService(
         meterRegistry.gauge("process.active", count.toDouble())
     }
 }
+
