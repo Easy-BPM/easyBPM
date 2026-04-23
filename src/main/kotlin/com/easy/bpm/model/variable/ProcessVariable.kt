@@ -16,7 +16,7 @@ data class ProcessVariable(
     val name: String,
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(columnDefinition = "jsonb")
+    @Column
     var value: JsonNode,
 
     var createdAt: LocalDateTime = LocalDateTime.now(),

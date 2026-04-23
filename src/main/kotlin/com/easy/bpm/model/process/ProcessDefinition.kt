@@ -23,6 +23,6 @@ data class ProcessDefinition(
         val version: Int = 1,
 
         @Type(JsonBinaryType::class)
-        @Column(name = "definition_json", columnDefinition = "jsonb")
+        @Column(name = "definition_json")
         val definitionJson: String
 )

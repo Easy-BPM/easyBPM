@@ -20,11 +20,11 @@ data class ProcessInstance(
         var status: ProcessStatus,
 
         @Type(JsonBinaryType::class)
-        @Column(name = "current_nodes", columnDefinition = "jsonb")
+        @Column(name = "current_nodes")
         var currentNode: List<String>? = null,
 
         @Type(JsonBinaryType::class)
-        @Column(name = "node_history", columnDefinition = "jsonb")
+        @Column(name = "node_history")
         var nodeHistory: List<String> = emptyList(),
 
         val createdAt: LocalDateTime = LocalDateTime.now(),

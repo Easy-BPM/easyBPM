@@ -1,0 +1,81 @@
+﻿> Task :checkKotlinGradlePluginConfigurationErrors
+> Task :compileKotlin UP-TO-DATE
+> Task :compileJava NO-SOURCE
+> Task :processResources UP-TO-DATE
+> Task :classes UP-TO-DATE
+> Task :jar UP-TO-DATE
+> Task :compileTestKotlin UP-TO-DATE
+> Task :compileTestJava NO-SOURCE
+> Task :processTestResources UP-TO-DATE
+> Task :testClasses UP-TO-DATE
+.\gradlew : OpenJDK 64-Bit Server VM warning: Sharing is only supported for 
+boot loader classes because bootstrap classpath has been appended
+No linha:1 caractere:57
++ ... alho\bpm' ; .\gradlew test --tests "com.easy.bpm.integration.CallActi ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (OpenJDK 64-Bit ...s been appended 
+   :String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+2026-04-23 11:28:31.254 [SpringApplicationShutdownHook] DEBUG org.hibernate.SQL -  - set client_min_messages = WARNING
+Hibernate: set client_min_messages = WARNING
+2026-04-23 11:28:31.255 [SpringApplicationShutdownHook] DEBUG org.hibernate.SQL -  - alter table if exists "process_instance" drop constraint if exists "FK3wctses8nhoc65riyg7vvoou3"
+Hibernate: alter table if exists "process_instance" drop constraint if exists "FK3wctses8nhoc65riyg7vvoou3"
+2026-04-23 11:28:31.255 [SpringApplicationShutdownHook] DEBUG org.hibernate.SQL -  - drop table if exists "form" cascade
+Hibernate: drop table if exists "form" cascade
+2026-04-23 11:28:31.255 [SpringApplicationShutdownHook] DEBUG org.hibernate.SQL -  - drop table if exists "message_subscription" cascade
+Hibernate: drop table if exists "message_subscription" cascade
+2026-04-23 11:28:31.255 [SpringApplicationShutdownHook] DEBUG org.hibernate.SQL -  - drop table if exists "process_definition" cascade
+Hibernate: drop table if exists "process_definition" cascade
+2026-04-23 11:28:31.255 [SpringApplicationShutdownHook] DEBUG org.hibernate.SQL -  - drop table if exists "process_instance" cascade
+Hibernate: drop table if exists "process_instance" cascade
+2026-04-23 11:28:31.255 [SpringApplicationShutdownHook] DEBUG org.hibernate.SQL -  - drop table if exists "process_variable" cascade
+Hibernate: drop table if exists "process_variable" cascade
+2026-04-23 11:28:31.255 [SpringApplicationShutdownHook] DEBUG org.hibernate.SQL -  - drop table if exists "task" cascade
+Hibernate: drop table if exists "task" cascade
+2026-04-23 11:28:31.257 [SpringApplicationShutdownHook] DEBUG org.hibernate.SQL -  - drop table if exists "task_variable" cascade
+Hibernate: drop table if exists "task_variable" cascade
+2026-04-23 11:28:31.257 [SpringApplicationShutdownHook] DEBUG org.hibernate.SQL -  - drop table if exists "call_activity_mapping" cascade
+Hibernate: drop table if exists "call_activity_mapping" cascade
+2026-04-23 11:28:31.257 [SpringApplicationShutdownHook] DEBUG org.hibernate.SQL -  - drop table if exists "code_class_metadata" cascade
+Hibernate: drop table if exists "code_class_metadata" cascade
+2026-04-23 11:28:31.257 [SpringApplicationShutdownHook] DEBUG org.hibernate.SQL -  - drop table if exists "code_task_execution" cascade
+Hibernate: drop table if exists "code_task_execution" cascade
+2026-04-23 11:28:31.257 [SpringApplicationShutdownHook] DEBUG org.hibernate.SQL -  - drop table if exists "code_task_jar" cascade
+Hibernate: drop table if exists "code_task_jar" cascade
+2026-04-23 11:28:31.258 [SpringApplicationShutdownHook] DEBUG org.hibernate.SQL -  - drop table if exists "worker_request" cascade
+Hibernate: drop table if exists "worker_request" cascade
+2026-04-23 11:28:31.261 [SpringApplicationShutdownHook] INFO  com.zaxxer.hikari.HikariDataSource -  - HikariPool-1 - Shutdown initiated...
+2026-04-23 11:28:31.263 [SpringApplicationShutdownHook] INFO  com.zaxxer.hikari.HikariDataSource -  - HikariPool-1 - Shutdown completed.
+
+> Task :test
+
+CallActivityIntegrationTest > simple call activity execution - parent enters call activity and suspends() FAILED
+    org.springframework.dao.InvalidDataAccessResourceUsageException at CallActivityIntegrationTest.kt:154
+        Caused by: org.hibernate.exception.SQLGrammarException at CallActivityIntegrationTest.kt:154
+            Caused by: org.h2.jdbc.JdbcSQLSyntaxErrorException at CallActivityIntegrationTest.kt:154
+
+1 test completed, 1 failed
+
+> Task :test FAILED
+
+[Incubating] Problems report is available at: file:///C:/Users/Admin/OneDrive/Ambiente%20de%20Trabalho/bpm/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':test'.
+> There were failing tests. See the report at: file:///C:/Users/Admin/OneDrive/
+Ambiente%20de%20Trabalho/bpm/build/reports/tests/test/index.html
+
+* Try:
+> Run with --scan to get full insights.
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/8.14.3/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD FAILED in 16s
+7 actionable tasks: 2 executed, 5 up-to-date
