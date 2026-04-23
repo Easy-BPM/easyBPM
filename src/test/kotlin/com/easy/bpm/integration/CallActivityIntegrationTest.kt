@@ -84,7 +84,7 @@ class CallActivityIntegrationTest(
                         "type": "EndEvent"
                     }
                 ],
-                "edges": [
+                "flows": [
                     {"source": "start", "target": "call-activity-1"},
                     {"source": "call-activity-1", "target": "end"}
                 ]
@@ -112,7 +112,7 @@ class CallActivityIntegrationTest(
                         "type": "EndEvent"
                     }
                 ],
-                "edges": [
+                "flows": [
                     {"source": "start", "target": "child-task"},
                     {"source": "child-task", "target": "end"}
                 ]
@@ -140,7 +140,7 @@ class CallActivityIntegrationTest(
                         "type": "EndEvent"
                     }
                 ],
-                "edges": [
+                "flows": [
                     {"source": "start", "target": "grandchild-task"},
                     {"source": "grandchild-task", "target": "end"}
                 ]
@@ -213,7 +213,7 @@ class CallActivityIntegrationTest(
                     },
                     {"id": "end", "type": "EndEvent"}
                 ],
-                "edges": [
+                "flows": [
                     {"source": "start", "target": "call-self"},
                     {"source": "call-self", "target": "end"}
                 ]
@@ -309,7 +309,7 @@ class CallActivityIntegrationTest(
                     },
                     {"id": "end", "type": "EndEvent"}
                 ],
-                "edges": [
+                "flows": [
                     {"source": "start", "target": "call-activity"},
                     {"source": "error-boundary", "target": "after-error"},
                     {"source": "after-error", "target": "end"},
@@ -329,7 +329,7 @@ class CallActivityIntegrationTest(
                     {"id": "child-task", "type": "UserTask", "name": "Child Task"},
                     {"id": "end", "type": "EndEvent"}
                 ],
-                "edges": [
+                "flows": [
                     {"source": "start", "target": "child-task"},
                     {"source": "child-task", "target": "end"}
                 ]
@@ -380,7 +380,7 @@ class CallActivityIntegrationTest(
                     },
                     {"id": "end", "type": "EndEvent"}
                 ],
-                "edges": [
+                "flows": [
                     {"source": "start", "target": "call-activity"},
                     {"source": "call-activity", "target": "end"}
                 ]
@@ -397,7 +397,7 @@ class CallActivityIntegrationTest(
                     {"id": "task", "type": "UserTask"},
                     {"id": "end", "type": "EndEvent"}
                 ],
-                "edges": [
+                "flows": [
                     {"source": "start", "target": "task"},
                     {"source": "task", "target": "end"}
                 ]
