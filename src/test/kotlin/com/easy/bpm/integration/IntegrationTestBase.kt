@@ -12,7 +12,7 @@ import org.testcontainers.junit.jupiter.Testcontainers
  * 
  * Uses a SINGLETON PostgreSQL container shared across entire test suite with:
  * - Persistent connections (no container restart overhead)
- * - update mode for schema management (avoids DDL conflicts in shared container)
+ * - create-drop mode for schema management (ensures fresh schema for each test class context)
  * - Per-test-class isolation via @SpringBootTest (new context per class)
  * - Tests use @Transactional for data isolation
  */
@@ -34,7 +34,8 @@ abstract class IntegrationTestBase {
             registry.add("spring.datasource.password") { postgresContainer.password }
             registry.add("spring.datasource.driver-class-name") { "org.postgresql.Driver" }
             registry.add("spring.jpa.database-platform") { "org.hibernate.dialect.PostgreSQLDialect" }
-            // Use update mode to safely add tables without conflicts in shared container
+            // Use update mode for shared container (avoids drop-on-close issues)
+            // Hibernate will create any missing tables on startup
             registry.add("spring.jpa.hibernate.ddl-auto") { "update" }
         }
     }

@@ -18,14 +18,16 @@ spring:
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: update
     properties:
       hibernate.globally_quoted_identifiers: true
       hibernate.jdbc.batch_size: 10
       hibernate.order_inserts: true
       hibernate.order_updates: true
       hibernate.jdbc.fetch_size: 50
-    show-sql: false
+      hibernate.show_sql: true
+      hibernate.format_sql: true
+    show-sql: true
   autoconfigure:
     exclude:
       - org.springframework.boot.autoconfigure.amqp.RabbitAutoConfiguration
@@ -34,3 +36,8 @@ logging:
   level:
     root: WARN
     com.easy.bpm: INFO
+    org.hibernate: DEBUG
+    org.hibernate.tool.schema: DEBUG
+    org.hibernate.tool.schema.internal: DEBUG
+    org.hibernate.tool.schema.internal.exec: DEBUG
+    org.hibernate.SQL: DEBUG
