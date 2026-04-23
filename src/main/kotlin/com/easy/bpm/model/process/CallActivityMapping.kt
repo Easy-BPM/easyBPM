@@ -57,6 +57,7 @@ data class CallActivityMapping(
      * Applied when child instance starts.
      */
     @Column(nullable = false)
+    @Lob
     val inputMappings: String = "{}",  // JSON string to avoid Jackson complexity in entity
 
     /**
@@ -65,6 +66,7 @@ data class CallActivityMapping(
      * Applied when child instance completes.
      */
     @Column(nullable = false)
+    @Lob
     val outputMappings: String = "{}",  // JSON string
 
     /**

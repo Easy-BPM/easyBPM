@@ -33,9 +33,6 @@ import org.springframework.transaction.annotation.Transactional
  * - Error propagation from child to parent
  * - Error boundary handling on call activity
  */
-@SpringBootTest
-@ActiveProfiles("test")
-@AutoConfigureTestDatabase(replace = Replace.NONE)
 @AutoConfigureMockMvc
 @Transactional
 class CallActivityIntegrationTest(
@@ -47,7 +44,7 @@ class CallActivityIntegrationTest(
     @Autowired private val objectMapper: ObjectMapper,
     @Autowired private val mockMvc: MockMvc,
     @Autowired private val callActivityHandler: CallActivityHandler
-) {
+) : IntegrationTestBase() {
 
     @MockBean
     private lateinit var rabbitPublisher: RabbitPublisher
