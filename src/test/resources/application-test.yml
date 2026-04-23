@@ -1,6 +1,6 @@
 spring:
   datasource:
-    # These will be overridden by @DynamicPropertySource in IntegrationTestBase
+    # These will be overridden by @DynamicPropertySource in test base classes
     url: jdbc:postgresql://localhost:5432/bpm_test
     driver-class-name: org.postgresql.Driver
     username: bpm_user
