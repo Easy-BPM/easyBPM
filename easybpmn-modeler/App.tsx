@@ -13,7 +13,7 @@ import { processService } from './services/processService';
 const BOUNDARY_TYPES: NodeType[] = ['error-boundary', 'message-boundary', 'timer-boundary'];
 const START_TYPES: NodeType[] = ['start', 'message-start'];
 const END_TYPES: NodeType[] = ['end'];
-const TASK_TYPES: NodeType[] = ['user-task', 'service-task', 'api-task'];
+const TASK_TYPES: NodeType[] = ['user-task', 'service-task', 'api-task', 'code-task'];
 const FORM_KEY_PATTERN = /^[A-Za-z][A-Za-z0-9_-]*$/;
 
 const App: React.FC = () => {
