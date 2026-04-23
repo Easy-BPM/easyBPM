@@ -1,4 +1,5 @@
 import React from 'react';
+import { Zap, Mail, Clock3 } from 'lucide-react';
 import { WorkflowDefinition, WorkflowNode } from '../types';
 
 type Props = {
@@ -114,7 +115,7 @@ export const WorkflowCanvas: React.FC<Props> = ({ definition, nodeHistory, curre
   const regularNodes = nodes.filter(n => !isBoundaryEvent(n));
   const boundaryNodes = nodes.filter(n => isBoundaryEvent(n));
 
-  const bounds = regularNodes.reduce(
+  const bounds = nodes.reduce(
     (acc, node) => {
       const size = nodeSizeByType(node.type);
       const x = node.position?.x ?? 0;
@@ -153,14 +154,18 @@ export const WorkflowCanvas: React.FC<Props> = ({ definition, nodeHistory, curre
           </marker>
         </defs>
 
-        {/* Draw regular edges */}
+        {/* Draw regular edges and boundary event exception arrows */}
         {edges.map((edge) => {
           const source = nodeById.get(edge.from);
           const target = nodeById.get(edge.to);
-          if (!source || !target || isBoundaryEvent(source) || isBoundaryEvent(target)) return null;
+          if (!source || !target) return null;
+
+          // Skip edges TO boundary events (they're drawn separately in the boundary connection section)
+          if (isBoundaryEvent(target)) return null;
 
           const edgeKey = `${edge.from}::${edge.to}`;
           const isVisitedEdge = visitedEdges.has(edgeKey);
+          const isBoundaryEdge = isBoundaryEvent(source);
           const path = getOrthogonalPath(
             { ...source, position: { x: (source.position?.x ?? 0) + offsetX, y: (source.position?.y ?? 0) + offsetY } },
             { ...target, position: { x: (target.position?.x ?? 0) + offsetX, y: (target.position?.y ?? 0) + offsetY } }
@@ -171,11 +176,12 @@ export const WorkflowCanvas: React.FC<Props> = ({ definition, nodeHistory, curre
               key={edgeKey}
               d={path}
               fill="none"
-              stroke={isVisitedEdge ? '#2563eb' : '#94a3b8'}
+              stroke={isVisitedEdge ? '#2563eb' : isBoundaryEdge ? '#dc2626' : '#94a3b8'}
               strokeWidth={isVisitedEdge ? '3' : '2'}
-              markerEnd={isVisitedEdge ? 'url(#wf-arrow-active)' : 'url(#wf-arrow)'}
+              markerEnd={isVisitedEdge ? 'url(#wf-arrow-active)' : isBoundaryEdge ? 'url(#wf-arrow-boundary)' : 'url(#wf-arrow)'}
               strokeLinecap="round"
               strokeLinejoin="round"
+              strokeDasharray={isBoundaryEdge ? '4,3' : undefined}
               vectorEffect="non-scaling-stroke"
             />
           );
@@ -351,27 +357,22 @@ export const WorkflowCanvas: React.FC<Props> = ({ definition, nodeHistory, curre
               
               {/* Error boundary event - lightning bolt */}
               {node.type === 'ErrorBoundaryEvent' && (
-                <path
-                  d={`M ${cx} ${cy - 6} L ${cx - 3} ${cy - 2} L ${cx} ${cy + 2} L ${cx - 3} ${cy + 6} L ${cx + 2} ${cy + 2} L ${cx + 2} ${cy - 2} Z`}
-                  fill="#dc2626"
-                  stroke="none"
-                />
+                <g transform={`translate(${cx - 7}, ${cy - 7})`}>
+                  <Zap className="w-3.5 h-3.5 text-red-600 fill-current pointer-events-none" />
+                </g>
               )}
               
               {/* Message boundary event - envelope */}
               {node.type === 'MessageBoundaryEvent' && (
-                <g>
-                  <rect x={cx - 5} y={cy - 4} width="10" height="8" fill="none" stroke="#2563eb" strokeWidth="1" />
-                  <path d={`M ${cx - 5} ${cy - 4} L ${cx} ${cy} L ${cx + 5} ${cy - 4}`} fill="none" stroke="#2563eb" strokeWidth="1" />
+                <g transform={`translate(${cx - 7}, ${cy - 7})`}>
+                  <Mail className="w-3.5 h-3.5 text-blue-500 pointer-events-none" />
                 </g>
               )}
               
               {/* Timer boundary event - clock */}
               {node.type.toLowerCase().includes('boundary') && node.type.toLowerCase().includes('timer') && (
-                <g>
-                  <circle cx={cx} cy={cy} r="5" fill="none" stroke="#f59e0b" strokeWidth="1" />
-                  <line x1={cx} y1={cy - 4} x2={cx} y2={cy - 2} stroke="#f59e0b" strokeWidth="1" />
-                  <line x1={cx + 3} y1={cy} x2={cx + 4} y2={cy} stroke="#f59e0b" strokeWidth="1" />
+                <g transform={`translate(${cx - 7}, ${cy - 7})`}>
+                  <Clock3 className="w-3.5 h-3.5 text-amber-600 pointer-events-none" />
                 </g>
               )}
               
