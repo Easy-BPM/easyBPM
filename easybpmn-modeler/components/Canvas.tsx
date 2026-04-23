@@ -237,6 +237,7 @@ export const Canvas: React.FC<CanvasProps> = ({
         <defs>
           <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#334155" /></marker>
           <marker id="arrowhead-selected" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#3b82f6" /></marker>
+          <marker id="arrowhead-error" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#dc2626" /></marker>
           <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0" dy="1" stdDeviation="2" floodColor="#cbd5e1" floodOpacity="0.5"/></filter>
         </defs>
 
@@ -246,15 +247,16 @@ export const Canvas: React.FC<CanvasProps> = ({
           if (!source || !target) return null;
           const path = getEdgePath(source, target);
           const isSelected = selectedEdgeId === edge.id;
-            const hasError = invalidEdgeIds.includes(edge.id);
-            const hasWarning = warningEdgeIds.includes(edge.id);
+          const hasError = invalidEdgeIds.includes(edge.id);
+          const hasWarning = warningEdgeIds.includes(edge.id);
+          const isBoundaryEdge = source?.type?.includes('boundary');
           const labelPos = getLabelPosition(path);
-            const stroke = isSelected ? '#3b82f6' : hasError ? '#dc2626' : hasWarning ? '#d97706' : '#334155';
-            const markerId = isSelected ? 'url(#arrowhead-selected)' : 'url(#arrowhead)';
+          const stroke = isSelected ? '#3b82f6' : hasError ? '#dc2626' : isBoundaryEdge ? '#dc2626' : hasWarning ? '#d97706' : '#334155';
+          const markerId = isSelected ? 'url(#arrowhead-selected)' : isBoundaryEdge ? 'url(#arrowhead-error)' : 'url(#arrowhead)';
           return (
             <g key={edge.id} onClick={(e) => {e.stopPropagation(); onSelectEdge(edge.id); onSelectNodes([]);}} className="group cursor-pointer">
                 <path d={path} stroke="transparent" strokeWidth="15" fill="none" />
-              <path d={path} fill="none" stroke={stroke} strokeWidth={isSelected ? "3" : hasError ? "3" : "2"} markerEnd={markerId} strokeLinejoin="round" strokeDasharray={hasWarning && !isSelected ? '6 4' : undefined} />
+              <path d={path} fill="none" stroke={stroke} strokeWidth={isSelected ? "3" : isBoundaryEdge ? "2.5" : "2"} markerEnd={markerId} strokeLinejoin="round" strokeDasharray={isBoundaryEdge ? '5,3' : (hasWarning && !isSelected ? '6 4' : undefined)} />
                 {edge.condition && labelPos && (
                     <g transform={`translate(${labelPos.x}, ${labelPos.y})`}>
                         <rect x="-10" y="-10" width="20" height="20" fill="white" className="opacity-80" />
