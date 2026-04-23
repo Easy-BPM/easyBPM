@@ -15,6 +15,9 @@ import java.time.LocalDateTime
   indexes = [
     Index(name = "idx_code_task_jar_file_hash", columnList = "file_hash"),
     Index(name = "idx_code_task_jar_upload_date", columnList = "upload_date")
+  ],
+  uniqueConstraints = [
+    UniqueConstraint(name = "jar_file_hash_unique", columnNames = ["file_hash"])
   ]
 )
 class CodeTaskJar(
