@@ -10,8 +10,10 @@ import org.testcontainers.junit.jupiter.Testcontainers
 /**
  * Base class for all repository tests (@DataJpaTest) using SHARED PostgreSQL TestContainer.
  * 
- * Uses a SINGLETON PostgreSQL container shared across entire test suite.
- * This prevents container startup/shutdown overhead and connection timeout issues.
+ * Uses a SINGLETON PostgreSQL container shared across entire test suite with:
+ * - Persistent connections (no container restart overhead)
+ * - create-drop mode for clean schema per Spring context
+ * - Per-test-class isolation via @DataJpaTest (new context per class)
  */
 @DataJpaTest
 @ActiveProfiles("test")

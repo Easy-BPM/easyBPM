@@ -13,6 +13,8 @@ spring:
       max-lifetime: 3600000
       auto-commit: true
       connection-test-query: SELECT 1
+  flyway:
+    enabled: false
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:

@@ -10,14 +10,10 @@ import org.testcontainers.junit.jupiter.Testcontainers
 /**
  * Base class for all integration tests using SHARED PostgreSQL TestContainer.
  * 
- * Uses a SINGLETON PostgreSQL container shared across entire test suite.
- * This prevents container startup/shutdown overhead and connection timeout issues.
- * 
- * Key Benefits:
- * - Single container instance for all tests (reduces startup time)
- * - Persistent connections (no timeout issues)
- * - Faster test execution (container already running)
- * - Consistent test environment
+ * Uses a SINGLETON PostgreSQL container shared across entire test suite with:
+ * - Persistent connections (no container restart overhead)
+ * - create-drop mode for clean schema per Spring context
+ * - Per-test-class isolation via @SpringBootTest (new context per class)
  */
 @SpringBootTest
 @ActiveProfiles("test")
