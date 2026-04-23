@@ -488,6 +488,10 @@ class CallActivityHandler(
      */
     private fun getNextNodes(node: JsonNode, definition: JsonNode): List<JsonNode> {
         val edges = definition.get("edges")
+        if (edges == null || edges.isMissingNode) {
+            return emptyList()
+        }
+        
         val nodeId = node.get("id").asText()
 
         return edges.filter { edge ->
