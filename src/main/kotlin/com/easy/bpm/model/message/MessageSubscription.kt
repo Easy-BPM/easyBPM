@@ -30,7 +30,7 @@ data class MessageSubscription(
         var status: MessageSubscriptionStatus = MessageSubscriptionStatus.AWAITING,
 
         @Type(JsonBinaryType::class)
-        @Column
+        @Column(columnDefinition = "jsonb")
         var messagePayload: Map<String, Any>? = null,
 
         var timeoutAt: LocalDateTime? = null,

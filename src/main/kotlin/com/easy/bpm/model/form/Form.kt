@@ -2,8 +2,8 @@ package com.easy.bpm.model.form
 
 import com.fasterxml.jackson.databind.JsonNode
 import jakarta.persistence.*
-import org.hibernate.annotations.JdbcTypeCode
-import org.hibernate.type.SqlTypes
+import com.vladmihalcea.hibernate.type.json.JsonBinaryType
+import org.hibernate.annotations.Type
 import java.time.LocalDateTime
 
 @Entity
@@ -16,8 +16,8 @@ data class Form(
 
     val name: String,
 
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column
+    @Type(JsonBinaryType::class)
+    @Column(columnDefinition = "jsonb")
     val schema: JsonNode,
 
     val version: Int = 1,
