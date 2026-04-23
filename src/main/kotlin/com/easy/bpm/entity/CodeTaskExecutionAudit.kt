@@ -40,9 +40,11 @@ class CodeTaskExecutionAudit(
   val methodName: String? = null,
 
   @Column(name = "input_variables")
+  @Lob
   val inputVariables: String? = null, // JSON object of input variable snapshots
 
   @Column(name = "output_variables")
+  @Lob
   val outputVariables: String? = null, // JSON object of output variable snapshots
 
   @Column(name = "execution_time_ms")

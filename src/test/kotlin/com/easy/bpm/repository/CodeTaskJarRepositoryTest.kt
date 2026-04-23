@@ -15,9 +15,7 @@ import kotlin.test.assertNull
  *
  * Tests CRUD operations and persistence of JAR files in database
  */
-@DataJpaTest
-@ActiveProfiles("test")
-class CodeTaskJarRepositoryTest {
+class CodeTaskJarRepositoryTest : RepositoryTestBase() {
 
   @Autowired
   private lateinit var repository: CodeTaskJarRepository

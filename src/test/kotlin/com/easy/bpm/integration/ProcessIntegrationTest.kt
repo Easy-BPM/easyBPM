@@ -27,9 +27,6 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import org.springframework.transaction.annotation.Transactional
 
-@SpringBootTest
-@ActiveProfiles("test")
-@AutoConfigureTestDatabase(replace = Replace.NONE)
 @AutoConfigureMockMvc
 @Transactional
 
@@ -42,7 +39,7 @@ class ProcessIntegrationTest(
     @Autowired private val taskVariableRepository: TaskVariableRepository,
     @Autowired private val objectMapper: ObjectMapper,
     @Autowired private val mockMvc: MockMvc
-) {
+) : IntegrationTestBase() {
 
     @Test
     fun `service task error should trigger error boundary event and route to after-error user task`() {

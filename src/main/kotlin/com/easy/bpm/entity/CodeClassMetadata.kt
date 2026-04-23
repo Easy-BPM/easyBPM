@@ -39,6 +39,7 @@ class CodeClassMetadata(
   val methodSignature: String? = null,
 
   @Column(name = "input_params")
+  @Lob
   val inputParams: String? = null, // JSON array of parameter metadata
 
   @Column(name = "return_type", length = 255)

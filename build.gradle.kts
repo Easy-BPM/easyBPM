@@ -38,6 +38,11 @@ dependencies {
 	testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 	testImplementation("com.h2database:h2")
+	// TestContainers for PostgreSQL integration tests
+	testImplementation("org.testcontainers:testcontainers:1.19.7")
+	testImplementation("org.testcontainers:postgresql:1.19.7")
+	testImplementation("org.testcontainers:junit-jupiter:1.19.7")
+	testImplementation("org.springframework.boot:spring-boot-testcontainers")
 	// Kotest and Mockk for unit testing
 	testImplementation("io.kotest:kotest-runner-junit5:5.8.1")
 	testImplementation("io.kotest:kotest-assertions-core:5.8.1")
