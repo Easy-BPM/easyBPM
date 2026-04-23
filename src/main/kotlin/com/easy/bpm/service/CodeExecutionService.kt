@@ -47,7 +47,15 @@ class CodeExecutionService(
       val instance = if (Modifier.isStatic(method.modifiers)) {
         null // Static method - no instance needed
       } else {
-        clazz.getDeclaredConstructor().newInstance()
+        // Try to get Kotlin object INSTANCE for singletons
+        try {
+          val instanceField = clazz.getDeclaredField("INSTANCE")
+          instanceField.isAccessible = true
+          instanceField.get(null) // Get the static INSTANCE field
+        } catch (ex: NoSuchFieldException) {
+          // Not a Kotlin object, create a regular instance
+          clazz.getDeclaredConstructor().newInstance()
+        }
       }
 
       // Invoke method

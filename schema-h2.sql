@@ -144,7 +144,7 @@ CREATE TABLE message_subscription (
 );
 
 CREATE INDEX idx_message_subscription_lookup ON message_subscription(message_name, correlation_key, status);
-CREATE INDEX idx_message_subscription_timeout ON message_subscription(timeout_at);
+CREATE INDEX idx_message_subscription_timeout ON message_subscription(timeout_at) WHERE status = 'AWAITING';
 
 -- ============================================================================
 -- V13: Node history tracking

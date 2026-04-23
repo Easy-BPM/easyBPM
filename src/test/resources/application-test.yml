@@ -7,7 +7,7 @@ spring:
   jpa:
     database-platform: org.hibernate.dialect.H2Dialect
     hibernate:
-      ddl-auto: none
+      ddl-auto: create-drop
     properties:
       hibernate.globally_quoted_identifiers: true
     show-sql: true
@@ -18,9 +18,10 @@ spring:
       - org.springframework.boot.autoconfigure.amqp.RabbitAutoConfiguration
   sql:
     init:
-      mode: always
-      schema-locations: classpath:schema-h2.sql
+      mode: never
 
 logging:
   level:
     org.springframework.jdbc.datasource.init: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.tool.schema.internal.exec.GenerationTargetToDatabase: DEBUG

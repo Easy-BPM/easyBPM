@@ -22,13 +22,14 @@ class CodeTaskJar(
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   val id: Long? = null,
 
-  @Column(name = "content", nullable = false, columnDefinition = "BYTEA")
+  @Lob
+  @Column(name = "content", nullable = false)
   val content: ByteArray,
 
   @Column(name = "file_name", nullable = false, length = 255)
   val fileName: String,
 
-  @Column(name = "file_hash", unique = true, nullable = false, length = 64)
+  @Column(name = "file_hash", nullable = false, length = 64)
   val fileHash: String,
 
   @Column(name = "upload_date", nullable = false)
@@ -37,7 +38,7 @@ class CodeTaskJar(
   @Column(name = "uploaded_by", length = 255)
   val uploadedBy: String? = null,
 
-  @Column(name = "description", columnDefinition = "TEXT")
+  @Column(name = "description")
   val description: String? = null
 ) {
   override fun toString(): String =
