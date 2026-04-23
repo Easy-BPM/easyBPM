@@ -56,8 +56,7 @@ data class CallActivityMapping(
      * Example: {"orderId": "order_id", "customerId": "customer_id"}
      * Applied when child instance starts.
      */
-    @Column(nullable = false)
-    @Lob
+    @Column(nullable = false, columnDefinition = "TEXT")
     val inputMappings: String = "{}",  // JSON string to avoid Jackson complexity in entity
 
     /**
@@ -65,8 +64,7 @@ data class CallActivityMapping(
      * Example: {"status": "paymentStatus", "transactionId": "tx_id"}
      * Applied when child instance completes.
      */
-    @Column(nullable = false)
-    @Lob
+    @Column(nullable = false, columnDefinition = "TEXT")
     val outputMappings: String = "{}",  // JSON string
 
     /**
