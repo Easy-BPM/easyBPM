@@ -6,12 +6,13 @@ spring:
     username: bpm_user
     password: bpm_password
     hikari:
-      maximum-pool-size: 5
-      minimum-idle: 2
-      connection-timeout: 60000
-      idle-timeout: 600000
-      max-lifetime: 1800000
+      maximum-pool-size: 10
+      minimum-idle: 3
+      connection-timeout: 120000
+      idle-timeout: 1800000
+      max-lifetime: 3600000
       auto-commit: true
+      connection-test-query: SELECT 1
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
@@ -21,6 +22,7 @@ spring:
       hibernate.jdbc.batch_size: 10
       hibernate.order_inserts: true
       hibernate.order_updates: true
+      hibernate.jdbc.fetch_size: 50
     show-sql: false
   autoconfigure:
     exclude:
