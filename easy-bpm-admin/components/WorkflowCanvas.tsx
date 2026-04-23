@@ -202,7 +202,7 @@ export const WorkflowCanvas: React.FC<Props> = ({ definition, nodeHistory, curre
           return (
             <path
               key={`boundary-${boundaryNode.id}`}
-              d={`M ${parentCenter.x + offsetX} ${parentCenter.y + offsetY} L ${boundaryCenter.x} ${boundaryCenter.y}`}
+              d={`M ${parentCenter.x + offsetX} ${parentCenter.y + offsetY} L ${boundaryCenter.x + offsetX} ${boundaryCenter.y + offsetY}`}
               fill="none"
               stroke="#dc2626"
               strokeWidth="1.5"
