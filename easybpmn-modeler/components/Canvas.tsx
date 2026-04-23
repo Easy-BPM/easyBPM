@@ -321,20 +321,20 @@ export const Canvas: React.FC<CanvasProps> = ({
             )}
             {node.type === 'error-boundary' && (
               <g>
-                <circle r="15" filter="url(#shadow)" className="fill-white stroke-slate-500 stroke-[1px] stroke-dasharray-[2,2]" />
-                <Zap x="-6" y="-6" className="w-3 h-3 text-red-500 fill-current pointer-events-none" />
+                <circle r="15" filter="url(#shadow)" className="fill-white stroke-red-600 stroke-[1.5px]" strokeDasharray="3,2" />
+                <Zap x="-7" y="-7" className="w-3.5 h-3.5 text-red-600 fill-current pointer-events-none" />
               </g>
             )}
             {node.type === 'message-boundary' && (
               <g>
-                <circle r="15" filter="url(#shadow)" className="fill-white stroke-slate-500 stroke-[1px] stroke-dasharray-[2,2]" />
-                <Mail x="-6" y="-6" className="w-3 h-3 text-blue-500 pointer-events-none" />
+                <circle r="15" filter="url(#shadow)" className="fill-white stroke-blue-500 stroke-[1.5px]" strokeDasharray="3,2" />
+                <Mail x="-7" y="-7" className="w-3.5 h-3.5 text-blue-500 pointer-events-none" />
               </g>
             )}
             {node.type === 'timer-boundary' && (
               <g>
-                <circle r="15" filter="url(#shadow)" className="fill-white stroke-slate-500 stroke-[1px] stroke-dasharray-[2,2]" />
-                <Clock3 x="-6" y="-6" className="w-3 h-3 text-amber-600 pointer-events-none" />
+                <circle r="15" filter="url(#shadow)" className="fill-white stroke-amber-600 stroke-[1.5px]" strokeDasharray="3,2" />
+                <Clock3 x="-7" y="-7" className="w-3.5 h-3.5 text-amber-600 pointer-events-none" />
               </g>
             )}
             {node.type === 'end' && <circle r="20" filter="url(#shadow)" className="fill-white stroke-red-500 stroke-[4px]" />}
