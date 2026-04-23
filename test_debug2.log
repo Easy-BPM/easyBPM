@@ -1,0 +1,530 @@
+﻿Initialized native services in: C:\Users\Admin\.gradle\native
+Initialized jansi services in: C:\Users\Admin\.gradle\native
+Found daemon DaemonInfo{pid=68600, address=[20621f43-cdaf-4513-aea5-c59951b8157c port:59699, addresses:[/127.0.0.1]], state=Idle, lastBusy=1776901665622, context=DefaultDaemonContext[uid=f4a794bb-de9f-427f-bc41-8c8308a996e6,javaHome=C:\Program Files\Java\jdk-21,javaVersion=21,javaVendor=Oracle Corporation,daemonRegistryDir=C:\Users\Admin\.gradle\daemon,pid=68600,idleTimeout=10800000,priority=NORMAL,applyInstrumentationAgent=true,nativeServicesMode=ENABLED,daemonOpts=-XX:MaxMetaspaceSize=384m,-XX:+HeapDumpOnOutOfMemoryError,-agentlib:jdwp=transport=dt_socket,server=n,suspend=y,address=127.0.0.1:50568,-Xms256m,-Xmx512m,-Dfile.encoding=windows-1252,-Duser.country,-Duser.language=en,-Duser.variant]} however its context does not match the desired criteria.
+At least one daemon option is different.
+Wanted: DaemonRequestContext{jvmCriteria=C:\Program Files\Java\jdk-21 (no JDK specified, using current Java home), daemonOpts=[-XX:MaxMetaspaceSize=384m, -XX:+HeapDumpOnOutOfMemoryError, -Xms256m, -Xmx512m, -Dfile.encoding=UTF-8, -Duser.country=BR, -Duser.language=pt, -Duser.variant], applyInstrumentationAgent=true, nativeServicesMode=ENABLED, priority=NORMAL}
+Actual: DefaultDaemonContext[uid=f4a794bb-de9f-427f-bc41-8c8308a996e6,javaHome=C:\Program Files\Java\jdk-21,javaVersion=21,javaVendor=Oracle Corporation,daemonRegistryDir=C:\Users\Admin\.gradle\daemon,pid=68600,idleTimeout=10800000,priority=NORMAL,applyInstrumentationAgent=true,nativeServicesMode=ENABLED,daemonOpts=-XX:MaxMetaspaceSize=384m,-XX:+HeapDumpOnOutOfMemoryError,-agentlib:jdwp=transport=dt_socket,server=n,suspend=y,address=127.0.0.1:50568,-Xms256m,-Xmx512m,-Dfile.encoding=windows-1252,-Duser.country,-Duser.language=en,-Duser.variant]
+
+  Looking for a different daemon...
+The client will now receive all logging from the daemon (pid: 17728). The daemon log file: C:\Users\Admin\.gradle\daemon\8.14.3\daemon-17728.out.log
+Starting 51st build in daemon [uptime: 1 hrs 29 mins 25.279 secs, performance: 100%, GC rate: 0.00/s, heap usage: 0% of 512 MiB, non-heap usage: 24% of 384 MiB]
+Using 16 worker leases.
+Now considering [C:\Users\Admin\OneDrive\Ambiente de Trabalho\bpm] as hierarchies to watch
+Watching the file system is configured to be enabled if available
+File system watching is active
+Starting Build
+Settings evaluated using settings file 'C:\Users\Admin\OneDrive\Ambiente de Trabalho\bpm\settings.gradle.kts'.
+Projects loaded. Root project using build file 'C:\Users\Admin\OneDrive\Ambiente de Trabalho\bpm\build.gradle.kts'.
+Included projects: [root project 'bpm', project ':worker']
+Path for java installation 'C:\Users\Admin\.jdks\corretto-21.0.4' (IntelliJ) auto-detected does not contain a java executable
+
+> Configure project :
+Evaluating root project 'bpm' using build file 'C:\Users\Admin\OneDrive\Ambiente de Trabalho\bpm\build.gradle.kts'.
+Resolved plugin [id: 'org.jetbrains.kotlin.jvm', version: '1.9.25']
+Resolved plugin [id: 'org.jetbrains.kotlin.plugin.spring', version: '1.9.25']
+Resolved plugin [id: 'org.springframework.boot', version: '3.5.3']
+Resolved plugin [id: 'io.spring.dependency-management', version: '1.1.7']
+Resolved plugin [id: 'org.jetbrains.kotlin.plugin.jpa', version: '1.9.25']
+Using Kotlin Gradle Plugin gradle82 variant
+kotlin scripting plugin: created the scripting discovery configuration: kotlinScriptDef
+kotlin scripting plugin: created the scripting discovery configuration: testKotlinScriptDef
+Applying dependency management to configuration 'annotationProcessor' in project 'bpm'
+Applying dependency management to configuration 'api' in project 'bpm'
+Applying dependency management to configuration 'apiDependenciesMetadata' in project 'bpm'
+Applying dependency management to configuration 'apiElements' in project 'bpm'
+Applying dependency management to configuration 'archives' in project 'bpm'
+Applying dependency management to configuration 'bootArchives' in project 'bpm'
+Applying dependency management to configuration 'compileClasspath' in project 'bpm'
+Applying dependency management to configuration 'compileOnly' in project 'bpm'
+Applying dependency management to configuration 'compileOnlyDependenciesMetadata' in project 'bpm'
+Applying dependency management to configuration 'default' in project 'bpm'
+Applying dependency management to configuration 'developmentOnly' in project 'bpm'
+Applying dependency management to configuration 'implementation' in project 'bpm'
+Applying dependency management to configuration 'implementationDependenciesMetadata' in project 'bpm'
+Applying dependency management to configuration 'intransitiveDependenciesMetadata' in project 'bpm'
+Applying dependency management to configuration 'kotlinBuildToolsApiClasspath' in project 'bpm'
+Applying dependency management to configuration 'kotlinCompilerClasspath' in project 'bpm'
+Applying dependency management to configuration 'kotlinCompilerPluginClasspath' in project 'bpm'
+Applying dependency management to configuration 'kotlinCompilerPluginClasspathMain' in project 'bpm'
+Applying dependency management to configuration 'kotlinCompilerPluginClasspathTest' in project 'bpm'
+Applying dependency management to configuration 'kotlinKlibCommonizerClasspath' in project 'bpm'
+Applying dependency management to configuration 'kotlinNativeCompilerPluginClasspath' in project 'bpm'
+Applying dependency management to configuration 'kotlinScriptDef' in project 'bpm'
+Applying dependency management to configuration 'kotlinScriptDefExtensions' in project 'bpm'
+Applying dependency management to configuration 'mainSourceElements' in project 'bpm'
+Applying dependency management to configuration 'productionRuntimeClasspath' in project 'bpm'
+Applying dependency management to configuration 'runtimeClasspath' in project 'bpm'
+Applying dependency management to configuration 'runtimeElements' in project 'bpm'
+Applying dependency management to configuration 'runtimeOnly' in project 'bpm'
+Applying dependency management to configuration 'testAndDevelopmentOnly' in project 'bpm'
+Applying dependency management to configuration 'testAnnotationProcessor' in project 'bpm'
+Applying dependency management to configuration 'testApi' in project 'bpm'
+Applying dependency management to configuration 'testApiDependenciesMetadata' in project 'bpm'
+Applying dependency management to configuration 'testCompileClasspath' in project 'bpm'
+Applying dependency management to configuration 'testCompileOnly' in project 'bpm'
+Applying dependency management to configuration 'testCompileOnlyDependenciesMetadata' in project 'bpm'
+Applying dependency management to configuration 'testImplementation' in project 'bpm'
+Applying dependency management to configuration 'testImplementationDependenciesMetadata' in project 'bpm'
+Applying dependency management to configuration 'testIntransitiveDependenciesMetadata' in project 'bpm'
+Applying dependency management to configuration 'testKotlinScriptDef' in project 'bpm'
+Applying dependency management to configuration 'testKotlinScriptDefExtensions' in project 'bpm'
+Applying dependency management to configuration 'testResultsElementsForTest' in project 'bpm'
+Applying dependency management to configuration 'testRuntimeClasspath' in project 'bpm'
+Applying dependency management to configuration 'testRuntimeOnly' in project 'bpm'
+Applying dependency management to configuration 'apiElements-published' in project 'bpm'
+Applying dependency management to configuration 'runtimeElements-published' in project 'bpm'
+
+> Configure project :worker
+Evaluating project ':worker' using build file 'C:\Users\Admin\OneDrive\Ambiente de Trabalho\bpm\worker\build.gradle.kts'.
+Resolved plugin [id: 'org.jetbrains.kotlin.jvm', version: '1.9.25']
+Resolved plugin [id: 'org.jetbrains.kotlin.plugin.spring', version: '1.9.25']
+Resolved plugin [id: 'org.springframework.boot', version: '3.5.3']
+Resolved plugin [id: 'io.spring.dependency-management', version: '1.1.7']
+Using Kotlin Gradle Plugin gradle82 variant
+kotlin scripting plugin: created the scripting discovery configuration: kotlinScriptDef
+kotlin scripting plugin: created the scripting discovery configuration: testKotlinScriptDef
+Applying dependency management to configuration 'annotationProcessor' in project 'worker'
+Applying dependency management to configuration 'api' in project 'worker'
+Applying dependency management to configuration 'apiDependenciesMetadata' in project 'worker'
+Applying dependency management to configuration 'apiElements' in project 'worker'
+Applying dependency management to configuration 'archives' in project 'worker'
+Applying dependency management to configuration 'bootArchives' in project 'worker'
+Applying dependency management to configuration 'compileClasspath' in project 'worker'
+Applying dependency management to configuration 'compileOnly' in project 'worker'
+Applying dependency management to configuration 'compileOnlyDependenciesMetadata' in project 'worker'
+Applying dependency management to configuration 'default' in project 'worker'
+Applying dependency management to configuration 'developmentOnly' in project 'worker'
+Applying dependency management to configuration 'implementation' in project 'worker'
+Applying dependency management to configuration 'implementationDependenciesMetadata' in project 'worker'
+Applying dependency management to configuration 'intransitiveDependenciesMetadata' in project 'worker'
+Applying dependency management to configuration 'kotlinBuildToolsApiClasspath' in project 'worker'
+Applying dependency management to configuration 'kotlinCompilerClasspath' in project 'worker'
+Applying dependency management to configuration 'kotlinCompilerPluginClasspath' in project 'worker'
+Applying dependency management to configuration 'kotlinCompilerPluginClasspathMain' in project 'worker'
+Applying dependency management to configuration 'kotlinCompilerPluginClasspathTest' in project 'worker'
+Applying dependency management to configuration 'kotlinKlibCommonizerClasspath' in project 'worker'
+Applying dependency management to configuration 'kotlinNativeCompilerPluginClasspath' in project 'worker'
+Applying dependency management to configuration 'kotlinScriptDef' in project 'worker'
+Applying dependency management to configuration 'kotlinScriptDefExtensions' in project 'worker'
+Applying dependency management to configuration 'mainSourceElements' in project 'worker'
+Applying dependency management to configuration 'productionRuntimeClasspath' in project 'worker'
+Applying dependency management to configuration 'runtimeClasspath' in project 'worker'
+Applying dependency management to configuration 'runtimeElements' in project 'worker'
+Applying dependency management to configuration 'runtimeOnly' in project 'worker'
+Applying dependency management to configuration 'testAndDevelopmentOnly' in project 'worker'
+Applying dependency management to configuration 'testAnnotationProcessor' in project 'worker'
+Applying dependency management to configuration 'testApi' in project 'worker'
+Applying dependency management to configuration 'testApiDependenciesMetadata' in project 'worker'
+Applying dependency management to configuration 'testCompileClasspath' in project 'worker'
+Applying dependency management to configuration 'testCompileOnly' in project 'worker'
+Applying dependency management to configuration 'testCompileOnlyDependenciesMetadata' in project 'worker'
+Applying dependency management to configuration 'testImplementation' in project 'worker'
+Applying dependency management to configuration 'testImplementationDependenciesMetadata' in project 'worker'
+Applying dependency management to configuration 'testIntransitiveDependenciesMetadata' in project 'worker'
+Applying dependency management to configuration 'testKotlinScriptDef' in project 'worker'
+Applying dependency management to configuration 'testKotlinScriptDefExtensions' in project 'worker'
+Applying dependency management to configuration 'testResultsElementsForTest' in project 'worker'
+Applying dependency management to configuration 'testRuntimeClasspath' in project 'worker'
+Applying dependency management to configuration 'testRuntimeOnly' in project 'worker'
+Applying dependency management to configuration 'apiElements-published' in project 'worker'
+Applying dependency management to configuration 'runtimeElements-published' in project 'worker'
+All projects evaluated.
+Task name matched 'test'
+Selected primary task 'test' from project :
+Resolving global dependency management for project 'bpm'
+Excluding []
+Excluding []
+Excluding []
+Excluding []
+Excluding []
+Excluding []
+Excluding []
+Excluding []
+Excluding []
+Excluding []
+Resolving global dependency management for project 'worker'
+Excluding []
+Excluding []
+Excluding []
+Excluding []
+Excluding []
+Excluding []
+Excluding []
+Excluding []
+Excluding []
+Excluding []
+Excluding []
+Tasks to be executed: [task ':checkKotlinGradlePluginConfigurationErrors', task ':compileKotlin', task ':compileJava', task ':processResources', task ':classes', task ':jar', task ':compileTestKotlin', task ':compileTestJava', task ':processTestResources', task ':testClasses', task ':test', task ':worker:checkKotlinGradlePluginConfigurationErrors', task ':worker:compileKotlin', task ':worker:compileJava', task ':worker:processResources', task ':worker:classes', task ':worker:compileTestKotlin', task ':worker:compileTestJava', task ':worker:processTestResources', task ':worker:testClasses', task ':worker:test']
+Tasks that were excluded: []
+Resolve mutations for :checkKotlinGradlePluginConfigurationErrors (Thread[#10722,Execution worker Thread 2,5,main]) started.
+:checkKotlinGradlePluginConfigurationErrors (Thread[#10722,Execution worker Thread 2,5,main]) started.
+
+> Task :checkKotlinGradlePluginConfigurationErrors
+Caching disabled for task ':checkKotlinGradlePluginConfigurationErrors' because:
+  Build cache is disabled
+Task ':checkKotlinGradlePluginConfigurationErrors' is not up-to-date because:
+  Task has not declared any outputs despite executing actions.
+Resolve mutations for :compileKotlin (Thread[#10722,Execution worker Thread 2,5,main]) started.
+:compileKotlin (Thread[#10722,Execution worker Thread 2,5,main]) started.
+
+> Task :compileKotlin UP-TO-DATE
+Excluding []
+Excluding []
+Caching disabled for task ':compileKotlin' because:
+  Build cache is disabled
+Skipping task ':compileKotlin' as it is up-to-date.
+Resolve mutations for :compileJava (Thread[#10722,Execution worker Thread 2,5,main]) started.
+:compileJava (Thread[#10722,Execution worker Thread 2,5,main]) started.
+
+> Task :compileJava NO-SOURCE
+Skipping task ':compileJava' as it has no source files and no previous output files.
+Resolve mutations for :processResources (Thread[#10722,Execution worker Thread 2,5,main]) started.
+:processResources (Thread[#10731,Execution worker Thread 11,5,main]) started.
+
+> Task :processResources UP-TO-DATE
+Caching disabled for task ':processResources' because:
+  Build cache is disabled
+  Not worth caching
+Skipping task ':processResources' as it is up-to-date.
+Resolve mutations for :classes (Thread[#10731,Execution worker Thread 11,5,main]) started.
+:classes (Thread[#10731,Execution worker Thread 11,5,main]) started.
+
+> Task :classes UP-TO-DATE
+Skipping task ':classes' as it has no actions.
+Resolve mutations for :jar (Thread[#10731,Execution worker Thread 11,5,main]) started.
+:jar (Thread[#10724,Execution worker Thread 4,5,main]) started.
+
+> Task :jar UP-TO-DATE
+Caching disabled for task ':jar' because:
+  Build cache is disabled
+  Not worth caching
+Skipping task ':jar' as it is up-to-date.
+work action resolve bpm-0.0.1-SNAPSHOT-plain.jar (root project :) (Thread[#10724,Execution worker Thread 4,5,main]) started.
+Resolve mutations for :compileTestKotlin (Thread[#10722,Execution worker Thread 2,5,main]) started.
+:compileTestKotlin (Thread[#10722,Execution worker Thread 2,5,main]) started.
+
+> Task :compileTestKotlin UP-TO-DATE
+Excluding []
+Excluding []
+Caching disabled for task ':compileTestKotlin' because:
+  Build cache is disabled
+Skipping task ':compileTestKotlin' as it is up-to-date.
+Resolve mutations for :compileTestJava (Thread[#10722,Execution worker Thread 2,5,main]) started.
+:compileTestJava (Thread[#10723,Execution worker Thread 3,5,main]) started.
+
+> Task :compileTestJava NO-SOURCE
+Skipping task ':compileTestJava' as it has no source files and no previous output files.
+Resolve mutations for :processTestResources (Thread[#10723,Execution worker Thread 3,5,main]) started.
+:processTestResources (Thread[#10725,Execution worker Thread 5,5,main]) started.
+
+> Task :processTestResources UP-TO-DATE
+Caching disabled for task ':processTestResources' because:
+  Build cache is disabled
+  Not worth caching
+Skipping task ':processTestResources' as it is up-to-date.
+Resolve mutations for :testClasses (Thread[#10725,Execution worker Thread 5,5,main]) started.
+:testClasses (Thread[#10725,Execution worker Thread 5,5,main]) started.
+
+> Task :testClasses UP-TO-DATE
+Skipping task ':testClasses' as it has no actions.
+Resolve mutations for :test (Thread[#10733,Execution worker Thread 13,5,main]) started.
+:test (Thread[#10733,Execution worker Thread 13,5,main]) started.
+Gradle Test Executor 49 started executing tests.
+
+> Task :test
+Caching disabled for task ':test' because:
+  Build cache is disabled
+Task ':test' is not up-to-date because:
+  Task has failed previously.
+file or directory 'C:\Users\Admin\OneDrive\Ambiente de Trabalho\bpm\build\classes\java\test', not found
+Starting process 'Gradle Test Executor 49'. Working directory: C:\Users\Admin\OneDrive\Ambiente de Trabalho\bpm Command: C:\Users\Admin\.jdks\corretto-17.0.10\bin\java.exe -Dorg.gradle.internal.worker.tmpdir=C:\Users\Admin\OneDrive\Ambiente de Trabalho\bpm\build\tmp\test\work @C:\Users\Admin\.gradle\.tmp\gradle-worker-classpath16107383957643910709txt -Xmx512m -Dfile.encoding=UTF-8 -Duser.country=BR -Duser.language=pt -Duser.variant -ea worker.org.gradle.process.internal.worker.GradleWorkerMain 'Gradle Test Executor 49'
+Successfully started process 'Gradle Test Executor 49'
+
+Gradle Test Executor 49 STANDARD_OUT
+    Warning: Kotest autoscan is enabled. This means Kotest will scan the classpath for extensions that are annotated with @AutoScan. To avoid this startup cost, set autoscan to false by setting the system property 'kotest.framework.classpath.scanning.config.disable=true'. In 6.0 this value will default to true. For further details see https://kotest.io/docs/next/framework/project-config.html#runtime-detection
+
+CallActivityIntegrationTest STANDARD_OUT
+    11:29:41.351 [Test worker] INFO org.springframework.test.context.support.AnnotationConfigContextLoaderUtils -- Could not detect default configuration classes for test class [com.easy.bpm.integration.CallActivityIntegrationTest]: CallActivityIntegrationTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+    11:29:41.471 [Test worker] INFO org.springframework.boot.test.context.SpringBootTestContextBootstrapper -- Found @SpringBootConfiguration com.easy.bpm.BpmApplication for test class com.easy.bpm.integration.CallActivityIntegrationTest
+    11:29:41.810 [Test worker] ERROR org.springframework.boot.SpringApplication -- Application run failed
+    org.yaml.snakeyaml.constructor.DuplicateKeyException: while constructing a mapping
+     in 'reader', line 25, column 5:
+            org.springframework.jdbc.datasou ... 
+            ^
+    found duplicate key org.hibernate.SQL
+     in 'reader', line 28, column 5:
+            org.hibernate.SQL: DEBUG
+            ^
+
+    	at org.yaml.snakeyaml.constructor.SafeConstructor.processDuplicateKeys(SafeConstructor.java:119)
+    	at org.yaml.snakeyaml.constructor.SafeConstructor.flattenMapping(SafeConstructor.java:71)
+    	at org.yaml.snakeyaml.constructor.SafeConstructor.flattenMapping(SafeConstructor.java:66)
+    	at org.yaml.snakeyaml.constructor.SafeConstructor.constructMapping2ndStep(SafeConstructor.java:204)
+    	at org.yaml.snakeyaml.constructor.BaseConstructor.constructMapping(BaseConstructor.java:553)
+    	at org.yaml.snakeyaml.constructor.SafeConstructor$ConstructYamlMap.construct(SafeConstructor.java:592)
+    	at org.yaml.snakeyaml.constructor.BaseConstructor.constructObjectNoCheck(BaseConstructor.java:265)
+    	at org.yaml.snakeyaml.constructor.BaseConstructor.constructObject(BaseConstructor.java:248)
+    	at org.springframework.boot.env.OriginTrackedYamlLoader$OriginTrackingConstructor.constructObject(OriginTrackedYamlLoader.java:119)
+    	at org.yaml.snakeyaml.constructor.BaseConstructor.constructMapping2ndStep(BaseConstructor.java:577)
+    	at org.yaml.snakeyaml.constructor.SafeConstructor.constructMapping2ndStep(SafeConstructor.java:205)
+    	at org.yaml.snakeyaml.constructor.BaseConstructor.constructMapping(BaseConstructor.java:553)
+    	at org.yaml.snakeyaml.constructor.SafeConstructor$ConstructYamlMap.construct(SafeConstructor.java:592)
+    	at org.yaml.snakeyaml.constructor.BaseConstructor.constructObjectNoCheck(BaseConstructor.java:265)
+    	at org.yaml.snakeyaml.constructor.BaseConstructor.constructObject(BaseConstructor.java:248)
+    	at org.springframework.boot.env.OriginTrackedYamlLoader$OriginTrackingConstructor.constructObject(OriginTrackedYamlLoader.java:119)
+    	at org.yaml.snakeyaml.constructor.BaseConstructor.constructMapping2ndStep(BaseConstructor.java:577)
+    	at org.yaml.snakeyaml.constructor.SafeConstructor.constructMapping2ndStep(SafeConstructor.java:205)
+    	at org.yaml.snakeyaml.constructor.BaseConstructor.constructMapping(BaseConstructor.java:553)
+    	at org.yaml.snakeyaml.constructor.SafeConstructor$ConstructYamlMap.construct(SafeConstructor.java:592)
+    	at org.yaml.snakeyaml.constructor.BaseConstructor.constructObjectNoCheck(BaseConstructor.java:265)
+    	at org.yaml.snakeyaml.constructor.BaseConstructor.constructObject(BaseConstructor.java:248)
+    	at org.springframework.boot.env.OriginTrackedYamlLoader$OriginTrackingConstructor.constructObject(OriginTrackedYamlLoader.java:119)
+    	at org.yaml.snakeyaml.constructor.BaseConstructor.constructDocument(BaseConstructor.java:202)
+    	at org.yaml.snakeyaml.constructor.BaseConstructor.getData(BaseConstructor.java:167)
+    	at org.springframework.boot.env.OriginTrackedYamlLoader$OriginTrackingConstructor.getData(OriginTrackedYamlLoader.java:99)
+    	at org.yaml.snakeyaml.Yaml$1.next(Yaml.java:530)
+    	at org.springframework.beans.factory.config.YamlProcessor.process(YamlProcessor.java:203)
+    	at org.springframework.beans.factory.config.YamlProcessor.process(YamlProcessor.java:169)
+    	at org.springframework.boot.env.OriginTrackedYamlLoader.load(OriginTrackedYamlLoader.java:84)
+    	at org.springframework.boot.env.YamlPropertySourceLoader.load(YamlPropertySourceLoader.java:50)
+    	at org.springframework.boot.context.config.StandardConfigDataLoader.load(StandardConfigDataLoader.java:54)
+    	at org.springframework.boot.context.config.StandardConfigDataLoader.load(StandardConfigDataLoader.java:36)
+    	at org.springframework.boot.context.config.ConfigDataLoaders.load(ConfigDataLoaders.java:96)
+    	at org.springframework.boot.context.config.ConfigDataImporter.load(ConfigDataImporter.java:132)
+    	at org.springframework.boot.context.config.ConfigDataImporter.resolveAndLoad(ConfigDataImporter.java:87)
+    	at org.springframework.boot.context.config.ConfigDataEnvironmentContributors.withProcessedImports(ConfigDataEnvironmentContributors.java:129)
+    	at org.springframework.boot.context.config.ConfigDataEnvironment.processWithProfiles(ConfigDataEnvironment.java:318)
+    	at org.springframework.boot.context.config.ConfigDataEnvironment.processAndApply(ConfigDataEnvironment.java:237)
+    	at org.springframework.boot.context.config.ConfigDataEnvironmentPostProcessor.postProcessEnvironment(ConfigDataEnvironmentPostProcessor.java:96)
+    	at org.springframework.boot.context.config.ConfigDataEnvironmentPostProcessor.postProcessEnvironment(ConfigDataEnvironmentPostProcessor.java:89)
+    	at org.springframework.boot.env.EnvironmentPostProcessorApplicationListener.onApplicationEnvironmentPreparedEvent(EnvironmentPostProcessorApplicationListener.java:132)
+    	at org.springframework.boot.env.EnvironmentPostProcessorApplicationListener.onApplicationEvent(EnvironmentPostProcessorApplicationListener.java:115)
+    	at org.springframework.context.event.SimpleApplicationEventMulticaster.doInvokeListener(SimpleApplicationEventMulticaster.java:185)
+    	at org.springframework.context.event.SimpleApplicationEventMulticaster.invokeListener(SimpleApplicationEventMulticaster.java:178)
+    	at org.springframework.context.event.SimpleApplicationEventMulticaster.multicastEvent(SimpleApplicationEventMulticaster.java:156)
+    	at org.springframework.context.event.SimpleApplicationEventMulticaster.multicastEvent(SimpleApplicationEventMulticaster.java:138)
+    	at org.springframework.boot.context.event.EventPublishingRunListener.multicastInitialEvent(EventPublishingRunListener.java:136)
+    	at org.springframework.boot.context.event.EventPublishingRunListener.environmentPrepared(EventPublishingRunListener.java:81)
+    	at org.springframework.boot.SpringApplicationRunListeners.lambda$environmentPrepared$2(SpringApplicationRunListeners.java:64)
+    	at java.base/java.lang.Iterable.forEach(Iterable.java:75)
+    	at org.springframework.boot.SpringApplicationRunListeners.doWithListeners(SpringApplicationRunListeners.java:118)
+    	at org.springframework.boot.SpringApplicationRunListeners.doWithListeners(SpringApplicationRunListeners.java:112)
+    	at org.springframework.boot.SpringApplicationRunListeners.environmentPrepared(SpringApplicationRunListeners.java:63)
+    	at org.springframework.boot.SpringApplication.prepareEnvironment(SpringApplication.java:353)
+    	at org.springframework.boot.SpringApplication.run(SpringApplication.java:313)
+    	at org.springframework.boot.test.context.SpringBootContextLoader.lambda$loadContext$3(SpringBootContextLoader.java:144)
+    	at org.springframework.util.function.ThrowingSupplier.get(ThrowingSupplier.java:58)
+    	at org.springframework.util.function.ThrowingSupplier.get(ThrowingSupplier.java:46)
+    	at org.springframework.boot.SpringApplication.withHook(SpringApplication.java:1461)
+    	at org.springframework.boot.test.context.SpringBootContextLoader$ContextLoaderHook.run(SpringBootContextLoader.java:563)
+    	at org.springframework.boot.test.context.SpringBootContextLoader.loadContext(SpringBootContextLoader.java:144)
+    	at org.springframework.boot.test.context.SpringBootContextLoader.loadContext(SpringBootContextLoader.java:110)
+    	at org.springframework.test.context.cache.DefaultCacheAwareContextLoaderDelegate.loadContextInternal(DefaultCacheAwareContextLoaderDelegate.java:225)
+    	at org.springframework.test.context.cache.DefaultCacheAwareContextLoaderDelegate.loadContext(DefaultCacheAwareContextLoaderDelegate.java:152)
+    	at org.springframework.test.context.support.DefaultTestContext.getApplicationContext(DefaultTestContext.java:130)
+    	at org.springframework.test.context.junit.jupiter.SpringExtension.getApplicationContext(SpringExtension.java:351)
+    	at org.springframework.test.context.junit.jupiter.SpringExtension.resolveParameter(SpringExtension.java:337)
+    	at org.junit.jupiter.engine.execution.ParameterResolutionUtils.resolveParameter(ParameterResolutionUtils.java:142)
+    	at org.junit.jupiter.engine.execution.ParameterResolutionUtils.resolveParameters(ParameterResolutionUtils.java:109)
+    	at org.junit.jupiter.engine.execution.InterceptingExecutableInvoker.invoke(InterceptingExecutableInvoker.java:60)
+    	at org.junit.jupiter.engine.descriptor.ClassBasedTestDescriptor.invokeTestClassConstructor(ClassBasedTestDescriptor.java:369)
+    	at org.junit.jupiter.engine.descriptor.ClassBasedTestDescriptor.instantiateTestClass(ClassBasedTestDescriptor.java:314)
+    	at org.junit.jupiter.engine.descriptor.ClassTestDescriptor.instantiateTestClass(ClassTestDescriptor.java:79)
+    	at org.junit.jupiter.engine.descriptor.ClassBasedTestDescriptor.instantiateAndPostProcessTestInstance(ClassBasedTestDescriptor.java:291)
+    	at org.junit.jupiter.engine.descriptor.ClassBasedTestDescriptor.lambda$testInstancesProvider$4(ClassBasedTestDescriptor.java:281)
+    	at java.base/java.util.Optional.orElseGet(Optional.java:364)
+    	at org.junit.jupiter.engine.descriptor.ClassBasedTestDescriptor.lambda$testInstancesProvider$5(ClassBasedTestDescriptor.java:280)
+    	at org.junit.jupiter.engine.execution.TestInstancesProvider.getTestInstances(TestInstancesProvider.java:27)
+    	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.lambda$prepare$0(TestMethodTestDescriptor.java:112)
+    	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+    	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.prepare(TestMethodTestDescriptor.java:111)
+    	at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.prepare(TestMethodTestDescriptor.java:69)
+    	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$prepare$2(NodeTestTask.java:128)
+    	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+    	at org.junit.platform.engine.support.hierarchical.NodeTestTask.prepare(NodeTestTask.java:128)
+    	at org.junit.platform.engine.support.hierarchical.NodeTestTask.execute(NodeTestTask.java:95)
+    	at java.base/java.util.ArrayList.forEach(ArrayList.java:1511)
+    	at org.junit.platform.engine.support.hierarchical.SameThreadHierarchicalTestExecutorService.invokeAll(SameThreadHierarchicalTestExecutorService.java:41)
+    	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$6(NodeTestTask.java:160)
+    	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+    	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$8(NodeTestTask.java:146)
+    	at org.junit.platform.engine.support.hierarchical.Node.around(Node.java:137)
+    	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$9(NodeTestTask.java:144)
+    	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+    	at org.junit.platform.engine.support.hierarchical.NodeTestTask.executeRecursively(NodeTestTask.java:143)
+    	at org.junit.platform.engine.support.hierarchical.NodeTestTask.execute(NodeTestTask.java:100)
+    	at java.base/java.util.ArrayList.forEach(ArrayList.java:1511)
+    	at org.junit.platform.engine.support.hierarchical.SameThreadHierarchicalTestExecutorService.invokeAll(SameThreadHierarchicalTestExecutorService.java:41)
+    	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$6(NodeTestTask.java:160)
+    	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+    	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$8(NodeTestTask.java:146)
+    	at org.junit.platform.engine.support.hierarchical.Node.around(Node.java:137)
+    	at org.junit.platform.engine.support.hierarchical.NodeTestTask.lambda$executeRecursively$9(NodeTestTask.java:144)
+    	at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+    	at org.junit.platform.engine.support.hierarchical.NodeTestTask.executeRecursively(NodeTestTask.java:143)
+    	at org.junit.platform.engine.support.hierarchical.NodeTestTask.execute(NodeTestTask.java:100)
+    	at org.junit.platform.engine.support.hierarchical.SameThreadHierarchicalTestExecutorService.submit(SameThreadHierarchicalTestExecutorService.java:35)
+    	at org.junit.platform.engine.support.hierarchical.HierarchicalTestExecutor.execute(HierarchicalTestExecutor.java:57)
+    	at org.junit.platform.engine.support.hierarchical.HierarchicalTestEngine.execute(HierarchicalTestEngine.java:54)
+    	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:201)
+    	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:170)
+    	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:94)
+    	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.lambda$execute$0(EngineExecutionOrchestrator.java:59)
+    	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.withInterceptedStreams(EngineExecutionOrchestrator.java:142)
+    	at org.junit.platform.launcher.core.EngineExecutionOrchestrator.execute(EngineExecutionOrchestrator.java:58)
+    	at org.junit.platform.launcher.core.DefaultLauncher.execute(DefaultLauncher.java:103)
+    	at org.junit.platform.launcher.core.DefaultLauncher.execute(DefaultLauncher.java:85)
+    	at org.junit.platform.launcher.core.DelegatingLauncher.execute(DelegatingLauncher.java:47)
+    	at org.junit.platform.launcher.core.InterceptingLauncher.lambda$execute$1(InterceptingLauncher.java:39)
+    	at org.junit.platform.launcher.core.ClasspathAlignmentCheckingLauncherInterceptor.intercept(ClasspathAlignmentCheckingLauncherInterceptor.java:25)
+    	at org.junit.platform.launcher.core.InterceptingLauncher.execute(InterceptingLauncher.java:38)
+    	at org.junit.platform.launcher.core.DelegatingLauncher.execute(DelegatingLauncher.java:47)
+    	at org.gradle.api.internal.tasks.testing.junitplatform.JUnitPlatformTestClassProcessor$CollectAllTestClassesExecutor.processAllTestClasses(JUnitPlatformTestClassProcessor.java:124)
+    	at org.gradle.api.internal.tasks.testing.junitplatform.JUnitPlatformTestClassProcessor$CollectAllTestClassesExecutor.access$000(JUnitPlatformTestClassProcessor.java:99)
+    	at org.gradle.api.internal.tasks.testing.junitplatform.JUnitPlatformTestClassProcessor.stop(JUnitPlatformTestClassProcessor.java:94)
+    	at org.gradle.api.internal.tasks.testing.SuiteTestClassProcessor.stop(SuiteTestClassProcessor.java:63)
+    	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+    	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+    	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+    	at java.base/java.lang.reflect.Method.invoke(Method.java:568)
+    	at org.gradle.internal.dispatch.ReflectionDispatch.dispatch(ReflectionDispatch.java:36)
+    	at org.gradle.internal.dispatch.ReflectionDispatch.dispatch(ReflectionDispatch.java:24)
+    	at org.gradle.internal.dispatch.ContextClassLoaderDispatch.dispatch(ContextClassLoaderDispatch.java:33)
+    	at org.gradle.internal.dispatch.ProxyDispatchAdapter$DispatchingInvocationHandler.invoke(ProxyDispatchAdapter.java:92)
+    	at jdk.proxy1/jdk.proxy1.$Proxy4.stop(Unknown Source)
+    	at org.gradle.api.internal.tasks.testing.worker.TestWorker$3.run(TestWorker.java:200)
+    	at org.gradle.api.internal.tasks.testing.worker.TestWorker.executeAndMaintainThreadName(TestWorker.java:132)
+    	at org.gradle.api.internal.tasks.testing.worker.TestWorker.execute(TestWorker.java:103)
+    	at org.gradle.api.internal.tasks.testing.worker.TestWorker.execute(TestWorker.java:63)
+    	at org.gradle.process.internal.worker.child.ActionExecutionWorker.execute(ActionExecutionWorker.java:56)
+    	at org.gradle.process.internal.worker.child.SystemApplicationClassLoaderWorker.call(SystemApplicationClassLoaderWorker.java:122)
+    	at org.gradle.process.internal.worker.child.SystemApplicationClassLoaderWorker.call(SystemApplicationClassLoaderWorker.java:72)
+    	at worker.org.gradle.process.internal.worker.GradleWorkerMain.run(GradleWorkerMain.java:69)
+    	at worker.org.gradle.process.internal.worker.GradleWorkerMain.main(GradleWorkerMain.java:74)
+
+Gradle Test Executor 49 finished executing tests.
+
+> Task :test FAILED
+
+CallActivityIntegrationTest > simple call activity execution - parent enters call activity and suspends() FAILED
+    org.junit.jupiter.api.extension.ParameterResolutionException: Failed to resolve parameter [com.easy.bpm.service.ProcessService processService] in constructor [public com.easy.bpm.integration.CallActivityIntegrationTest(com.easy.bpm.service.ProcessService,com.easy.bpm.repository.process.ProcessInstanceRepository,com.easy.bpm.repository.process.CallActivityMappingRepository,com.easy.bpm.repository.task.TaskRepository,com.easy.bpm.repository.variable.ProcessVariableRepository,com.fasterxml.jackson.databind.ObjectMapper,org.springframework.test.web.servlet.MockMvc,com.easy.bpm.service.CallActivityHandler)]: Failed to load ApplicationContext for [WebMergedContextConfiguration@6fa0450e testClass = com.easy.bpm.integration.CallActivityIntegrationTest, locations = [], classes = [com.easy.bpm.BpmApplication], contextInitializerClasses = [], activeProfiles = ["test"], propertySourceDescriptors = [], propertySourceProperties = ["org.springframework.boot.test.context.SpringBootTestContextBootstrapper=true"], contextCustomizers = [org.springframework.boot.test.autoconfigure.OnFailureConditionReportContextCustomizerFactory$OnFailureConditionReportContextCustomizer@433e536f, org.springframework.boot.test.autoconfigure.actuate.observability.ObservabilityContextCustomizerFactory$DisableObservabilityContextCustomizer@1f, org.springframework.boot.test.autoconfigure.properties.PropertyMappingContextCustomizer@15c64fb, org.springframework.boot.test.autoconfigure.web.servlet.WebDriverContextCustomizer@19f040ba, [ImportsContextCustomizer@37468787 key = [org.springframework.boot.autoconfigure.security.oauth2.client.servlet.OAuth2ClientWebSecurityAutoConfiguration, org.springframework.boot.test.autoconfigure.jdbc.TestDatabaseAutoConfiguration, org.springframework.boot.autoconfigure.security.saml2.Saml2RelyingPartyAutoConfiguration, org.springframework.boot.test.autoconfigure.web.servlet.MockMvcSecurityConfiguration, org.springframework.boot.test.autoconfigure.web.servlet.MockMvcWebClientAutoConfiguration, org.springframework.boot.test.autoconfigure.web.reactive.WebTestClientAutoConfiguration, org.springframework.boot.test.autoconfigure.web.servlet.MockMvcWebDriverAutoConfiguration, org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration, org.springframework.boot.test.autoconfigure.web.servlet.MockMvcAutoConfiguration, org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration, org.springframework.boot.autoconfigure.security.servlet.SecurityFilterAutoConfiguration, org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration, org.springframework.boot.autoconfigure.security.oauth2.resource.servlet.OAuth2ResourceServerAutoConfiguration, org.springframework.boot.autoconfigure.security.oauth2.client.OAuth2ClientAutoConfiguration]], org.springframework.boot.test.context.filter.ExcludeFilterContextCustomizer@14bae047, org.springframework.boot.test.json.DuplicateJsonObjectContextCustomizerFactory$DuplicateJsonObjectContextCustomizer@3122b117, org.springframework.boot.test.mock.mockito.MockitoContextCustomizer@89501cfb, org.springframework.boot.test.web.client.TestRestTemplateContextCustomizer@3605c4d3, org.springframework.boot.test.web.reactor.netty.DisableReactorResourceFactoryGlobalResourcesContextCustomizerFactory$DisableReactorResourceFactoryGlobalResourcesContextCustomizerCustomizer@4463d9d3, org.springframework.test.context.support.DynamicPropertiesContextCustomizer@0, org.springframework.boot.test.context.SpringBootTestAnnotation@f1827b6f], resourceBasePath = "src/main/webapp", contextLoader = org.springframework.boot.test.context.SpringBootContextLoader, parent = null]
+        at java.base@17.0.10/java.util.Optional.orElseGet(Optional.java:364)
+        at java.base@17.0.10/java.util.ArrayList.forEach(ArrayList.java:1511)
+        at java.base@17.0.10/java.util.ArrayList.forEach(ArrayList.java:1511)
+
+        Caused by:
+        java.lang.IllegalStateException: Failed to load ApplicationContext for [WebMergedContextConfiguration@6fa0450e testClass = com.easy.bpm.integration.CallActivityIntegrationTest, locations = [], classes = [com.easy.bpm.BpmApplication], contextInitializerClasses = [], activeProfiles = ["test"], propertySourceDescriptors = [], propertySourceProperties = ["org.springframework.boot.test.context.SpringBootTestContextBootstrapper=true"], contextCustomizers = [org.springframework.boot.test.autoconfigure.OnFailureConditionReportContextCustomizerFactory$OnFailureConditionReportContextCustomizer@433e536f, org.springframework.boot.test.autoconfigure.actuate.observability.ObservabilityContextCustomizerFactory$DisableObservabilityContextCustomizer@1f, org.springframework.boot.test.autoconfigure.properties.PropertyMappingContextCustomizer@15c64fb, org.springframework.boot.test.autoconfigure.web.servlet.WebDriverContextCustomizer@19f040ba, [ImportsContextCustomizer@37468787 key = [org.springframework.boot.autoconfigure.security.oauth2.client.servlet.OAuth2ClientWebSecurityAutoConfiguration, org.springframework.boot.test.autoconfigure.jdbc.TestDatabaseAutoConfiguration, org.springframework.boot.autoconfigure.security.saml2.Saml2RelyingPartyAutoConfiguration, org.springframework.boot.test.autoconfigure.web.servlet.MockMvcSecurityConfiguration, org.springframework.boot.test.autoconfigure.web.servlet.MockMvcWebClientAutoConfiguration, org.springframework.boot.test.autoconfigure.web.reactive.WebTestClientAutoConfiguration, org.springframework.boot.test.autoconfigure.web.servlet.MockMvcWebDriverAutoConfiguration, org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration, org.springframework.boot.test.autoconfigure.web.servlet.MockMvcAutoConfiguration, org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration, org.springframework.boot.autoconfigure.security.servlet.SecurityFilterAutoConfiguration, org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration, org.springframework.boot.autoconfigure.security.oauth2.resource.servlet.OAuth2ResourceServerAutoConfiguration, org.springframework.boot.autoconfigure.security.oauth2.client.OAuth2ClientAutoConfiguration]], org.springframework.boot.test.context.filter.ExcludeFilterContextCustomizer@14bae047, org.springframework.boot.test.json.DuplicateJsonObjectContextCustomizerFactory$DuplicateJsonObjectContextCustomizer@3122b117, org.springframework.boot.test.mock.mockito.MockitoContextCustomizer@89501cfb, org.springframework.boot.test.web.client.TestRestTemplateContextCustomizer@3605c4d3, org.springframework.boot.test.web.reactor.netty.DisableReactorResourceFactoryGlobalResourcesContextCustomizerFactory$DisableReactorResourceFactoryGlobalResourcesContextCustomizerCustomizer@4463d9d3, org.springframework.test.context.support.DynamicPropertiesContextCustomizer@0, org.springframework.boot.test.context.SpringBootTestAnnotation@f1827b6f], resourceBasePath = "src/main/webapp", contextLoader = org.springframework.boot.test.context.SpringBootContextLoader, parent = null]
+            at org.springframework.test.context.cache.DefaultCacheAwareContextLoaderDelegate.loadContext(DefaultCacheAwareContextLoaderDelegate.java:180)
+            at org.springframework.test.context.support.DefaultTestContext.getApplicationContext(DefaultTestContext.java:130)
+            at org.springframework.test.context.junit.jupiter.SpringExtension.getApplicationContext(SpringExtension.java:351)
+            at org.springframework.test.context.junit.jupiter.SpringExtension.resolveParameter(SpringExtension.java:337)
+            ... 3 more
+
+            Caused by:
+            while constructing a mapping
+             in 'reader', line 25, column 5:
+                    org.springframework.jdbc.datasou ... 
+                    ^
+            found duplicate key org.hibernate.SQL
+             in 'reader', line 28, column 5:
+                    org.hibernate.SQL: DEBUG
+                    ^
+                at app//org.yaml.snakeyaml.constructor.SafeConstructor.processDuplicateKeys(SafeConstructor.java:119)
+                at app//org.yaml.snakeyaml.constructor.SafeConstructor.flattenMapping(SafeConstructor.java:71)
+                at app//org.yaml.snakeyaml.constructor.SafeConstructor.flattenMapping(SafeConstructor.java:66)
+                at app//org.yaml.snakeyaml.constructor.SafeConstructor.constructMapping2ndStep(SafeConstructor.java:204)
+                at app//org.yaml.snakeyaml.constructor.BaseConstructor.constructMapping(BaseConstructor.java:553)
+                at app//org.yaml.snakeyaml.constructor.SafeConstructor$ConstructYamlMap.construct(SafeConstructor.java:592)
+                at app//org.yaml.snakeyaml.constructor.BaseConstructor.constructObjectNoCheck(BaseConstructor.java:265)
+                at app//org.yaml.snakeyaml.constructor.BaseConstructor.constructObject(BaseConstructor.java:248)
+                at app//org.springframework.boot.env.OriginTrackedYamlLoader$OriginTrackingConstructor.constructObject(OriginTrackedYamlLoader.java:119)
+                at app//org.yaml.snakeyaml.constructor.BaseConstructor.constructMapping2ndStep(BaseConstructor.java:577)
+                at app//org.yaml.snakeyaml.constructor.SafeConstructor.constructMapping2ndStep(SafeConstructor.java:205)
+                at app//org.yaml.snakeyaml.constructor.BaseConstructor.constructMapping(BaseConstructor.java:553)
+                at app//org.yaml.snakeyaml.constructor.SafeConstructor$ConstructYamlMap.construct(SafeConstructor.java:592)
+                at app//org.yaml.snakeyaml.constructor.BaseConstructor.constructObjectNoCheck(BaseConstructor.java:265)
+                at app//org.yaml.snakeyaml.constructor.BaseConstructor.constructObject(BaseConstructor.java:248)
+                at app//org.springframework.boot.env.OriginTrackedYamlLoader$OriginTrackingConstructor.constructObject(OriginTrackedYamlLoader.java:119)
+                at app//org.yaml.snakeyaml.constructor.BaseConstructor.constructMapping2ndStep(BaseConstructor.java:577)
+                at app//org.yaml.snakeyaml.constructor.SafeConstructor.constructMapping2ndStep(SafeConstructor.java:205)
+                at app//org.yaml.snakeyaml.constructor.BaseConstructor.constructMapping(BaseConstructor.java:553)
+                at app//org.yaml.snakeyaml.constructor.SafeConstructor$ConstructYamlMap.construct(SafeConstructor.java:592)
+                at app//org.yaml.snakeyaml.constructor.BaseConstructor.constructObjectNoCheck(BaseConstructor.java:265)
+                at app//org.yaml.snakeyaml.constructor.BaseConstructor.constructObject(BaseConstructor.java:248)
+                at app//org.springframework.boot.env.OriginTrackedYamlLoader$OriginTrackingConstructor.constructObject(OriginTrackedYamlLoader.java:119)
+                at app//org.yaml.snakeyaml.constructor.BaseConstructor.constructDocument(BaseConstructor.java:202)
+                at app//org.yaml.snakeyaml.constructor.BaseConstructor.getData(BaseConstructor.java:167)
+                at app//org.springframework.boot.env.OriginTrackedYamlLoader$OriginTrackingConstructor.getData(OriginTrackedYamlLoader.java:99)
+                at app//org.yaml.snakeyaml.Yaml$1.next(Yaml.java:530)
+                at app//org.springframework.beans.factory.config.YamlProcessor.process(YamlProcessor.java:203)
+                at app//org.springframework.beans.factory.config.YamlProcessor.process(YamlProcessor.java:169)
+                at app//org.springframework.boot.env.OriginTrackedYamlLoader.load(OriginTrackedYamlLoader.java:84)
+                at app//org.springframework.boot.env.YamlPropertySourceLoader.load(YamlPropertySourceLoader.java:50)
+                at app//org.springframework.boot.context.config.StandardConfigDataLoader.load(StandardConfigDataLoader.java:54)
+                at app//org.springframework.boot.context.config.StandardConfigDataLoader.load(StandardConfigDataLoader.java:36)
+                at app//org.springframework.boot.context.config.ConfigDataLoaders.load(ConfigDataLoaders.java:96)
+                at app//org.springframework.boot.context.config.ConfigDataImporter.load(ConfigDataImporter.java:132)
+                at app//org.springframework.boot.context.config.ConfigDataImporter.resolveAndLoad(ConfigDataImporter.java:87)
+                at app//org.springframework.boot.context.config.ConfigDataEnvironmentContributors.withProcessedImports(ConfigDataEnvironmentContributors.java:129)
+                at app//org.springframework.boot.context.config.ConfigDataEnvironment.processWithProfiles(ConfigDataEnvironment.java:318)
+                at app//org.springframework.boot.context.config.ConfigDataEnvironment.processAndApply(ConfigDataEnvironment.java:237)
+                at app//org.springframework.boot.context.config.ConfigDataEnvironmentPostProcessor.postProcessEnvironment(ConfigDataEnvironmentPostProcessor.java:96)
+                at app//org.springframework.boot.context.config.ConfigDataEnvironmentPostProcessor.postProcessEnvironment(ConfigDataEnvironmentPostProcessor.java:89)
+                at app//org.springframework.boot.env.EnvironmentPostProcessorApplicationListener.onApplicationEnvironmentPreparedEvent(EnvironmentPostProcessorApplicationListener.java:132)
+                at app//org.springframework.boot.env.EnvironmentPostProcessorApplicationListener.onApplicationEvent(EnvironmentPostProcessorApplicationListener.java:115)
+                at app//org.springframework.context.event.SimpleApplicationEventMulticaster.doInvokeListener(SimpleApplicationEventMulticaster.java:185)
+                at app//org.springframework.context.event.SimpleApplicationEventMulticaster.invokeListener(SimpleApplicationEventMulticaster.java:178)
+                at app//org.springframework.context.event.SimpleApplicationEventMulticaster.multicastEvent(SimpleApplicationEventMulticaster.java:156)
+                at app//org.springframework.context.event.SimpleApplicationEventMulticaster.multicastEvent(SimpleApplicationEventMulticaster.java:138)
+                at app//org.springframework.boot.context.event.EventPublishingRunListener.multicastInitialEvent(EventPublishingRunListener.java:136)
+                at app//org.springframework.boot.context.event.EventPublishingRunListener.environmentPrepared(EventPublishingRunListener.java:81)
+                at app//org.springframework.boot.SpringApplicationRunListeners.lambda$environmentPrepared$2(SpringApplicationRunListeners.java:64)
+                at java.base@17.0.10/java.lang.Iterable.forEach(Iterable.java:75)
+                at app//org.springframework.boot.SpringApplicationRunListeners.doWithListeners(SpringApplicationRunListeners.java:118)
+                at app//org.springframework.boot.SpringApplicationRunListeners.doWithListeners(SpringApplicationRunListeners.java:112)
+                at app//org.springframework.boot.SpringApplicationRunListeners.environmentPrepared(SpringApplicationRunListeners.java:63)
+                at app//org.springframework.boot.SpringApplication.prepareEnvironment(SpringApplication.java:353)
+                at app//org.springframework.boot.SpringApplication.run(SpringApplication.java:313)
+                at app//org.springframework.boot.test.context.SpringBootContextLoader.lambda$loadContext$3(SpringBootContextLoader.java:144)
+                at app//org.springframework.util.function.ThrowingSupplier.get(ThrowingSupplier.java:58)
+                at app//org.springframework.util.function.ThrowingSupplier.get(ThrowingSupplier.java:46)
+                at app//org.springframework.boot.SpringApplication.withHook(SpringApplication.java:1461)
+                at app//org.springframework.boot.test.context.SpringBootContextLoader$ContextLoaderHook.run(SpringBootContextLoader.java:563)
+                at app//org.springframework.boot.test.context.SpringBootContextLoader.loadContext(SpringBootContextLoader.java:144)
+                at app//org.springframework.boot.test.context.SpringBootContextLoader.loadContext(SpringBootContextLoader.java:110)
+                at app//org.springframework.test.context.cache.DefaultCacheAwareContextLoaderDelegate.loadContextInternal(DefaultCacheAwareContextLoaderDelegate.java:225)
+                at app//org.springframework.test.context.cache.DefaultCacheAwareContextLoaderDelegate.loadContext(DefaultCacheAwareContextLoaderDelegate.java:152)
+                ... 6 more
+.\gradlew : 
+No linha:1 caractere:57
++ ... alho\bpm' ; .\gradlew test --tests "com.easy.bpm.integration.CallActi ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+1 test completed, 1 failed
+Finished generating test XML results (0.002 secs) into: C:\Users\Admin\OneDrive\Ambiente de Trabalho\bpm\build\test-results\test
+Generating HTML test report...
+Finished generating test html results (0.003 secs) into: C:\Users\Admin\OneDrive\Ambiente de Trabalho\bpm\build\reports\tests\test
+
+[Incubating] Problems report is available at: file:///C:/Users/Admin/OneDrive/Ambiente%20de%20Trabalho/bpm/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':test'.
+> There were failing tests. See the report at: file:///C:/Users/Admin/OneDrive/
+Ambiente%20de%20Trabalho/bpm/build/reports/tests/test/index.html
+
+* Try:
+> Run with --scan to get full insights.
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/8.14.3/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD FAILED in 5s
+7 actionable tasks: 2 executed, 5 up-to-date
+Watched directory hierarchies: [C:\Users\Admin\OneDrive\Ambiente de Trabalho\bpm]

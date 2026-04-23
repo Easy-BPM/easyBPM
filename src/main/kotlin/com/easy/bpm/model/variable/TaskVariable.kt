@@ -15,7 +15,7 @@ data class TaskVariable(
     val name: String,
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(columnDefinition = "jsonb")
+    @Column
     val value: JsonNode
 )
 

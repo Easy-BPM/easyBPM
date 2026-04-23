@@ -17,7 +17,7 @@ data class Form(
     val name: String,
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(columnDefinition = "jsonb")
+    @Column
     val schema: JsonNode,
 
     val version: Int = 1,
