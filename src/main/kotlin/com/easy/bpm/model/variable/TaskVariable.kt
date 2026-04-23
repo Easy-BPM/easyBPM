@@ -2,8 +2,8 @@ package com.easy.bpm.model.variable
 
 import com.fasterxml.jackson.databind.JsonNode
 import jakarta.persistence.*
-import org.hibernate.annotations.JdbcTypeCode
-import org.hibernate.type.SqlTypes
+import com.vladmihalcea.hibernate.type.json.JsonBinaryType
+import org.hibernate.annotations.Type
 
 @Entity
 data class TaskVariable(
@@ -14,8 +14,8 @@ data class TaskVariable(
 
     val name: String,
 
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column
+    @Type(JsonBinaryType::class)
+    @Column(columnDefinition = "jsonb")
     val value: JsonNode
 )
 
