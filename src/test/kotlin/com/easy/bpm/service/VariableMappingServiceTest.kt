@@ -8,6 +8,7 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.collections.shouldHaveSize
+import io.mockk.clearMocks
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -19,6 +20,10 @@ class VariableMappingServiceTest : FunSpec({
     val processVariableRepository = mockk<ProcessVariableRepository>(relaxed = true)
     val objectMapper = ObjectMapper()
     val service = VariableMappingService(processVariableRepository, objectMapper)
+
+    beforeEach {
+        clearMocks(processVariableRepository)
+    }
 
     context("applyInputMappings - Explicit Mapping Mode") {
 
