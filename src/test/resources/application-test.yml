@@ -18,13 +18,14 @@ spring:
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
-      ddl-auto: update
+      ddl-auto: create-drop
     properties:
       hibernate.globally_quoted_identifiers: true
       hibernate.jdbc.batch_size: 10
       hibernate.order_inserts: true
       hibernate.order_updates: true
       hibernate.jdbc.fetch_size: 50
+      hibernate.show_sql: true
     show-sql: false
   autoconfigure:
     exclude:
@@ -35,3 +36,5 @@ logging:
     root: WARN
     com.easy.bpm: INFO
     org.springframework.boot.test.context: INFO
+    org.hibernate.tool.schema: DEBUG
+    org.hibernate.engine.transaction.internal: DEBUG
