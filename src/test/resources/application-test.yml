@@ -10,7 +10,7 @@ spring:
       ddl-auto: none
     properties:
       hibernate.globally_quoted_identifiers: true
-    show-sql: false
+    show-sql: true
   flyway:
     enabled: false
   autoconfigure:
@@ -20,3 +20,7 @@ spring:
     init:
       mode: always
       schema-locations: classpath:schema-h2.sql
+
+logging:
+  level:
+    org.springframework.jdbc.datasource.init: DEBUG
