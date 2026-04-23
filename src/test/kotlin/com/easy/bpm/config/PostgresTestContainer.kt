@@ -1,43 +1,42 @@
 package com.easy.bpm.config
 
-import org.springframework.boot.test.context.TestConfiguration
-import org.springframework.context.annotation.Bean
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.utility.DockerImageName
 
 /**
- * TestContainers configuration for PostgreSQL integration tests.
- * Manages the lifecycle of a PostgreSQL Docker container for testing.
+ * SINGLETON PostgreSQL TestContainer - Shared across ALL tests.
+ * 
+ * Uses Testcontainers' reuse capability to maintain a single PostgreSQL instance
+ * for the entire test suite, preventing container startup/shutdown overhead and
+ * connection timeout issues.
+ * 
+ * Enable with: export TESTCONTAINERS_RYUK_DISABLED=true
+ * Or use Docker for Desktop with container reuse enabled.
  */
-@TestConfiguration
-class PostgresTestContainer {
-
-    companion object {
-        private var postgresContainer: PostgreSQLContainer<*>? = null
-
-        fun getPostgresContainer(): PostgreSQLContainer<*> {
-            if (postgresContainer == null) {
-                postgresContainer = PostgreSQLContainer(DockerImageName.parse("postgres:16-alpine"))
-                    .withDatabaseName("bpm_test")
-                    .withUsername("bpm_user")
-                    .withPassword("bpm_password")
-                    .withReuse(false)
-                postgresContainer!!.start()
-            }
-            return postgresContainer!!
+object PostgresTestContainer {
+    /**
+     * SHARED instance - Created once, reused for entire test suite.
+     * Static initialization ensures only one container across all test classes.
+     */
+    val instance: PostgreSQLContainer<*> = PostgreSQLContainer(DockerImageName.parse("postgres:16-alpine"))
+        .withDatabaseName("bpm_test")
+        .withUsername("bpm_user")
+        .withPassword("bpm_password")
+        .withReuse(true)  // CRITICAL: Reuse same container across test runs
+        .apply {
+            start()
+            // Log container info for debugging
+            println("PostgreSQL TestContainer started:")
+            println("  JDBC URL: $jdbcUrl")
+            println("  Host: $host")
+            println("  Port: $firstMappedPort")
+            println("  Database: $databaseName")
         }
 
-        fun stopPostgresContainer() {
-            postgresContainer?.stop()
-            postgresContainer = null
-        }
-
-        fun getJdbcUrl(): String = getPostgresContainer().jdbcUrl
-
-        fun getUsername(): String = getPostgresContainer().username
-
-        fun getPassword(): String = getPostgresContainer().password
-
-        fun getDatabaseName(): String = getPostgresContainer().databaseName
-    }
+    // Convenience accessors
+    fun getPostgresContainer(): PostgreSQLContainer<*> = instance
+    fun getJdbcUrl(): String = instance.jdbcUrl
+    fun getUsername(): String = instance.username
+    fun getPassword(): String = instance.password
+    fun getDatabaseName(): String = instance.databaseName
 }
