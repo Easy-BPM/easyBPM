@@ -19,3 +19,4 @@ interface ProcessDefinitionRepository : JpaRepository<ProcessDefinition, Long> {
     """)
     fun findLatestVersionProcesses(pageable: Pageable): Page<ProcessDefinition>
 }
+

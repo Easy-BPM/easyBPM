@@ -1,4 +1,4 @@
-export type NodeType = 'start' | 'end' | 'user-task' | 'service-task' | 'api-task' | 'call-activity' | 'gateway' | 'parallel-gateway' | 'timer-event' | 'message-start' | 'message-intermediate-catch' | 'message-intermediate-throw' | 'error-boundary' | 'message-boundary' | 'timer-boundary';
+export type NodeType = 'start' | 'end' | 'user-task' | 'service-task' | 'api-task' | 'code-task' | 'call-activity' | 'gateway' | 'parallel-gateway' | 'timer-event' | 'message-start' | 'message-intermediate-catch' | 'message-intermediate-throw' | 'error-boundary' | 'message-boundary' | 'timer-boundary';
 
 export interface Position {
   x: number;

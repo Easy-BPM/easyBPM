@@ -96,7 +96,13 @@ class ProcessService(
         return startWithDefinition(definition)
     }
 
-    @Transactional
+    fun startProcessInstance(processDefinitionId: Long, initialVariables: Map<String, Any>): ProcessInstance {
+        val definition = processDefinitionRepository.findById(processDefinitionId)
+            .orElseThrow { IllegalArgumentException("Process definition not found") }
+
+        return startWithDefinition(definition, initialVariables)
+    }
+
     fun startProcessInstance(processId: String): ProcessInstance {
         val definition = processDefinitionRepository.findTopByKeyOrderByVersionDesc(processId)
             ?: throw IllegalArgumentException("Process definition not found for id: $processId")
@@ -104,7 +110,15 @@ class ProcessService(
         return startWithDefinition(definition)
     }
 
-    private fun startWithDefinition(definition: ProcessDefinition): ProcessInstance {
+    fun startProcessInstance(processId: String, initialVariables: Map<String, Any>): ProcessInstance {
+        val definition = processDefinitionRepository.findTopByKeyOrderByVersionDesc(processId)
+            ?: throw IllegalArgumentException("Process definition not found for id: $processId")
+
+        return startWithDefinition(definition, initialVariables)
+    }
+
+    @Transactional
+    private fun startWithDefinition(definition: ProcessDefinition, initialVariables: Map<String, Any> = emptyMap()): ProcessInstance {
         val startTime = System.currentTimeMillis()
 
         val json = parseDefinition(definition.definitionJson)
@@ -120,6 +134,19 @@ class ProcessService(
         metricsService.recordProcessStarted()
 
         initializeProcessVariables(instance, json)
+        
+        // Add initial variables if provided
+        if (initialVariables.isNotEmpty()) {
+            initialVariables.forEach { (name, value) ->
+                processVariableRepository.save(
+                    ProcessVariable(
+                        processInstanceId = instance.id,
+                        name = name,
+                        value = objectMapper.valueToTree(value)
+                    )
+                )
+            }
+        }
 
         val startNodes = getStartNodes(instance, json)
 
@@ -1279,3 +1306,4 @@ class ProcessService(
         return json
     }
 }
+

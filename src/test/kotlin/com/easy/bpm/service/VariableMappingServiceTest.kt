@@ -8,6 +8,7 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.collections.shouldHaveSize
+import io.mockk.clearMocks
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -19,6 +20,10 @@ class VariableMappingServiceTest : FunSpec({
     val processVariableRepository = mockk<ProcessVariableRepository>(relaxed = true)
     val objectMapper = ObjectMapper()
     val service = VariableMappingService(processVariableRepository, objectMapper)
+
+    beforeEach {
+        clearMocks(processVariableRepository)
+    }
 
     context("applyInputMappings - Explicit Mapping Mode") {
 
@@ -48,14 +53,14 @@ class VariableMappingServiceTest : FunSpec({
             )
 
             // Assert
-            stats.variablesMapped shouldBe 1
-            stats.successCount shouldBe 1
-            stats.skippedCount shouldBe 0
-            stats.failureCount shouldBe 0
+            stats.variablesMapped shouldBe 1L
+            stats.successCount shouldBe 1L
+            stats.skippedCount shouldBe 0L
+            stats.failureCount shouldBe 0L
             stats.mode shouldBe "explicit_mapping"
 
             verify {
-                processVariableRepository.save(match { it.processInstanceId == 200 && it.name == "order_id" })
+                processVariableRepository.save(match { it.processInstanceId == 200L && it.name == "order_id" })
             }
         }
 
@@ -86,8 +91,8 @@ class VariableMappingServiceTest : FunSpec({
             )
 
             // Assert
-            stats.variablesMapped shouldBe 3
-            stats.successCount shouldBe 3
+            stats.variablesMapped shouldBe 3L
+            stats.successCount shouldBe 3L
         }
 
         test("T3: Skip missing source variables") {
@@ -114,10 +119,10 @@ class VariableMappingServiceTest : FunSpec({
             )
 
             // Assert
-            stats.variablesMapped shouldBe 1
-            stats.successCount shouldBe 1
-            stats.skippedCount shouldBe 1
-            stats.failureCount shouldBe 0
+            stats.variablesMapped shouldBe 1L
+            stats.successCount shouldBe 1L
+            stats.skippedCount shouldBe 1L
+            stats.failureCount shouldBe 0L
         }
 
         test("T4: Handle type preservation (string)") {
@@ -173,7 +178,7 @@ class VariableMappingServiceTest : FunSpec({
 
         test("T7: Handle type preservation (object/JSON)") {
             // Arrange
-            val orderJson = objectMapper.valueToTree(mapOf("id" to "123", "total" to 99.99))
+            val orderJson: com.fasterxml.jackson.databind.JsonNode = objectMapper.valueToTree(mapOf("id" to "123", "total" to 99.99))
             val objectVar = ProcessVariable(1, 100, "order", orderJson)
             every { processVariableRepository.findByProcessInstanceId(100) } returns listOf(objectVar)
             every { processVariableRepository.save(any()) } returnsArgument 0
@@ -215,8 +220,8 @@ class VariableMappingServiceTest : FunSpec({
             )
 
             // Assert
-            stats.variablesMapped shouldBe 3
-            stats.successCount shouldBe 3
+            stats.variablesMapped shouldBe 3L
+            stats.successCount shouldBe 3L
             stats.mode shouldBe "propagate_all"
 
             verify(exactly = 3) {
@@ -236,7 +241,7 @@ class VariableMappingServiceTest : FunSpec({
             // Assert
             verify {
                 processVariableRepository.save(match {
-                    it.processInstanceId == 200 && it.name == "originalName"
+                    it.processInstanceId == 200L && it.name == "originalName"
                 })
             }
         }
@@ -259,8 +264,8 @@ class VariableMappingServiceTest : FunSpec({
             )
 
             // Assert
-            stats.variablesMapped shouldBe 1
-            stats.successCount shouldBe 1
+            stats.variablesMapped shouldBe 1L
+            stats.successCount shouldBe 1L
         }
     }
 
@@ -278,7 +283,7 @@ class VariableMappingServiceTest : FunSpec({
             result shouldBe true
             verify {
                 processVariableRepository.save(match {
-                    it.name == "order_id" && it.processInstanceId == 200
+                    it.name == "order_id" && it.processInstanceId == 200L
                 })
             }
         }
@@ -288,7 +293,7 @@ class VariableMappingServiceTest : FunSpec({
 
         test("T12: Extract nested property (single level)") {
             // Arrange
-            val orderJson = objectMapper.valueToTree(mapOf("customerId" to "CUST-123", "amount" to 99.99))
+            val orderJson: com.fasterxml.jackson.databind.JsonNode = objectMapper.valueToTree(mapOf("customerId" to "CUST-123", "amount" to 99.99))
             val variable = ProcessVariable(1, 100, "order", orderJson)
 
             // Act
@@ -301,7 +306,7 @@ class VariableMappingServiceTest : FunSpec({
 
         test("T13: Extract nested property (multi-level)") {
             // Arrange
-            val orderJson = objectMapper.valueToTree(
+            val orderJson: com.fasterxml.jackson.databind.JsonNode = objectMapper.valueToTree(
                 mapOf(
                     "customer" to mapOf(
                         "id" to "CUST-123",
@@ -322,7 +327,7 @@ class VariableMappingServiceTest : FunSpec({
 
         test("T14: Return null for missing nested property") {
             // Arrange
-            val orderJson = objectMapper.valueToTree(mapOf("customerId" to "CUST-123"))
+            val orderJson: com.fasterxml.jackson.databind.JsonNode = objectMapper.valueToTree(mapOf("customerId" to "CUST-123"))
             val variable = ProcessVariable(1, 100, "order", orderJson)
 
             // Act
@@ -337,11 +342,11 @@ class VariableMappingServiceTest : FunSpec({
 
         test("T15: Set nested property (single level)") {
             // Arrange
-            val orderJson = objectMapper.valueToTree(mapOf("customerId" to "CUST-123"))
+            val orderJson: com.fasterxml.jackson.databind.JsonNode = objectMapper.valueToTree(mapOf("customerId" to "CUST-123"))
             val variable = ProcessVariable(1, 100, "order", orderJson)
 
             // Act
-            val updated = service.setNestedProperty(variable, "amount", objectMapper.valueToTree(99.99))
+            val updated = service.setNestedProperty(variable, "amount", objectMapper.valueToTree(99.99) as com.fasterxml.jackson.databind.JsonNode)
 
             // Assert
             updated.value.get("amount").asDouble() shouldBe 99.99
@@ -350,14 +355,14 @@ class VariableMappingServiceTest : FunSpec({
 
         test("T16: Set nested property (multi-level, creates path)") {
             // Arrange
-            val orderJson = objectMapper.valueToTree(mapOf("id" to "ORDER-123"))
+            val orderJson: com.fasterxml.jackson.databind.JsonNode = objectMapper.valueToTree(mapOf("id" to "ORDER-123"))
             val variable = ProcessVariable(1, 100, "order", orderJson)
 
             // Act
             val updated = service.setNestedProperty(
                 variable,
                 "customer.id",
-                objectMapper.valueToTree("CUST-456")
+                objectMapper.valueToTree("CUST-456") as com.fasterxml.jackson.databind.JsonNode
             )
 
             // Assert
@@ -398,7 +403,7 @@ class VariableMappingServiceTest : FunSpec({
             ) { it.value.isNumber }
 
             // Assert
-            filtered shouldHaveSize 2
+            filtered.size shouldBe 2
             filtered.containsKey("numeric") shouldBe true
             filtered.containsKey("number2") shouldBe true
             filtered.containsKey("string") shouldBe false
@@ -406,3 +411,4 @@ class VariableMappingServiceTest : FunSpec({
     }
 
 })
+

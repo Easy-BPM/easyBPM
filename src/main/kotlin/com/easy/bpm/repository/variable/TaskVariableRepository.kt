@@ -8,3 +8,4 @@ interface TaskVariableRepository : JpaRepository<TaskVariable, Long> {
     fun deleteByTaskId(taskId: Long)
     fun findByTaskIdAndName(taskId: Long, name: String): TaskVariable?
 }
+

@@ -1,4 +1,5 @@
 import React from 'react';
+import { Zap, Mail, Clock3 } from 'lucide-react';
 import { WorkflowDefinition, WorkflowNode } from '../types';
 
 type Props = {
@@ -114,7 +115,7 @@ export const WorkflowCanvas: React.FC<Props> = ({ definition, nodeHistory, curre
   const regularNodes = nodes.filter(n => !isBoundaryEvent(n));
   const boundaryNodes = nodes.filter(n => isBoundaryEvent(n));
 
-  const bounds = regularNodes.reduce(
+  const bounds = nodes.reduce(
     (acc, node) => {
       const size = nodeSizeByType(node.type);
       const x = node.position?.x ?? 0;
@@ -153,14 +154,18 @@ export const WorkflowCanvas: React.FC<Props> = ({ definition, nodeHistory, curre
           </marker>
         </defs>
 
-        {/* Draw regular edges */}
+        {/* Draw regular edges and boundary event exception arrows */}
         {edges.map((edge) => {
           const source = nodeById.get(edge.from);
           const target = nodeById.get(edge.to);
-          if (!source || !target || isBoundaryEvent(source) || isBoundaryEvent(target)) return null;
+          if (!source || !target) return null;
+
+          // Skip edges TO boundary events (they're drawn separately in the boundary connection section)
+          if (isBoundaryEvent(target)) return null;
 
           const edgeKey = `${edge.from}::${edge.to}`;
           const isVisitedEdge = visitedEdges.has(edgeKey);
+          const isBoundaryEdge = isBoundaryEvent(source);
           const path = getOrthogonalPath(
             { ...source, position: { x: (source.position?.x ?? 0) + offsetX, y: (source.position?.y ?? 0) + offsetY } },
             { ...target, position: { x: (target.position?.x ?? 0) + offsetX, y: (target.position?.y ?? 0) + offsetY } }
@@ -171,11 +176,12 @@ export const WorkflowCanvas: React.FC<Props> = ({ definition, nodeHistory, curre
               key={edgeKey}
               d={path}
               fill="none"
-              stroke={isVisitedEdge ? '#2563eb' : '#94a3b8'}
+              stroke={isVisitedEdge ? '#2563eb' : isBoundaryEdge ? '#dc2626' : '#94a3b8'}
               strokeWidth={isVisitedEdge ? '3' : '2'}
-              markerEnd={isVisitedEdge ? 'url(#wf-arrow-active)' : 'url(#wf-arrow)'}
+              markerEnd={isVisitedEdge ? 'url(#wf-arrow-active)' : isBoundaryEdge ? 'url(#wf-arrow-boundary)' : 'url(#wf-arrow)'}
               strokeLinecap="round"
               strokeLinejoin="round"
+              strokeDasharray={isBoundaryEdge ? '4,3' : undefined}
               vectorEffect="non-scaling-stroke"
             />
           );
@@ -189,20 +195,31 @@ export const WorkflowCanvas: React.FC<Props> = ({ definition, nodeHistory, curre
           if (!parentNode) return null;
 
           const parentSize = nodeSizeByType(parentNode.type);
-          const parentX = (parentNode.position?.x ?? 0) + offsetX;
-          const parentY = (parentNode.position?.y ?? 0) + offsetY;
-          
-          // Draw line from parent to boundary (visual indication)
-          const parentCenter = getCenter(parentNode, parentSize);
-          const boundaryX = (boundaryNode.position?.x ?? 0) + offsetX;
-          const boundaryY = (boundaryNode.position?.y ?? 0) + offsetY;
           const boundarySize = nodeSizeByType(boundaryNode.type);
-          const boundaryCenter = getCenter(boundaryNode, boundarySize);
+          
+          // Create offsetted node copies for path calculation
+          const parentOffsetted = {
+            ...parentNode,
+            position: {
+              x: (parentNode.position?.x ?? 0) + offsetX,
+              y: (parentNode.position?.y ?? 0) + offsetY
+            }
+          };
+          const boundaryOffsetted = {
+            ...boundaryNode,
+            position: {
+              x: (boundaryNode.position?.x ?? 0) + offsetX,
+              y: (boundaryNode.position?.y ?? 0) + offsetY
+            }
+          };
+
+          const parentCenter = getCenter(parentOffsetted, parentSize);
+          const boundaryCenter = getCenter(boundaryOffsetted, boundarySize);
 
           return (
             <path
               key={`boundary-${boundaryNode.id}`}
-              d={`M ${parentCenter.x + offsetX} ${parentCenter.y + offsetY} L ${boundaryCenter.x} ${boundaryCenter.y}`}
+              d={`M ${parentCenter.x} ${parentCenter.y} L ${boundaryCenter.x} ${boundaryCenter.y}`}
               fill="none"
               stroke="#dc2626"
               strokeWidth="1.5"
@@ -330,17 +347,37 @@ export const WorkflowCanvas: React.FC<Props> = ({ definition, nodeHistory, curre
           const visited = visitedSet.has(node.id);
           const current = currentSet.has(node.id);
           const className = getNodeStyle(node.type, visited, current);
+          const cx = x + size.width / 2;
+          const cy = y + size.height / 2;
+          const radius = size.width / 2;
 
           return (
             <g key={node.id}>
-              <circle
-                cx={x + size.width / 2}
-                cy={y + size.height / 2}
-                r={size.width / 2}
-                className={`${className} stroke-[2.5]`}
-              />
+              <circle cx={cx} cy={cy} r={radius} className={`${className} stroke-[2.5]`} />
+              
+              {/* Error boundary event - lightning bolt */}
+              {node.type === 'ErrorBoundaryEvent' && (
+                <g transform={`translate(${cx - 7}, ${cy - 7})`}>
+                  <Zap className="w-3.5 h-3.5 text-red-600 fill-current pointer-events-none" />
+                </g>
+              )}
+              
+              {/* Message boundary event - envelope */}
+              {node.type === 'MessageBoundaryEvent' && (
+                <g transform={`translate(${cx - 7}, ${cy - 7})`}>
+                  <Mail className="w-3.5 h-3.5 text-blue-500 pointer-events-none" />
+                </g>
+              )}
+              
+              {/* Timer boundary event - clock */}
+              {node.type.toLowerCase().includes('boundary') && node.type.toLowerCase().includes('timer') && (
+                <g transform={`translate(${cx - 7}, ${cy - 7})`}>
+                  <Clock3 className="w-3.5 h-3.5 text-amber-600 pointer-events-none" />
+                </g>
+              )}
+              
               <text
-                x={x + size.width / 2}
+                x={cx}
                 y={y + size.height + 18}
                 textAnchor="middle"
                 className="fill-slate-700 text-[10px] font-medium"
@@ -349,7 +386,7 @@ export const WorkflowCanvas: React.FC<Props> = ({ definition, nodeHistory, curre
               </text>
               {node.name && node.name.trim().length > 0 && (
                 <text
-                  x={x + size.width / 2}
+                  x={cx}
                   y={y + size.height + 28}
                   textAnchor="middle"
                   className="fill-slate-500 text-[9px] font-mono"
@@ -357,7 +394,7 @@ export const WorkflowCanvas: React.FC<Props> = ({ definition, nodeHistory, curre
                   {node.id}
                 </text>
               )}
-              {current && <CurrentTokenPin x={x + size.width + 8} y={y - 4} />}
+              {current && <CurrentTokenPin x={cx + radius + 4} y={cy - 4} />}
             </g>
           );
         })}

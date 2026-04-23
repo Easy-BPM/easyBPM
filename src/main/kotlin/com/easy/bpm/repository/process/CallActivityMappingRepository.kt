@@ -61,3 +61,4 @@ interface CallActivityMappingRepository : JpaRepository<CallActivityMapping, Lon
     @Query("SELECT cam FROM CallActivityMapping cam ORDER BY cam.createdAt DESC")
     fun findAllActiveMappings(): List<CallActivityMapping>
 }
+

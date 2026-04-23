@@ -16,7 +16,6 @@ import org.junit.jupiter.api.BeforeEach
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
-import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase.Replace
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.mock.mockito.MockBean
 import org.springframework.test.context.ActiveProfiles
@@ -33,9 +32,7 @@ import org.springframework.transaction.annotation.Transactional
  * - Error propagation from child to parent
  * - Error boundary handling on call activity
  */
-@SpringBootTest
-@ActiveProfiles("test")
-@AutoConfigureTestDatabase(replace = Replace.NONE)
+@AutoConfigureTestDatabase
 @AutoConfigureMockMvc
 @Transactional
 class CallActivityIntegrationTest(
@@ -47,7 +44,7 @@ class CallActivityIntegrationTest(
     @Autowired private val objectMapper: ObjectMapper,
     @Autowired private val mockMvc: MockMvc,
     @Autowired private val callActivityHandler: CallActivityHandler
-) {
+) : IntegrationTestBase() {
 
     @MockBean
     private lateinit var rabbitPublisher: RabbitPublisher
@@ -84,7 +81,7 @@ class CallActivityIntegrationTest(
                         "type": "EndEvent"
                     }
                 ],
-                "edges": [
+                "flows": [
                     {"source": "start", "target": "call-activity-1"},
                     {"source": "call-activity-1", "target": "end"}
                 ]
@@ -112,7 +109,7 @@ class CallActivityIntegrationTest(
                         "type": "EndEvent"
                     }
                 ],
-                "edges": [
+                "flows": [
                     {"source": "start", "target": "child-task"},
                     {"source": "child-task", "target": "end"}
                 ]
@@ -140,7 +137,7 @@ class CallActivityIntegrationTest(
                         "type": "EndEvent"
                     }
                 ],
-                "edges": [
+                "flows": [
                     {"source": "start", "target": "grandchild-task"},
                     {"source": "grandchild-task", "target": "end"}
                 ]
@@ -177,9 +174,8 @@ class CallActivityIntegrationTest(
         val parentDef = processService.deployProcess(objectMapper.readTree(parentProcessJson))
         val childDef = processService.deployProcess(objectMapper.readTree(childProcessJson))
 
-        // Create parent with variables
-        val parentInstance = processService.startProcessInstance(parentDef.id)
-        processService.assignProcessVariables(parentInstance.id, mapOf("parentVar" to "parent-value"))
+        // Create parent with initial variables (before process starts)
+        val parentInstance = processService.startProcessInstance(parentDef.id, mapOf("parentVar" to "parent-value"))
 
         // Reload and verify variables mapped to child
         val childInstances = processInstanceRepository.findByParentInstanceId(parentInstance.id)
@@ -191,7 +187,7 @@ class CallActivityIntegrationTest(
         // Child should have mapped variable
         assertThat(childVars).anySatisfy { v ->
             assertThat(v.name).isEqualTo("childVar")
-            assertThat(v.value.asText()).isEqualTo("\"parent-value\"")
+            assertThat(v.value.asText()).isEqualTo("parent-value")
         }
     }
 
@@ -213,7 +209,7 @@ class CallActivityIntegrationTest(
                     },
                     {"id": "end", "type": "EndEvent"}
                 ],
-                "edges": [
+                "flows": [
                     {"source": "start", "target": "call-self"},
                     {"source": "call-self", "target": "end"}
                 ]
@@ -233,8 +229,8 @@ class CallActivityIntegrationTest(
         val parentDef = processService.deployProcess(objectMapper.readTree(parentProcessJson))
         val childDef = processService.deployProcess(objectMapper.readTree(childProcessJson))
 
-        // Start parent
-        val parentInstance = processService.startProcessInstance(parentDef.id)
+        // Start parent (with initial variables to ensure call activity executes)
+        val parentInstance = processService.startProcessInstance(parentDef.id, mapOf("parentVar" to "parent-value"))
         
         // Get child instance
         val childInstances = processInstanceRepository.findByParentInstanceId(parentInstance.id)
@@ -252,7 +248,7 @@ class CallActivityIntegrationTest(
         val parentVars = processVariableRepository.findByProcessInstanceId(parentInstance.id)
         assertThat(parentVars).anySatisfy { v ->
             assertThat(v.name).isEqualTo("finalResult")
-            assertThat(v.value.asText()).isEqualTo("\"child-result\"")
+            assertThat(v.value.asText()).isEqualTo("child-result")
         }
     }
 
@@ -309,7 +305,7 @@ class CallActivityIntegrationTest(
                     },
                     {"id": "end", "type": "EndEvent"}
                 ],
-                "edges": [
+                "flows": [
                     {"source": "start", "target": "call-activity"},
                     {"source": "error-boundary", "target": "after-error"},
                     {"source": "after-error", "target": "end"},
@@ -329,7 +325,7 @@ class CallActivityIntegrationTest(
                     {"id": "child-task", "type": "UserTask", "name": "Child Task"},
                     {"id": "end", "type": "EndEvent"}
                 ],
-                "edges": [
+                "flows": [
                     {"source": "start", "target": "child-task"},
                     {"source": "child-task", "target": "end"}
                 ]
@@ -340,8 +336,8 @@ class CallActivityIntegrationTest(
         val parentDef = processService.deployProcess(objectMapper.readTree(errorHandlingParentJson))
         val childDef = processService.deployProcess(objectMapper.readTree(errorChildJson))
 
-        // Start parent
-        val parent = processService.startProcessInstance(parentDef.id)
+        // Start parent with initial variables
+        val parent = processService.startProcessInstance(parentDef.id, mapOf("parentVar" to "parent-value"))
         
         // Get child
         val children = processInstanceRepository.findByParentInstanceId(parent.id)
@@ -356,7 +352,7 @@ class CallActivityIntegrationTest(
         val parentVars = processVariableRepository.findByProcessInstanceId(parent.id)
         val errorVar = parentVars.find { it.name == "errorMessage" }
         if (errorVar != null) {
-            assertThat(errorVar.value.asText()).isEqualTo("\"$errorMessage\"")
+            assertThat(errorVar.value.asText()).isEqualTo(errorMessage)
         }
     }
 
@@ -380,7 +376,7 @@ class CallActivityIntegrationTest(
                     },
                     {"id": "end", "type": "EndEvent"}
                 ],
-                "edges": [
+                "flows": [
                     {"source": "start", "target": "call-activity"},
                     {"source": "call-activity", "target": "end"}
                 ]
@@ -397,7 +393,7 @@ class CallActivityIntegrationTest(
                     {"id": "task", "type": "UserTask"},
                     {"id": "end", "type": "EndEvent"}
                 ],
-                "edges": [
+                "flows": [
                     {"source": "start", "target": "task"},
                     {"source": "task", "target": "end"}
                 ]
@@ -469,3 +465,4 @@ class CallActivityIntegrationTest(
         }
     }
 }
+

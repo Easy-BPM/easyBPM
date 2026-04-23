@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { BpmnNode, BpmnEdge, NodeType, Position } from '../types';
 import { getEdgePath, generateId, snapToGrid } from '../utils/geometry';
-import { User, Settings, GitFork, Plus, Mail, Zap, Clock3, Layers } from 'lucide-react';
+import { User, Settings, GitFork, Plus, Mail, Zap, Clock3, Layers, Code } from 'lucide-react';
 
 interface CanvasProps {
   nodes: BpmnNode[];
@@ -145,7 +145,7 @@ export const Canvas: React.FC<CanvasProps> = ({
             if ((node.type === 'error-boundary' || node.type === 'message-boundary' || node.type === 'timer-boundary') && initialNodePositions.has(node.uid)) {
                 // Try to snap to a task
                 const parent = nodes.find(n => 
-                    (n.type === 'user-task' || n.type === 'service-task' || n.type === 'api-task') &&
+                    (n.type === 'user-task' || n.type === 'service-task' || n.type === 'api-task' || n.type === 'code-task') &&
                     node.position.x > n.position.x - 20 &&
                     node.position.x < n.position.x + n.width + 20 &&
                     node.position.y > n.position.y - 20 &&
@@ -237,6 +237,7 @@ export const Canvas: React.FC<CanvasProps> = ({
         <defs>
           <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#334155" /></marker>
           <marker id="arrowhead-selected" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#3b82f6" /></marker>
+          <marker id="arrowhead-error" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#dc2626" /></marker>
           <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0" dy="1" stdDeviation="2" floodColor="#cbd5e1" floodOpacity="0.5"/></filter>
         </defs>
 
@@ -246,15 +247,16 @@ export const Canvas: React.FC<CanvasProps> = ({
           if (!source || !target) return null;
           const path = getEdgePath(source, target);
           const isSelected = selectedEdgeId === edge.id;
-            const hasError = invalidEdgeIds.includes(edge.id);
-            const hasWarning = warningEdgeIds.includes(edge.id);
+          const hasError = invalidEdgeIds.includes(edge.id);
+          const hasWarning = warningEdgeIds.includes(edge.id);
+          const isBoundaryEdge = source?.type?.includes('boundary');
           const labelPos = getLabelPosition(path);
-            const stroke = isSelected ? '#3b82f6' : hasError ? '#dc2626' : hasWarning ? '#d97706' : '#334155';
-            const markerId = isSelected ? 'url(#arrowhead-selected)' : 'url(#arrowhead)';
+          const stroke = isSelected ? '#3b82f6' : hasError ? '#dc2626' : isBoundaryEdge ? '#dc2626' : hasWarning ? '#d97706' : '#334155';
+          const markerId = isSelected ? 'url(#arrowhead-selected)' : isBoundaryEdge ? 'url(#arrowhead-error)' : 'url(#arrowhead)';
           return (
             <g key={edge.id} onClick={(e) => {e.stopPropagation(); onSelectEdge(edge.id); onSelectNodes([]);}} className="group cursor-pointer">
                 <path d={path} stroke="transparent" strokeWidth="15" fill="none" />
-              <path d={path} fill="none" stroke={stroke} strokeWidth={isSelected ? "3" : hasError ? "3" : "2"} markerEnd={markerId} strokeLinejoin="round" strokeDasharray={hasWarning && !isSelected ? '6 4' : undefined} />
+              <path d={path} fill="none" stroke={stroke} strokeWidth={isSelected ? "3" : isBoundaryEdge ? "2.5" : "2"} markerEnd={markerId} strokeLinejoin="round" strokeDasharray={isBoundaryEdge ? '5,3' : (hasWarning && !isSelected ? '6 4' : undefined)} />
                 {edge.condition && labelPos && (
                     <g transform={`translate(${labelPos.x}, ${labelPos.y})`}>
                         <rect x="-10" y="-10" width="20" height="20" fill="white" className="opacity-80" />
@@ -274,7 +276,7 @@ export const Canvas: React.FC<CanvasProps> = ({
         )}
 
         {nodes.map((node) => {
-          const isTask = node.type === 'user-task' || node.type === 'service-task' || node.type === 'api-task' || node.type === 'call-activity';
+          const isTask = node.type === 'user-task' || node.type === 'service-task' || node.type === 'api-task' || node.type === 'code-task' || node.type === 'call-activity';
           const isBoxMessageCatch = node.type === 'message-intermediate-catch';
           const isMessageEvent = ['message-start', 'message-intermediate-catch', 'message-intermediate-throw'].includes(node.type);
           const isSelected = selectedNodeUids.includes(node.uid);
@@ -321,28 +323,29 @@ export const Canvas: React.FC<CanvasProps> = ({
             )}
             {node.type === 'error-boundary' && (
               <g>
-                <circle r="15" filter="url(#shadow)" className="fill-white stroke-slate-500 stroke-[1px] stroke-dasharray-[2,2]" />
-                <Zap x="-6" y="-6" className="w-3 h-3 text-red-500 fill-current pointer-events-none" />
+                <circle r="15" filter="url(#shadow)" className="fill-white stroke-red-600 stroke-[1.5px]" strokeDasharray="3,2" />
+                <Zap x="-7" y="-7" className="w-3.5 h-3.5 text-red-600 fill-current pointer-events-none" />
               </g>
             )}
             {node.type === 'message-boundary' && (
               <g>
-                <circle r="15" filter="url(#shadow)" className="fill-white stroke-slate-500 stroke-[1px] stroke-dasharray-[2,2]" />
-                <Mail x="-6" y="-6" className="w-3 h-3 text-blue-500 pointer-events-none" />
+                <circle r="15" filter="url(#shadow)" className="fill-white stroke-blue-500 stroke-[1.5px]" strokeDasharray="3,2" />
+                <Mail x="-7" y="-7" className="w-3.5 h-3.5 text-blue-500 pointer-events-none" />
               </g>
             )}
             {node.type === 'timer-boundary' && (
               <g>
-                <circle r="15" filter="url(#shadow)" className="fill-white stroke-slate-500 stroke-[1px] stroke-dasharray-[2,2]" />
-                <Clock3 x="-6" y="-6" className="w-3 h-3 text-amber-600 pointer-events-none" />
+                <circle r="15" filter="url(#shadow)" className="fill-white stroke-amber-600 stroke-[1.5px]" strokeDasharray="3,2" />
+                <Clock3 x="-7" y="-7" className="w-3.5 h-3.5 text-amber-600 pointer-events-none" />
               </g>
             )}
             {node.type === 'end' && <circle r="20" filter="url(#shadow)" className="fill-white stroke-red-500 stroke-[4px]" />}
             {['gateway', 'parallel-gateway'].includes(node.type) && <rect width="28" height="28" transform="rotate(45)" x="-14" y="-14" filter="url(#shadow)" className="fill-white stroke-orange-500 stroke-[2px]" />}
-            {isTask && <rect x={-node.width/2} y={-node.height/2} width={node.width} height={node.height} rx="6" filter="url(#shadow)" className={`fill-white stroke-[2px] ${node.type === 'user-task' ? 'stroke-blue-600' : (node.type === 'api-task' ? 'stroke-purple-600' : (node.type === 'call-activity' ? 'stroke-cyan-600' : 'stroke-amber-600'))}`} />}
+            {isTask && <rect x={-node.width/2} y={-node.height/2} width={node.width} height={node.height} rx="6" filter="url(#shadow)" className={`fill-white stroke-[2px] ${node.type === 'user-task' ? 'stroke-blue-600' : (node.type === 'api-task' ? 'stroke-purple-600' : (node.type === 'code-task' ? 'stroke-indigo-600' : (node.type === 'call-activity' ? 'stroke-cyan-600' : 'stroke-amber-600')))}`} />}
             {node.type === 'user-task' && <User x={-node.width/2+8} y={-node.height/2+8} className="w-4 h-4 text-blue-600 pointer-events-none opacity-80" />}
             {node.type === 'api-task' && <Settings x={-node.width/2+8} y={-node.height/2+8} className="w-4 h-4 text-purple-600 pointer-events-none opacity-80" />}
             {node.type === 'service-task' && <Zap x={-node.width/2+8} y={-node.height/2+8} className="w-4 h-4 text-amber-600 pointer-events-none opacity-80" />}
+            {node.type === 'code-task' && <Code x={-node.width/2+8} y={-node.height/2+8} className="w-4 h-4 text-indigo-600 pointer-events-none opacity-80" />}
             {node.type === 'call-activity' && <Layers x={-node.width/2+8} y={-node.height/2+8} className="w-4 h-4 text-cyan-600 pointer-events-none opacity-80" />}
             {node.type === 'gateway' && <GitFork x="-8" y="-8" className="w-4 h-4 text-orange-600 pointer-events-none opacity-80" />}
             {node.type === 'parallel-gateway' && <Plus x="-8" y="-8" className="w-4 h-4 text-orange-600 pointer-events-none opacity-80" />}

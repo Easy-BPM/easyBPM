@@ -27,3 +27,4 @@ enum class NodeType(val typeName: String) {
             ?: throw IllegalArgumentException("Invalid node type '$s'")
     }
 }
+

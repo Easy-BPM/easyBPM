@@ -46,6 +46,7 @@ class ProcessServiceTest : FunSpec({
     val mockMessageSubscriptionService = mockk<MessageSubscriptionService>()
     val mockMetricsService = mockk<MetricsService>(relaxed = true)
     val mockWorkerRequestRepository = mockk<WorkerRequestRepository>()
+    val mockCallActivityHandler = mockk<CallActivityHandler>()
 
     val processService = ProcessService(
         mockProcessDefinitionRepository,
@@ -60,7 +61,8 @@ class ProcessServiceTest : FunSpec({
         mockGatewayService,
         mockMessageSubscriptionService,
         mockMetricsService,
-        mockWorkerRequestRepository
+        mockWorkerRequestRepository,
+        mockCallActivityHandler
     )
 
     val objectMapper = ObjectMapper()
@@ -478,3 +480,4 @@ class ProcessServiceTest : FunSpec({
         }
     }
 })
+

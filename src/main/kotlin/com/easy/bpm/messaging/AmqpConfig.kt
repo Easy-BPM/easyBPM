@@ -77,3 +77,4 @@ class AmqpConfig {
     @Bean
     fun messageConverter() = Jackson2JsonMessageConverter()
 }
+

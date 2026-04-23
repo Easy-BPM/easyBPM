@@ -1,0 +1,54 @@
+﻿> Task :checkKotlinGradlePluginConfigurationErrors
+> Task :compileKotlin UP-TO-DATE
+> Task :compileJava NO-SOURCE
+> Task :processResources UP-TO-DATE
+> Task :classes UP-TO-DATE
+> Task :jar UP-TO-DATE
+> Task :compileTestKotlin UP-TO-DATE
+> Task :compileTestJava NO-SOURCE
+> Task :processTestResources UP-TO-DATE
+> Task :testClasses UP-TO-DATE
+.\gradlew : OpenJDK 64-Bit Server VM warning: Sharing is only supported for 
+boot loader classes because bootstrap classpath has been appended
+No linha:1 caractere:57
++ ... alho\bpm' ; .\gradlew test --tests "com.easy.bpm.integration.CallActi ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (OpenJDK 64-Bit ...s been appended 
+   :String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+> Task :test
+
+CallActivityIntegrationTest > simple call activity execution - parent enters call activity and suspends() FAILED
+    org.junit.jupiter.api.extension.ParameterResolutionException at Optional.java:364
+        Caused by: java.lang.IllegalStateException at DefaultCacheAwareContextLoaderDelegate.java:180
+            Caused by: org.springframework.beans.factory.BeanCreationException at AbstractAutowireCapableBeanFactory.java:1826
+                Caused by: jakarta.persistence.PersistenceException at AbstractEntityManagerFactoryBean.java:431
+                    Caused by: org.hibernate.MappingException at StandardTableExporter.java:123
+                        Caused by: org.hibernate.MappingException at Column.java:317
+
+1 test completed, 1 failed
+
+> Task :test FAILED
+
+[Incubating] Problems report is available at: file:///C:/Users/Admin/OneDrive/Ambiente%20de%20Trabalho/bpm/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':test'.
+> There were failing tests. See the report at: file:///C:/Users/Admin/OneDrive/
+Ambiente%20de%20Trabalho/bpm/build/reports/tests/test/index.html
+
+* Try:
+> Run with --scan to get full insights.
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/8.14.3/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD FAILED in 16s
+7 actionable tasks: 2 executed, 5 up-to-date

@@ -312,6 +312,31 @@ class CallActivityHandler(
     }
 
     /**
+     * Reapply input variable mappings for all children of the given parent instance.
+     * This is useful when variables are assigned to the parent after the child was created.
+     * 
+     * @param parentInstance The parent process instance
+     */
+    @Transactional
+    fun reapplyInputMappingsForChildren(parentInstance: ProcessInstance) {
+        try {
+            val mappings = callActivityMappingRepository.findByParentInstanceId(parentInstance.id)
+            logger.debug("Reapplying input mappings for {} children of parent {}", mappings.size, parentInstance.id)
+            
+            for (mapping in mappings) {
+                val childInstance = processInstanceRepository.findById(mapping.childInstanceId)
+                    .orElse(null) ?: continue
+                    
+                applyInputVariableMapping(parentInstance, childInstance, mapping)
+                logger.debug("Reapplied input mappings for child {} of parent {}", childInstance.id, parentInstance.id)
+            }
+        } catch (ex: Exception) {
+            logger.error("Error reapplying input mappings", ex)
+            throw ex
+        }
+    }
+
+    /**
      * Find an ErrorBoundaryEvent node attached to the given node.
      */
     private fun findAttachedErrorBoundary(node: JsonNode, definition: JsonNode): JsonNode? {
@@ -461,6 +486,9 @@ class CallActivityHandler(
     }
 
     /**
+     * Start execution of the child process by finding and executing its start nodes.
+     */
+    /**
      * Detect circular references (A → B → A) to prevent infinite loops.
      */
     private fun detectCircularReference(
@@ -487,7 +515,15 @@ class CallActivityHandler(
      * TODO: Extract to shared utility
      */
     private fun getNextNodes(node: JsonNode, definition: JsonNode): List<JsonNode> {
-        val edges = definition.get("edges")
+        // Try both "edges" (from modeler) and "flows" (from direct JSON)
+        var edges = definition.get("edges")
+        if (edges == null || edges.isMissingNode) {
+            edges = definition.get("flows")
+        }
+        if (edges == null || edges.isMissingNode) {
+            return emptyList()
+        }
+        
         val nodeId = node.get("id").asText()
 
         return edges.filter { edge ->
@@ -500,3 +536,4 @@ class CallActivityHandler(
         }
     }
 }
+

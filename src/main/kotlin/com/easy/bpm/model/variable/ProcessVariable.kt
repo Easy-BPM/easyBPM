@@ -2,8 +2,9 @@ package com.easy.bpm.model.variable
 
 import com.fasterxml.jackson.databind.JsonNode
 import jakarta.persistence.*
-import org.hibernate.annotations.JdbcTypeCode
-import org.hibernate.type.SqlTypes
+import com.vladmihalcea.hibernate.type.json.JsonBinaryType
+import org.hibernate.annotations.Type
+import java.time.LocalDateTime
 
 @Entity
 data class ProcessVariable(
@@ -14,7 +15,11 @@ data class ProcessVariable(
 
     val name: String,
 
-    @JdbcTypeCode(SqlTypes.JSON)
+    @Type(JsonBinaryType::class)
     @Column(columnDefinition = "jsonb")
-    var value: JsonNode
+    var value: JsonNode,
+
+    var createdAt: LocalDateTime = LocalDateTime.now(),
+
+    var updatedAt: LocalDateTime = LocalDateTime.now()
 )

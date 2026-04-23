@@ -3,6 +3,7 @@ package com.easy.bpm.model.process
 import jakarta.persistence.*
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.node.JsonNodeFactory
+import com.vladmihalcea.hibernate.type.json.JsonBinaryType
 import org.hibernate.annotations.Type
 import java.time.LocalDateTime
 
@@ -56,7 +57,8 @@ data class CallActivityMapping(
      * Example: {"orderId": "order_id", "customerId": "customer_id"}
      * Applied when child instance starts.
      */
-    @Column(columnDefinition = "jsonb", nullable = false)
+    @Type(JsonBinaryType::class)
+    @Column(nullable = false, columnDefinition = "jsonb")
     val inputMappings: String = "{}",  // JSON string to avoid Jackson complexity in entity
 
     /**
@@ -64,7 +66,8 @@ data class CallActivityMapping(
      * Example: {"status": "paymentStatus", "transactionId": "tx_id"}
      * Applied when child instance completes.
      */
-    @Column(columnDefinition = "jsonb", nullable = false)
+    @Type(JsonBinaryType::class)
+    @Column(nullable = false, columnDefinition = "jsonb")
     val outputMappings: String = "{}",  // JSON string
 
     /**
@@ -124,3 +127,4 @@ data class CallActivityMapping(
         }
     }
 }
+
