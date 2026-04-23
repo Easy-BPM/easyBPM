@@ -487,7 +487,11 @@ class CallActivityHandler(
      * TODO: Extract to shared utility
      */
     private fun getNextNodes(node: JsonNode, definition: JsonNode): List<JsonNode> {
-        val edges = definition.get("edges")
+        // Try both "edges" (from modeler) and "flows" (from direct JSON)
+        var edges = definition.get("edges")
+        if (edges == null || edges.isMissingNode) {
+            edges = definition.get("flows")
+        }
         if (edges == null || edges.isMissingNode) {
             return emptyList()
         }
