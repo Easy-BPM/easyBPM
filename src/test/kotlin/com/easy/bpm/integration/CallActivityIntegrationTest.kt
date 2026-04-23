@@ -16,7 +16,6 @@ import org.junit.jupiter.api.BeforeEach
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
-import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase.Replace
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.mock.mockito.MockBean
 import org.springframework.test.context.ActiveProfiles
@@ -33,6 +32,7 @@ import org.springframework.transaction.annotation.Transactional
  * - Error propagation from child to parent
  * - Error boundary handling on call activity
  */
+@AutoConfigureTestDatabase
 @AutoConfigureMockMvc
 @Transactional
 class CallActivityIntegrationTest(
