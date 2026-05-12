@@ -10,6 +10,7 @@ import com.easy.bpm.model.variable.ProcessVariable
 import com.easy.bpm.model.variable.TaskVariable
 import com.easy.bpm.repository.process.ProcessDefinitionRepository
 import com.easy.bpm.repository.process.ProcessInstanceRepository
+import com.easy.bpm.repository.process.CallActivityMappingRepository
 import com.easy.bpm.repository.task.TaskRepository
 import com.easy.bpm.repository.variable.ProcessVariableRepository
 import com.easy.bpm.repository.variable.TaskVariableRepository
@@ -41,7 +42,8 @@ class ProcessService(
     private val messageSubscriptionService: MessageSubscriptionService,
     private val metricsService: MetricsService,
     private val workerRequestRepository: WorkerRequestRepository,
-    private val callActivityHandler: CallActivityHandler
+    private val callActivityHandler: CallActivityHandler,
+    private val callActivityMappingRepository: CallActivityMappingRepository
 ) {
 
     companion object {
@@ -167,6 +169,22 @@ class ProcessService(
 
     fun getProcessInstanceById(id: Long): ProcessInstance? =
         processInstanceRepository.findById(id).orElse(null)
+
+    fun getChildProcessInstances(parentInstanceId: Long): List<ProcessInstance> {
+        processInstanceRepository.findById(parentInstanceId)
+            .orElseThrow { IllegalArgumentException("Process instance not found") }
+
+        return processInstanceRepository.findByParentInstanceId(parentInstanceId)
+    }
+
+    fun getParentProcessInstance(childInstanceId: Long): ProcessInstance? {
+        val child = processInstanceRepository.findById(childInstanceId).orElse(null) ?: return null
+        val parentId = child.parentInstanceId ?: return null
+        return processInstanceRepository.findById(parentId).orElse(null)
+    }
+
+    fun getCallActivityMapping(parentInstanceId: Long, childInstanceId: Long) =
+        callActivityMappingRepository.findByParentInstanceIdAndChildInstanceId(parentInstanceId, childInstanceId)
 
     fun getProcessVariables(processInstanceId: Long): List<ProcessVariable> {
         processInstanceRepository.findById(processInstanceId)

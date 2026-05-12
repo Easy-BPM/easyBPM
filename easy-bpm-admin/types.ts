@@ -95,3 +95,40 @@ export interface MoveNodePayload {
 export interface VariableAssignmentPayload {
   variables: Record<string, unknown>;
 }
+
+export interface AuthLoginResponse {
+  token: string;
+  tokenType: string;
+  username: string;
+  groups: string[];
+  permissions: string[];
+}
+
+export interface AuthCurrentUser {
+  username: string;
+  groups: string[];
+  permissions: string[];
+}
+
+export interface AuthSession {
+  token: string;
+  username: string;
+  groups: string[];
+  permissions: string[];
+}
+
+export interface AdminUser {
+  id: number;
+  username: string;
+  enabled: boolean;
+  groups: string[];
+  permissions: string[];
+}
+
+export interface AdminGroup {
+  id: number;
+  code: string;
+  name: string;
+  permissions: string[];
+}
+

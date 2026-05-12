@@ -1,4 +1,9 @@
 import {
+  AdminGroup,
+  AdminUser,
+  AuthCurrentUser,
+  AuthLoginResponse,
+  AuthSession,
   CallActivityMapping,
   MoveNodePayload,
   Page,
@@ -10,6 +15,7 @@ import {
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? 'http://localhost:8080';
 const USE_MOCK = false;
+const AUTH_STORAGE_KEY = 'easybpm_admin_auth';
 
 const MOCK_INSTANCES: ProcessInstance[] = [
   {
@@ -70,7 +76,63 @@ const MOCK_VARIABLES: Record<number, ProcessVariable[]> = {
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+const readSession = (): AuthSession | null => {
+  const raw = localStorage.getItem(AUTH_STORAGE_KEY);
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as AuthSession;
+  } catch {
+    localStorage.removeItem(AUTH_STORAGE_KEY);
+    return null;
+  }
+};
+
+const authHeaders = (): HeadersInit => {
+  const session = readSession();
+  return session?.token ? { Authorization: `Bearer ${session.token}` } : {};
+};
+
+const fetchWithAuth = async (url: string, init?: RequestInit): Promise<Response> => {
+  return fetch(url, {
+    ...init,
+    headers: {
+      ...(init?.headers ?? {}),
+      ...authHeaders()
+    }
+  });
+};
+
 export const adminService = {
+  getSession: (): AuthSession | null => readSession(),
+
+  clearSession: (): void => {
+    localStorage.removeItem(AUTH_STORAGE_KEY);
+  },
+
+  login: async (username: string, password: string): Promise<AuthSession> => {
+    const res = await fetch(`${API_BASE_URL}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+    if (!res.ok) throw new Error('Invalid username or password');
+    const payload = (await res.json()) as AuthLoginResponse;
+    const session: AuthSession = {
+      token: payload.token,
+      username: payload.username,
+      groups: payload.groups,
+      permissions: payload.permissions
+    };
+    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(session));
+    return session;
+  },
+
+  me: async (): Promise<AuthCurrentUser> => {
+    const res = await fetchWithAuth(`${API_BASE_URL}/auth/me`);
+    if (!res.ok) throw new Error('Session expired');
+    return res.json();
+  },
+
   getProcessInstances: async (page = 0, size = 20): Promise<Page<ProcessInstance>> => {
     if (USE_MOCK) {
       await delay(350);
@@ -84,7 +146,7 @@ export const adminService = {
     }
 
     const params = new URLSearchParams({ page: String(page), size: String(size) });
-    const res = await fetch(`${API_BASE_URL}/processes/instances?${params.toString()}`);
+    const res = await fetchWithAuth(`${API_BASE_URL}/processes/instances?${params.toString()}`);
     if (!res.ok) throw new Error(`Failed to fetch instances: ${res.statusText}`);
     return res.json();
   },
@@ -95,7 +157,7 @@ export const adminService = {
       return MOCK_INSTANCES.find((i) => i.id === instanceId) ?? null;
     }
 
-    const res = await fetch(`${API_BASE_URL}/processes/instances/${instanceId}`);
+    const res = await fetchWithAuth(`${API_BASE_URL}/processes/instances/${instanceId}`);
     if (res.status === 404) return null;
     if (!res.ok) throw new Error(`Failed to fetch instance ${instanceId}: ${res.statusText}`);
     return res.json();
@@ -114,7 +176,7 @@ export const adminService = {
     }
 
     const params = new URLSearchParams({ page: String(page), size: String(size) });
-    const res = await fetch(`${API_BASE_URL}/processes?${params.toString()}`);
+    const res = await fetchWithAuth(`${API_BASE_URL}/processes?${params.toString()}`);
     if (!res.ok) throw new Error(`Failed to fetch definitions: ${res.statusText}`);
     return res.json();
   },
@@ -125,7 +187,7 @@ export const adminService = {
       return MOCK_DEFINITIONS.find((d) => d.id === definitionId) ?? null;
     }
 
-    const res = await fetch(`${API_BASE_URL}/processes/definitions/${definitionId}`);
+    const res = await fetchWithAuth(`${API_BASE_URL}/processes/definitions/${definitionId}`);
     if (res.status === 404) return null;
     if (!res.ok) throw new Error(`Failed to fetch definition ${definitionId}: ${res.statusText}`);
     return res.json();
@@ -137,7 +199,7 @@ export const adminService = {
       return MOCK_VARIABLES[instanceId] ?? [];
     }
 
-    const res = await fetch(`${API_BASE_URL}/processes/instances/${instanceId}/variables`);
+    const res = await fetchWithAuth(`${API_BASE_URL}/processes/instances/${instanceId}/variables`);
     if (!res.ok) throw new Error(`Failed to fetch variables: ${res.statusText}`);
     return res.json();
   },
@@ -151,7 +213,7 @@ export const adminService = {
       return;
     }
 
-    const res = await fetch(`${API_BASE_URL}/processes/instances/${instanceId}/variables`, {
+    const res = await fetchWithAuth(`${API_BASE_URL}/processes/instances/${instanceId}/variables`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -171,7 +233,7 @@ export const adminService = {
       return;
     }
 
-    const res = await fetch(`${API_BASE_URL}/processes/instances/${instanceId}/move-node`, {
+    const res = await fetchWithAuth(`${API_BASE_URL}/processes/instances/${instanceId}/move-node`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -191,7 +253,7 @@ export const adminService = {
       return;
     }
 
-    const res = await fetch(`${API_BASE_URL}/processes/instances/${instanceId}/stop`, {
+    const res = await fetchWithAuth(`${API_BASE_URL}/processes/instances/${instanceId}/stop`, {
       method: 'POST'
     });
     if (!res.ok) throw new Error(`Failed to stop instance: ${res.statusText}`);
@@ -208,7 +270,7 @@ export const adminService = {
       return;
     }
 
-    const res = await fetch(`${API_BASE_URL}/processes/instances/${instanceId}`, {
+    const res = await fetchWithAuth(`${API_BASE_URL}/processes/instances/${instanceId}`, {
       method: 'DELETE'
     });
     if (!res.ok) throw new Error(`Failed to delete instance: ${res.statusText}`);
@@ -220,7 +282,7 @@ export const adminService = {
       return MOCK_INSTANCES.filter((i) => i.parentInstanceId === parentInstanceId) ?? [];
     }
 
-    const res = await fetch(`${API_BASE_URL}/processes/instances/${parentInstanceId}/children`);
+    const res = await fetchWithAuth(`${API_BASE_URL}/processes/instances/${parentInstanceId}/children`);
     if (!res.ok) throw new Error(`Failed to fetch child instances: ${res.statusText}`);
     return res.json();
   },
@@ -233,7 +295,7 @@ export const adminService = {
       return MOCK_INSTANCES.find((i) => i.id === child.parentInstanceId) ?? null;
     }
 
-    const res = await fetch(`${API_BASE_URL}/processes/instances/${childInstanceId}/parent`);
+    const res = await fetchWithAuth(`${API_BASE_URL}/processes/instances/${childInstanceId}/parent`);
     if (res.status === 404) return null;
     if (!res.ok) throw new Error(`Failed to fetch parent instance: ${res.statusText}`);
     return res.json();
@@ -245,9 +307,106 @@ export const adminService = {
       return null;
     }
 
-    const res = await fetch(`${API_BASE_URL}/processes/instances/${parentInstanceId}/children/${childInstanceId}/mapping`);
+    const res = await fetchWithAuth(`${API_BASE_URL}/processes/instances/${parentInstanceId}/children/${childInstanceId}/mapping`);
     if (res.status === 404) return null;
     if (!res.ok) throw new Error(`Failed to fetch call activity mapping: ${res.statusText}`);
+    return res.json();
+  },
+
+  getUsers: async (): Promise<AdminUser[]> => {
+    const res = await fetchWithAuth(`${API_BASE_URL}/admin/users`);
+    if (!res.ok) throw new Error(`Failed to fetch users: ${res.statusText}`);
+    return res.json();
+  },
+
+  createUser: async (payload: {
+    username: string;
+    password: string;
+    enabled: boolean;
+    groupIds: number[];
+    permissionCodes: string[];
+  }): Promise<AdminUser> => {
+    const res = await fetchWithAuth(`${API_BASE_URL}/admin/users`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) throw new Error(`Failed to create user: ${res.statusText}`);
+    return res.json();
+  },
+
+  updateUser: async (id: number, payload: {
+    enabled: boolean;
+    groupIds: number[];
+    permissionCodes: string[];
+  }): Promise<AdminUser> => {
+    const res = await fetchWithAuth(`${API_BASE_URL}/admin/users/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) throw new Error(`Failed to update user: ${res.statusText}`);
+    return res.json();
+  },
+
+  resetUserPassword: async (id: number, password: string): Promise<void> => {
+    const res = await fetchWithAuth(`${API_BASE_URL}/admin/users/${id}/password`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password })
+    });
+    if (!res.ok) throw new Error(`Failed to reset password: ${res.statusText}`);
+  },
+
+  deleteUser: async (id: number): Promise<void> => {
+    const res = await fetchWithAuth(`${API_BASE_URL}/admin/users/${id}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error(`Failed to delete user: ${res.statusText}`);
+  },
+
+  getGroups: async (): Promise<AdminGroup[]> => {
+    const res = await fetchWithAuth(`${API_BASE_URL}/admin/groups`);
+    if (!res.ok) throw new Error(`Failed to fetch groups: ${res.statusText}`);
+    return res.json();
+  },
+
+  createGroup: async (payload: { code: string; name: string; permissionCodes: string[] }): Promise<AdminGroup> => {
+    const res = await fetchWithAuth(`${API_BASE_URL}/admin/groups`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) throw new Error(`Failed to create group: ${res.statusText}`);
+    return res.json();
+  },
+
+  updateGroup: async (id: number, payload: { name: string; permissionCodes: string[] }): Promise<AdminGroup> => {
+    const res = await fetchWithAuth(`${API_BASE_URL}/admin/groups/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) throw new Error(`Failed to update group: ${res.statusText}`);
+    return res.json();
+  },
+
+  deleteGroup: async (id: number): Promise<void> => {
+    const res = await fetchWithAuth(`${API_BASE_URL}/admin/groups/${id}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error(`Failed to delete group: ${res.statusText}`);
+  },
+
+  getGroupUsers: async (groupId: number): Promise<AdminUser[]> => {
+    const res = await fetchWithAuth(`${API_BASE_URL}/admin/groups/${groupId}/users`);
+    if (!res.ok) throw new Error(`Failed to fetch group users: ${res.statusText}`);
+    return res.json();
+  },
+
+  updateGroupUsers: async (groupId: number, userIds: number[]): Promise<AdminUser[]> => {
+    const res = await fetchWithAuth(`${API_BASE_URL}/admin/groups/${groupId}/users`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userIds })
+    });
+    if (!res.ok) throw new Error(`Failed to update group users: ${res.statusText}`);
     return res.json();
   }
 };

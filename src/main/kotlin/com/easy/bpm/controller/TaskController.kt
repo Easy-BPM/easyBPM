@@ -8,9 +8,12 @@ import io.swagger.v3.oas.annotations.media.ExampleObject
 import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
+import com.easy.bpm.security.AuthenticatedUser
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.http.ResponseEntity
+import org.springframework.security.access.AccessDeniedException
+import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.*
 
 @RestController
@@ -22,16 +25,35 @@ class TaskController(
 
     @GetMapping
     @Operation(summary = "Get all tasks", description = "Retrieve all tasks with pagination")
-    fun getTasks(pageable: Pageable): Page<TaskResponseDto> {
-        return taskService.getTaskResponses(pageable)
+    fun getTasks(
+        pageable: Pageable,
+        @AuthenticationPrincipal principal: AuthenticatedUser? = null
+    ): Page<TaskResponseDto> {
+        return if (principal == null) {
+            taskService.getTaskResponses(pageable)
+        } else {
+            taskService.getVisibleTaskResponses(principal.username, principal.groups, pageable)
+        }
     }
 
     @GetMapping("/{id}")
     @Operation(summary = "Get task by ID", description = "Retrieve a specific task by its ID")
-    fun getTaskById(@PathVariable id: Long): ResponseEntity<TaskResponseDto> {
-        return taskService.getTaskResponseById(id)
-            ?.let { ResponseEntity.ok(it) }
-            ?: ResponseEntity.notFound().build()
+    fun getTaskById(
+        @PathVariable id: Long,
+        @AuthenticationPrincipal principal: AuthenticatedUser? = null
+    ): ResponseEntity<TaskResponseDto> {
+        if (principal == null) {
+            return taskService.getTaskResponseById(id)
+                ?.let { ResponseEntity.ok(it) }
+                ?: ResponseEntity.notFound().build()
+        }
+        return try {
+            taskService.getVisibleTaskResponseById(id, principal.username, principal.groups)
+                ?.let { ResponseEntity.ok(it) }
+                ?: ResponseEntity.notFound().build()
+        } catch (_: AccessDeniedException) {
+            ResponseEntity.status(403).build()
+        }
     }
 
     @GetMapping("/search")
@@ -39,9 +61,34 @@ class TaskController(
     fun searchTasks(
         @RequestParam(required = false) assignee: String?,
         @RequestParam(required = false) status: TaskStatus?,
-        pageable: Pageable
+        pageable: Pageable,
+        @AuthenticationPrincipal principal: AuthenticatedUser? = null
     ): Page<TaskResponseDto> {
-        return taskService.searchTaskResponses(assignee, status, pageable)
+        return if (principal == null) {
+            taskService.searchTaskResponses(assignee, status, pageable)
+        } else {
+            taskService.searchVisibleTaskResponses(principal.username, principal.groups, assignee, status, pageable)
+        }
+    }
+
+    @PostMapping("/{id}/claim")
+    @Operation(summary = "Claim a task", description = "Claim a shared/group task for the current authenticated user")
+    fun claimTask(
+        @PathVariable id: Long,
+        @AuthenticationPrincipal principal: AuthenticatedUser? = null
+    ): ResponseEntity<TaskResponseDto> {
+        if (principal == null) {
+            return ResponseEntity.status(401).build()
+        }
+        return try {
+            ResponseEntity.ok(taskService.claimTask(id, principal.username, principal.groups))
+        } catch (_: AccessDeniedException) {
+            ResponseEntity.status(403).build()
+        } catch (ex: IllegalArgumentException) {
+            ResponseEntity.badRequest().build()
+        } catch (ex: IllegalStateException) {
+            ResponseEntity.status(409).build()
+        }
     }
 
     @PostMapping("/{id}/complete")
@@ -74,9 +121,10 @@ class TaskController(
                 )
             ]
         )
-        @RequestBody body: Map<String, Any> // Espera: { "assignee": "joao", "variables": { "aprovado": "true" } }
+        @RequestBody body: Map<String, Any>,
+        @AuthenticationPrincipal principal: AuthenticatedUser? = null
     ): ResponseEntity<String> {
-        val assignee = body["assignee"] as? String
+        val assignee = principal?.username ?: (body["assignee"] as? String)
             ?: return ResponseEntity.badRequest().body("Missing assignee")
 
         val vars = (body["variables"] as? Map<*, *>)?.mapNotNull {
@@ -86,8 +134,14 @@ class TaskController(
         }?.toMap() ?: emptyMap()
 
         return try {
-            taskService.completeTask(id, assignee, vars)
+            if (principal == null) {
+                taskService.completeTask(id, assignee, vars)
+            } else {
+                taskService.completeTask(id, assignee, principal.groups, vars)
+            }
             ResponseEntity.ok("Task completed successfully")
+        } catch (_: AccessDeniedException) {
+            ResponseEntity.status(403).body("Forbidden")
         } catch (ex: IllegalArgumentException) {
             ResponseEntity.badRequest().body(ex.message)
         } catch (ex: IllegalStateException) {

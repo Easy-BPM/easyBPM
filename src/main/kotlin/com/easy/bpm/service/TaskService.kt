@@ -17,9 +17,11 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import jakarta.transaction.Transactional
 import org.springframework.stereotype.Service
 import org.springframework.data.domain.Page
+import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Sort
+import org.springframework.security.access.AccessDeniedException
 import java.time.LocalDateTime
 import javax.script.ScriptEngineManager
 
@@ -57,9 +59,22 @@ class TaskService(
 
     @Transactional
     fun completeTask(taskId: Long, assignee: String, variables: Map<String, Any>) {
+        completeTask(taskId, assignee, emptySet(), variables)
+    }
+
+    @Transactional
+    fun completeTask(taskId: Long, assignee: String, groups: Set<String>, variables: Map<String, Any>) {
         val startTime = System.currentTimeMillis()
 
         val task = getActiveTask(taskId)
+        authorizeTaskInteraction(task, assignee, groups)
+        if (task.assignee == null) {
+            task.assignee = assignee
+            taskRepository.save(task)
+        }
+        if (task.assignee != assignee) {
+            throw IllegalStateException("Task is assigned to another user")
+        }
         val instance = getProcessInstance(task.processInstanceId)
 
         val definition = parseDefinition(instance.processDefinition.definitionJson)
@@ -163,12 +178,45 @@ class TaskService(
         return getTasks(pageable).map { toResponseDto(it) }
     }
 
+    fun getVisibleTaskResponses(username: String, groups: Set<String>, pageable: Pageable): Page<TaskResponseDto> {
+        val tasks = getTasks(pageable).content.filter { isTaskVisibleForUser(it, username, groups) }
+        return PageImpl(tasks.map { toResponseDto(it) }, pageable, tasks.size.toLong())
+    }
+
     fun getTaskResponseById(id: Long): TaskResponseDto? {
         return getTaskById(id)?.let { toResponseDto(it) }
     }
 
+    fun getVisibleTaskResponseById(id: Long, username: String, groups: Set<String>): TaskResponseDto? {
+        val task = getTaskById(id) ?: return null
+        if (!isTaskVisibleForUser(task, username, groups)) {
+            throw IllegalStateException("User is not allowed to view this task")
+        }
+        return toResponseDto(task)
+    }
+
     fun searchTaskResponses(assignee: String?, status: TaskStatus?, pageable: Pageable): Page<TaskResponseDto> {
         return searchTasks(assignee, status, pageable).map { toResponseDto(it) }
+    }
+
+    fun searchVisibleTaskResponses(username: String, groups: Set<String>, assignee: String?, status: TaskStatus?, pageable: Pageable): Page<TaskResponseDto> {
+        val tasks = searchTasks(assignee, status, pageable).content.filter { isTaskVisibleForUser(it, username, groups) }
+        return PageImpl(tasks.map { toResponseDto(it) }, pageable, tasks.size.toLong())
+    }
+
+    @Transactional
+    fun claimTask(taskId: Long, username: String, groups: Set<String>): TaskResponseDto {
+        val task = getActiveTask(taskId)
+        authorizeTaskInteraction(task, username, groups)
+
+        if (task.assignee == null) {
+            task.assignee = username
+            taskRepository.save(task)
+        } else if (task.assignee != username) {
+            throw IllegalStateException("Task already claimed by another user")
+        }
+
+        return toResponseDto(task)
     }
 
     /* =========================
@@ -213,12 +261,35 @@ class TaskService(
         node: JsonNode
     ) {
         val form = resolveUserTaskForm(node)
+        val config = node.get("config")
+        val assigneeRaw = config?.get("assignee")?.asText()?.trim().orEmpty()
+        val candidateUsers = assigneeRaw
+            .split(",")
+            .map { it.trim() }
+            .filter { it.isNotBlank() }
+            .toMutableSet()
+
+        val candidateGroups = config?.get("candidateGroups")
+            ?.asText()
+            ?.split(",")
+            ?.map { it.trim() }
+            ?.filter { it.isNotBlank() }
+            ?.toMutableSet()
+            ?: mutableSetOf()
+
+        val directAssignee = if (candidateUsers.size == 1) candidateUsers.first() else null
+        if (directAssignee != null) {
+            candidateUsers.clear()
+        }
 
         val task = taskRepository.save(
             Task(
                 processInstanceId = instance.id,
                 title = node.get("name").asText(),
                 nodeId = node.get("id").asText(),
+                assignee = directAssignee,
+                candidateUsers = candidateUsers,
+                candidateGroups = candidateGroups,
                 formId = form?.id
             )
         )
@@ -496,6 +567,8 @@ class TaskService(
             processInstanceId = task.processInstanceId,
             nodeId = task.nodeId,
             assignee = task.assignee,
+            candidateUsers = task.candidateUsers,
+            candidateGroups = task.candidateGroups,
             status = task.status,
             createdAt = task.createdAt,
             completedAt = task.completedAt,
@@ -629,6 +702,19 @@ class TaskService(
         }
 
         return task
+    }
+
+    private fun isTaskVisibleForUser(task: Task, username: String, groups: Set<String>): Boolean {
+        if (task.assignee != null) return task.assignee == username
+        val userEligible = task.candidateUsers.isEmpty() || task.candidateUsers.contains(username)
+        val groupEligible = task.candidateGroups.isEmpty() || task.candidateGroups.any { groups.contains(it) }
+        return userEligible && groupEligible
+    }
+
+    private fun authorizeTaskInteraction(task: Task, username: String, groups: Set<String>) {
+        if (!isTaskVisibleForUser(task, username, groups)) {
+            throw AccessDeniedException("User is not allowed to interact with this task")
+        }
     }
 
     private fun getProcessInstance(instanceId: Long): ProcessInstance =

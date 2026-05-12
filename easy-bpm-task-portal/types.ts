@@ -50,6 +50,8 @@ export interface Task {
   processInstanceId: number;
   nodeId: string;
   assignee: string | null;
+  candidateUsers?: string[];
+  candidateGroups?: string[];
   status: TaskStatus;
   createdAt: string; // ISO Date
   completedAt: string | null;
@@ -67,6 +69,21 @@ export interface Task {
 export interface CompleteTaskPayload {
   assignee: string;
   variables: Record<string, any>;
+}
+
+export interface AuthSession {
+  token: string;
+  username: string;
+  groups: string[];
+  permissions: string[];
+}
+
+export interface AuthLoginResponse {
+  token: string;
+  tokenType: string;
+  username: string;
+  groups: string[];
+  permissions: string[];
 }
 
 export interface Page<T> {

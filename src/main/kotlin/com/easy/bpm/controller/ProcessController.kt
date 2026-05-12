@@ -1,6 +1,7 @@
 package com.easy.bpm.controller
 
 import com.easy.bpm.controller.data.AssignProcessVariablesRequest
+import com.easy.bpm.controller.data.CallActivityMappingResponse
 import com.easy.bpm.controller.data.DeployProcessRequest
 import com.easy.bpm.controller.data.MoveNodeRequest
 import com.easy.bpm.model.process.ProcessDefinition
@@ -99,6 +100,46 @@ class ProcessController(
         return processService.getProcessInstanceById(id)
             ?.let { ResponseEntity.ok(it) }
             ?: ResponseEntity.notFound().build()
+    }
+
+    @GetMapping("/instances/{id}/children")
+    @Operation(summary = "Get child process instances", description = "Retrieve all subprocess instances spawned by the given parent instance")
+    fun getChildInstances(@PathVariable id: Long): ResponseEntity<List<ProcessInstance>> {
+        return try {
+            ResponseEntity.ok(processService.getChildProcessInstances(id))
+        } catch (ex: IllegalArgumentException) {
+            ResponseEntity.notFound().build()
+        }
+    }
+
+    @GetMapping("/instances/{id}/parent")
+    @Operation(summary = "Get parent process instance", description = "Retrieve the parent instance for a subprocess instance")
+    fun getParentInstance(@PathVariable id: Long): ResponseEntity<ProcessInstance> {
+        return processService.getParentProcessInstance(id)
+            ?.let { ResponseEntity.ok(it) }
+            ?: ResponseEntity.notFound().build()
+    }
+
+    @GetMapping("/instances/{parentId}/children/{childId}/mapping")
+    @Operation(summary = "Get call activity mapping", description = "Retrieve input/output variable mapping for a parent-child call activity relationship")
+    fun getCallActivityMapping(
+        @PathVariable parentId: Long,
+        @PathVariable childId: Long
+    ): ResponseEntity<CallActivityMappingResponse> {
+        val mapping = processService.getCallActivityMapping(parentId, childId)
+            ?: return ResponseEntity.notFound().build()
+
+        return ResponseEntity.ok(
+            CallActivityMappingResponse(
+                id = mapping.id,
+                parentInstanceId = mapping.parentInstanceId,
+                childInstanceId = mapping.childInstanceId,
+                callActivityNodeId = mapping.callActivityNodeId,
+                inputMappings = mapping.getInputMappingsAsMap(),
+                outputMappings = mapping.getOutputMappingsAsMap(),
+                propagateAllVariables = mapping.propagateAllVariables
+            )
+        )
     }
 
     @GetMapping("/instances/{id}/variables")

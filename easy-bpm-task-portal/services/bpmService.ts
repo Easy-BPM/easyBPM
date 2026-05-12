@@ -1,7 +1,8 @@
-import { Task, TaskStatus, ProcessDefinition, CompleteTaskPayload, Page, Form } from '../types';
+import { Task, TaskStatus, ProcessDefinition, CompleteTaskPayload, Page, Form, AuthLoginResponse, AuthSession } from '../types';
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080').replace(/\/$/, '');
 const USE_MOCK = false;
+const AUTH_STORAGE_KEY = 'easybpm_portal_auth';
 
 const MOCK_PROCESSES: ProcessDefinition[] = [
   { id: 'proc-1', key: 'hiring-process', name: 'Employee Hiring', description: 'Standard onboarding workflow for new hires', version: 1 },
@@ -92,29 +93,64 @@ const assertOk = async (response: Response, operation: string) => {
   throw new Error(`${operation} failed (${response.status}): ${body || response.statusText}`);
 };
 
+const getSession = (): AuthSession | null => {
+  const raw = localStorage.getItem(AUTH_STORAGE_KEY);
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as AuthSession;
+  } catch {
+    localStorage.removeItem(AUTH_STORAGE_KEY);
+    return null;
+  }
+};
+
+const authHeaders = (): HeadersInit => {
+  const session = getSession();
+  return session?.token ? { Authorization: `Bearer ${session.token}` } : {};
+};
+
+const fetchWithAuth = (url: string, init?: RequestInit) => fetch(url, {
+  ...init,
+  headers: {
+    ...(init?.headers ?? {}),
+    ...authHeaders()
+  }
+});
+
 export const bpmService = {
-  login: async (username: string): Promise<{ name: string; token: string }> => {
+  getSession: (): AuthSession | null => getSession(),
+
+  clearSession: (): void => {
+    localStorage.removeItem(AUTH_STORAGE_KEY);
+  },
+
+  login: async (username: string, password: string): Promise<AuthSession> => {
     if (USE_MOCK) {
       await delay(200);
-      return { name: username, token: `mock-jwt-token-${Date.now()}` };
+      return { username, token: `mock-jwt-token-${Date.now()}`, groups: ['ADMIN'], permissions: ['ACCESS_PROCESS_PORTAL'] };
     }
 
-    try {
-      const res = await fetch(`${API_BASE_URL}/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username })
-      });
+    const res = await fetch(`${API_BASE_URL}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+    await assertOk(res, 'Login');
+    const payload = await res.json() as AuthLoginResponse;
+    const session: AuthSession = {
+      token: payload.token,
+      username: payload.username,
+      groups: payload.groups,
+      permissions: payload.permissions
+    };
+    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(session));
+    return session;
+  },
 
-      if (!res.ok) {
-        // /login endpoint is still pending; fallback to local session login.
-        return { name: username, token: `local-session-${Date.now()}` };
-      }
-
-      return await res.json();
-    } catch {
-      return { name: username, token: `local-session-${Date.now()}` };
-    }
+  me: async (): Promise<{ username: string; groups: string[]; permissions: string[] }> => {
+    const response = await fetchWithAuth(`${API_BASE_URL}/auth/me`);
+    await assertOk(response, 'Get current user');
+    return response.json();
   },
 
   startProcess: async (processKey: string): Promise<any> => {
@@ -123,7 +159,7 @@ export const bpmService = {
       return { id: Math.floor(Math.random() * 1000), key: processKey };
     }
 
-    const res = await fetch(`${API_BASE_URL}/processes/${processKey}/start`, { method: 'POST' });
+    const res = await fetchWithAuth(`${API_BASE_URL}/processes/${processKey}/start`, { method: 'POST' });
     await assertOk(res, 'Start process');
     return res.json();
   },
@@ -141,7 +177,7 @@ export const bpmService = {
     }
 
     const params = new URLSearchParams({ page: String(page), size: String(size) });
-    const response = await fetch(`${API_BASE_URL}/processes?${params.toString()}`);
+    const response = await fetchWithAuth(`${API_BASE_URL}/processes?${params.toString()}`);
     await assertOk(response, 'Get processes');
     return response.json();
   },
@@ -156,7 +192,7 @@ export const bpmService = {
     const params = new URLSearchParams({ page: '0', size: '100' });
     if (assignee) params.append('assignee', assignee);
 
-    const response = await fetch(`${API_BASE_URL}/tasks/search?${params.toString()}`);
+    const response = await fetchWithAuth(`${API_BASE_URL}/tasks/search?${params.toString()}`);
     await assertOk(response, 'Get tasks');
     const taskPage: Page<Task> = await response.json();
     return taskPage.content;
@@ -170,7 +206,7 @@ export const bpmService = {
       return task;
     }
 
-    const response = await fetch(`${API_BASE_URL}/tasks/${id}`);
+    const response = await fetchWithAuth(`${API_BASE_URL}/tasks/${id}`);
     await assertOk(response, `Get task ${id}`);
     return response.json();
   },
@@ -183,7 +219,7 @@ export const bpmService = {
       return form;
     }
 
-    const response = await fetch(`${API_BASE_URL}/forms/${id}`);
+    const response = await fetchWithAuth(`${API_BASE_URL}/forms/${id}`);
     await assertOk(response, `Get form ${id}`);
     return response.json();
   },
@@ -200,12 +236,19 @@ export const bpmService = {
       return;
     }
 
-    const response = await fetch(`${API_BASE_URL}/tasks/${id}/complete`, {
+    const response = await fetchWithAuth(`${API_BASE_URL}/tasks/${id}/complete`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
 
     await assertOk(response, `Complete task ${id}`);
+  },
+
+  claimTask: async (id: number): Promise<void> => {
+    const response = await fetchWithAuth(`${API_BASE_URL}/tasks/${id}/claim`, {
+      method: 'POST'
+    });
+    await assertOk(response, `Claim task ${id}`);
   },
 };
