@@ -64,20 +64,23 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
     }
   };
 
-  const handleGlobalVarChange = (id: string, field: keyof ProcessVariable, value: string) => {
-    onUpdateVariables(processVariables.map(v => v.id === id ? { ...v, [field]: value } : v));
-  };
+   const handleGlobalVarChange = (id: string, field: keyof ProcessVariable, value: string) => {
+     onUpdateVariables(processVariables.map(v => v.id === id ? { ...v, [field]: typeof value === 'string' ? value : '' } : v));
+   };
 
-  const addGlobalVar = (name?: string) => {
-    const newVar: ProcessVariable = {
-      id: Math.random().toString(36).substr(2, 9),
-      name: name || `var_${processVariables.length + 1}`,
-      type: 'string',
-      defaultValue: ''
-    };
-    onUpdateVariables([...processVariables, newVar]);
-    return newVar;
-  };
+   const addGlobalVar = (name?: string) => {
+     const resolvedName = typeof name === 'string' && name.trim() !== ''
+       ? name
+       : `var_${processVariables.length + 1}`;
+     const newVar: ProcessVariable = {
+       id: Math.random().toString(36).substr(2, 9),
+       name: resolvedName,
+       type: 'string',
+       defaultValue: ''
+     };
+     onUpdateVariables([...processVariables, newVar]);
+     return newVar;
+   };
 
   const handleTaskVarChange = (
     uid: string, 
@@ -89,22 +92,22 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
     const node = nodes.find(n => n.uid === uid);
     if (!node) return;
 
-    const currentList = node.data[collection] || [];
-    const updatedList = currentList.map(v => {
-      if (v.id === varId) {
-        const updated = { ...v, [field]: value };
-        if (field === 'value' && updated.mappingType === 'variable') {
-           const match = processVariables.find(pv => pv.name === value);
-           if (match) updated.type = match.type;
-        }
-        if (field === 'mappingType') {
-           updated.value = '';
-        }
-        return updated;
-      }
-      return v;
-    });
-    onUpdateNode(uid, { [collection]: updatedList });
+   const currentList = node.data[collection] || [];
+     const updatedList = currentList.map(v => {
+       if (v.id === varId) {
+         const updated = { ...v, [field]: value };
+         if (field === 'value' && updated.mappingType === 'variable') {
+            const match = processVariables.find(pv => (pv.name || '') === value);
+            if (match) updated.type = match.type;
+         }
+         if (field === 'mappingType') {
+            updated.value = '';
+         }
+         return updated;
+       }
+       return v;
+     });
+     onUpdateNode(uid, { [collection]: updatedList });
   };
 
   const getTypeIcon = (type: string) => {
@@ -180,22 +183,22 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
           </div>
 
           <div className="relative">
-            {/* For Inputs: Source can be Global Var or Static. For Outputs: Target is ALWAYS Global Var */}
-            {isInput ? (
-              v.mappingType === 'variable' ? (
-                <select className={`${smallInputClassName} w-full`} value={v.value} onChange={e => handleTaskVarChange(nodeUid, collection, v.id, 'value', e.target.value)}>
-                  <option value="">Select process variable...</option>
-                  {processVariables.map(pv => (<option key={pv.id} value={pv.name}>{pv.name} ({pv.type})</option>))}
-                </select>
-              ) : (
-                <input className={`${smallInputClassName} w-full`} value={v.value} onChange={e => handleTaskVarChange(nodeUid, collection, v.id, 'value', e.target.value)} placeholder="Enter static value..." />
-              )
-            ) : (
-              <select className={`${smallInputClassName} w-full`} value={v.value} onChange={e => handleTaskVarChange(nodeUid, collection, v.id, 'value', e.target.value)}>
-                <option value="">Select target process variable...</option>
-                {processVariables.map(pv => (<option key={pv.id} value={pv.name}>{pv.name} ({pv.type})</option>))}
-              </select>
-            )}
+             {/* For Inputs: Source can be Global Var or Static. For Outputs: Target is ALWAYS Global Var */}
+             {isInput ? (
+               v.mappingType === 'variable' ? (
+                 <select className={`${smallInputClassName} w-full`} value={v.value} onChange={e => handleTaskVarChange(nodeUid, collection, v.id, 'value', e.target.value)}>
+                   <option value="">Select process variable...</option>
+                   {processVariables.map(pv => (<option key={pv.id} value={pv.name || ''}>{pv.name || ''} ({pv.type})</option>))}
+                 </select>
+               ) : (
+                 <input className={`${smallInputClassName} w-full`} value={v.value} onChange={e => handleTaskVarChange(nodeUid, collection, v.id, 'value', e.target.value)} placeholder="Enter static value..." />
+               )
+             ) : (
+               <select className={`${smallInputClassName} w-full`} value={v.value} onChange={e => handleTaskVarChange(nodeUid, collection, v.id, 'value', e.target.value)}>
+                 <option value="">Select target process variable...</option>
+                 {processVariables.map(pv => (<option key={pv.id} value={pv.name || ''}>{pv.name || ''} ({pv.type})</option>))}
+               </select>
+             )}
             {((isInput && v.mappingType === 'variable') || isOutput) && globalMatch && <div className="absolute right-2 top-1/2 -translate-y-1/2 text-blue-500 pointer-events-none" title="Type inherited from global"><Database className="w-3 h-3" /></div>}
           </div>
         </div>
@@ -316,16 +319,16 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
           </div>
 
           <div className="border-t border-slate-100 pt-6">
-            <div className="flex items-center justify-between mb-4"><label className="text-xs font-semibold text-slate-500 uppercase">Global Variables</label><button onClick={addGlobalVar} className="text-blue-600 hover:text-blue-700 transition-colors"><Plus className="w-4 h-4" /></button></div>
+            <div className="flex items-center justify-between mb-4"><label className="text-xs font-semibold text-slate-500 uppercase">Global Variables</label><button onClick={() => addGlobalVar()} className="text-blue-600 hover:text-blue-700 transition-colors"><Plus className="w-4 h-4" /></button></div>
             <div className="space-y-3">
-              {processVariables.map(v => {
-                const isDuplicate = validation.duplicateGlobalVars.includes(v.name);
-                return (
-                  <div key={v.id} className={`p-3 border rounded-lg space-y-2 transition-colors ${isDuplicate ? 'bg-red-50 border-red-300' : 'bg-slate-50 border-slate-200'}`}>
-                    <div className="flex gap-2">
-                      <input className={`flex-1 ${smallInputClassName} ${isDuplicate ? '!border-red-400' : ''}`} value={v.name} onChange={e => handleGlobalVarChange(v.id, 'name', e.target.value)} placeholder="Variable Name" />
-                      <button onClick={() => onUpdateVariables(processVariables.filter(pv => pv.id !== v.id))} className="text-red-400 hover:text-red-600 transition-colors"><Trash2 className="w-4 h-4" /></button>
-                    </div>
+                {processVariables.map(v => {
+                  const isDuplicate = validation.duplicateGlobalVars.includes(v.name || '');
+                  return (
+                    <div key={v.id} className={`p-3 border rounded-lg space-y-2 transition-colors ${isDuplicate ? 'bg-red-50 border-red-300' : 'bg-slate-50 border-slate-200'}`}>
+                      <div className="flex gap-2">
+                        <input className={`flex-1 ${smallInputClassName} ${isDuplicate ? '!border-red-400' : ''}`} value={v.name || ''} onChange={e => handleGlobalVarChange(v.id, 'name', e.target.value)} placeholder="Variable Name" />
+                        <button onClick={() => onUpdateVariables(processVariables.filter(pv => pv.id !== v.id))} className="text-red-400 hover:text-red-600 transition-colors"><Trash2 className="w-4 h-4" /></button>
+                      </div>
                     {isDuplicate && <p className="text-[10px] text-red-500 font-medium flex items-center gap-1"><AlertCircle className="w-3 h-3" /> Duplicate name</p>}
                     <div className="flex gap-2">
                       <select className={`${smallInputClassName} w-24`} value={v.type} onChange={e => handleGlobalVarChange(v.id, 'type', e.target.value as any)}>

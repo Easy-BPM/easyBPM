@@ -16,16 +16,46 @@ const END_TYPES: NodeType[] = ['end'];
 const TASK_TYPES: NodeType[] = ['user-task', 'service-task', 'api-task', 'code-task'];
 const FORM_KEY_PATTERN = /^[A-Za-z][A-Za-z0-9_-]*$/;
 
+// Helper to safely convert values to strings, preventing "[object Object]"
+const safeString = (value: any): string => {
+  if (typeof value === 'string') return value;
+  if (value === null || value === undefined) return '';
+  if (typeof value === 'object') return '';
+  return String(value);
+};
+
 const App: React.FC = () => {
-  const [nodes, setNodes] = useState<BpmnNode[]>([]);
-  const [edges, setEdges] = useState<BpmnEdge[]>([]);
-  const [variables, setVariables] = useState<ProcessVariable[]>([]);
-  const [processId, setProcessId] = useState<string>(`process_${Date.now()}`);
-  const [processName, setProcessName] = useState<string>('');
-  const [selectedNodeUids, setSelectedNodeUids] = useState<string[]>([]);
-  const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
-  const [currentView, setCurrentView] = useState<AppView>('bpmn');
-  const [isDeploying, setIsDeploying] = useState(false);
+   const [nodes, setNodes] = useState<BpmnNode[]>([]);
+   const [edges, setEdges] = useState<BpmnEdge[]>([]);
+   const [variablesRaw, setVariablesRaw] = useState<ProcessVariable[]>([]);
+   const [processId, setProcessId] = useState<string>(`process_${Date.now()}`);
+   const [processName, setProcessName] = useState<string>('');
+   const [selectedNodeUids, setSelectedNodeUids] = useState<string[]>([]);
+   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
+   const [currentView, setCurrentView] = useState<AppView>('bpmn');
+   const [isDeploying, setIsDeploying] = useState(false);
+
+   // Wrapper for setVariables that ALWAYS sanitizes before storing
+   const setVariables = (vars: ProcessVariable[] | ((prev: ProcessVariable[]) => ProcessVariable[])) => {
+     setVariablesRaw(prev => {
+       const newVars = typeof vars === 'function' ? vars(prev) : vars;
+       return newVars.map(v => ({
+         ...v,
+         name: typeof v.name === 'string' ? v.name : '',
+         defaultValue: typeof v.defaultValue === 'string' ? v.defaultValue : ''
+       }));
+     });
+   };
+
+   // Always-clean getter for variables
+   const variables = useMemo(() =>
+     variablesRaw.map(v => ({
+       ...v,
+       name: typeof v.name === 'string' ? v.name : '',
+       defaultValue: typeof v.defaultValue === 'string' ? v.defaultValue : ''
+     })),
+     [variablesRaw]
+   );
 
   // Validation Logic
   const validationState = useMemo<ValidationSummary>(() => {
@@ -60,46 +90,46 @@ const App: React.FC = () => {
     });
 
     nodes.filter(n => n.id.trim() === '').forEach(node => {
-      addIssue('error', 'All nodes must have a non-empty element ID.', { nodeUid: node.uid, nodeId: node.id });
-    });
+       addIssue('error', 'All nodes must have a non-empty element ID.', { nodeUid: node.uid, nodeId: node.id });
+     });
 
-    const globalVarNames = variables.map(v => v.name.trim()).filter(n => n !== '');
-    const duplicateGlobalVars = globalVarNames.filter((name, index) => globalVarNames.indexOf(name) !== index);
-    if (duplicateGlobalVars.length > 0) {
-      addIssue('error', `Duplicate global variables found: ${Array.from(new Set(duplicateGlobalVars)).join(', ')}`);
-    }
-    if (variables.some(v => v.name.trim() === '')) {
-      addIssue('error', 'Global variables cannot have empty names.');
-    }
-    
+      const globalVarNames = variables.map(v => safeString(v.name).trim()).filter(n => n !== '');
+      const duplicateGlobalVars = globalVarNames.filter((name, index) => globalVarNames.indexOf(name) !== index);
+      if (duplicateGlobalVars.length > 0) {
+        addIssue('error', `Duplicate global variables found: ${Array.from(new Set(duplicateGlobalVars)).join(', ')}`);
+      }
+      if (variables.some(v => safeString(v.name).trim() === '')) {
+        addIssue('error', 'Global variables cannot have empty names.');
+      }
+
     const processIdError = validateId(processId);
     if (processIdError) {
       addIssue('error', `Process ID error: ${processIdError}`);
     }
 
-    let hasTaskVarDuplicates = false;
-    nodes.forEach(node => {
-      if (node.data.inputVariables) {
-        const names = node.data.inputVariables.map(v => v.name.trim()).filter(n => n !== '');
-        if (new Set(names).size !== names.length) {
-          hasTaskVarDuplicates = true;
-          addIssue('error', `Task input variables have duplicate names in node ${node.id}.`, { nodeUid: node.uid, nodeId: node.id });
+     let hasTaskVarDuplicates = false;
+     nodes.forEach(node => {
+       if (node.data.inputVariables) {
+          const names = node.data.inputVariables.map(v => safeString(v.name).trim()).filter(n => n !== '');
+          if (new Set(names).size !== names.length) {
+            hasTaskVarDuplicates = true;
+            addIssue('error', `Task input variables have duplicate names in node ${node.id}.`, { nodeUid: node.uid, nodeId: node.id });
+          }
+          if (node.data.inputVariables.some(v => safeString(v.name).trim() === '')) {
+            addIssue('error', `Task input variables cannot have empty names in node ${node.id}.`, { nodeUid: node.uid, nodeId: node.id });
+          }
         }
-        if (node.data.inputVariables.some(v => v.name.trim() === '')) {
-          addIssue('error', `Task input variables cannot have empty names in node ${node.id}.`, { nodeUid: node.uid, nodeId: node.id });
-        }
-      }
-      if (node.data.outputVariables) {
-        const names = node.data.outputVariables.map(v => v.name.trim()).filter(n => n !== '');
-        if (new Set(names).size !== names.length) {
-          hasTaskVarDuplicates = true;
-          addIssue('error', `Task output variables have duplicate names in node ${node.id}.`, { nodeUid: node.uid, nodeId: node.id });
-        }
-        if (node.data.outputVariables.some(v => v.name.trim() === '')) {
-          addIssue('error', `Task output variables cannot have empty names in node ${node.id}.`, { nodeUid: node.uid, nodeId: node.id });
-        }
-      }
-    });
+        if (node.data.outputVariables) {
+          const names = node.data.outputVariables.map(v => safeString(v.name).trim()).filter(n => n !== '');
+          if (new Set(names).size !== names.length) {
+            hasTaskVarDuplicates = true;
+            addIssue('error', `Task output variables have duplicate names in node ${node.id}.`, { nodeUid: node.uid, nodeId: node.id });
+          }
+          if (node.data.outputVariables.some(v => safeString(v.name).trim() === '')) {
+            addIssue('error', `Task output variables cannot have empty names in node ${node.id}.`, { nodeUid: node.uid, nodeId: node.id });
+          }
+       }
+     });
 
     const nodesByUid = new Map(nodes.map(node => [node.uid, node]));
     const incomingByUid = new Map<string, number>();
@@ -398,36 +428,36 @@ const App: React.FC = () => {
         next: nextIds
       };
 
-      if (node.type === 'user-task') {
-        base.config = {
-          formId: node.data.formId,
-          assignee: node.data.assignee,
-          inputs: (node.data.inputVariables || []).map(v => ({
-             targetName: v.name,
-             type: v.type,
-             source: v.mappingType,
-             value: v.value
-          })),
-          outputs: (node.data.outputVariables || []).map(v => ({
-             source: v.mappingType,
-             sourceValue: v.name,
-             type: v.type,
-             targetVariable: v.value
-          }))
-        };
-      }
+       if (node.type === 'user-task') {
+         base.config = {
+           formId: node.data.formId,
+           assignee: node.data.assignee,
+           inputs: (node.data.inputVariables || []).map(v => ({
+              targetName: String(v.name || ''),
+              type: v.type,
+              source: v.mappingType,
+              value: v.value
+           })),
+           outputs: (node.data.outputVariables || []).map(v => ({
+              source: v.mappingType,
+              sourceValue: String(v.name || ''),
+              type: v.type,
+              targetVariable: v.value
+           }))
+         };
+       }
 
-      if (node.type === 'api-task') {
-        base.properties = { 
-          url: node.data.apiEndpoint, 
-          method: node.data.method || 'GET',
-          outputs: (node.data.outputVariables || []).map(v => ({
-             source: v.mappingType,
-             sourceValue: v.name,
-             type: v.type,
-             targetVariable: v.value
-          }))
-        };
+       if (node.type === 'api-task') {
+         base.properties = {
+           url: node.data.apiEndpoint,
+           method: node.data.method || 'GET',
+           outputs: (node.data.outputVariables || []).map(v => ({
+              source: v.mappingType,
+              sourceValue: String(v.name || ''),
+              type: v.type,
+              targetVariable: v.value
+           }))
+         };
         const authType = node.data.apiAuthType || 'none';
         const authRef = (node.data.apiAuthRef || '').trim();
         if (authType !== 'none' && authRef) {
@@ -447,22 +477,22 @@ const App: React.FC = () => {
         }
       }
 
-      if (node.type === 'service-task') {
-        base.config = {
-          inputs: (node.data.inputVariables || []).map(v => ({
-             targetName: v.name,
-             type: v.type,
-             source: v.mappingType,
-             value: v.value
-          })),
-          outputs: (node.data.outputVariables || []).map(v => ({
-             source: v.mappingType,
-             sourceValue: v.name,
-             type: v.type,
-             targetVariable: v.value
-          }))
-        };
-      }
+       if (node.type === 'service-task') {
+         base.config = {
+           inputs: (node.data.inputVariables || []).map(v => ({
+              targetName: String(v.name || ''),
+              type: v.type,
+              source: v.mappingType,
+              value: v.value
+           })),
+           outputs: (node.data.outputVariables || []).map(v => ({
+              source: v.mappingType,
+              sourceValue: safeString(v.name),
+              type: v.type,
+              targetVariable: v.value
+           }))
+         };
+       }
 
       if (node.type === 'timer-event') {
         base.properties = {
@@ -470,26 +500,26 @@ const App: React.FC = () => {
         };
       }
 
-      if (['message-start', 'message-intermediate-catch', 'message-intermediate-throw'].includes(node.type)) {
-        const isCatch = ['message-start', 'message-intermediate-catch'].includes(node.type);
-        base.message = {
-          name: node.data.messageName,
-          correlationKeys: node.data.correlationKeys ? node.data.correlationKeys.split(',').map(k => k.trim()) : [],
-          timeoutSeconds: node.data.timeoutSeconds ?? null,
-          payload: isCatch 
-            ? (node.data.outputVariables || []).map(v => ({
-                source: v.mappingType,
-                sourceValue: v.name,
-                type: v.type,
-                targetVariable: v.value
-              }))
-            : (node.data.inputVariables || []).map(v => ({
-                targetName: v.name,
-                type: v.type,
-                source: v.mappingType,
-                value: v.value
-              }))
-        };
+       if (['message-start', 'message-intermediate-catch', 'message-intermediate-throw'].includes(node.type)) {
+         const isCatch = ['message-start', 'message-intermediate-catch'].includes(node.type);
+         base.message = {
+           name: node.data.messageName,
+           correlationKeys: node.data.correlationKeys ? node.data.correlationKeys.split(',').map(k => k.trim()) : [],
+           timeoutSeconds: node.data.timeoutSeconds ?? null,
+           payload: isCatch
+             ? (node.data.outputVariables || []).map(v => ({
+                 source: v.mappingType,
+                 sourceValue: String(v.name || ''),
+                 type: v.type,
+                 targetVariable: v.value
+               }))
+             : (node.data.inputVariables || []).map(v => ({
+                 targetName: String(v.name || ''),
+                 type: v.type,
+                 source: v.mappingType,
+                 value: v.value
+               }))
+         };
 
         // Backward-compatible shape used by backend MessageEvent handler
         if (isCatch) {
@@ -511,21 +541,21 @@ const App: React.FC = () => {
           : undefined;
       }
 
-      if (node.type === 'message-boundary') {
-        base.message = {
-          name: node.data.messageName,
-          correlationKeys: node.data.correlationKeys ? node.data.correlationKeys.split(',').map(k => k.trim()) : [],
-          payload: (node.data.outputVariables || []).map(v => ({
-            source: v.mappingType,
-            sourceValue: v.name,
-            type: v.type,
-            targetVariable: v.value
-          }))
-        };
-        base.attachedTo = node.attachedTo
-          ? (nodes.find(candidate => candidate.uid === node.attachedTo)?.id || node.attachedTo)
-          : undefined;
-      }
+       if (node.type === 'message-boundary') {
+         base.message = {
+           name: node.data.messageName,
+           correlationKeys: node.data.correlationKeys ? node.data.correlationKeys.split(',').map(k => k.trim()) : [],
+           payload: (node.data.outputVariables || []).map(v => ({
+             source: v.mappingType,
+             sourceValue: String(v.name || ''),
+             type: v.type,
+             targetVariable: v.value
+           }))
+         };
+         base.attachedTo = node.attachedTo
+           ? (nodes.find(candidate => candidate.uid === node.attachedTo)?.id || node.attachedTo)
+           : undefined;
+       }
 
       if (node.type === 'timer-boundary') {
         base.properties = {
@@ -544,15 +574,15 @@ const App: React.FC = () => {
       processName: processName,
       metadata: {
         exportedAt: new Date().toISOString(),
-        version: "1.0"
-      },
-      variables: variables.map(v => ({ 
-        name: v.name, 
-        type: v.type, 
-        initialValue: v.defaultValue 
-      })),
-      nodes: nodesData,
-      flows: edges.map(e => ({ 
+         version: "1.0"
+       },
+       variables: variables.map(v => ({
+         name: safeString(v.name),
+         type: v.type,
+         initialValue: v.defaultValue
+       })),
+       nodes: nodesData,
+      flows: edges.map(e => ({
         from: nodes.find(n => n.uid === e.source)?.id, 
         to: nodes.find(n => n.uid === e.target)?.id, 
         condition: e.condition || null 
@@ -614,13 +644,13 @@ const App: React.FC = () => {
       'MessageBoundaryEvent': 'message-boundary'
     };
 
-    // 1. Import Variables
-    const importedVariables: ProcessVariable[] = (data.variables || []).map((v: any) => ({
-      id: Math.random().toString(36).substr(2, 9),
-      name: v.name,
-      type: v.type,
-      defaultValue: v.initialValue
-    }));
+     // 1. Import Variables
+     const importedVariables: ProcessVariable[] = (data.variables || []).map((v: any) => ({
+       id: Math.random().toString(36).substr(2, 9),
+       name: String(v.name || ''),
+       type: v.type,
+       defaultValue: v.initialValue
+     }));
 
     // 2. Import Nodes
     const idToUidMap = new Map<string, string>();
@@ -657,24 +687,24 @@ const App: React.FC = () => {
         }
       };
 
-      if (type === 'user-task' && node.config) {
-        newNode.data.formId = node.config.formId;
-        newNode.data.assignee = node.config.assignee;
-        newNode.data.inputVariables = (node.config.inputs || []).map((i: any) => ({
-          id: Math.random().toString(36).substr(2, 9),
-          name: i.targetName,
-          type: i.type,
-          mappingType: i.source,
-          value: i.value
-        }));
-        newNode.data.outputVariables = (node.config.outputs || []).map((o: any) => ({
-          id: Math.random().toString(36).substr(2, 9),
-          name: o.sourceName,
-          type: o.type,
-          mappingType: o.target,
-          value: o.value
-        }));
-      }
+       if (type === 'user-task' && node.config) {
+         newNode.data.formId = node.config.formId;
+         newNode.data.assignee = node.config.assignee;
+         newNode.data.inputVariables = (node.config.inputs || []).map((i: any) => ({
+           id: Math.random().toString(36).substr(2, 9),
+           name: String(i.targetName || ''),
+           type: i.type,
+           mappingType: i.source,
+           value: i.value
+         }));
+         newNode.data.outputVariables = (node.config.outputs || []).map((o: any) => ({
+           id: Math.random().toString(36).substr(2, 9),
+           name: String(o.sourceName || ''),
+           type: o.type,
+           mappingType: o.target,
+           value: o.value
+         }));
+       }
 
       if (type === 'api-task' && (node.properties || node.service)) {
         const apiConfig = node.properties || node.service;
@@ -691,37 +721,37 @@ const App: React.FC = () => {
           }
         }
         
-        if (apiConfig.outputs) {
-          newNode.data.outputVariables = (apiConfig.outputs || []).map((o: any) => ({
-            id: Math.random().toString(36).substr(2, 9),
-            name: o.sourceValue || o.sourceName,
-            type: o.type,
-            mappingType: o.source || o.target || 'variable',
-            value: o.targetVariable || o.value
-          }));
-        }
+         if (apiConfig.outputs) {
+           newNode.data.outputVariables = (apiConfig.outputs || []).map((o: any) => ({
+             id: Math.random().toString(36).substr(2, 9),
+             name: String(o.sourceValue || o.sourceName || ''),
+             type: o.type,
+             mappingType: o.source || o.target || 'variable',
+             value: o.targetVariable || o.value
+           }));
+         }
       }
 
-      if (type === 'service-task' && node.config) {
-        if (node.config.inputs) {
-          newNode.data.inputVariables = (node.config.inputs || []).map((i: any) => ({
-            id: Math.random().toString(36).substr(2, 9),
-            name: i.targetName,
-            type: i.type,
-            mappingType: i.source,
-            value: i.value
-          }));
-        }
-        if (node.config.outputs) {
-          newNode.data.outputVariables = (node.config.outputs || []).map((o: any) => ({
-            id: Math.random().toString(36).substr(2, 9),
-            name: o.sourceValue || o.sourceName,
-            type: o.type,
-            mappingType: o.source || o.target || 'variable',
-            value: o.targetVariable || o.value
-          }));
-        }
-      }
+       if (type === 'service-task' && node.config) {
+         if (node.config.inputs) {
+           newNode.data.inputVariables = (node.config.inputs || []).map((i: any) => ({
+             id: Math.random().toString(36).substr(2, 9),
+             name: String(i.targetName || ''),
+             type: i.type,
+             mappingType: i.source,
+             value: i.value
+           }));
+         }
+         if (node.config.outputs) {
+           newNode.data.outputVariables = (node.config.outputs || []).map((o: any) => ({
+             id: Math.random().toString(36).substr(2, 9),
+             name: String(o.sourceValue || o.sourceName || ''),
+             type: o.type,
+             mappingType: o.source || o.target || 'variable',
+             value: o.targetVariable || o.value
+           }));
+         }
+       }
 
       if (type === 'timer-event') {
         if (node.properties?.timeoutSeconds !== undefined && node.properties?.timeoutSeconds !== null) {
@@ -738,26 +768,26 @@ const App: React.FC = () => {
           newNode.data.timeoutSeconds = Number(node.properties.timeoutSeconds);
         }
         
-        const isCatch = ['message-start', 'message-intermediate-catch'].includes(type);
-        if (node.message.payload) {
-          if (isCatch) {
-            newNode.data.outputVariables = (node.message.payload || []).map((o: any) => ({
-              id: Math.random().toString(36).substr(2, 9),
-              name: o.sourceValue || o.sourceName,
-              type: o.type,
-              mappingType: o.source || o.target || 'variable',
-              value: o.targetVariable || o.value
-            }));
-          } else {
-            newNode.data.inputVariables = (node.message.payload || []).map((i: any) => ({
-              id: Math.random().toString(36).substr(2, 9),
-              name: i.targetName,
-              type: i.type,
-              mappingType: i.source,
-              value: i.value
-            }));
-          }
-        }
+         const isCatch = ['message-start', 'message-intermediate-catch'].includes(type);
+         if (node.message.payload) {
+           if (isCatch) {
+             newNode.data.outputVariables = (node.message.payload || []).map((o: any) => ({
+               id: Math.random().toString(36).substr(2, 9),
+               name: String(o.sourceValue || o.sourceName || ''),
+               type: o.type,
+               mappingType: o.source || o.target || 'variable',
+               value: o.targetVariable || o.value
+             }));
+           } else {
+             newNode.data.inputVariables = (node.message.payload || []).map((i: any) => ({
+               id: Math.random().toString(36).substr(2, 9),
+               name: String(i.targetName || ''),
+               type: i.type,
+               mappingType: i.source,
+               value: i.value
+             }));
+           }
+         }
       }
 
       if (type === 'error-boundary' && node.error) {
@@ -765,20 +795,20 @@ const App: React.FC = () => {
         newNode.attachedTo = idToUidMap.get(node.attachedTo) || node.attachedTo;
       }
 
-      if (type === 'message-boundary' && node.message) {
-        newNode.data.messageName = node.message.name;
-        newNode.data.correlationKeys = Array.isArray(node.message.correlationKeys) ? node.message.correlationKeys.join(', ') : node.message.correlationKeys;
-        newNode.attachedTo = idToUidMap.get(node.attachedTo) || node.attachedTo;
-        if (node.message.payload) {
-          newNode.data.outputVariables = (node.message.payload || []).map((o: any) => ({
-            id: Math.random().toString(36).substr(2, 9),
-            name: o.sourceName,
-            type: o.type,
-            mappingType: o.target,
-            value: o.value
-          }));
-        }
-      }
+       if (type === 'message-boundary' && node.message) {
+         newNode.data.messageName = node.message.name;
+         newNode.data.correlationKeys = Array.isArray(node.message.correlationKeys) ? node.message.correlationKeys.join(', ') : node.message.correlationKeys;
+         newNode.attachedTo = idToUidMap.get(node.attachedTo) || node.attachedTo;
+         if (node.message.payload) {
+           newNode.data.outputVariables = (node.message.payload || []).map((o: any) => ({
+             id: Math.random().toString(36).substr(2, 9),
+             name: String(o.sourceName || ''),
+             type: o.type,
+             mappingType: o.target,
+             value: o.value
+           }));
+         }
+       }
 
       if (type === 'timer-boundary') {
         if (node.properties?.timeoutSeconds !== undefined && node.properties?.timeoutSeconds !== null) {

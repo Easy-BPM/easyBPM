@@ -1,4 +1,4 @@
-FROM eclipse-temurin:17-jdk
+FROM eclipse-temurin:21-jdk
 
 # Development Dockerfile: uses a locally-built jar from build/libs
 # This speeds up iterative development. Remove or ignore for production.

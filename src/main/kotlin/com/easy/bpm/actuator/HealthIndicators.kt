@@ -48,10 +48,18 @@ class RabbitMQHealthIndicator : HealthIndicator {
     override fun health(): Health {
         return try {
             val factory = ConnectionFactory()
-            factory.host = System.getenv("RABBITMQ_HOST") ?: "localhost"
-            factory.port = System.getenv("RABBITMQ_PORT")?.toIntOrNull() ?: 5672
-            factory.username = System.getenv("RABBITMQ_USER") ?: "easybpm"
-            factory.password = System.getenv("RABBITMQ_PASSWORD") ?: "easybpm"
+            factory.host = System.getenv("SPRING_RABBITMQ_HOST")
+                ?: System.getenv("RABBITMQ_HOST")
+                ?: "localhost"
+            factory.port = System.getenv("SPRING_RABBITMQ_PORT")?.toIntOrNull()
+                ?: System.getenv("RABBITMQ_PORT")?.toIntOrNull()
+                ?: 5672
+            factory.username = System.getenv("SPRING_RABBITMQ_USERNAME")
+                ?: System.getenv("RABBITMQ_USER")
+                ?: "easybpm"
+            factory.password = System.getenv("SPRING_RABBITMQ_PASSWORD")
+                ?: System.getenv("RABBITMQ_PASSWORD")
+                ?: "easybpm"
             
             val connection = factory.newConnection()
             connection.close()

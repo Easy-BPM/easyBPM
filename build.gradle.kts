@@ -51,7 +51,7 @@ dependencies {
 }
 
 kotlin {
-	jvmToolchain(17)
+	jvmToolchain(21)
 	compilerOptions {
 		freeCompilerArgs.addAll("-Xjsr305=strict")
 	}
@@ -65,7 +65,7 @@ allOpen {
 
 tasks.withType<KotlinCompile> {
 	kotlinOptions {
-		jvmTarget = "17"
+		jvmTarget = "21"
 		freeCompilerArgs += "-Xjsr305=strict"
 	}
 }
