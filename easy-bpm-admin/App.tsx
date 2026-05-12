@@ -19,25 +19,66 @@ import {
 import { Sidebar } from './components/Sidebar';
 import { WorkflowCanvas } from './components/WorkflowCanvas';
 import { CodeTaskExecutionListPage } from './components/CodeTaskExecutionListPage';
+import { SecurityAdminView } from './components/SecurityAdminView';
 import { adminService } from './services/adminService';
 import { ProcessDefinition, ProcessInstance, ProcessVariable, WorkflowDefinition } from './types';
 
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<string | null>(null);
+  const [permissions, setPermissions] = useState<string[]>([]);
   const [currentView, setCurrentView] = useState('dashboard');
+  const [authLoading, setAuthLoading] = useState(true);
 
-  const handleLogin = (username: string) => {
+  useEffect(() => {
+    const session = adminService.getSession();
+    if (!session) {
+      setAuthLoading(false);
+      return;
+    }
+
+    setCurrentUser(session.username);
+    setPermissions(session.permissions);
+    adminService.me()
+      .then(me => setPermissions(me.permissions))
+      .catch(() => {
+        adminService.clearSession();
+        setCurrentUser(null);
+        setPermissions([]);
+      })
+      .finally(() => setAuthLoading(false));
+  }, []);
+
+  const handleLogin = (username: string, perms: string[]) => {
     setCurrentUser(username);
+    setPermissions(perms);
     setCurrentView('dashboard');
   };
 
   const handleLogout = () => {
+    adminService.clearSession();
     setCurrentUser(null);
+    setPermissions([]);
     setCurrentView('dashboard');
   };
 
+  if (authLoading) {
+    return <div className="min-h-screen flex items-center justify-center text-slate-600">Loading session...</div>;
+  }
+
   if (!currentUser) {
     return <LoginView onLogin={handleLogin} />;
+  }
+
+  if (!permissions.includes('ACCESS_BPM_ADMIN')) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-100">
+        <div className="bg-white border border-slate-200 rounded-xl p-6 text-center">
+          <h2 className="text-lg font-semibold text-slate-800">Access denied</h2>
+          <p className="text-slate-500 mt-1">Your account does not have BPM Admin access.</p>
+          <button onClick={handleLogout} className="mt-4 px-4 py-2 bg-slate-900 text-white rounded-lg">Sign out</button>
+        </div>
+      </div>
+    );
   }
 
   const renderView = () => {
@@ -50,6 +91,8 @@ const App: React.FC = () => {
         return <WorkflowCatalogView />;
       case 'code-tasks':
         return <CodeTaskExecutionListPage />;
+      case 'security-admin':
+        return <SecurityAdminView />;
       default:
         return <DashboardView onNavigate={setCurrentView} />;
     }
@@ -61,6 +104,7 @@ const App: React.FC = () => {
         currentView={currentView}
         onChangeView={setCurrentView}
         currentUser={currentUser}
+        permissions={permissions}
         onLogout={handleLogout}
       />
       <main className="flex-1 px-8 py-8 overflow-y-auto h-screen">
@@ -70,18 +114,22 @@ const App: React.FC = () => {
   );
 };
 
-const LoginView: React.FC<{ onLogin: (username: string) => void }> = ({ onLogin }) => {
-  const [username, setUsername] = useState('admin');
+const LoginView: React.FC<{ onLogin: (username: string, perms: string[]) => void }> = ({ onLogin }) => {
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!username) return;
     setLoading(true);
+    setError(null);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      onLogin(username);
+      const session = await adminService.login(username.trim(), password);
+      onLogin(session.username, session.permissions);
+    } catch (e) {
+      setError((e as Error).message);
     } finally {
       setLoading(false);
     }
@@ -135,6 +183,7 @@ const LoginView: React.FC<{ onLogin: (username: string) => void }> = ({ onLogin 
           >
             {loading ? <Loader2 className="animate-spin" size={18} /> : 'Sign In'}
           </button>
+          {error && <p className="text-sm text-red-600">{error}</p>}
         </form>
         </div>
         <p className="text-center text-[11px] text-slate-600 mt-4">Easy BPM · Process Operations Console</p>

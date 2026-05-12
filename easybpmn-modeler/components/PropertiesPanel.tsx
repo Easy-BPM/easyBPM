@@ -575,7 +575,8 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                   {formKeyError && <p className="text-[10px] text-red-500 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> {formKeyError}</p>}
                   <p className="text-[10px] text-slate-400 mt-1 leading-tight">Attach the deployed form key used for versioning, not the numeric database id.</p>
                 </div>
-                <div><label className="text-[10px] text-slate-400 uppercase font-bold mb-1 block">Assignee</label><input className={smallInputClassName} value={selectedNode.data.assignee || ''} onChange={e => onUpdateNode(selectedNode.uid, { assignee: e.target.value })} placeholder="e.g. manager" /></div>
+                <div><label className="text-[10px] text-slate-400 uppercase font-bold mb-1 block">Assignee(s)</label><input className={smallInputClassName} value={selectedNode.data.assignee || ''} onChange={e => onUpdateNode(selectedNode.uid, { assignee: e.target.value })} placeholder="e.g. manager1, manager2" /></div>
+                <div><label className="text-[10px] text-slate-400 uppercase font-bold mb-1 block">Candidate Groups</label><input className={smallInputClassName} value={selectedNode.data.candidateGroups || ''} onChange={e => onUpdateNode(selectedNode.uid, { candidateGroups: e.target.value })} placeholder="e.g. FINANCE, OPERATIONS" /></div>
              </div>
              {renderVarList('Task Inputs', 'inputVariables', <LogIn className="w-3.5 h-3.5 text-blue-500" />)}
              {renderVarList('Task Outputs', 'outputVariables', <LogOut className="w-3.5 h-3.5 text-green-500" />)}

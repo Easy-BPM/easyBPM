@@ -5,15 +5,18 @@ interface SidebarProps {
   currentView: string;
   onChangeView: (view: string) => void;
   currentUser: string;
+  permissions: string[];
   onLogout: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ currentView, onChangeView, currentUser, onLogout }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ currentView, onChangeView, currentUser, permissions, onLogout }) => {
+  const canManageSecurity = permissions.includes('MANAGE_USERS') || permissions.includes('MANAGE_GROUPS');
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'instances', label: 'Instance Search', icon: Search },
     { id: 'workflows', label: 'Deployed Workflows', icon: Workflow },
-    { id: 'code-tasks', label: 'Code Task Executions', icon: Code2 }
+    { id: 'code-tasks', label: 'Code Task Executions', icon: Code2 },
+    ...(canManageSecurity ? [{ id: 'security-admin', label: 'Security', icon: LayoutDashboard }] : [])
   ];
 
   return (

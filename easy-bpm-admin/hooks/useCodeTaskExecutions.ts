@@ -33,7 +33,19 @@ interface ExecutionResponse {
   currentPage: number;
 }
 
-const API_BASE_URL = process.env.VITE_API_BASE_URL || 'http://localhost:8080';
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? 'http://localhost:8080';
+const AUTH_STORAGE_KEY = 'easybpm_admin_auth';
+
+const getAuthToken = (): string | null => {
+  const raw = localStorage.getItem(AUTH_STORAGE_KEY);
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as { token?: string };
+    return parsed.token ?? null;
+  } catch {
+    return null;
+  }
+};
 
 export const useCodeTaskExecutions = (props: UseCodeTaskExecutionsProps) => {
   const {
@@ -72,11 +84,20 @@ export const useCodeTaskExecutions = (props: UseCodeTaskExecutionsProps) => {
       if (className) params.append('className', className);
       if (methodName) params.append('methodName', methodName);
 
+      const token = getAuthToken();
       const response = await fetch(
-        `${API_BASE_URL}/code-tasks/executions?${params.toString()}`
+        `${API_BASE_URL}/code-tasks/executions?${params.toString()}`,
+        {
+          headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {})
+          }
+        }
       );
 
       if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('Unauthorized: please sign in again.');
+        }
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 

@@ -41,3 +41,8 @@ logging:
     org.hibernate.tool.schema.internal: DEBUG
     org.hibernate.tool.schema.internal.exec: DEBUG
     org.hibernate.SQL: DEBUG
+
+easybpm:
+  security:
+    enabled: false
+

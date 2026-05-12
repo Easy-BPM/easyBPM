@@ -11,6 +11,8 @@ data class TaskResponseDto(
     val processInstanceId: Long,
     val nodeId: String,
     val assignee: String?,
+    val candidateUsers: Set<String> = emptySet(),
+    val candidateGroups: Set<String> = emptySet(),
     val status: TaskStatus,
     val createdAt: LocalDateTime,
     val completedAt: LocalDateTime?,

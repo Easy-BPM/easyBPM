@@ -34,6 +34,28 @@ const App: React.FC = () => {
    const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
    const [currentView, setCurrentView] = useState<AppView>('bpmn');
    const [isDeploying, setIsDeploying] = useState(false);
+   const [currentUser, setCurrentUser] = useState<string | null>(null);
+   const [permissions, setPermissions] = useState<string[]>([]);
+   const [authLoading, setAuthLoading] = useState(true);
+
+   useEffect(() => {
+     const session = processService.getSession();
+     if (!session) {
+       setAuthLoading(false);
+       return;
+     }
+
+     setCurrentUser(session.username);
+     setPermissions(session.permissions);
+     processService.me()
+       .then(me => setPermissions(me.permissions))
+       .catch(() => {
+         processService.clearSession();
+         setCurrentUser(null);
+         setPermissions([]);
+       })
+       .finally(() => setAuthLoading(false));
+   }, []);
 
    // Wrapper for setVariables that ALWAYS sanitizes before storing
    const setVariables = (vars: ProcessVariable[] | ((prev: ProcessVariable[]) => ProcessVariable[])) => {
@@ -434,6 +456,7 @@ const App: React.FC = () => {
          base.config = {
            formId: node.data.formId,
            assignee: node.data.assignee,
+            candidateGroups: node.data.candidateGroups,
            inputs: (node.data.inputVariables || []).map(v => ({
               targetName: String(v.name || ''),
               type: v.type,
@@ -692,6 +715,7 @@ const App: React.FC = () => {
        if (type === 'user-task' && node.config) {
          newNode.data.formId = node.config.formId;
          newNode.data.assignee = node.config.assignee;
+          newNode.data.candidateGroups = node.config.candidateGroups;
          newNode.data.inputVariables = (node.config.inputs || []).map((i: any) => ({
            id: Math.random().toString(36).substr(2, 9),
            name: String(i.targetName || ''),
@@ -867,6 +891,35 @@ const App: React.FC = () => {
     return () => window.removeEventListener('keydown', onKey);
   }, [selectedNodeUids, handleDeleteNodes]);
 
+  const handleLogout = () => {
+    processService.clearSession();
+    setCurrentUser(null);
+    setPermissions([]);
+  };
+
+  if (authLoading) {
+    return <div className="min-h-screen flex items-center justify-center text-slate-600">Loading session...</div>;
+  }
+
+  if (!currentUser) {
+    return <ModelerLoginView onLogin={(username, perms) => {
+      setCurrentUser(username);
+      setPermissions(perms);
+    }} />;
+  }
+
+  if (!permissions.includes('ACCESS_BPM_MODELER')) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-100">
+        <div className="bg-white border border-slate-200 rounded-xl p-6 text-center">
+          <h2 className="text-lg font-semibold text-slate-800">Access denied</h2>
+          <p className="text-slate-500 mt-1">Your account does not have BPM Modeler access.</p>
+          <button onClick={handleLogout} className="mt-4 px-4 py-2 bg-slate-900 text-white rounded-lg">Sign out</button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-screen bg-slate-50">
       <Toaster position="top-right" richColors />
@@ -923,6 +976,44 @@ const App: React.FC = () => {
         ) : (
           <FormModeler />
         )}
+      </div>
+    </div>
+  );
+};
+
+const ModelerLoginView: React.FC<{ onLogin: (username: string, permissions: string[]) => void }> = ({ onLogin }) => {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const submit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setLoading(true);
+    setError(null);
+    try {
+      const session = await processService.login(username.trim(), password);
+      onLogin(session.username, session.permissions);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-slate-100 p-4">
+      <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-slate-200">
+        <h1 className="text-2xl font-bold text-slate-800">Easy BPM Modeler</h1>
+        <p className="text-slate-500 mt-1 mb-6">Sign in to design and deploy processes</p>
+        <form onSubmit={submit} className="space-y-4">
+          <input className="w-full rounded-lg border border-slate-300 px-3 py-2.5" placeholder="Username" value={username} onChange={e => setUsername(e.target.value)} />
+          <input className="w-full rounded-lg border border-slate-300 px-3 py-2.5" type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} />
+          <button type="submit" disabled={loading} className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-lg">
+            {loading ? 'Signing in...' : 'Sign In'}
+          </button>
+          {error && <p className="text-sm text-red-600">{error}</p>}
+        </form>
       </div>
     </div>
   );
