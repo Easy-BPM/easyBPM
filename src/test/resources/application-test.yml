@@ -45,4 +45,6 @@ logging:
 easybpm:
   security:
     enabled: false
+    # Use a 24-hour expiry during tests to prevent JWT expiry across slow CI runs
+    jwt-expiration-ms: 86400000
 

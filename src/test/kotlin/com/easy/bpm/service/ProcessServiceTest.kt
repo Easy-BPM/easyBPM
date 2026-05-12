@@ -9,6 +9,7 @@ import com.easy.bpm.model.task.Task
 import com.easy.bpm.model.variable.ProcessVariable
 import com.easy.bpm.repository.process.ProcessDefinitionRepository
 import com.easy.bpm.repository.process.ProcessInstanceRepository
+import com.easy.bpm.repository.process.CallActivityMappingRepository
 import com.easy.bpm.repository.task.TaskRepository
 import com.easy.bpm.repository.variable.ProcessVariableRepository
 import com.easy.bpm.repository.variable.TaskVariableRepository
@@ -47,6 +48,7 @@ class ProcessServiceTest : FunSpec({
     val mockMetricsService = mockk<MetricsService>(relaxed = true)
     val mockWorkerRequestRepository = mockk<WorkerRequestRepository>()
     val mockCallActivityHandler = mockk<CallActivityHandler>()
+    val mockCallActivityMappingRepository = mockk<CallActivityMappingRepository>()
 
     val processService = ProcessService(
         mockProcessDefinitionRepository,
@@ -62,7 +64,8 @@ class ProcessServiceTest : FunSpec({
         mockMessageSubscriptionService,
         mockMetricsService,
         mockWorkerRequestRepository,
-        mockCallActivityHandler
+        mockCallActivityHandler,
+        mockCallActivityMappingRepository
     )
 
     val objectMapper = ObjectMapper()

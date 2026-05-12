@@ -178,7 +178,7 @@ class SecurityIntegrationTest : IntegrationTestBase() {
         ).andExpect(status().isOk)
             .andReturn().response.contentAsString
 
-        val token = Regex("\\\"token\\\":\\\"([^\\\"]+)\\\"").find(tokenResponse)?.groupValues?.get(1)
+        val token = Regex("\"token\":\"([^\"]+)\"").find(tokenResponse)?.groupValues?.get(1)
             ?: throw IllegalStateException("Token not found")
 
         mockMvc.perform(
