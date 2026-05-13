@@ -1,7 +1,9 @@
 package com.easy.bpm.integration
 
 import com.easy.bpm.enum.ProcessStatus
+import com.easy.bpm.enum.MessageSubscriptionStatus
 import com.easy.bpm.enum.TaskStatus
+import com.easy.bpm.repository.message.MessageSubscriptionRepository
 import com.easy.bpm.repository.process.ProcessInstanceRepository
 import com.easy.bpm.repository.task.TaskRepository
 import com.easy.bpm.repository.variable.ProcessVariableRepository
@@ -36,6 +38,7 @@ class ProcessIntegrationTest(
     @Autowired private val processInstanceRepository: ProcessInstanceRepository,
     @Autowired private val taskRepository: TaskRepository,
     @Autowired private val processVariableRepository: ProcessVariableRepository,
+    @Autowired private val messageSubscriptionRepository: MessageSubscriptionRepository,
     @Autowired private val taskVariableRepository: TaskVariableRepository,
     @Autowired private val objectMapper: ObjectMapper,
     @Autowired private val mockMvc: MockMvc
@@ -325,6 +328,103 @@ class ProcessIntegrationTest(
     }
 
     @Test
+    fun `timer event json process should create subscription and continue after timeout`() {
+        val processDefinitionJson = objectMapper.readTree(ClassPathResource("process-timer-event.json").inputStream)
+
+        val processDefinition = processService.deployProcess(processDefinitionJson)
+        val processInstance = processService.startProcessInstance(processDefinition.id)
+
+        assertThat(processInstance.status).isEqualTo(ProcessStatus.ACTIVE)
+        assertThat(processInstance.currentNode).containsExactly("timer_wait-30s")
+
+        val timerSubscription = messageSubscriptionRepository.findByProcessInstanceIdAndNodeId(
+            processInstance.id,
+            "timer_wait-30s"
+        )
+        assertThat(timerSubscription).isNotNull
+        assertThat(timerSubscription?.status).isEqualTo(MessageSubscriptionStatus.AWAITING)
+        assertThat(timerSubscription?.messageName).isEqualTo(ProcessService.INTERNAL_TIMER_MESSAGE_NAME)
+
+        val resumed = processService.handleTimerTimeout(processInstance.id, "timer_wait-30s")
+        assertThat(resumed).isTrue()
+
+        val updatedInstance = processInstanceRepository.findById(processInstance.id).orElseThrow()
+        assertThat(updatedInstance.status).isEqualTo(ProcessStatus.ACTIVE)
+        assertThat(updatedInstance.currentNode).containsExactly("user-task_review-after-timer")
+
+        val timerFired = processVariableRepository.findByProcessInstanceIdAndName(processInstance.id, "timerFired")
+        val message = processVariableRepository.findByProcessInstanceIdAndName(processInstance.id, "message")
+        assertThat(timerFired?.value?.asText()).isEqualTo("true")
+        assertThat(message?.value?.asText()).contains("Timer has fired")
+    }
+
+    @Test
+    fun `api task json process should wait on api task after human task completion`() {
+        val processDefinitionJson = objectMapper.readTree(ClassPathResource("process-api-task.json").inputStream)
+
+        val processDefinition = processService.deployProcess(processDefinitionJson)
+        val processInstance = processService.startProcessInstance(processDefinition.id)
+
+        assertThat(processInstance.status).isEqualTo(ProcessStatus.ACTIVE)
+        assertThat(processInstance.currentNode).containsExactly("user-task_submit-order")
+
+        val userTask = taskRepository.findAll().first { it.processInstanceId == processInstance.id }
+        taskService.completeTask(userTask.id, "tester", mapOf("orderId" to "ORD-900"))
+
+        val updatedInstance = processInstanceRepository.findById(processInstance.id).orElseThrow()
+        assertThat(updatedInstance.status).isEqualTo(ProcessStatus.ACTIVE)
+        assertThat(updatedInstance.currentNode).containsExactly("api-task_notify-warehouse")
+    }
+
+    @Test
+    fun `inclusive gateway json process should execute both service branches`() {
+        val processDefinitionJson = objectMapper.readTree(ClassPathResource("process-inclusive-gateway.json").inputStream)
+
+        val processDefinition = processService.deployProcess(processDefinitionJson)
+        val processInstance = processService.startProcessInstance(processDefinition.id)
+
+        assertThat(processInstance.currentNode).containsExactly("user-task_submit-request")
+        val userTask = taskRepository.findAll().first { it.processInstanceId == processInstance.id }
+        taskService.completeTask(userTask.id, "tester", mapOf("orderValue" to 1500))
+
+        val completedInstance = processInstanceRepository.findById(processInstance.id).orElseThrow()
+        assertThat(completedInstance.status).isEqualTo(ProcessStatus.COMPLETED)
+        assertThat(completedInstance.currentNode).isEmpty()
+        assertThat(completedInstance.nodeHistory).contains("service_send-email", "service_notify-manager")
+
+        val emailSent = processVariableRepository.findByProcessInstanceIdAndName(processInstance.id, "emailSent")
+        val managerNotified = processVariableRepository.findByProcessInstanceIdAndName(processInstance.id, "managerNotified")
+        assertThat(emailSent?.value?.asText()).isEqualTo("true")
+        assertThat(managerNotified?.value?.asText()).isEqualTo("true")
+    }
+
+    @Test
+    fun `call activity json processes should map child output back to parent`() {
+        val childJson = objectMapper.readTree(ClassPathResource("process-call-activity-child.json").inputStream)
+        val parentJson = objectMapper.readTree(ClassPathResource("process-call-activity.json").inputStream)
+
+        processService.deployProcess(childJson)
+        val parentDefinition = processService.deployProcess(parentJson)
+        val parentInstance = processService.startProcessInstance(parentDefinition.id)
+
+        val waitingParent = processInstanceRepository.findById(parentInstance.id).orElseThrow()
+        assertThat(waitingParent.status).isEqualTo(ProcessStatus.WAITING)
+
+        val childInstance = processInstanceRepository.findByParentInstanceId(parentInstance.id).single()
+        val childTask = taskRepository.findByProcessInstanceId(childInstance.id).single { it.status == TaskStatus.PENDING }
+        taskService.completeTask(childTask.id, "approver", mapOf("decision" to "APPROVED"))
+
+        val completedParent = processInstanceRepository.findById(parentInstance.id).orElseThrow()
+        assertThat(completedParent.status).isEqualTo(ProcessStatus.COMPLETED)
+        assertThat(completedParent.currentNode).isEmpty()
+
+        val approvalResult = processVariableRepository.findByProcessInstanceIdAndName(parentInstance.id, "approvalResult")
+        val processCompleted = processVariableRepository.findByProcessInstanceIdAndName(parentInstance.id, "processCompleted")
+        assertThat(approvalResult?.value?.asText()).contains("APPROVED")
+        assertThat(processCompleted?.value?.asText()).isEqualTo("true")
+    }
+
+    @Test
     fun `move node endpoint should remove old pending task and create new pending task in tasks api`() {
         val processDefinitionJson = objectMapper.readTree(
             """
@@ -462,4 +562,3 @@ class ProcessIntegrationTest(
             .mapNotNull { it.get("nodeId")?.asText() }
     }
 }
-
