@@ -1,0 +1,86 @@
+{
+  "processId": "easyProcessApiTask",
+  "metadata": {
+    "exportedAt": "2026-05-13T12:00:00.000Z",
+    "version": "1.0"
+  },
+  "variables": [
+    {
+      "name": "orderId",
+      "type": "string",
+      "initialValue": "\"ORD-001\""
+    },
+    {
+      "name": "orderStatus",
+      "type": "string",
+      "initialValue": ""
+    }
+  ],
+  "nodes": [
+    {
+      "id": "start_api",
+      "name": "Start",
+      "type": "StartEvent",
+      "position": { "x": 80, "y": 200 },
+      "next": ["user-task_submit-order"]
+    },
+    {
+      "id": "user-task_submit-order",
+      "name": "Submit Order",
+      "type": "HumanTask",
+      "position": { "x": 260, "y": 190 },
+      "next": ["api-task_notify-warehouse"],
+      "config": {
+        "formId": "submit-order-form",
+        "inputs": [],
+        "outputs": [
+          {
+            "sourceName": "orderId",
+            "type": "string",
+            "target": "variable",
+            "value": "orderId"
+          }
+        ]
+      }
+    },
+    {
+      "id": "api-task_notify-warehouse",
+      "name": "Notify Warehouse API",
+      "type": "APITask",
+      "position": { "x": 480, "y": 190 },
+      "next": ["end_api"],
+      "properties": {
+        "url": "https://api.warehouse.example.com/orders",
+        "method": "POST",
+        "body": {
+          "orderId": "${orderId}",
+          "action": "PROCESS"
+        },
+        "auth": {
+          "type": "bearer",
+          "ref": "WAREHOUSE_API_TOKEN"
+        },
+        "outputs": [
+          {
+            "source": "variable",
+            "sourceValue": "status",
+            "type": "string",
+            "targetVariable": "orderStatus"
+          }
+        ]
+      }
+    },
+    {
+      "id": "end_api",
+      "name": "End",
+      "type": "EndEvent",
+      "position": { "x": 700, "y": 200 },
+      "next": []
+    }
+  ],
+  "flows": [
+    { "from": "start_api",                  "to": "user-task_submit-order",     "condition": null },
+    { "from": "user-task_submit-order",     "to": "api-task_notify-warehouse",  "condition": null },
+    { "from": "api-task_notify-warehouse",  "to": "end_api",                    "condition": null }
+  ]
+}

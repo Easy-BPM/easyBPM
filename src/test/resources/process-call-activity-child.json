@@ -1,0 +1,65 @@
+{
+  "processId": "easyProcessCallActivityChild",
+  "metadata": {
+    "exportedAt": "2026-05-13T12:00:00.000Z",
+    "version": "1.0"
+  },
+  "variables": [
+    {
+      "name": "subCustomerName",
+      "type": "string",
+      "initialValue": ""
+    },
+    {
+      "name": "subApprovalDecision",
+      "type": "string",
+      "initialValue": ""
+    }
+  ],
+  "nodes": [
+    {
+      "id": "start_child",
+      "name": "Start",
+      "type": "StartEvent",
+      "position": { "x": 80, "y": 200 },
+      "next": ["user-task_review"]
+    },
+    {
+      "id": "user-task_review",
+      "name": "Review and Approve",
+      "type": "HumanTask",
+      "position": { "x": 280, "y": 190 },
+      "next": ["end_child"],
+      "config": {
+        "formId": "approval-form",
+        "inputs": [
+          {
+            "targetName": "customerName",
+            "type": "string",
+            "source": "variable",
+            "value": "subCustomerName"
+          }
+        ],
+        "outputs": [
+          {
+            "sourceName": "decision",
+            "type": "string",
+            "target": "variable",
+            "value": "subApprovalDecision"
+          }
+        ]
+      }
+    },
+    {
+      "id": "end_child",
+      "name": "End",
+      "type": "EndEvent",
+      "position": { "x": 500, "y": 200 },
+      "next": []
+    }
+  ],
+  "flows": [
+    { "from": "start_child",      "to": "user-task_review", "condition": null },
+    { "from": "user-task_review", "to": "end_child",        "condition": null }
+  ]
+}

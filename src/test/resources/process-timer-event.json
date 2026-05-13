@@ -1,0 +1,96 @@
+{
+  "processId": "easyProcessTimerEvent",
+  "metadata": {
+    "exportedAt": "2026-05-13T12:00:00.000Z",
+    "version": "1.0"
+  },
+  "variables": [
+    {
+      "name": "timerFired",
+      "type": "boolean",
+      "initialValue": "false"
+    },
+    {
+      "name": "message",
+      "type": "string",
+      "initialValue": "\"Waiting...\""
+    }
+  ],
+  "nodes": [
+    {
+      "id": "start_timer",
+      "name": "Start",
+      "type": "StartEvent",
+      "position": { "x": 100, "y": 200 },
+      "next": ["timer_wait-30s"]
+    },
+    {
+      "id": "timer_wait-30s",
+      "name": "Wait 30 Seconds",
+      "type": "TimerEvent",
+      "position": { "x": 280, "y": 200 },
+      "next": ["service_set-timer-flag"],
+      "properties": {
+        "timeoutSeconds": 30
+      }
+    },
+    {
+      "id": "service_set-timer-flag",
+      "name": "Set Timer Fired Flag",
+      "type": "ServiceTask",
+      "position": { "x": 480, "y": 200 },
+      "next": ["user-task_review-after-timer"],
+      "config": {
+        "variables": [
+          {
+            "name": "timerFired",
+            "source": "static",
+            "value": "true"
+          },
+          {
+            "name": "message",
+            "source": "static",
+            "value": "Timer has fired. Continuing process."
+          }
+        ]
+      }
+    },
+    {
+      "id": "user-task_review-after-timer",
+      "name": "Review After Timer",
+      "type": "HumanTask",
+      "position": { "x": 680, "y": 190 },
+      "next": ["end_timer"],
+      "config": {
+        "inputs": [
+          {
+            "targetName": "timerFired",
+            "type": "boolean",
+            "source": "variable",
+            "value": "timerFired"
+          },
+          {
+            "targetName": "message",
+            "type": "string",
+            "source": "variable",
+            "value": "message"
+          }
+        ],
+        "outputs": []
+      }
+    },
+    {
+      "id": "end_timer",
+      "name": "End",
+      "type": "EndEvent",
+      "position": { "x": 880, "y": 200 },
+      "next": []
+    }
+  ],
+  "flows": [
+    { "from": "start_timer",              "to": "timer_wait-30s",            "condition": null },
+    { "from": "timer_wait-30s",           "to": "service_set-timer-flag",    "condition": null },
+    { "from": "service_set-timer-flag",   "to": "user-task_review-after-timer", "condition": null },
+    { "from": "user-task_review-after-timer", "to": "end_timer",             "condition": null }
+  ]
+}

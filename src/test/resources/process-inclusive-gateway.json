@@ -1,0 +1,113 @@
+{
+  "processId": "easyProcessInclusiveGateway",
+  "metadata": {
+    "exportedAt": "2026-05-13T12:00:00.000Z",
+    "version": "1.0"
+  },
+  "variables": [
+    {
+      "name": "orderValue",
+      "type": "number",
+      "initialValue": "\"1500\""
+    },
+    {
+      "name": "emailSent",
+      "type": "boolean",
+      "initialValue": "false"
+    },
+    {
+      "name": "managerNotified",
+      "type": "boolean",
+      "initialValue": "false"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "start_ig",
+      "name": "Start",
+      "type": "StartEvent",
+      "position": { "x": 80, "y": 240 },
+      "next": ["user-task_submit-request"]
+    },
+    {
+      "id": "user-task_submit-request",
+      "name": "Submit Purchase Request",
+      "type": "HumanTask",
+      "position": { "x": 260, "y": 230 },
+      "next": ["gateway_inclusive-notify"],
+      "config": {
+        "formId": "purchase-request-form",
+        "inputs": [],
+        "outputs": [
+          {
+            "sourceName": "orderValue",
+            "type": "number",
+            "target": "variable",
+            "value": "orderValue"
+          }
+        ]
+      }
+    },
+    {
+      "id": "gateway_inclusive-notify",
+      "name": "Notify All Channels",
+      "type": "InclusiveGateway",
+      "position": { "x": 460, "y": 240 },
+      "next": ["service_send-email", "service_notify-manager"]
+    },
+    {
+      "id": "service_send-email",
+      "name": "Send Confirmation Email",
+      "type": "ServiceTask",
+      "position": { "x": 640, "y": 140 },
+      "next": ["end_email-sent"],
+      "config": {
+        "variables": [
+          {
+            "name": "emailSent",
+            "source": "static",
+            "value": "true"
+          }
+        ]
+      }
+    },
+    {
+      "id": "service_notify-manager",
+      "name": "Notify Manager",
+      "type": "ServiceTask",
+      "position": { "x": 640, "y": 340 },
+      "next": ["end_manager-notified"],
+      "config": {
+        "variables": [
+          {
+            "name": "managerNotified",
+            "source": "static",
+            "value": "true"
+          }
+        ]
+      }
+    },
+    {
+      "id": "end_email-sent",
+      "name": "End (Email Path)",
+      "type": "EndEvent",
+      "position": { "x": 860, "y": 140 },
+      "next": []
+    },
+    {
+      "id": "end_manager-notified",
+      "name": "End (Manager Path)",
+      "type": "EndEvent",
+      "position": { "x": 860, "y": 340 },
+      "next": []
+    }
+  ],
+  "flows": [
+    { "from": "start_ig",                  "to": "user-task_submit-request",  "condition": null },
+    { "from": "user-task_submit-request",  "to": "gateway_inclusive-notify",  "condition": null },
+    { "from": "gateway_inclusive-notify",  "to": "service_send-email",        "condition": null },
+    { "from": "gateway_inclusive-notify",  "to": "service_notify-manager",    "condition": null },
+    { "from": "service_send-email",        "to": "end_email-sent",            "condition": null },
+    { "from": "service_notify-manager",    "to": "end_manager-notified",      "condition": null }
+  ]
+}

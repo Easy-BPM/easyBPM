@@ -1,0 +1,76 @@
+{
+  "processId": "easyProcessErrorBoundary",
+  "metadata": {
+    "exportedAt": "2026-05-13T12:00:00.000Z",
+    "version": "1.0"
+  },
+  "variables": [
+    {
+      "name": "errorMessage",
+      "type": "string",
+      "initialValue": ""
+    }
+  ],
+  "nodes": [
+    {
+      "id": "start",
+      "name": "Start",
+      "type": "StartEvent",
+      "position": { "x": 100, "y": 200 },
+      "next": ["failing-task"]
+    },
+    {
+      "id": "failing-task",
+      "name": "Failing Service Task",
+      "type": "ServiceTask",
+      "position": { "x": 300, "y": 200 },
+      "next": ["end-success"],
+      "config": {
+        "shouldFail": true
+      }
+    },
+    {
+      "id": "error-boundary",
+      "name": "Error Boundary",
+      "type": "ErrorBoundaryEvent",
+      "position": { "x": 400, "y": 255 },
+      "attachedTo": "failing-task",
+      "next": ["after-error"],
+      "config": {
+        "errorCode": "TASK_ERROR",
+        "exceptionVariable": "errorMessage"
+      }
+    },
+    {
+      "id": "after-error",
+      "name": "Handle Error",
+      "type": "HumanTask",
+      "position": { "x": 540, "y": 340 },
+      "next": ["end-error"],
+      "config": {
+        "inputs": [],
+        "outputs": []
+      }
+    },
+    {
+      "id": "end-success",
+      "name": "End Success",
+      "type": "EndEvent",
+      "position": { "x": 500, "y": 200 },
+      "next": []
+    },
+    {
+      "id": "end-error",
+      "name": "End Error",
+      "type": "EndEvent",
+      "position": { "x": 720, "y": 340 },
+      "next": []
+    }
+  ],
+  "flows": [
+    { "from": "start",        "to": "failing-task",  "condition": null },
+    { "from": "failing-task", "to": "end-success",   "condition": null },
+    { "from": "error-boundary","to": "after-error",  "condition": null },
+    { "from": "after-error",  "to": "end-error",     "condition": null }
+  ]
+}
