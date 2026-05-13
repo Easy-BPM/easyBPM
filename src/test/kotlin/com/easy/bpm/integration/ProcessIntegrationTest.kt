@@ -70,6 +70,7 @@ class ProcessIntegrationTest(
     @MockBean
     private lateinit var rabbitPublisher: RabbitPublisher
 
+    // TaskService executes APITask nodes synchronously via IntegrationService; mock to keep tests offline.
     @MockBean
     private lateinit var integrationService: IntegrationService
 
