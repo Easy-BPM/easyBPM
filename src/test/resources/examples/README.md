@@ -15,6 +15,7 @@ The following files cover every node type available in the Easy BPMN Modeler. Se
 | `../process-call-activity-child.json` | Child subprocess (HumanTask) used by parent above |
 | `../process-inclusive-gateway.json` | InclusiveGateway (OR-fork) → two ServiceTasks |
 | `../process-comprehensive.json` | Multi-feature: HumanTask, ServiceTask, APITask, ExclusiveGateway, ParallelGateway (fork + join), ErrorBoundaryEvent |
+| `../process-complete-all-components.json` | HumanTask + ServiceTask (public API) + ErrorBoundary + Timer + Message Throw/Catch + Code Task config example |
 
 ### Form Examples (`forms/` sub-folder)
 

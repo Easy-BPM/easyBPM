@@ -1,0 +1,264 @@
+{
+  "processId": "easyProcessCompleteAllComponents",
+  "metadata": {
+    "exportedAt": "2026-05-13T13:00:00.000Z",
+    "version": "1.0"
+  },
+  "variables": [
+    {
+      "name": "orderId",
+      "type": "string",
+      "initialValue": "\"ORD-1001\""
+    },
+    {
+      "name": "orderAmount",
+      "type": "number",
+      "initialValue": "149.90"
+    },
+    {
+      "name": "executeCodeTask",
+      "type": "boolean",
+      "initialValue": "false"
+    },
+    {
+      "name": "codeTaskResult",
+      "type": "string",
+      "initialValue": ""
+    },
+    {
+      "name": "errorMessage",
+      "type": "string",
+      "initialValue": ""
+    }
+  ],
+  "nodes": [
+    {
+      "id": "start_main",
+      "name": "Start",
+      "type": "StartEvent",
+      "position": { "x": 80, "y": 260 },
+      "next": ["human_submit"]
+    },
+    {
+      "id": "human_submit",
+      "name": "Submit Order",
+      "type": "HumanTask",
+      "position": { "x": 260, "y": 250 },
+      "next": ["service_public_api"],
+      "config": {
+        "formId": "submit-order-form",
+        "inputs": [
+          {
+            "targetName": "orderId",
+            "type": "string",
+            "source": "variable",
+            "value": "orderId"
+          },
+          {
+            "targetName": "orderAmount",
+            "type": "number",
+            "source": "variable",
+            "value": "orderAmount"
+          }
+        ],
+        "outputs": [
+          {
+            "sourceName": "orderId",
+            "type": "string",
+            "target": "variable",
+            "value": "orderId"
+          },
+          {
+            "sourceName": "orderAmount",
+            "type": "number",
+            "target": "variable",
+            "value": "orderAmount"
+          }
+        ]
+      }
+    },
+    {
+      "id": "service_public_api",
+      "name": "Call Public Test API",
+      "type": "ServiceTask",
+      "position": { "x": 480, "y": 250 },
+      "next": ["gateway_code_path"],
+      "config": {
+        "url": "https://jsonplaceholder.typicode.com/todos/1",
+        "method": "GET",
+        "headers": {
+          "Accept": "application/json"
+        }
+      }
+    },
+    {
+      "id": "error_boundary_service_api",
+      "name": "Handle API Error",
+      "type": "ErrorBoundaryEvent",
+      "position": { "x": 580, "y": 305 },
+      "attachedTo": "service_public_api",
+      "next": ["human_error_review"],
+      "config": {
+        "errorCode": "SERVICE_API_ERROR",
+        "exceptionVariable": "errorMessage"
+      }
+    },
+    {
+      "id": "gateway_code_path",
+      "name": "Run Code Task?",
+      "type": "ExclusiveGateway",
+      "position": { "x": 680, "y": 260 },
+      "next": ["code_task_script", "timer_wait_retry"]
+    },
+    {
+      "id": "code_task_script",
+      "name": "Code Task (ScriptTask Shape)",
+      "type": "ScriptTask",
+      "position": { "x": 900, "y": 170 },
+      "next": ["message_throw_processed"],
+      "config": {
+        "jarId": 1,
+        "className": "com.example.TestService",
+        "methodName": "processOrder",
+        "inputMappings": {
+          "orderId": "0",
+          "orderAmount": "1"
+        },
+        "outputMappings": {
+          "result": "codeTaskResult"
+        }
+      },
+      "codeTask": {
+        "jarId": 1,
+        "className": "com.example.TestService",
+        "methodName": "processOrder",
+        "inputMappings": {
+          "orderId": "0",
+          "orderAmount": "1"
+        },
+        "outputMappings": {
+          "result": "codeTaskResult"
+        }
+      }
+    },
+    {
+      "id": "timer_wait_retry",
+      "name": "Wait Before Notify",
+      "type": "TimerEvent",
+      "position": { "x": 900, "y": 350 },
+      "next": ["message_throw_processed"],
+      "properties": {
+        "timeoutSeconds": 15
+      }
+    },
+    {
+      "id": "message_throw_processed",
+      "name": "Throw Processed Message",
+      "type": "MessageIntermediateThrowEvent",
+      "position": { "x": 1120, "y": 260 },
+      "next": ["message_catch_ack"],
+      "message": {
+        "name": "OrderProcessed",
+        "correlationKeys": ["ORD-1001"],
+        "payload": [
+          {
+            "targetName": "orderId",
+            "type": "string",
+            "source": "variable",
+            "value": "orderId"
+          },
+          {
+            "targetName": "source",
+            "type": "string",
+            "source": "static",
+            "value": "easyBPM"
+          }
+        ]
+      }
+    },
+    {
+      "id": "message_catch_ack",
+      "name": "Catch Acknowledgement",
+      "type": "MessageIntermediateCatchEvent",
+      "position": { "x": 1330, "y": 260 },
+      "next": ["human_finalize"],
+      "message": {
+        "name": "OrderAcknowledged",
+        "correlationKeys": ["ORD-1001"],
+        "payload": []
+      }
+    },
+    {
+      "id": "human_finalize",
+      "name": "Finalize Order",
+      "type": "HumanTask",
+      "position": { "x": 1540, "y": 250 },
+      "next": ["end_success"],
+      "config": {
+        "formId": "approval-form",
+        "inputs": [
+          {
+            "targetName": "orderId",
+            "type": "string",
+            "source": "variable",
+            "value": "orderId"
+          },
+          {
+            "targetName": "codeTaskResult",
+            "type": "string",
+            "source": "variable",
+            "value": "codeTaskResult"
+          }
+        ],
+        "outputs": []
+      }
+    },
+    {
+      "id": "human_error_review",
+      "name": "Review API Error",
+      "type": "HumanTask",
+      "position": { "x": 900, "y": 460 },
+      "next": ["end_error"],
+      "config": {
+        "formId": "approval-form",
+        "inputs": [
+          {
+            "targetName": "errorMessage",
+            "type": "string",
+            "source": "variable",
+            "value": "errorMessage"
+          }
+        ],
+        "outputs": []
+      }
+    },
+    {
+      "id": "end_success",
+      "name": "End Success",
+      "type": "EndEvent",
+      "position": { "x": 1750, "y": 260 },
+      "next": []
+    },
+    {
+      "id": "end_error",
+      "name": "End Error",
+      "type": "EndEvent",
+      "position": { "x": 1120, "y": 460 },
+      "next": []
+    }
+  ],
+  "flows": [
+    { "from": "start_main", "to": "human_submit", "condition": null },
+    { "from": "human_submit", "to": "service_public_api", "condition": null },
+    { "from": "service_public_api", "to": "gateway_code_path", "condition": null },
+    { "from": "error_boundary_service_api", "to": "human_error_review", "condition": null },
+    { "from": "human_error_review", "to": "end_error", "condition": null },
+    { "from": "gateway_code_path", "to": "code_task_script", "condition": "${executeCodeTask} == true" },
+    { "from": "gateway_code_path", "to": "timer_wait_retry", "condition": null },
+    { "from": "code_task_script", "to": "message_throw_processed", "condition": null },
+    { "from": "timer_wait_retry", "to": "message_throw_processed", "condition": null },
+    { "from": "message_throw_processed", "to": "message_catch_ack", "condition": null },
+    { "from": "message_catch_ack", "to": "human_finalize", "condition": null },
+    { "from": "human_finalize", "to": "end_success", "condition": null }
+  ]
+}
