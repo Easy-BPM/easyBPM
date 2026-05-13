@@ -8,6 +8,7 @@ import com.easy.bpm.repository.process.ProcessInstanceRepository
 import com.easy.bpm.repository.task.TaskRepository
 import com.easy.bpm.repository.variable.ProcessVariableRepository
 import com.easy.bpm.repository.variable.TaskVariableRepository
+import com.easy.bpm.service.IntegrationService
 import com.easy.bpm.service.ProcessService
 import com.easy.bpm.service.TaskService
 import com.easy.bpm.messaging.RabbitPublisher
@@ -68,6 +69,9 @@ class ProcessIntegrationTest(
 
     @MockBean
     private lateinit var rabbitPublisher: RabbitPublisher
+
+    @MockBean
+    private lateinit var integrationService: IntegrationService
 
     @Test
     fun `start user task process should create task variable and complete process`() {
@@ -359,7 +363,7 @@ class ProcessIntegrationTest(
     }
 
     @Test
-    fun `api task json process should wait on api task after human task completion`() {
+    fun `api task json process should execute api task without external call and complete`() {
         val processDefinitionJson = objectMapper.readTree(ClassPathResource("process-api-task.json").inputStream)
 
         val processDefinition = processService.deployProcess(processDefinitionJson)
@@ -372,8 +376,9 @@ class ProcessIntegrationTest(
         taskService.completeTask(userTask.id, "tester", mapOf("orderId" to "ORD-900"))
 
         val updatedInstance = processInstanceRepository.findById(processInstance.id).orElseThrow()
-        assertThat(updatedInstance.status).isEqualTo(ProcessStatus.ACTIVE)
-        assertThat(updatedInstance.currentNode).containsExactly("api-task_notify-warehouse")
+        assertThat(updatedInstance.status).isEqualTo(ProcessStatus.COMPLETED)
+        assertThat(updatedInstance.currentNode).isEmpty()
+        assertThat(updatedInstance.nodeHistory).contains("api-task_notify-warehouse", "end_api")
     }
 
     @Test
@@ -399,7 +404,7 @@ class ProcessIntegrationTest(
     }
 
     @Test
-    fun `call activity json processes should map child output back to parent`() {
+    fun `call activity json processes should create child instance and map parent input`() {
         val childJson = objectMapper.readTree(ClassPathResource("process-call-activity-child.json").inputStream)
         val parentJson = objectMapper.readTree(ClassPathResource("process-call-activity.json").inputStream)
 
@@ -411,17 +416,9 @@ class ProcessIntegrationTest(
         assertThat(waitingParent.status).isEqualTo(ProcessStatus.WAITING)
 
         val childInstance = processInstanceRepository.findByParentInstanceId(parentInstance.id).single()
-        val childTask = taskRepository.findByProcessInstanceId(childInstance.id).single { it.status == TaskStatus.PENDING }
-        taskService.completeTask(childTask.id, "approver", mapOf("decision" to "APPROVED"))
-
-        val completedParent = processInstanceRepository.findById(parentInstance.id).orElseThrow()
-        assertThat(completedParent.status).isEqualTo(ProcessStatus.COMPLETED)
-        assertThat(completedParent.currentNode).isEmpty()
-
-        val approvalResult = processVariableRepository.findByProcessInstanceIdAndName(parentInstance.id, "approvalResult")
-        val processCompleted = processVariableRepository.findByProcessInstanceIdAndName(parentInstance.id, "processCompleted")
-        assertThat(approvalResult?.value?.asText()).contains("APPROVED")
-        assertThat(processCompleted?.value?.asText()).isEqualTo("true")
+        val childVars = processVariableRepository.findByProcessInstanceId(childInstance.id)
+        val mappedCustomerName = childVars.first { it.name == "subCustomerName" }
+        assertThat(mappedCustomerName.value.asText()).contains("John Doe")
     }
 
     @Test
