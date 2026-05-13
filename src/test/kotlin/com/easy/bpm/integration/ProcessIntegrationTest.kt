@@ -419,8 +419,9 @@ class ProcessIntegrationTest(
         assertThat(childInstances).hasSize(1)
         val childInstance = childInstances[0]
         val childVars = processVariableRepository.findByProcessInstanceId(childInstance.id)
-        val mappedCustomerName = childVars.first { it.name == "subCustomerName" }
-        assertThat(mappedCustomerName.value.asText()).contains("John Doe")
+        val mappedCustomerName = childVars.find { it.name == "subCustomerName" }
+        assertThat(mappedCustomerName).isNotNull
+        assertThat(mappedCustomerName?.value?.asText()).contains("John Doe")
     }
 
     @Test
