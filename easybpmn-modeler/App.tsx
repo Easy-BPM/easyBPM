@@ -425,6 +425,8 @@ const App: React.FC = () => {
         name: node.data.label,
         type: typeMapping[node.type] || node.type,
         position: node.position,
+        width: node.width,
+        height: node.height,
         next: nextIds
       };
 

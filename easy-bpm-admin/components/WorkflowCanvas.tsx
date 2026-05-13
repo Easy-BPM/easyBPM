@@ -27,10 +27,15 @@ const labelForNode = (node: WorkflowNode): string => {
 };
 
 const nodeSizeByType = (type: string): { width: number; height: number } => {
-  if (type === 'StartEvent' || type === 'EndEvent') return { width: 44, height: 44 };
-  if (type.toLowerCase().includes('gateway')) return { width: 54, height: 54 };
-  if (type.toLowerCase().includes('boundary')) return { width: 36, height: 36 };
-  return { width: 150, height: 72 };
+  if (type === 'StartEvent' || type === 'EndEvent') return { width: 40, height: 40 };
+  if (type.toLowerCase().includes('gateway')) return { width: 40, height: 40 };
+  if (type.toLowerCase().includes('boundary')) return { width: 30, height: 30 };
+  return { width: 120, height: 60 };
+};
+
+const getNodeSize = (node: WorkflowNode): { width: number; height: number } => {
+  if (node.width && node.height) return { width: node.width, height: node.height };
+  return nodeSizeByType(node.type);
 };
 
 const getNodeStyle = (type: string, visited: boolean, current: boolean): string => {
@@ -55,8 +60,8 @@ const getCenter = (node: WorkflowNode, size: { width: number; height: number }) 
 });
 
 const getOrthogonalPath = (source: WorkflowNode, target: WorkflowNode): string => {
-  const sourceSize = nodeSizeByType(source.type);
-  const targetSize = nodeSizeByType(target.type);
+  const sourceSize = getNodeSize(source);
+  const targetSize = getNodeSize(target);
   const start = getCenter(source, sourceSize);
   const end = getCenter(target, targetSize);
 
@@ -117,7 +122,7 @@ export const WorkflowCanvas: React.FC<Props> = ({ definition, nodeHistory, curre
 
   const bounds = nodes.reduce(
     (acc, node) => {
-      const size = nodeSizeByType(node.type);
+      const size = getNodeSize(node);
       const x = node.position?.x ?? 0;
       const y = node.position?.y ?? 0;
       return {
@@ -194,8 +199,8 @@ export const WorkflowCanvas: React.FC<Props> = ({ definition, nodeHistory, curre
           const parentNode = nodeById.get(boundaryNode.attachedTo);
           if (!parentNode) return null;
 
-          const parentSize = nodeSizeByType(parentNode.type);
-          const boundarySize = nodeSizeByType(boundaryNode.type);
+          const parentSize = getNodeSize(parentNode);
+          const boundarySize = getNodeSize(boundaryNode);
           
           // Create offsetted node copies for path calculation
           const parentOffsetted = {
@@ -234,7 +239,7 @@ export const WorkflowCanvas: React.FC<Props> = ({ definition, nodeHistory, curre
 
         {/* Draw regular nodes */}
         {regularNodes.map((node) => {
-          const size = nodeSizeByType(node.type);
+          const size = getNodeSize(node);
           const x = (node.position?.x ?? 0) + offsetX;
           const y = (node.position?.y ?? 0) + offsetY;
           const visited = visitedSet.has(node.id);
@@ -341,7 +346,7 @@ export const WorkflowCanvas: React.FC<Props> = ({ definition, nodeHistory, curre
 
         {/* Draw boundary event nodes */}
         {boundaryNodes.map((node) => {
-          const size = nodeSizeByType(node.type);
+          const size = getNodeSize(node);
           const x = (node.position?.x ?? 0) + offsetX;
           const y = (node.position?.y ?? 0) + offsetY;
           const visited = visitedSet.has(node.id);
