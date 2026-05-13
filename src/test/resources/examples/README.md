@@ -1,6 +1,34 @@
 # BPM Process Examples
 
-This directory contains example BPMN process definitions that demonstrate various BPM engine capabilities, with focus on message event usage.
+This directory contains example BPMN process definitions that demonstrate various BPM engine capabilities.
+
+## New Examples (All Node Types)
+
+The following files cover every node type available in the Easy BPMN Modeler. See the root `src/test/resources/` folder for additional examples.
+
+| File | Node Types Demonstrated |
+|------|------------------------|
+| `error-boundary.json` | ErrorBoundaryEvent attached to a ServiceTask |
+| `../process-api-task.json` | HumanTask → APITask (bearer auth) → EndEvent |
+| `../process-timer-event.json` | TimerEvent (30 s timeout) → ServiceTask → HumanTask |
+| `../process-call-activity.json` | CallActivity (parent) with input/output variable mappings |
+| `../process-call-activity-child.json` | Child subprocess (HumanTask) used by parent above |
+| `../process-inclusive-gateway.json` | InclusiveGateway (OR-fork) → two ServiceTasks |
+| `../process-comprehensive.json` | Multi-feature: HumanTask, ServiceTask, APITask, ExclusiveGateway, ParallelGateway (fork + join), ErrorBoundaryEvent |
+
+### Form Examples (`forms/` sub-folder)
+
+Forms are deployed to `POST /forms` and referenced from HumanTask nodes via `config.formId`:
+
+| File | `formId` | Use Case |
+|------|----------|----------|
+| `forms/form-loan-application.json` | `loan-application-form` | Applicant fills name, amount, credit score |
+| `forms/form-approval.json` | `approval-form` | Reviewer selects APPROVED / REJECTED |
+| `forms/form-submit-order.json` | `submit-order-form` | Operator enters order details |
+
+---
+
+## Message Event Examples (original content)
 
 ## Files
 

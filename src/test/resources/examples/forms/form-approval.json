@@ -1,0 +1,40 @@
+{
+  "formId": "approval-form",
+  "name": "Approval Form",
+  "schema": {
+    "title": "Approval Form",
+    "type": "object",
+    "properties": {
+      "customerName": {
+        "title": "Customer Name",
+        "type": "string",
+        "readOnly": true
+      },
+      "decision": {
+        "title": "Approval Decision",
+        "type": "string",
+        "readOnly": false,
+        "enum": ["APPROVED", "REJECTED", "PENDING_MORE_INFO"]
+      },
+      "justification": {
+        "title": "Decision Justification",
+        "type": "string",
+        "readOnly": false,
+        "format": "textarea"
+      },
+      "reviewDate": {
+        "title": "Review Date",
+        "type": "string",
+        "readOnly": false,
+        "format": "date"
+      },
+      "reviewerNotes": {
+        "title": "Reviewer Notes",
+        "type": "string",
+        "readOnly": false,
+        "format": "textarea"
+      }
+    },
+    "required": ["decision", "justification"]
+  }
+}

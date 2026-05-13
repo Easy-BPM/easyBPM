@@ -1,0 +1,44 @@
+{
+  "formId": "submit-order-form",
+  "name": "Submit Order Form",
+  "schema": {
+    "title": "Submit Order Form",
+    "type": "object",
+    "properties": {
+      "orderId": {
+        "title": "Order ID",
+        "type": "string",
+        "readOnly": false
+      },
+      "productCode": {
+        "title": "Product Code",
+        "type": "string",
+        "readOnly": false
+      },
+      "quantity": {
+        "title": "Quantity",
+        "type": "number",
+        "readOnly": false
+      },
+      "deliveryAddress": {
+        "title": "Delivery Address",
+        "type": "string",
+        "readOnly": false,
+        "format": "textarea"
+      },
+      "priority": {
+        "title": "Order Priority",
+        "type": "string",
+        "readOnly": false,
+        "enum": ["LOW", "NORMAL", "HIGH", "URGENT"]
+      },
+      "specialInstructions": {
+        "title": "Special Instructions",
+        "type": "string",
+        "readOnly": false,
+        "format": "textarea"
+      }
+    },
+    "required": ["orderId", "productCode", "quantity", "deliveryAddress"]
+  }
+}

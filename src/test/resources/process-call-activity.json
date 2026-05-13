@@ -1,0 +1,77 @@
+{
+  "processId": "easyProcessCallActivity",
+  "metadata": {
+    "exportedAt": "2026-05-13T12:00:00.000Z",
+    "version": "1.0"
+  },
+  "variables": [
+    {
+      "name": "customerName",
+      "type": "string",
+      "initialValue": "\"John Doe\""
+    },
+    {
+      "name": "approvalResult",
+      "type": "string",
+      "initialValue": ""
+    },
+    {
+      "name": "processCompleted",
+      "type": "boolean",
+      "initialValue": "false"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "start_parent",
+      "name": "Start",
+      "type": "StartEvent",
+      "position": { "x": 80, "y": 220 },
+      "next": ["call-activity_approval"]
+    },
+    {
+      "id": "call-activity_approval",
+      "name": "Run Approval Subprocess",
+      "type": "CallActivity",
+      "position": { "x": 280, "y": 210 },
+      "next": ["service_log-result"],
+      "config": {
+        "processKey": "easyProcessCallActivityChild",
+        "inputMappings": {
+          "customerName": "subCustomerName"
+        },
+        "outputMappings": {
+          "subApprovalDecision": "approvalResult"
+        }
+      }
+    },
+    {
+      "id": "service_log-result",
+      "name": "Log Approval Result",
+      "type": "ServiceTask",
+      "position": { "x": 500, "y": 210 },
+      "next": ["end_parent"],
+      "config": {
+        "variables": [
+          {
+            "name": "processCompleted",
+            "source": "static",
+            "value": "true"
+          }
+        ]
+      }
+    },
+    {
+      "id": "end_parent",
+      "name": "End",
+      "type": "EndEvent",
+      "position": { "x": 700, "y": 220 },
+      "next": []
+    }
+  ],
+  "flows": [
+    { "from": "start_parent",           "to": "call-activity_approval", "condition": null },
+    { "from": "call-activity_approval", "to": "service_log-result",     "condition": null },
+    { "from": "service_log-result",     "to": "end_parent",             "condition": null }
+  ]
+}

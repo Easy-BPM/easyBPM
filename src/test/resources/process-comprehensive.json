@@ -1,0 +1,189 @@
+{
+  "processId": "easyProcessComprehensive",
+  "metadata": {
+    "exportedAt": "2026-05-13T12:00:00.000Z",
+    "version": "1.0"
+  },
+  "variables": [
+    { "name": "applicantName",  "type": "string",  "initialValue": "" },
+    { "name": "loanAmount",     "type": "number",  "initialValue": "0" },
+    { "name": "creditScore",    "type": "number",  "initialValue": "0" },
+    { "name": "approved",       "type": "boolean", "initialValue": "false" },
+    { "name": "riskLevel",      "type": "string",  "initialValue": "\"unknown\"" },
+    { "name": "errorMessage",   "type": "string",  "initialValue": "" }
+  ],
+  "nodes": [
+    {
+      "id": "start_loan",
+      "name": "Start Loan Application",
+      "type": "StartEvent",
+      "position": { "x": 80, "y": 300 },
+      "next": ["user-task_submit-application"]
+    },
+    {
+      "id": "user-task_submit-application",
+      "name": "Submit Loan Application",
+      "type": "HumanTask",
+      "position": { "x": 260, "y": 290 },
+      "next": ["service_compute-risk"],
+      "config": {
+        "formId": "loan-application-form",
+        "inputs": [],
+        "outputs": [
+          { "sourceName": "applicantName", "type": "string",  "target": "variable", "value": "applicantName" },
+          { "sourceName": "loanAmount",    "type": "number",  "target": "variable", "value": "loanAmount" },
+          { "sourceName": "creditScore",   "type": "number",  "target": "variable", "value": "creditScore" }
+        ]
+      }
+    },
+    {
+      "id": "service_compute-risk",
+      "name": "Compute Risk Level",
+      "type": "ServiceTask",
+      "position": { "x": 460, "y": 290 },
+      "next": ["gateway_credit-check"],
+      "config": {
+        "variables": [
+          { "name": "riskLevel", "source": "static", "value": "medium" }
+        ]
+      }
+    },
+    {
+      "id": "gateway_credit-check",
+      "name": "Credit Score Check",
+      "type": "ExclusiveGateway",
+      "position": { "x": 640, "y": 300 },
+      "next": ["api-task_external-credit", "user-task_manual-review"]
+    },
+    {
+      "id": "api-task_external-credit",
+      "name": "External Credit API",
+      "type": "APITask",
+      "position": { "x": 840, "y": 200 },
+      "next": ["gateway_parallel-split"],
+      "properties": {
+        "url": "https://api.creditbureau.example.com/score",
+        "method": "GET",
+        "auth": {
+          "type": "apikey",
+          "ref": "CREDIT_API_KEY",
+          "in": "header",
+          "key": "X-API-Key"
+        },
+        "outputs": [
+          { "source": "variable", "sourceValue": "score", "type": "number", "targetVariable": "creditScore" }
+        ]
+      }
+    },
+    {
+      "id": "user-task_manual-review",
+      "name": "Manual Credit Review",
+      "type": "HumanTask",
+      "position": { "x": 840, "y": 400 },
+      "next": ["gateway_parallel-split"],
+      "config": {
+        "formId": "manual-review-form",
+        "inputs": [
+          { "targetName": "applicantName", "type": "string", "source": "variable", "value": "applicantName" },
+          { "targetName": "loanAmount",    "type": "number", "source": "variable", "value": "loanAmount" },
+          { "targetName": "creditScore",   "type": "number", "source": "variable", "value": "creditScore" }
+        ],
+        "outputs": [
+          { "sourceName": "approved", "type": "boolean", "target": "variable", "value": "approved" }
+        ]
+      }
+    },
+    {
+      "id": "gateway_parallel-split",
+      "name": "Parallel Notifications",
+      "type": "ParallelGateway",
+      "position": { "x": 1060, "y": 300 },
+      "next": ["service_notify-applicant", "service_update-crm"]
+    },
+    {
+      "id": "service_notify-applicant",
+      "name": "Notify Applicant",
+      "type": "ServiceTask",
+      "position": { "x": 1240, "y": 200 },
+      "next": ["gateway_parallel-join"],
+      "config": {
+        "variables": [
+          { "name": "applicantNotified", "source": "static", "value": "true" }
+        ]
+      }
+    },
+    {
+      "id": "service_update-crm",
+      "name": "Update CRM Record",
+      "type": "ServiceTask",
+      "position": { "x": 1240, "y": 400 },
+      "next": ["gateway_parallel-join"],
+      "config": {
+        "variables": [
+          { "name": "crmUpdated", "source": "static", "value": "true" }
+        ]
+      }
+    },
+    {
+      "id": "gateway_parallel-join",
+      "name": "All Notifications Done",
+      "type": "ParallelGateway",
+      "position": { "x": 1440, "y": 300 },
+      "next": ["user-task_final-decision"]
+    },
+    {
+      "id": "user-task_final-decision",
+      "name": "Final Decision",
+      "type": "HumanTask",
+      "position": { "x": 1620, "y": 290 },
+      "next": ["end_loan"],
+      "config": {
+        "formId": "final-decision-form",
+        "inputs": [
+          { "targetName": "applicantName", "type": "string",  "source": "variable", "value": "applicantName" },
+          { "targetName": "loanAmount",    "type": "number",  "source": "variable", "value": "loanAmount" },
+          { "targetName": "approved",      "type": "boolean", "source": "variable", "value": "approved" },
+          { "targetName": "riskLevel",     "type": "string",  "source": "variable", "value": "riskLevel" }
+        ],
+        "outputs": [
+          { "sourceName": "approved", "type": "boolean", "target": "variable", "value": "approved" }
+        ]
+      }
+    },
+    {
+      "id": "end_loan",
+      "name": "End",
+      "type": "EndEvent",
+      "position": { "x": 1820, "y": 300 },
+      "next": []
+    },
+    {
+      "id": "error-boundary_credit-api",
+      "name": "Credit API Error",
+      "type": "ErrorBoundaryEvent",
+      "position": { "x": 930, "y": 255 },
+      "attachedTo": "api-task_external-credit",
+      "next": ["user-task_manual-review"],
+      "config": {
+        "errorCode": "API_ERROR",
+        "exceptionVariable": "errorMessage"
+      }
+    }
+  ],
+  "flows": [
+    { "from": "start_loan",                 "to": "user-task_submit-application",  "condition": null },
+    { "from": "user-task_submit-application","to": "service_compute-risk",          "condition": null },
+    { "from": "service_compute-risk",       "to": "gateway_credit-check",          "condition": null },
+    { "from": "gateway_credit-check",       "to": "api-task_external-credit",      "condition": "${creditScore} >= 700" },
+    { "from": "gateway_credit-check",       "to": "user-task_manual-review",       "condition": "${creditScore} < 700" },
+    { "from": "api-task_external-credit",   "to": "gateway_parallel-split",        "condition": null },
+    { "from": "user-task_manual-review",    "to": "gateway_parallel-split",        "condition": null },
+    { "from": "error-boundary_credit-api",  "to": "user-task_manual-review",       "condition": null },
+    { "from": "gateway_parallel-split",     "to": "service_notify-applicant",      "condition": null },
+    { "from": "gateway_parallel-split",     "to": "service_update-crm",            "condition": null },
+    { "from": "service_notify-applicant",   "to": "gateway_parallel-join",         "condition": null },
+    { "from": "service_update-crm",         "to": "gateway_parallel-join",         "condition": null },
+    { "from": "gateway_parallel-join",      "to": "user-task_final-decision",      "condition": null },
+    { "from": "user-task_final-decision",   "to": "end_loan",                      "condition": null }
+  ]
+}

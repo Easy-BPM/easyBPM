@@ -1,0 +1,48 @@
+{
+  "formId": "loan-application-form",
+  "name": "Loan Application Form",
+  "schema": {
+    "title": "Loan Application Form",
+    "type": "object",
+    "properties": {
+      "applicantName": {
+        "title": "Applicant Full Name",
+        "type": "string",
+        "readOnly": false
+      },
+      "loanAmount": {
+        "title": "Requested Loan Amount ($)",
+        "type": "number",
+        "readOnly": false
+      },
+      "creditScore": {
+        "title": "Self-Reported Credit Score",
+        "type": "number",
+        "readOnly": false
+      },
+      "loanPurpose": {
+        "title": "Purpose of Loan",
+        "type": "string",
+        "readOnly": false,
+        "enum": ["Home Purchase", "Car Purchase", "Business", "Education", "Medical", "Other"]
+      },
+      "employmentStatus": {
+        "title": "Employment Status",
+        "type": "string",
+        "readOnly": false,
+        "enum": ["Employed Full-Time", "Employed Part-Time", "Self-Employed", "Unemployed", "Retired"]
+      },
+      "monthlyIncome": {
+        "title": "Monthly Income ($)",
+        "type": "number",
+        "readOnly": false
+      },
+      "termsAccepted": {
+        "title": "I accept the terms and conditions",
+        "type": "boolean",
+        "readOnly": false
+      }
+    },
+    "required": ["applicantName", "loanAmount", "creditScore", "loanPurpose", "employmentStatus", "termsAccepted"]
+  }
+}
