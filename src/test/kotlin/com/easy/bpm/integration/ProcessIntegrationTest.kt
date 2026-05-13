@@ -415,7 +415,9 @@ class ProcessIntegrationTest(
         val waitingParent = processInstanceRepository.findById(parentInstance.id).orElseThrow()
         assertThat(waitingParent.status).isEqualTo(ProcessStatus.WAITING)
 
-        val childInstance = processInstanceRepository.findByParentInstanceId(parentInstance.id).single()
+        val childInstances = processInstanceRepository.findByParentInstanceId(parentInstance.id)
+        assertThat(childInstances).hasSize(1)
+        val childInstance = childInstances[0]
         val childVars = processVariableRepository.findByProcessInstanceId(childInstance.id)
         val mappedCustomerName = childVars.first { it.name == "subCustomerName" }
         assertThat(mappedCustomerName.value.asText()).contains("John Doe")
