@@ -28,6 +28,8 @@ export interface WorkflowNode {
   name?: string;
   type: string;
   position?: { x: number; y: number };
+  width?: number;
+  height?: number;
   next?: string[];
   attachedTo?: string;  // For boundary events: parent node ID
   config?: Record<string, unknown>;  // For error/message/timer boundaries
