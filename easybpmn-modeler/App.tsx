@@ -409,6 +409,7 @@ const App: React.FC = () => {
   };
 
   const buildExportObject = () => {
+    // Intentionally partial: unsupported/legacy node types keep their original type string via fallback below.
     const typeMapping: Partial<Record<NodeType, string>> = {
       'start': 'StartEvent', 
       'end': 'EndEvent', 
