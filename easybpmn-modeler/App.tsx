@@ -626,25 +626,6 @@ const App: React.FC = () => {
           : undefined;
       }
 
-      if (node.type === 'call-activity') {
-        const inputMappings = Object.fromEntries(
-          (node.data.inputVariables || [])
-            .filter(v => (v.value || '').trim() !== '' && (v.name || '').trim() !== '')
-            .map(v => [String(v.value), String(v.name)])
-        );
-        const outputMappings = Object.fromEntries(
-          (node.data.outputVariables || [])
-            .filter(v => (v.name || '').trim() !== '' && (v.value || '').trim() !== '')
-            .map(v => [String(v.name), String(v.value)])
-        );
-
-        base.config = {
-          processKey: node.data.callActivityProcessKey,
-          inputMappings,
-          outputMappings,
-          propagateAllVariables: node.data.propagateAllVariables === true
-        };
-      }
       return base;
     });
 
@@ -715,7 +696,6 @@ const App: React.FC = () => {
       'APITask': 'api-task',
       'CodeTask': 'code-task',
       'CallActivity': 'call-activity',
-      'AIAgentTask': 'ai-agent',
       'ExclusiveGateway': 'gateway',
       'ParallelGateway': 'parallel-gateway',
       'TimerEvent': 'timer-event',
@@ -882,25 +862,6 @@ const App: React.FC = () => {
         if (node.properties?.timeoutSeconds !== undefined && node.properties?.timeoutSeconds !== null) {
           newNode.data.timeoutSeconds = Number(node.properties.timeoutSeconds);
         }
-      }
-
-      if (type === 'call-activity' && node.config) {
-        newNode.data.callActivityProcessKey = node.config.processKey || '';
-        newNode.data.propagateAllVariables = node.config.propagateAllVariables === true;
-        newNode.data.inputVariables = Object.entries(node.config.inputMappings || {}).map(([parentVar, childVar]: any) => ({
-          id: Math.random().toString(36).substr(2, 9),
-          name: String(childVar || ''),
-          type: 'string',
-          mappingType: 'variable',
-          value: String(parentVar || '')
-        }));
-        newNode.data.outputVariables = Object.entries(node.config.outputMappings || {}).map(([childVar, parentVar]: any) => ({
-          id: Math.random().toString(36).substr(2, 9),
-          name: String(childVar || ''),
-          type: 'string',
-          mappingType: 'variable',
-          value: String(parentVar || '')
-        }));
       }
 
       if (['message-start', 'message-intermediate-catch', 'message-intermediate-throw'].includes(type) && node.message) {
