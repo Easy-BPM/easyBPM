@@ -409,15 +409,13 @@ const App: React.FC = () => {
   };
 
   const buildExportObject = () => {
-    const typeMapping: Record<NodeType, string> = {
+    const typeMapping: Partial<Record<NodeType, string>> = {
       'start': 'StartEvent', 
       'end': 'EndEvent', 
       'user-task': 'HumanTask',
       'service-task': 'ServiceTask',
       'api-task': 'APITask',
       'ai-agent': 'APITask',
-      'code-task': 'CodeTask',
-      'call-activity': 'CallActivity',
       'gateway': 'ExclusiveGateway', 
       'parallel-gateway': 'ParallelGateway',
       'timer-event': 'TimerEvent',
@@ -694,8 +692,6 @@ const App: React.FC = () => {
       'UserTask': 'user-task',
       'ServiceTask': 'service-task',
       'APITask': 'api-task',
-      'CodeTask': 'code-task',
-      'CallActivity': 'call-activity',
       'ExclusiveGateway': 'gateway',
       'ParallelGateway': 'parallel-gateway',
       'TimerEvent': 'timer-event',
@@ -821,7 +817,7 @@ const App: React.FC = () => {
         }
 
         newNode.data.inputVariables = (aiConfig.body?.inputs || []).map((i: any) => ({
-          id: Math.random().toString(36).substr(2, 9),
+          id: generateId('var'),
           name: String(i.targetName || ''),
           type: i.type || 'string',
           mappingType: i.source || 'variable',
@@ -829,7 +825,7 @@ const App: React.FC = () => {
         }));
 
         newNode.data.outputVariables = (aiConfig.outputs || []).map((o: any) => ({
-          id: Math.random().toString(36).substr(2, 9),
+          id: generateId('var'),
           name: String(o.sourceValue || o.sourceName || ''),
           type: o.type || 'string',
           mappingType: o.source || o.target || 'variable',
