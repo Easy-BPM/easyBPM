@@ -3,7 +3,8 @@ import {
   Plus, Trash2, GripVertical, Settings, Eye, Code, 
   ChevronRight, ChevronDown, Layout, Type, Hash, 
   ToggleLeft, List, Calendar, AlignLeft, CheckSquare,
-  MoreVertical, X, Layers, Send, Globe, Copy, Check
+  MoreVertical, X, Layers, Send, Globe, Copy, Check,
+  Upload, Download, FileText
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { 
@@ -40,6 +41,9 @@ const FIELD_TYPES = [
   { type: 'radio', label: 'Radio Group', icon: <List className="w-4 h-4" /> },
   { type: 'select', label: 'Dropdown', icon: <ChevronDown className="w-4 h-4" /> },
   { type: 'date', label: 'Date Picker', icon: <Calendar className="w-4 h-4" /> },
+  { type: 'fileUpload', label: 'File Upload', icon: <Upload className="w-4 h-4" /> },
+  { type: 'fileDownload', label: 'File Download', icon: <Download className="w-4 h-4" /> },
+  { type: 'pdfViewer', label: 'PDF Viewer', icon: <FileText className="w-4 h-4" /> },
 ];
 
 // Sortable Field Item Component (Preview Style)
@@ -114,6 +118,21 @@ const SortableField: React.FC<{
           <div className="flex items-center space-x-2">
             <div className="w-4 h-4 rounded border border-slate-300 bg-white" />
             <span className="text-sm text-slate-600">Yes / No</span>
+          </div>
+        ) : field.type === 'fileUpload' ? (
+          <div className="w-full px-4 py-3 border-2 border-dashed border-slate-300 rounded-md bg-white/50 flex items-center gap-2 text-slate-400">
+            <Upload className="w-4 h-4" />
+            <span className="text-sm">Click to upload or drag & drop</span>
+          </div>
+        ) : field.type === 'fileDownload' ? (
+          <div className="flex items-center gap-2 px-3 py-2 border border-slate-300 rounded-md bg-blue-50 text-blue-500 w-fit">
+            <Download className="w-4 h-4" />
+            <span className="text-sm">Download file</span>
+          </div>
+        ) : field.type === 'pdfViewer' ? (
+          <div className="w-full h-20 border border-slate-300 rounded-md bg-slate-50 flex items-center justify-center gap-2 text-slate-400">
+            <FileText className="w-5 h-5" />
+            <span className="text-sm">PDF Preview</span>
           </div>
         ) : (
           <div className="w-full px-3 py-2 border border-slate-300 rounded-md bg-white/50 text-slate-400">
@@ -263,13 +282,42 @@ export const FormModeler: React.FC = () => {
       tab.fields.forEach(field => {
         const prop: any = {
           title: field.title,
-          type: field.type === 'number' ? 'number' : (field.type === 'boolean' ? 'boolean' : 'string'),
+          type: 'string',
           readOnly: field.readOnly
         };
-        if (field.type === 'text') prop.format = 'textarea';
-        if (field.type === 'date') prop.format = 'date';
+
+        // Map internal types to JSON-Schema type + format + extras
+        switch (field.type) {
+          case 'number':
+            prop.type = 'number';
+            break;
+          case 'boolean':
+            prop.type = 'boolean';
+            break;
+          case 'text':
+            prop.format = 'textarea';
+            break;
+          case 'date':
+            prop.format = 'date';
+            break;
+          case 'fileUpload':
+            prop.format = 'fileUpload';
+            if (field.allowedExtensions?.length) prop.allowedExtensions = field.allowedExtensions;
+            if (field.maxSizeMb) prop.maxSizeMb = field.maxSizeMb;
+            break;
+          case 'fileDownload':
+            prop.format = 'fileDownload';
+            break;
+          case 'pdfViewer':
+            prop.format = 'pdfViewer';
+            break;
+          default:
+            // string, radio, select
+            break;
+        }
+
         if (field.options && field.options.length > 0) prop.enum = field.options;
-        
+
         properties[field.name] = prop;
         if (field.required) required.push(field.name);
       });
@@ -504,6 +552,24 @@ export const FormModeler: React.FC = () => {
                           />
                           <span className={`text-sm ${field.readOnly ? 'text-slate-400' : 'text-slate-600'}`}>Yes / No</span>
                         </label>
+                      ) : field.type === 'fileUpload' ? (
+                        <div className="w-full px-4 py-4 border-2 border-dashed border-slate-300 rounded-md bg-slate-50 flex flex-col items-center gap-2 text-slate-400">
+                          <Upload className="w-6 h-6" />
+                          <span className="text-sm">Click to upload or drag & drop</span>
+                          {field.allowedExtensions?.length && (
+                            <span className="text-xs">{field.allowedExtensions.map(e => e.toUpperCase()).join(', ')} · max {field.maxSizeMb ?? 20} MB</span>
+                          )}
+                        </div>
+                      ) : field.type === 'fileDownload' ? (
+                        <div className="flex items-center gap-2 px-3 py-2 border border-blue-200 rounded-md bg-blue-50 text-blue-500 w-fit">
+                          <Download className="w-4 h-4" />
+                          <span className="text-sm">Download file</span>
+                        </div>
+                      ) : field.type === 'pdfViewer' ? (
+                        <div className="w-full h-32 border border-slate-300 rounded-md bg-slate-50 flex items-center justify-center gap-2 text-slate-400">
+                          <FileText className="w-6 h-6" />
+                          <span className="text-sm">PDF Preview area</span>
+                        </div>
                       ) : (
                         <input 
                           type={field.type === 'number' ? 'number' : (field.type === 'date' ? 'date' : 'text')} 
@@ -696,6 +762,38 @@ export const FormModeler: React.FC = () => {
                       onChange={(e) => handleUpdateField(selectedField.id, { options: e.target.value.split(',').map(s => s.trim()).filter(s => s !== '') })}
                       className="w-full px-3 py-2 border border-slate-200 rounded-md text-sm focus:ring-2 focus:ring-blue-500 outline-none min-h-[100px]"
                       placeholder="Option 1, Option 2, Option 3"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {selectedField.type === 'fileUpload' && (
+                <div className="space-y-4 pt-4 border-t border-slate-100">
+                  <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                    <Upload className="w-4 h-4 text-blue-600" />
+                    File Constraints
+                  </h3>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Allowed Extensions (comma separated)</label>
+                    <input
+                      type="text"
+                      value={selectedField.allowedExtensions?.join(', ') || ''}
+                      onChange={(e) => handleUpdateField(selectedField.id, {
+                        allowedExtensions: e.target.value.split(',').map(s => s.trim().replace(/^\./, '')).filter(s => s !== '')
+                      })}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-md text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                      placeholder="pdf, docx, png"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Max File Size (MB)</label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={100}
+                      value={selectedField.maxSizeMb ?? 20}
+                      onChange={(e) => handleUpdateField(selectedField.id, { maxSizeMb: Number(e.target.value) })}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-md text-sm focus:ring-2 focus:ring-blue-500 outline-none"
                     />
                   </div>
                 </div>
