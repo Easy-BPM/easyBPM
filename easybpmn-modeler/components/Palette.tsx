@@ -7,9 +7,10 @@ interface PaletteProps {
 }
 
 export const Palette: React.FC<PaletteProps> = ({ onDragStart }) => {
-  const groups: { title: string; items: { type: NodeType; label: string; icon: React.ReactNode; color: string }[] }[] = [
+  const groups: { title: string; accent: string; items: { type: NodeType; label: string; icon: React.ReactNode; color: string }[] }[] = [
     {
       title: 'Events',
+      accent: 'border-green-400',
       items: [
         { type: 'start', label: 'Start Event', icon: <Circle className="w-5 h-5" />, color: 'text-green-600' },
         { type: 'end', label: 'End Event', icon: <Circle className="w-5 h-5 border-2 rounded-full" style={{ borderWidth: '3px' }} />, color: 'text-red-600' },
@@ -29,6 +30,7 @@ export const Palette: React.FC<PaletteProps> = ({ onDragStart }) => {
     },
     {
       title: 'Activities',
+      accent: 'border-blue-400',
       items: [
         { type: 'user-task', label: 'Human Task', icon: <User className="w-5 h-5" />, color: 'text-blue-600' },
         { type: 'api-task', label: 'API Task', icon: <Settings className="w-5 h-5" />, color: 'text-purple-600' },
@@ -39,6 +41,7 @@ export const Palette: React.FC<PaletteProps> = ({ onDragStart }) => {
     },
     {
       title: 'Gateways',
+      accent: 'border-orange-400',
       items: [
         { type: 'gateway', label: 'Exclusive Gateway', icon: <GitFork className="w-5 h-5" />, color: 'text-orange-600' },
         { type: 'parallel-gateway', label: 'Parallel Gateway', icon: <Plus className="w-5 h-5" />, color: 'text-orange-600' },
@@ -46,6 +49,7 @@ export const Palette: React.FC<PaletteProps> = ({ onDragStart }) => {
     },
     {
       title: 'Messaging',
+      accent: 'border-violet-400',
       items: [
         { 
           type: 'message-start', 
@@ -86,6 +90,7 @@ export const Palette: React.FC<PaletteProps> = ({ onDragStart }) => {
     },
     {
       title: 'Boundary Events',
+      accent: 'border-red-400',
       items: [
         { 
           type: 'error-boundary', 
@@ -125,26 +130,28 @@ export const Palette: React.FC<PaletteProps> = ({ onDragStart }) => {
   ];
 
   return (
-    <div className="w-64 bg-slate-50 border-r border-slate-200 flex flex-col h-full z-10 shadow-sm">
-      <div className="p-4 border-b border-slate-200 bg-slate-50">
-        <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider">Components</h2>
+    <div className="w-60 bg-white border-r border-slate-200 flex flex-col h-full z-10" style={{ boxShadow: '1px 0 3px 0 rgba(0,0,0,0.04)' }}>
+      <div className="px-4 py-3.5 border-b border-slate-200 bg-white">
+        <h2 className="text-xs font-bold text-slate-500 uppercase tracking-widest">Components</h2>
       </div>
-      <div className="p-4 space-y-6 overflow-y-auto flex-1">
+      <div className="p-3 space-y-5 overflow-y-auto flex-1">
         {groups.map((group) => (
-          <div key={group.title} className="space-y-2">
-            <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">{group.title}</h3>
-            <div className="grid grid-cols-1 gap-2">
+          <div key={group.title} className="space-y-1.5">
+            <div className={`flex items-center gap-2 border-l-2 pl-2 py-0.5 ${group.accent}`}>
+              <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{group.title}</h3>
+            </div>
+            <div className="grid grid-cols-1 gap-1.5">
               {group.items.map((item) => (
                 <div
                   key={item.type}
                   draggable
                   onDragStart={(e) => onDragStart(e, item.type)}
-                  className="flex items-center p-2.5 bg-white border border-slate-200 rounded-lg shadow-sm cursor-grab hover:border-blue-400 hover:shadow-md transition-all group"
+                  className="flex items-center px-2.5 py-2 bg-slate-50 border border-slate-200 rounded-lg cursor-grab hover:border-blue-400 hover:bg-blue-50/40 hover:shadow-sm transition-all group"
                 >
-                  <div className={`mr-3 ${item.color} group-hover:scale-110 transition-transform flex-shrink-0`}>
+                  <div className={`mr-2.5 ${item.color} group-hover:scale-110 transition-transform flex-shrink-0`}>
                     {item.icon}
                   </div>
-                  <span className="text-xs font-medium text-slate-700 truncate">{item.label}</span>
+                  <span className="text-xs font-medium text-slate-700 group-hover:text-slate-900 truncate">{item.label}</span>
                 </div>
               ))}
             </div>
@@ -152,9 +159,9 @@ export const Palette: React.FC<PaletteProps> = ({ onDragStart }) => {
         ))}
       </div>
       
-      <div className="p-4 border-t border-slate-200 bg-slate-100">
-        <p className="text-xs text-slate-500 leading-relaxed">
-          <span className="font-semibold">Tip:</span> Drag components to canvas. Hover over a node to see connection points. Press <span className="font-mono bg-white border border-slate-200 rounded px-1">Delete</span> to remove.
+      <div className="px-4 py-3 border-t border-slate-200 bg-slate-50">
+        <p className="text-[11px] text-slate-400 leading-relaxed">
+          Drag to canvas · Hover a node for connections · <kbd className="font-mono bg-white border border-slate-200 rounded px-1 text-[10px]">Del</kbd> to remove
         </p>
       </div>
     </div>
