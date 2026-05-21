@@ -1,6 +1,51 @@
 # BPM Engine - Implementation Status
 
-Complete status of the Easy BPM Engine implementation across all four phases.
+Complete status of the Easy BPM Engine implementation across all phases.
+
+---
+
+## Phase 9: Document Handling in Forms ✅ COMPLETE
+
+### Goal
+
+Provide native document handling inside forms: file upload, file download, and inline PDF preview, backed by PostgreSQL binary storage and secure REST APIs.
+
+### Delivered
+
+**Backend**:
+- `V24__create_documents_table.sql` — Flyway migration for `documents` table (binary content, metadata, task/instance associations, audit columns).
+- `Document` JPA entity + `DocumentRepository`.
+- `DocumentService` — upload (with validation: max 20 MB, extension + content-type allowlists, filename sanitization), get metadata, stream content, list by task, delete with orphan cleanup, replace semantics (same task + field).
+- `DocumentController` — `POST /api/documents`, `GET /api/documents/{id}`, `GET /api/documents/{id}/download`, `GET /api/documents/{id}/preview`, `DELETE /api/documents/{id}`, `GET /api/documents?taskId=X`.
+- Security: `/api/documents/**` gated behind `ACCESS_PROCESS_PORTAL | ACCESS_BPM_ADMIN | ACCESS_BPM_MODELER`.
+
+**Task Portal**:
+- `DocumentMetadata` interface added to `types.ts`.
+- `JsonSchemaProperty` extended with `format: fileUpload | fileDownload | pdfViewer` and optional `allowedExtensions`/`maxSizeMb`.
+- `FileUploadField.tsx` — drag-and-drop upload, client + server validation, progress, filename display, replace/remove.
+- `FileDownloadField.tsx` — metadata loading, styled download link with filename and size.
+- `PdfViewerField.tsx` — `<iframe>` preview for PDFs, open-in-new-tab, download, fullscreen toggle; non-PDF fallback to download.
+- `DynamicForm.tsx` — updated to render all three new component types; accepts `taskId` / `processInstanceId` props.
+- `bpmService.ts` — 5 new document API methods.
+
+**Modeler**:
+- `FormField.type` extended with `fileUpload | fileDownload | pdfViewer`.
+- Palette includes three new entries: File Upload (📤), File Download (📥), PDF Viewer (📄).
+- Canvas and form preview render visual placeholders for each type.
+- Properties panel adds **Allowed Extensions** and **Max File Size** for `fileUpload` fields.
+- `generateJsonSchema` emits correct `format`, `allowedExtensions`, `maxSizeMb`.
+
+**Tests**:
+- `DocumentServiceTest` — 18 unit tests (validation, replace, CRUD, filename sanitization).
+- `DocumentControllerTest` — 12 unit tests (all endpoints, success + error paths, content disposition).
+- `DocumentIntegrationTest` — 13 integration tests (auth, upload, download, preview, delete, replace, list).
+
+**Documentation**:
+- `docs-site-working/docs/document-handling.md` — comprehensive guide covering DB schema, API reference, form definitions, user flow, BPMN modeler usage, testing, and security.
+
+### See Also
+
+- [Document Handling Guide](document-handling)
 
 ---
 
