@@ -114,7 +114,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
               }`}
             >
               <Rocket className="w-4 h-4" />
-              <span>{isDeploying ? 'Deploying...' : 'Deploy'}</span>
+              <span>{isDeploying ? 'Deploying...' : 'Deploy Process'}</span>
             </button>
             <button 
               onClick={onExport}
@@ -126,7 +126,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
               }`}
             >
               <Download className="w-4 h-4" />
-              <span>Export</span>
+              <span>Export JSON</span>
               {isExportDisabled && <AlertTriangle className="w-3.5 h-3.5 text-orange-500" />}
             </button>
           </div>
