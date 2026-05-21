@@ -328,18 +328,18 @@ export const FormModeler: React.FC = () => {
   return (
     <div className="flex flex-1 h-full overflow-hidden bg-slate-50">
       {/* Field Palette */}
-      <div className="w-48 bg-white border-r border-slate-200 flex flex-col">
-        <div className="p-4 border-b border-slate-200">
-          <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Field Palette</h2>
+      <div className="w-48 bg-white border-r border-slate-200 flex flex-col" style={{ boxShadow: '1px 0 3px 0 rgba(0,0,0,0.04)' }}>
+        <div className="px-4 py-3.5 border-b border-slate-200">
+          <h2 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Field Types</h2>
         </div>
-        <div className="p-3 space-y-2 overflow-y-auto">
+        <div className="p-3 space-y-1.5 overflow-y-auto flex-1">
           {FIELD_TYPES.map(ft => (
             <button
               key={ft.type}
               onClick={() => handleAddField(ft.type)}
-              className="w-full flex items-center space-x-3 p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-600 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600 transition-all text-left"
+              className="w-full flex items-center space-x-2.5 px-2.5 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-600 hover:border-blue-300 hover:bg-blue-50/40 hover:text-blue-700 transition-all text-left group"
             >
-              <span className="p-1.5 bg-white rounded shadow-sm border border-slate-100">{ft.icon}</span>
+              <span className="p-1 bg-white rounded shadow-sm border border-slate-100 group-hover:border-blue-200 transition-colors">{ft.icon}</span>
               <span className="text-xs font-medium">{ft.label}</span>
             </button>
           ))}
@@ -351,17 +351,17 @@ export const FormModeler: React.FC = () => {
         <div className="h-14 bg-white border-b border-slate-200 flex items-center justify-between px-6">
           <div className="flex items-center space-x-6">
             <div className="flex flex-col">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Form Name</label>
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Form Name</label>
               <input 
                 value={form.name}
                 onChange={(e) => handleUpdateForm({ name: e.target.value })}
-                className="text-sm font-bold text-slate-800 bg-transparent border-none focus:ring-0 p-0 w-48"
+                className="text-sm font-semibold text-slate-800 bg-transparent border-none focus:ring-0 p-0 w-48"
                 placeholder="Form Name"
               />
             </div>
             <div className="h-8 w-px bg-slate-200" />
             <div className="flex flex-col">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Form Id (ID)</label>
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Form Key (ID)</label>
               <input 
                 value={form.id}
                 onChange={(e) => handleUpdateForm({ id: e.target.value.replace(/\s+/g, '') })}
@@ -374,7 +374,7 @@ export const FormModeler: React.FC = () => {
             <button 
               onClick={() => setShowPreview(!showPreview)}
               className={`flex items-center space-x-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                showPreview ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                showPreview ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-transparent'
               }`}
             >
               {showPreview ? <Settings className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -382,22 +382,24 @@ export const FormModeler: React.FC = () => {
             </button>
             <button 
               onClick={() => setShowSchema(true)}
-              className="flex items-center space-x-2 px-3 py-1.5 bg-slate-100 text-slate-600 rounded-md text-sm font-medium hover:bg-slate-200 transition-colors"
+              className="flex items-center space-x-2 px-3 py-1.5 bg-slate-100 text-slate-600 rounded-md text-sm font-medium hover:bg-slate-200 transition-colors border border-transparent"
             >
               <Code className="w-4 h-4" />
-              <span>View Schema</span>
+              <span>Schema</span>
             </button>
             <button 
               onClick={handleDeploy}
               disabled={isDeploying}
-              className={`flex items-center space-x-2 px-4 py-1.5 bg-blue-600 text-white rounded-md text-sm font-bold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
+              className={`flex items-center space-x-2 px-4 py-1.5 rounded-md text-sm font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                isDeploying ? 'bg-blue-400 text-white' : 'bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-sm shadow-blue-200'
+              }`}
             >
               {isDeploying ? (
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
               ) : (
                 <Send className="w-4 h-4" />
               )}
-              <span>{isDeploying ? 'Deploying...' : 'Deploy to API'}</span>
+              <span>{isDeploying ? 'Deploying...' : 'Deploy Form'}</span>
             </button>
           </div>
         </div>

@@ -231,8 +231,8 @@ export const Canvas: React.FC<CanvasProps> = ({
   };
 
   return (
-    <div className="flex-1 bg-slate-50 relative overflow-hidden select-none" onDragOver={(e) => e.preventDefault()} onDrop={onDrop}>
-        <div className="absolute inset-0 pointer-events-none opacity-20" style={{ backgroundImage: 'linear-gradient(#94a3b8 1px, transparent 1px), linear-gradient(90deg, #94a3b8 1px, transparent 1px)', backgroundSize: '10px 10px' }}></div>
+    <div className="flex-1 bg-white relative overflow-hidden select-none" onDragOver={(e) => e.preventDefault()} onDrop={onDrop}>
+        <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle, #cbd5e1 1.5px, transparent 1.5px)', backgroundSize: '24px 24px' }}></div>
       <svg ref={svgRef} className="w-full h-full" onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseDown={handleMouseDownCanvas}>
         <defs>
           <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#334155" /></marker>
