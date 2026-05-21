@@ -43,7 +43,7 @@ This keeps responsibilities clear:
 | Capability | Description |
 |---|---|
 | Process Canvas | Drag/drop nodes, connect flows, edit node properties |
-| Node Types | Start/End, User Task, Service Task, API Task, Gateways, Message and Boundary events |
+| Node Types | Start/End, User Task, Service Task, API Task, **AI Agent**, Gateways, Message and Boundary events |
 | Variable Mapping | Input/output mapping across global variables and task variables |
 | Form Modeling | Build JSON-schema-driven forms with tabs and fields |
 | Deploy Process | Sends modeled process payload to backend `POST /processes` |
@@ -62,7 +62,7 @@ The Process Modeler view is composed of five primary UI components and two suppo
 ### 2. Palette (`components/Palette.tsx`)
 
 - Left-hand BPMN component catalog.
-- Drag source for node types: start/end events, user/service/API tasks, gateways, message events, boundary events.
+- Drag source for node types: start/end events, user/service/API tasks, **AI Agent**, gateways, message events, boundary events.
 - Groups node types by domain to speed up authoring.
 
 ### 3. Canvas (`components/Canvas.tsx`)

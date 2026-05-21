@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BpmnNode, BpmnEdge, ProcessVariable, TaskVariable, ValidationIssue } from '../types';
-import { Trash2, Plus, LogIn, LogOut, Layers, Database, Hash, Type, ToggleLeft, Braces, Fingerprint, AlertCircle, FileCode, Mail, Zap, FileText, Code, Info } from 'lucide-react';
+import { Trash2, Plus, LogIn, LogOut, Layers, Database, Hash, Type, ToggleLeft, Braces, Fingerprint, AlertCircle, FileCode, Mail, Zap, FileText, Code, Info, Bot } from 'lucide-react';
 import { validateId } from '../utils/validation';
 
 interface PropertiesPanelProps {
@@ -646,6 +646,160 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
              
              <div className="px-4 border-t border-slate-50 pt-4">
                {renderVarList('API Output Mapping', 'outputVariables', <LogOut className="w-3.5 h-3.5 text-green-500" />, "JSON Path (e.g. data.id)")}
+             </div>
+           </div>
+         )}
+        {selectedNode.type === 'ai-agent' && (
+           <div className="border-t border-slate-100 pt-6 space-y-6">
+             <div className="px-4">
+               <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                 <Bot className="w-4 h-4 text-fuchsia-600" /> AI Agent Configuration
+               </label>
+               <p className="text-[10px] text-slate-400 mt-1">Configure a non-deterministic AI step using model/prompt settings and variable mappings.</p>
+             </div>
+
+             <div className="px-4 space-y-4">
+               <div className="grid grid-cols-2 gap-3">
+                 <div>
+                   <label className="text-[10px] text-slate-400 uppercase font-bold mb-1 block">Provider</label>
+                   <select
+                     className={inputClassName}
+                     value={selectedNode.data.aiProvider || 'custom'}
+                     onChange={e => onUpdateNode(selectedNode.uid, { aiProvider: e.target.value as any })}
+                   >
+                     <option value="custom">Custom</option>
+                     <option value="openai">OpenAI</option>
+                     <option value="anthropic">Anthropic</option>
+                     <option value="google">Google</option>
+                   </select>
+                 </div>
+                 <div>
+                   <label className="text-[10px] text-slate-400 uppercase font-bold mb-1 block">Model</label>
+                   <input
+                     className={inputClassName}
+                     value={selectedNode.data.aiModel || ''}
+                     onChange={e => onUpdateNode(selectedNode.uid, { aiModel: e.target.value })}
+                     placeholder="e.g. gpt-4.1, claude-sonnet-4.5"
+                   />
+                 </div>
+               </div>
+
+               <div>
+                 <label className="text-[10px] text-slate-400 uppercase font-bold mb-1 block">Endpoint URL</label>
+                 <input
+                   className={`${inputClassName} font-mono`}
+                   value={selectedNode.data.aiEndpoint || ''}
+                   onChange={e => onUpdateNode(selectedNode.uid, { aiEndpoint: e.target.value })}
+                   placeholder="https://api.your-ai-provider.com/v1/chat/completions"
+                 />
+               </div>
+
+               <div className="grid grid-cols-2 gap-3">
+                 <div>
+                   <label className="text-[10px] text-slate-400 uppercase font-bold mb-1 block">Auth Type</label>
+                   <select
+                     className={inputClassName}
+                     value={selectedNode.data.apiAuthType || 'none'}
+                     onChange={e => onUpdateNode(selectedNode.uid, {
+                       apiAuthType: e.target.value as any,
+                       apiAuthIn: e.target.value === 'apikey' ? (selectedNode.data.apiAuthIn || 'header') : undefined,
+                       apiAuthKey: e.target.value === 'apikey' ? (selectedNode.data.apiAuthKey || 'X-API-Key') : undefined
+                     })}
+                   >
+                     <option value="none">None</option>
+                     <option value="bearer">Bearer</option>
+                     <option value="basic">Basic</option>
+                     <option value="apikey">API Key</option>
+                   </select>
+                 </div>
+                 {(selectedNode.data.apiAuthType || 'none') !== 'none' && (
+                   <div>
+                     <label className="text-[10px] text-slate-400 uppercase font-bold mb-1 block">Auth Ref</label>
+                     <input
+                       className={`${inputClassName} font-mono`}
+                       value={selectedNode.data.apiAuthRef || ''}
+                       onChange={e => onUpdateNode(selectedNode.uid, { apiAuthRef: e.target.value })}
+                       placeholder="e.g. OPENAI_API_KEY"
+                     />
+                   </div>
+                 )}
+               </div>
+               {(selectedNode.data.apiAuthType || 'none') === 'apikey' && (
+                 <div className="grid grid-cols-2 gap-3">
+                   <div>
+                     <label className="text-[10px] text-slate-400 uppercase font-bold mb-1 block">API Key In</label>
+                     <select
+                       className={inputClassName}
+                       value={selectedNode.data.apiAuthIn || 'header'}
+                       onChange={e => onUpdateNode(selectedNode.uid, { apiAuthIn: e.target.value as any })}
+                     >
+                       <option value="header">Header</option>
+                       <option value="query">Query</option>
+                     </select>
+                   </div>
+                   <div>
+                     <label className="text-[10px] text-slate-400 uppercase font-bold mb-1 block">API Key Name</label>
+                     <input
+                       className={`${inputClassName} font-mono`}
+                       value={selectedNode.data.apiAuthKey || 'X-API-Key'}
+                       onChange={e => onUpdateNode(selectedNode.uid, { apiAuthKey: e.target.value })}
+                       placeholder="Authorization"
+                     />
+                   </div>
+                 </div>
+               )}
+
+               <div>
+                 <label className="text-[10px] text-slate-400 uppercase font-bold mb-1 block">System Prompt</label>
+                 <textarea
+                   className={`${inputClassName} h-20 resize-none`}
+                   value={selectedNode.data.aiSystemPrompt || ''}
+                   onChange={e => onUpdateNode(selectedNode.uid, { aiSystemPrompt: e.target.value })}
+                   placeholder="Optional global instruction for the model..."
+                 />
+               </div>
+
+               <div>
+                 <label className="text-[10px] text-slate-400 uppercase font-bold mb-1 block">Prompt</label>
+                 <textarea
+                   className={`${inputClassName} h-28 resize-none`}
+                   value={selectedNode.data.aiPrompt || ''}
+                   onChange={e => onUpdateNode(selectedNode.uid, { aiPrompt: e.target.value })}
+                   placeholder="Write the AI task prompt here..."
+                 />
+               </div>
+
+               <div className="grid grid-cols-2 gap-3">
+                 <div>
+                   <label className="text-[10px] text-slate-400 uppercase font-bold mb-1 block">Temperature</label>
+                   <input
+                     type="number"
+                     min={0}
+                     max={2}
+                     step="0.1"
+                     value={selectedNode.data.aiTemperature ?? ''}
+                     onChange={e => onUpdateNode(selectedNode.uid, { aiTemperature: e.target.value ? Number(e.target.value) : null })}
+                     className={inputClassName}
+                     placeholder="e.g. 0.7"
+                   />
+                 </div>
+                 <div>
+                   <label className="text-[10px] text-slate-400 uppercase font-bold mb-1 block">Max Tokens</label>
+                   <input
+                     type="number"
+                     min={1}
+                     value={selectedNode.data.aiMaxTokens ?? ''}
+                     onChange={e => onUpdateNode(selectedNode.uid, { aiMaxTokens: e.target.value ? Number(e.target.value) : null })}
+                     className={inputClassName}
+                     placeholder="e.g. 512"
+                   />
+                 </div>
+               </div>
+             </div>
+
+             <div className="px-4 border-t border-slate-50 pt-4">
+               {renderVarList('Prompt Input Mapping', 'inputVariables', <LogIn className="w-3.5 h-3.5 text-blue-500" />)}
+               {renderVarList('AI Output Mapping', 'outputVariables', <LogOut className="w-3.5 h-3.5 text-green-500" />, "Response path (e.g. choices[0].message.content)")}
              </div>
            </div>
         )}

@@ -53,6 +53,7 @@ const sidebars: SidebarsConfig = {
       items: [
         'easy-modeler-overview',
         'easy-modeler-getting-started',
+        'easy-modeler-ai-agent',
         'easy-modeler-deploy-integration',
       ],
     },

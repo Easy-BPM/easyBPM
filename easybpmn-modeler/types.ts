@@ -1,4 +1,4 @@
-export type NodeType = 'start' | 'end' | 'user-task' | 'service-task' | 'api-task' | 'code-task' | 'call-activity' | 'gateway' | 'parallel-gateway' | 'timer-event' | 'message-start' | 'message-intermediate-catch' | 'message-intermediate-throw' | 'error-boundary' | 'message-boundary' | 'timer-boundary';
+export type NodeType = 'start' | 'end' | 'user-task' | 'service-task' | 'api-task' | 'ai-agent' | 'code-task' | 'call-activity' | 'gateway' | 'parallel-gateway' | 'timer-event' | 'message-start' | 'message-intermediate-catch' | 'message-intermediate-throw' | 'error-boundary' | 'message-boundary' | 'timer-boundary';
 
 export interface Position {
   x: number;
@@ -33,6 +33,14 @@ export interface NodeData {
   apiAuthRef?: string;
   apiAuthIn?: 'header' | 'query';
   apiAuthKey?: string;
+  // AI Agent specific
+  aiProvider?: 'openai' | 'anthropic' | 'google' | 'custom';
+  aiEndpoint?: string;
+  aiModel?: string;
+  aiPrompt?: string;
+  aiSystemPrompt?: string;
+  aiTemperature?: number | null;
+  aiMaxTokens?: number | null;
   // Call Activity specific
   callActivityProcessKey?: string;      // Target subprocess process key
   inputMappings?: Record<string, string>;  // parent var -> child var

@@ -13,7 +13,7 @@ import { processService } from './services/processService';
 const BOUNDARY_TYPES: NodeType[] = ['error-boundary', 'message-boundary', 'timer-boundary'];
 const START_TYPES: NodeType[] = ['start', 'message-start'];
 const END_TYPES: NodeType[] = ['end'];
-const TASK_TYPES: NodeType[] = ['user-task', 'service-task', 'api-task', 'code-task'];
+const TASK_TYPES: NodeType[] = ['user-task', 'service-task', 'api-task', 'ai-agent', 'code-task'];
 const FORM_KEY_PATTERN = /^[A-Za-z][A-Za-z0-9_-]*$/;
 
 // Helper to safely convert values to strings, preventing "[object Object]"
@@ -211,6 +211,18 @@ const App: React.FC = () => {
         }
       }
 
+      if (node.type === 'ai-agent') {
+        if (!(node.data.aiEndpoint || '').trim()) {
+          addIssue('error', `AI agent ${node.id} must define an endpoint URL.`, { nodeUid: node.uid, nodeId: node.id });
+        }
+        if (!(node.data.aiModel || '').trim()) {
+          addIssue('error', `AI agent ${node.id} must define a model.`, { nodeUid: node.uid, nodeId: node.id });
+        }
+        if (!(node.data.aiPrompt || '').trim()) {
+          addIssue('error', `AI agent ${node.id} must define a prompt.`, { nodeUid: node.uid, nodeId: node.id });
+        }
+      }
+
       if (node.type === 'gateway') {
         if (incoming < 1 || outgoing < 1) {
           addIssue('error', `Exclusive gateway ${node.id} must have at least one incoming and one outgoing flow.`, { nodeUid: node.uid, nodeId: node.id });
@@ -364,7 +376,7 @@ const App: React.FC = () => {
 
     if (type === 'error-boundary' || type === 'message-boundary' || type === 'timer-boundary') {
       const parent = nodes.find(n => 
-        (n.type === 'user-task' || n.type === 'service-task' || n.type === 'api-task') &&
+        (n.type === 'user-task' || n.type === 'service-task' || n.type === 'api-task' || n.type === 'ai-agent' || n.type === 'code-task') &&
         x > n.position.x && x < n.position.x + n.width &&
         y > n.position.y && y < n.position.y + n.height
       );
@@ -403,6 +415,9 @@ const App: React.FC = () => {
       'user-task': 'HumanTask',
       'service-task': 'ServiceTask',
       'api-task': 'APITask',
+      'ai-agent': 'APITask',
+      'code-task': 'CodeTask',
+      'call-activity': 'CallActivity',
       'gateway': 'ExclusiveGateway', 
       'parallel-gateway': 'ParallelGateway',
       'timer-event': 'TimerEvent',
@@ -477,6 +492,48 @@ const App: React.FC = () => {
           try { base.properties.body = JSON.parse(node.data.body); } 
           catch(e) { base.properties.body = node.data.body; } 
         }
+      }
+
+      if (node.type === 'ai-agent') {
+        base.properties = {
+          url: node.data.aiEndpoint,
+          method: 'POST',
+          aiAgent: true,
+          aiProvider: node.data.aiProvider || 'custom',
+          aiModel: node.data.aiModel,
+          outputs: (node.data.outputVariables || []).map(v => ({
+            source: v.mappingType,
+            sourceValue: String(v.name || ''),
+            type: v.type,
+            targetVariable: v.value
+          }))
+        };
+        const authType = node.data.apiAuthType || 'none';
+        const authRef = (node.data.apiAuthRef || '').trim();
+        if (authType !== 'none' && authRef) {
+          const auth: any = {
+            type: authType,
+            ref: authRef
+          };
+          if (authType === 'apikey') {
+            auth.in = node.data.apiAuthIn || 'header';
+            auth.key = (node.data.apiAuthKey || 'X-API-Key').trim() || 'X-API-Key';
+          }
+          base.properties.auth = auth;
+        }
+        base.properties.body = {
+          model: node.data.aiModel,
+          systemPrompt: node.data.aiSystemPrompt || '',
+          prompt: node.data.aiPrompt,
+          temperature: node.data.aiTemperature ?? null,
+          maxTokens: node.data.aiMaxTokens ?? null,
+          inputs: (node.data.inputVariables || []).map(v => ({
+            targetName: String(v.name || ''),
+            type: v.type,
+            source: v.mappingType,
+            value: v.value
+          }))
+        };
       }
 
        if (node.type === 'service-task') {
@@ -568,6 +625,26 @@ const App: React.FC = () => {
           ? (nodes.find(candidate => candidate.uid === node.attachedTo)?.id || node.attachedTo)
           : undefined;
       }
+
+      if (node.type === 'call-activity') {
+        const inputMappings = Object.fromEntries(
+          (node.data.inputVariables || [])
+            .filter(v => (v.value || '').trim() !== '' && (v.name || '').trim() !== '')
+            .map(v => [String(v.value), String(v.name)])
+        );
+        const outputMappings = Object.fromEntries(
+          (node.data.outputVariables || [])
+            .filter(v => (v.name || '').trim() !== '' && (v.value || '').trim() !== '')
+            .map(v => [String(v.name), String(v.value)])
+        );
+
+        base.config = {
+          processKey: node.data.callActivityProcessKey,
+          inputMappings,
+          outputMappings,
+          propagateAllVariables: node.data.propagateAllVariables === true
+        };
+      }
       return base;
     });
 
@@ -636,6 +713,9 @@ const App: React.FC = () => {
       'UserTask': 'user-task',
       'ServiceTask': 'service-task',
       'APITask': 'api-task',
+      'CodeTask': 'code-task',
+      'CallActivity': 'call-activity',
+      'AIAgentTask': 'ai-agent',
       'ExclusiveGateway': 'gateway',
       'ParallelGateway': 'parallel-gateway',
       'TimerEvent': 'timer-event',
@@ -663,6 +743,9 @@ const App: React.FC = () => {
       let width = 140; 
       let height = 80;
       let type = reverseTypeMapping[node.type] || node.type as NodeType;
+      if (type === 'api-task' && (node.properties?.aiAgent === true || node.service?.aiAgent === true)) {
+        type = 'ai-agent';
+      }
       if (type === 'timer-event' && node.attachedTo) {
         type = 'timer-boundary';
       }
@@ -734,7 +817,47 @@ const App: React.FC = () => {
          }
       }
 
-       if (type === 'service-task' && node.config) {
+      if (type === 'ai-agent' && (node.properties || node.service)) {
+        const aiConfig = node.properties || node.service;
+        newNode.data.aiProvider = aiConfig.aiProvider || 'custom';
+        newNode.data.aiEndpoint = aiConfig.url;
+        newNode.data.aiModel = aiConfig.aiModel || aiConfig.body?.model;
+        newNode.data.aiSystemPrompt = aiConfig.body?.systemPrompt || '';
+        newNode.data.aiPrompt = aiConfig.body?.prompt || '';
+        if (aiConfig.body?.temperature !== undefined && aiConfig.body?.temperature !== null) {
+          newNode.data.aiTemperature = Number(aiConfig.body.temperature);
+        }
+        if (aiConfig.body?.maxTokens !== undefined && aiConfig.body?.maxTokens !== null) {
+          newNode.data.aiMaxTokens = Number(aiConfig.body.maxTokens);
+        }
+
+        if (aiConfig.auth && typeof aiConfig.auth === 'object') {
+          newNode.data.apiAuthType = aiConfig.auth.type || 'none';
+          newNode.data.apiAuthRef = aiConfig.auth.ref || '';
+          if (aiConfig.auth.type === 'apikey') {
+            newNode.data.apiAuthIn = aiConfig.auth.in || 'header';
+            newNode.data.apiAuthKey = aiConfig.auth.key || 'X-API-Key';
+          }
+        }
+
+        newNode.data.inputVariables = (aiConfig.body?.inputs || []).map((i: any) => ({
+          id: Math.random().toString(36).substr(2, 9),
+          name: String(i.targetName || ''),
+          type: i.type || 'string',
+          mappingType: i.source || 'variable',
+          value: i.value || ''
+        }));
+
+        newNode.data.outputVariables = (aiConfig.outputs || []).map((o: any) => ({
+          id: Math.random().toString(36).substr(2, 9),
+          name: String(o.sourceValue || o.sourceName || ''),
+          type: o.type || 'string',
+          mappingType: o.source || o.target || 'variable',
+          value: o.targetVariable || o.value || ''
+        }));
+      }
+
+      if (type === 'service-task' && node.config) {
          if (node.config.inputs) {
            newNode.data.inputVariables = (node.config.inputs || []).map((i: any) => ({
              id: Math.random().toString(36).substr(2, 9),
@@ -759,6 +882,25 @@ const App: React.FC = () => {
         if (node.properties?.timeoutSeconds !== undefined && node.properties?.timeoutSeconds !== null) {
           newNode.data.timeoutSeconds = Number(node.properties.timeoutSeconds);
         }
+      }
+
+      if (type === 'call-activity' && node.config) {
+        newNode.data.callActivityProcessKey = node.config.processKey || '';
+        newNode.data.propagateAllVariables = node.config.propagateAllVariables === true;
+        newNode.data.inputVariables = Object.entries(node.config.inputMappings || {}).map(([parentVar, childVar]: any) => ({
+          id: Math.random().toString(36).substr(2, 9),
+          name: String(childVar || ''),
+          type: 'string',
+          mappingType: 'variable',
+          value: String(parentVar || '')
+        }));
+        newNode.data.outputVariables = Object.entries(node.config.outputMappings || {}).map(([childVar, parentVar]: any) => ({
+          id: Math.random().toString(36).substr(2, 9),
+          name: String(childVar || ''),
+          type: 'string',
+          mappingType: 'variable',
+          value: String(parentVar || '')
+        }));
       }
 
       if (['message-start', 'message-intermediate-catch', 'message-intermediate-throw'].includes(type) && node.message) {
