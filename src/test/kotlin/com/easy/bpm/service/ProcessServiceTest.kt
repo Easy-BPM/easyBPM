@@ -10,6 +10,7 @@ import com.easy.bpm.model.variable.ProcessVariable
 import com.easy.bpm.repository.process.ProcessDefinitionRepository
 import com.easy.bpm.repository.process.ProcessInstanceRepository
 import com.easy.bpm.repository.process.CallActivityMappingRepository
+import com.easy.bpm.repository.process.AdHocDecisionAuditRepository
 import com.easy.bpm.repository.task.TaskRepository
 import com.easy.bpm.repository.variable.ProcessVariableRepository
 import com.easy.bpm.repository.variable.TaskVariableRepository
@@ -49,6 +50,7 @@ class ProcessServiceTest : FunSpec({
     val mockWorkerRequestRepository = mockk<WorkerRequestRepository>()
     val mockCallActivityHandler = mockk<CallActivityHandler>()
     val mockCallActivityMappingRepository = mockk<CallActivityMappingRepository>()
+    val mockAdHocDecisionAuditRepository = mockk<AdHocDecisionAuditRepository>(relaxed = true)
 
     val processService = ProcessService(
         mockProcessDefinitionRepository,
@@ -65,7 +67,8 @@ class ProcessServiceTest : FunSpec({
         mockMetricsService,
         mockWorkerRequestRepository,
         mockCallActivityHandler,
-        mockCallActivityMappingRepository
+        mockCallActivityMappingRepository,
+        mockAdHocDecisionAuditRepository
     )
 
     val objectMapper = ObjectMapper()
@@ -150,6 +153,29 @@ class ProcessServiceTest : FunSpec({
             // Act & Assert
             shouldThrow<IllegalArgumentException> {
                 processService.deployProcess(invalidJson)
+            }
+        }
+
+        test("should reject ad-hoc subprocess activities that are not human tasks") {
+            // Arrange
+            val processJson = objectMapper.readTree(
+                """
+                {
+                  "processId": "adhoc-invalid",
+                  "nodes": [
+                    {"id": "start", "type": "StartEvent"},
+                    {"id": "adhoc", "type": "AdHocSubProcess", "config": {"activities": ["service-1"]}},
+                    {"id": "service-1", "type": "ServiceTask"},
+                    {"id": "end", "type": "EndEvent"}
+                  ],
+                  "flows": []
+                }
+                """.trimIndent()
+            )
+
+            // Act / Assert
+            shouldThrow<IllegalArgumentException> {
+                processService.deployProcess(processJson)
             }
         }
     }
@@ -483,4 +509,3 @@ class ProcessServiceTest : FunSpec({
         }
     }
 })
-

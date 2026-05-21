@@ -11,6 +11,7 @@ enum class NodeType(val typeName: String) {
     APITask("APITask"),
     ServiceTask("ServiceTask"),
     ScriptTask("ScriptTask"),
+    AdHocSubProcess("AdHocSubProcess"),
     TimerEvent("TimerEvent"),
     MessageEvent("MessageEvent"),
     MessageIntermediateCatchEvent("MessageIntermediateCatchEvent"),
@@ -21,10 +22,11 @@ enum class NodeType(val typeName: String) {
     companion object {
         private val map = values().associateBy { it.typeName } + mapOf(
             // Backward compatibility for existing process definitions and imports.
-            "UserTask" to UserTask
+            "UserTask" to UserTask,
+            "AdHocSubprocess" to AdHocSubProcess,
+            "AdHocSubProcess" to AdHocSubProcess
         )
         fun fromString(s: String): NodeType = map[s]
             ?: throw IllegalArgumentException("Invalid node type '$s'")
     }
 }
-

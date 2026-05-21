@@ -38,7 +38,8 @@ class TaskService(
     private val rabbitPublisher: com.easy.bpm.messaging.RabbitPublisher,
     private val gatewayService: GatewayService,
     private val messageSubscriptionService: MessageSubscriptionService,
-    private val metricsService: MetricsService
+    private val metricsService: MetricsService,
+    private val processService: ProcessService
 ) {
 
     private val taskSortableFields = setOf(
@@ -86,9 +87,6 @@ class TaskService(
         // 2️⃣ OUTPUT mapping → TASK → PROCESS
         applyTaskOutputs(task, currentNode, instance)
 
-        // 3️⃣ Resolver próximos nós
-        val nextNodeIds = getNextNodes(currentNode, definition, instance)
-
         // 4️⃣ Atualizar Task
         completeTaskEntity(task, assignee)
         metricsService.recordTaskCompleted()
@@ -109,10 +107,19 @@ class TaskService(
         } catch (_: Exception) {
         }
 
-        // 5️⃣ Atualizar instância
+        val adHocParentNodeId = processService.findAdHocParentForActivity(instance.id, task.nodeId)
+        if (!adHocParentNodeId.isNullOrBlank()) {
+            processService.onAdHocActivityCompleted(instance.id, adHocParentNodeId, task.nodeId)
+            return
+        }
+
+        // 5️⃣ Resolver próximos nós
+        val nextNodeIds = getNextNodes(currentNode, definition, instance)
+
+        // 6️⃣ Atualizar instância
         advanceProcess(instance, nextNodeIds, definition)
 
-        // 6️⃣ Continuar execução
+        // 7️⃣ Continuar execução
         executeNextSteps(nextNodeIds, instance, definition)
     }
 
@@ -244,6 +251,7 @@ class TaskService(
             NodeType.UserTask -> handleUserTask(instance, node)
             NodeType.APITask -> handleAPITask(instance, node, definition)
             NodeType.ServiceTask -> handleServiceTaskNode(instance, node, definition)
+            NodeType.AdHocSubProcess -> processService.evaluateAdHocNode(instance.id, node.get("id").asText())
             NodeType.MessageIntermediateCatchEvent -> handleMessageIntermediateCatchEvent(instance, node)
             NodeType.MessageIntermediateThrowEvent -> handleMessageIntermediateThrowEvent(instance, node, definition)
             NodeType.EndEvent -> finishProcess(instance)
@@ -747,4 +755,3 @@ class TaskService(
     private fun parseStaticValue(valueNode: JsonNode): JsonNode =
         if (valueNode.isTextual) objectMapper.readTree(valueNode.asText()) else valueNode
 }
-

@@ -251,6 +251,33 @@ class ProcessController(
         }
     }
 
+    @GetMapping("/instances/{id}/ad-hoc/{nodeId}/context")
+    @Operation(summary = "Get ad-hoc subprocess context", description = "Returns ad-hoc runtime state, eligible activities, variables, and audit trail for AI/human orchestration")
+    fun getAdHocContext(
+        @PathVariable id: Long,
+        @PathVariable nodeId: String
+    ): ResponseEntity<Map<String, Any?>> {
+        return try {
+            ResponseEntity.ok(processService.getAdHocContext(id, nodeId))
+        } catch (ex: IllegalArgumentException) {
+            ResponseEntity.badRequest().build()
+        }
+    }
+
+    @PostMapping("/instances/{id}/ad-hoc/{nodeId}/decisions")
+    @Operation(summary = "Submit ad-hoc orchestration decision", description = "Submit AI/human decision for ad-hoc subprocess activity routing, recommendation, escalation, skip, or repeat")
+    fun submitAdHocDecision(
+        @PathVariable id: Long,
+        @PathVariable nodeId: String,
+        @RequestBody decision: Map<String, Any?>
+    ): ResponseEntity<Map<String, Any?>> {
+        return try {
+            ResponseEntity.ok(processService.submitAdHocDecision(id, nodeId, decision))
+        } catch (ex: IllegalArgumentException) {
+            ResponseEntity.badRequest().body(mapOf("error" to (ex.message ?: "Invalid ad-hoc decision")))
+        }
+    }
+
     @GetMapping
     @Operation(summary = "Get latest process definitions", description = "Retrieve the latest versions of all process definitions")
     fun getLatestProcesses(pageable: Pageable): Page<ProcessDefinition> {
@@ -315,4 +342,3 @@ class ProcessController(
     }
 
 }
-

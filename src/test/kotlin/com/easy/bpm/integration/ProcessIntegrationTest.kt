@@ -3,6 +3,7 @@ package com.easy.bpm.integration
 import com.easy.bpm.enum.ProcessStatus
 import com.easy.bpm.enum.MessageSubscriptionStatus
 import com.easy.bpm.enum.TaskStatus
+import com.easy.bpm.model.process.AdHocDecisionAudit
 import com.easy.bpm.repository.message.MessageSubscriptionRepository
 import com.easy.bpm.repository.process.ProcessInstanceRepository
 import com.easy.bpm.repository.task.TaskRepository
@@ -546,6 +547,92 @@ class ProcessIntegrationTest(
                 assertThat(pendingTasks).hasSize(1)
                 assertThat(pendingTasks.first().nodeId).isEqualTo("error-task")
         }
+
+    @Test
+    fun `ad-hoc subprocess should support dynamic activity selection with audit trail`() {
+        val processDefinitionJson = objectMapper.readTree(
+            """
+            {
+              "processId": "adhoc-loan-review",
+              "nodes": [
+                { "id": "start", "type": "StartEvent" },
+                {
+                  "id": "adhoc-review",
+                  "type": "AdHocSubProcess",
+                  "name": "Ad-hoc Review",
+                  "config": {
+                    "activities": ["risk-review", "finance-review"]
+                  }
+                },
+                { "id": "risk-review", "type": "HumanTask", "name": "Risk Review", "config": { "inputs": [], "outputs": [] } },
+                { "id": "finance-review", "type": "HumanTask", "name": "Finance Review", "config": { "inputs": [], "outputs": [] } },
+                { "id": "end", "type": "EndEvent" }
+              ],
+              "flows": [
+                { "from": "start", "to": "adhoc-review", "condition": null },
+                { "from": "adhoc-review", "to": "end", "condition": null }
+              ]
+            }
+            """.trimIndent()
+        )
+
+        val processDefinition = processService.deployProcess(processDefinitionJson)
+        val instance = processService.startProcessInstance(processDefinition.id)
+
+        val waiting = processInstanceRepository.findById(instance.id).orElseThrow()
+        assertThat(waiting.status).isEqualTo(ProcessStatus.ACTIVE)
+        assertThat(waiting.currentNode).containsExactly("adhoc-review")
+
+        val activationContext = processService.submitAdHocDecision(
+            instance.id,
+            "adhoc-review",
+            mapOf(
+                "decisionType" to "SELECT_NEXT_ACTIVITY",
+                "activityId" to "risk-review",
+                "agentId" to "risk-agent",
+                "actorType" to "agent",
+                "confidence" to 0.91
+            )
+        )
+
+        @Suppress("UNCHECKED_CAST")
+        val eligibleAfterFirst = activationContext["eligibleActivities"] as List<String>
+        assertThat(eligibleAfterFirst).contains("finance-review")
+        assertThat(eligibleAfterFirst).doesNotContain("risk-review")
+
+        val riskTask = taskRepository.findByProcessInstanceId(instance.id)
+            .first { it.nodeId == "risk-review" && it.status == TaskStatus.PENDING }
+        taskService.completeTask(riskTask.id, "risk-analyst", emptyMap())
+
+        val afterFirstCompletion = processInstanceRepository.findById(instance.id).orElseThrow()
+        assertThat(afterFirstCompletion.status).isEqualTo(ProcessStatus.ACTIVE)
+        assertThat(afterFirstCompletion.currentNode).containsExactly("adhoc-review")
+
+        processService.submitAdHocDecision(
+            instance.id,
+            "adhoc-review",
+            mapOf(
+                "decisionType" to "ACTIVATE_ACTIVITY",
+                "activityId" to "finance-review",
+                "agentId" to "orchestrator-agent",
+                "actorType" to "agent"
+            )
+        )
+        val financeTask = taskRepository.findByProcessInstanceId(instance.id)
+            .first { it.nodeId == "finance-review" && it.status == TaskStatus.PENDING }
+        taskService.completeTask(financeTask.id, "finance-analyst", emptyMap())
+
+        val completed = processInstanceRepository.findById(instance.id).orElseThrow()
+        assertThat(completed.status).isEqualTo(ProcessStatus.COMPLETED)
+        assertThat(completed.currentNode).isEmpty()
+
+        val context = processService.getAdHocContext(instance.id, "adhoc-review")
+        @Suppress("UNCHECKED_CAST")
+        val audit = context["auditEvents"] as List<AdHocDecisionAudit>
+        assertThat(audit).isNotEmpty
+        assertThat(audit.map { it.decisionType })
+            .contains("SELECT_NEXT_ACTIVITY", "ACTIVITY_COMPLETED", "ACTIVATE_ACTIVITY")
+    }
 
     private fun getPendingTaskNodesFromApi(processInstanceId: Long): List<String> {
         val responseBody = mockMvc.perform(get("/tasks?page=0&size=100"))

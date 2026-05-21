@@ -5,12 +5,14 @@ import com.easy.bpm.enum.NodeType
 import com.easy.bpm.enum.TaskStatus
 import com.easy.bpm.model.process.ProcessDefinition
 import com.easy.bpm.model.process.ProcessInstance
+import com.easy.bpm.model.process.AdHocDecisionAudit
 import com.easy.bpm.model.task.Task
 import com.easy.bpm.model.variable.ProcessVariable
 import com.easy.bpm.model.variable.TaskVariable
 import com.easy.bpm.repository.process.ProcessDefinitionRepository
 import com.easy.bpm.repository.process.ProcessInstanceRepository
 import com.easy.bpm.repository.process.CallActivityMappingRepository
+import com.easy.bpm.repository.process.AdHocDecisionAuditRepository
 import com.easy.bpm.repository.task.TaskRepository
 import com.easy.bpm.repository.variable.ProcessVariableRepository
 import com.easy.bpm.repository.variable.TaskVariableRepository
@@ -43,7 +45,8 @@ class ProcessService(
     private val metricsService: MetricsService,
     private val workerRequestRepository: WorkerRequestRepository,
     private val callActivityHandler: CallActivityHandler,
-    private val callActivityMappingRepository: CallActivityMappingRepository
+    private val callActivityMappingRepository: CallActivityMappingRepository,
+    private val adHocDecisionAuditRepository: AdHocDecisionAuditRepository
 ) {
 
     companion object {
@@ -398,6 +401,7 @@ class ProcessService(
                 NodeType.UserTask -> handleUserTask(instance, node)
                 NodeType.APITask -> handleAPITask(instance, node)
                 NodeType.ServiceTask -> handleServiceTaskNode(instance, node, definition)
+                NodeType.AdHocSubProcess -> handleAdHocSubProcess(instance, node, definition)
                 NodeType.TimerEvent -> handleTimerEvent(instance, node)
                 NodeType.MessageEvent -> handleMessageEvent(instance, node)
                 NodeType.MessageIntermediateCatchEvent -> handleMessageIntermediateCatchEvent(instance, node)
@@ -812,6 +816,198 @@ class ProcessService(
         }
     }
 
+    private fun handleAdHocSubProcess(
+        instance: ProcessInstance,
+        node: JsonNode,
+        definition: JsonNode
+    ) {
+        val nodeId = node.get("id").asText()
+        val activities = getAdHocActivities(node)
+        val state = ensureAdHocState(instance.id, nodeId, activities)
+        syncAdHocCounters(instance.id, nodeId, state)
+
+        val completionCondition = node.get("config")?.get("completionCondition")?.asText()?.trim()
+        val shouldComplete = when {
+            !completionCondition.isNullOrBlank() -> evaluateCondition(completionCondition, instance)
+            else -> {
+                val total = (state["activities"] as? List<*>)?.size ?: 0
+                val completed = (state["completed"] as? List<*>)?.size ?: 0
+                val skipped = (state["skipped"] as? List<*>)?.size ?: 0
+                total > 0 && (completed + skipped) >= total
+            }
+        }
+
+        if (shouldComplete) {
+            appendAdHocAudit(
+                processInstanceId = instance.id,
+                adHocNodeId = nodeId,
+                decisionType = "COMPLETION_CONDITION_SATISFIED",
+                actorType = "system",
+                details = mapOf("state" to state)
+            )
+            val nextNodes = getNextNodes(node, definition, instance)
+            advanceProcess(instance, nextNodes, definition)
+            executeNodes(nextNodes, instance, definition)
+            return
+        }
+
+        instance.currentNode = listOf(nodeId)
+        if (instance.nodeHistory.lastOrNull() != nodeId) {
+            instance.nodeHistory = instance.nodeHistory + nodeId
+        }
+        instance.updatedAt = LocalDateTime.now()
+        processInstanceRepository.save(instance)
+    }
+
+    @Transactional
+    fun getAdHocContext(processInstanceId: Long, adHocNodeId: String): Map<String, Any?> {
+        val instance = processInstanceRepository.findById(processInstanceId)
+            .orElseThrow { IllegalArgumentException("Process instance not found") }
+        val definition = parseDefinition(instance.processDefinition.definitionJson)
+        val adHocNode = findNode(definition, adHocNodeId)
+        if (NodeType.fromString(adHocNode.get("type").asText()) != NodeType.AdHocSubProcess) {
+            throw IllegalArgumentException("Node '$adHocNodeId' is not an AdHocSubProcess")
+        }
+
+        val activities = getAdHocActivities(adHocNode)
+        val state = ensureAdHocState(processInstanceId, adHocNodeId, activities)
+        syncAdHocCounters(processInstanceId, adHocNodeId, state)
+        val eligible = getEligibleAdHocActivities(adHocNode, definition, instance, state)
+        val variables = processVariableRepository.findByProcessInstanceId(processInstanceId)
+            .associate { it.name to objectMapper.convertValue(it.value, Any::class.java) }
+        val audit = adHocDecisionAuditRepository
+            .findByProcessInstanceIdAndAdHocNodeIdOrderByCreatedAtDesc(processInstanceId, adHocNodeId)
+            .take(50)
+
+        return mapOf(
+            "processInstanceId" to processInstanceId,
+            "adHocNodeId" to adHocNodeId,
+            "currentNode" to instance.currentNode,
+            "activities" to activities,
+            "eligibleActivities" to eligible,
+            "state" to state,
+            "variables" to variables,
+            "auditEvents" to audit
+        )
+    }
+
+    @Transactional
+    fun submitAdHocDecision(processInstanceId: Long, adHocNodeId: String, decision: Map<String, Any?>): Map<String, Any?> {
+        val instance = processInstanceRepository.findById(processInstanceId)
+            .orElseThrow { IllegalArgumentException("Process instance not found") }
+        val definition = parseDefinition(instance.processDefinition.definitionJson)
+        val adHocNode = findNode(definition, adHocNodeId)
+        if (NodeType.fromString(adHocNode.get("type").asText()) != NodeType.AdHocSubProcess) {
+            throw IllegalArgumentException("Node '$adHocNodeId' is not an AdHocSubProcess")
+        }
+
+        val activities = getAdHocActivities(adHocNode)
+        var state = ensureAdHocState(processInstanceId, adHocNodeId, activities)
+
+        val decisionType = (decision["decisionType"] as? String)?.trim()?.uppercase()
+            ?: throw IllegalArgumentException("decisionType is required")
+        val actorId = (decision["agentId"] as? String)?.trim().takeUnless { it.isNullOrBlank() }
+            ?: (decision["actorId"] as? String)?.trim().takeUnless { it.isNullOrBlank() }
+        val actorType = (decision["actorType"] as? String)?.trim()?.lowercase().takeUnless { it.isNullOrBlank() }
+            ?: if (actorId != null) "agent" else "system"
+        val recommendation = decision["recommendation"] as? String
+        val confidence = when (val raw = decision["confidence"]) {
+            is Number -> raw.toDouble()
+            is String -> raw.toDoubleOrNull()
+            else -> null
+        }
+
+        val activityId = (decision["activityId"] as? String)?.trim()?.takeIf { it.isNotBlank() }
+        if (activityId != null && activityId !in activities) {
+            throw IllegalArgumentException("Activity '$activityId' is not part of ad-hoc node '$adHocNodeId'")
+        }
+
+        when (decisionType) {
+            "RECOMMENDATION", "ESCALATE_TO_HUMAN", "COLLABORATE" -> {
+                // Audit only decisions.
+            }
+            "ACTIVATE_ACTIVITY", "SELECT_NEXT_ACTIVITY" -> {
+                if (activityId == null) throw IllegalArgumentException("activityId is required for $decisionType")
+                val eligible = getEligibleAdHocActivities(adHocNode, definition, instance, state)
+                if (activityId !in eligible) {
+                    throw IllegalArgumentException("Activity '$activityId' is not eligible")
+                }
+                state = markAdHocActivityActivated(processInstanceId, adHocNodeId, activityId, state)
+                executeAdHocActivity(instance, adHocNodeId, activityId, definition)
+            }
+            "SKIP_ACTIVITY" -> {
+                if (activityId == null) throw IllegalArgumentException("activityId is required for SKIP_ACTIVITY")
+                state = markAdHocActivitySkipped(processInstanceId, adHocNodeId, activityId, state)
+            }
+            "REPEAT_ACTIVITY" -> {
+                if (activityId == null) throw IllegalArgumentException("activityId is required for REPEAT_ACTIVITY")
+                state = markAdHocActivityRequeued(processInstanceId, adHocNodeId, activityId, state)
+                executeAdHocActivity(instance, adHocNodeId, activityId, definition)
+            }
+            else -> throw IllegalArgumentException("Unsupported decisionType '$decisionType'")
+        }
+
+        appendAdHocAudit(
+            processInstanceId = processInstanceId,
+            adHocNodeId = adHocNodeId,
+            activityNodeId = activityId,
+            decisionType = decisionType,
+            actorType = actorType,
+            actorId = actorId,
+            confidence = confidence,
+            recommendation = recommendation,
+            details = decision
+        )
+
+        val refreshedState = getAdHocState(processInstanceId, adHocNodeId) ?: state
+        syncAdHocCounters(processInstanceId, adHocNodeId, refreshedState)
+        handleAdHocSubProcess(instance, adHocNode, definition)
+        return getAdHocContext(processInstanceId, adHocNodeId)
+    }
+
+    @Transactional
+    fun onAdHocActivityCompleted(processInstanceId: Long, adHocNodeId: String, activityNodeId: String) {
+        val instance = processInstanceRepository.findById(processInstanceId)
+            .orElseThrow { IllegalArgumentException("Process instance not found") }
+        val definition = parseDefinition(instance.processDefinition.definitionJson)
+        val adHocNode = findNode(definition, adHocNodeId)
+        var state = getAdHocState(processInstanceId, adHocNodeId)
+            ?: ensureAdHocState(processInstanceId, adHocNodeId, getAdHocActivities(adHocNode))
+        state = markAdHocActivityCompleted(processInstanceId, adHocNodeId, activityNodeId, state)
+
+        appendAdHocAudit(
+            processInstanceId = processInstanceId,
+            adHocNodeId = adHocNodeId,
+            activityNodeId = activityNodeId,
+            decisionType = "ACTIVITY_COMPLETED",
+            actorType = "system",
+            details = mapOf("state" to state)
+        )
+
+        val refreshed = processInstanceRepository.findById(processInstanceId).orElseThrow()
+        handleAdHocSubProcess(refreshed, adHocNode, definition)
+    }
+
+    @Transactional
+    fun evaluateAdHocNode(processInstanceId: Long, adHocNodeId: String) {
+        val instance = processInstanceRepository.findById(processInstanceId)
+            .orElseThrow { IllegalArgumentException("Process instance not found") }
+        val definition = parseDefinition(instance.processDefinition.definitionJson)
+        val adHocNode = findNode(definition, adHocNodeId)
+        if (NodeType.fromString(adHocNode.get("type").asText()) != NodeType.AdHocSubProcess) {
+            throw IllegalArgumentException("Node '$adHocNodeId' is not an AdHocSubProcess")
+        }
+        handleAdHocSubProcess(instance, adHocNode, definition)
+    }
+
+    fun findAdHocParentForActivity(processInstanceId: Long, activityNodeId: String): String? {
+        val link = processVariableRepository.findByProcessInstanceIdAndName(
+            processInstanceId,
+            adHocActivityParentVariableName(activityNodeId)
+        ) ?: return null
+        return if (link.value.isTextual) link.value.asText() else null
+    }
+
     @Transactional
     fun handleServiceTaskCompleted(processInstanceId: Long, nodeId: String, outputs: Map<String, String>) {
         val startTime = System.currentTimeMillis()
@@ -1094,6 +1290,262 @@ class ProcessService(
         }
     }
 
+    private fun getAdHocActivities(node: JsonNode): List<String> {
+        val config = node.get("config")
+            ?: throw IllegalArgumentException("AdHocSubProcess ${node.get("id").asText()} missing config")
+        val activitiesNode = config.get("activities")
+            ?: throw IllegalArgumentException("AdHocSubProcess ${node.get("id").asText()} missing config.activities")
+        require(activitiesNode.isArray) { "AdHocSubProcess ${node.get("id").asText()} config.activities must be an array" }
+        val activities = activitiesNode.mapNotNull { it.asText()?.trim() }.filter { it.isNotBlank() }.distinct()
+        require(activities.isNotEmpty()) { "AdHocSubProcess ${node.get("id").asText()} must define at least one activity" }
+        return activities
+    }
+
+    private fun adHocStateVariableName(adHocNodeId: String) = "__adhoc_state__$adHocNodeId"
+    private fun adHocActivityParentVariableName(activityNodeId: String) = "__adhoc_activity_parent__$activityNodeId"
+    private fun adHocCompletedCountVariableName(adHocNodeId: String) = "__adhoc_completed_count__$adHocNodeId"
+    private fun adHocSkippedCountVariableName(adHocNodeId: String) = "__adhoc_skipped_count__$adHocNodeId"
+    private fun adHocActiveCountVariableName(adHocNodeId: String) = "__adhoc_active_count__$adHocNodeId"
+
+    private fun getAdHocState(processInstanceId: Long, adHocNodeId: String): MutableMap<String, Any?>? {
+        val existing = processVariableRepository.findByProcessInstanceIdAndName(processInstanceId, adHocStateVariableName(adHocNodeId))
+            ?: return null
+        val value = objectMapper.convertValue(existing.value, MutableMap::class.java)
+        @Suppress("UNCHECKED_CAST")
+        return value as MutableMap<String, Any?>
+    }
+
+    private fun ensureAdHocState(
+        processInstanceId: Long,
+        adHocNodeId: String,
+        activities: List<String>
+    ): MutableMap<String, Any?> {
+        val existing = getAdHocState(processInstanceId, adHocNodeId)
+        if (existing != null) return existing
+
+        val state = mutableMapOf<String, Any?>(
+            "activities" to activities,
+            "active" to emptyList<String>(),
+            "completed" to emptyList<String>(),
+            "skipped" to emptyList<String>(),
+            "repeatCounts" to emptyMap<String, Int>()
+        )
+        saveAdHocState(processInstanceId, adHocNodeId, state)
+        return state
+    }
+
+    private fun saveAdHocState(processInstanceId: Long, adHocNodeId: String, state: Map<String, Any?>) {
+        val name = adHocStateVariableName(adHocNodeId)
+        val existing = processVariableRepository.findByProcessInstanceIdAndName(processInstanceId, name)
+        val value = objectMapper.valueToTree<JsonNode>(state)
+        if (existing != null) {
+            existing.value = value
+            processVariableRepository.save(existing)
+        } else {
+            processVariableRepository.save(
+                ProcessVariable(
+                    processInstanceId = processInstanceId,
+                    name = name,
+                    value = value
+                )
+            )
+        }
+    }
+
+    private fun markAdHocActivityActivated(
+        processInstanceId: Long,
+        adHocNodeId: String,
+        activityNodeId: String,
+        state: MutableMap<String, Any?>
+    ): MutableMap<String, Any?> {
+        val active = ((state["active"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList()).toMutableSet()
+        val skipped = ((state["skipped"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList()).toMutableSet()
+        active.add(activityNodeId)
+        skipped.remove(activityNodeId)
+        state["active"] = active.toList()
+        state["skipped"] = skipped.toList()
+        saveAdHocState(processInstanceId, adHocNodeId, state)
+        persistAdHocActivityParentLink(processInstanceId, activityNodeId, adHocNodeId)
+        return state
+    }
+
+    private fun markAdHocActivityCompleted(
+        processInstanceId: Long,
+        adHocNodeId: String,
+        activityNodeId: String,
+        state: MutableMap<String, Any?>
+    ): MutableMap<String, Any?> {
+        val active = ((state["active"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList()).toMutableSet()
+        val completed = ((state["completed"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList()).toMutableSet()
+        active.remove(activityNodeId)
+        completed.add(activityNodeId)
+        state["active"] = active.toList()
+        state["completed"] = completed.toList()
+        saveAdHocState(processInstanceId, adHocNodeId, state)
+        return state
+    }
+
+    private fun markAdHocActivitySkipped(
+        processInstanceId: Long,
+        adHocNodeId: String,
+        activityNodeId: String,
+        state: MutableMap<String, Any?>
+    ): MutableMap<String, Any?> {
+        val active = ((state["active"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList()).toMutableSet()
+        val skipped = ((state["skipped"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList()).toMutableSet()
+        active.remove(activityNodeId)
+        skipped.add(activityNodeId)
+        state["active"] = active.toList()
+        state["skipped"] = skipped.toList()
+        saveAdHocState(processInstanceId, adHocNodeId, state)
+        return state
+    }
+
+    private fun markAdHocActivityRequeued(
+        processInstanceId: Long,
+        adHocNodeId: String,
+        activityNodeId: String,
+        state: MutableMap<String, Any?>
+    ): MutableMap<String, Any?> {
+        val completed = ((state["completed"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList()).toMutableSet()
+        val skipped = ((state["skipped"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList()).toMutableSet()
+        val active = ((state["active"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList()).toMutableSet()
+        completed.remove(activityNodeId)
+        skipped.remove(activityNodeId)
+        active.add(activityNodeId)
+        @Suppress("UNCHECKED_CAST")
+        val repeatCounts = ((state["repeatCounts"] as? Map<*, *>) ?: emptyMap<Any, Any>())
+            .mapNotNull { (k, v) ->
+                val key = k as? String ?: return@mapNotNull null
+                val value = when (v) {
+                    is Number -> v.toInt()
+                    is String -> v.toIntOrNull()
+                    else -> 0
+                } ?: 0
+                key to value
+            }
+            .toMap()
+            .toMutableMap()
+        repeatCounts[activityNodeId] = (repeatCounts[activityNodeId] ?: 0) + 1
+        state["completed"] = completed.toList()
+        state["skipped"] = skipped.toList()
+        state["active"] = active.toList()
+        state["repeatCounts"] = repeatCounts
+        saveAdHocState(processInstanceId, adHocNodeId, state)
+        persistAdHocActivityParentLink(processInstanceId, activityNodeId, adHocNodeId)
+        return state
+    }
+
+    private fun persistAdHocActivityParentLink(processInstanceId: Long, activityNodeId: String, adHocNodeId: String) {
+        val name = adHocActivityParentVariableName(activityNodeId)
+        val existing = processVariableRepository.findByProcessInstanceIdAndName(processInstanceId, name)
+        val value = objectMapper.valueToTree<JsonNode>(adHocNodeId)
+        if (existing != null) {
+            existing.value = value
+            processVariableRepository.save(existing)
+        } else {
+            processVariableRepository.save(
+                ProcessVariable(
+                    processInstanceId = processInstanceId,
+                    name = name,
+                    value = value
+                )
+            )
+        }
+    }
+
+    private fun syncAdHocCounters(processInstanceId: Long, adHocNodeId: String, state: Map<String, Any?>) {
+        val completedCount = ((state["completed"] as? List<*>)?.size ?: 0)
+        val skippedCount = ((state["skipped"] as? List<*>)?.size ?: 0)
+        val activeCount = ((state["active"] as? List<*>)?.size ?: 0)
+        assignProcessVariables(
+            processInstanceId,
+            mapOf(
+                adHocCompletedCountVariableName(adHocNodeId) to completedCount,
+                adHocSkippedCountVariableName(adHocNodeId) to skippedCount,
+                adHocActiveCountVariableName(adHocNodeId) to activeCount
+            )
+        )
+    }
+
+    private fun getEligibleAdHocActivities(
+        adHocNode: JsonNode,
+        definition: JsonNode,
+        instance: ProcessInstance,
+        state: Map<String, Any?>
+    ): List<String> {
+        val activities = getAdHocActivities(adHocNode)
+        val active = ((state["active"] as? List<*>)?.mapNotNull { it as? String } ?: emptySet())
+        val completed = ((state["completed"] as? List<*>)?.mapNotNull { it as? String } ?: emptySet())
+        val skipped = ((state["skipped"] as? List<*>)?.mapNotNull { it as? String } ?: emptySet())
+        val eligibilityNode = adHocNode.get("config")?.get("eligibility")
+
+        return activities.filter { activityId ->
+            if (activityId in active) return@filter false
+            if (activityId in completed) return@filter false
+            if (activityId in skipped) return@filter false
+            val activity = findNode(definition, activityId)
+            if (NodeType.fromString(activity.get("type").asText()) != NodeType.UserTask) {
+                return@filter false
+            }
+            val expression = eligibilityNode?.get(activityId)?.asText()?.trim()
+            if (expression.isNullOrBlank()) true else evaluateCondition(expression, instance)
+        }
+    }
+
+    private fun executeAdHocActivity(
+        instance: ProcessInstance,
+        adHocNodeId: String,
+        activityNodeId: String,
+        definition: JsonNode
+    ) {
+        val node = findNode(definition, activityNodeId)
+        val nodeType = NodeType.fromString(node.get("type").asText())
+        if (nodeType != NodeType.UserTask) {
+            throw IllegalArgumentException("Ad-hoc activity '$activityNodeId' must be a HumanTask/UserTask")
+        }
+        val existingPending = taskRepository.findByProcessInstanceIdAndNodeIdAndStatus(
+            instance.id,
+            activityNodeId,
+            TaskStatus.PENDING
+        )
+        if (existingPending.isEmpty()) {
+            handleUserTask(instance, node)
+        }
+        instance.currentNode = listOf(adHocNodeId)
+        if (instance.nodeHistory.lastOrNull() != adHocNodeId) {
+            instance.nodeHistory = instance.nodeHistory + adHocNodeId
+        }
+        instance.updatedAt = LocalDateTime.now()
+        processInstanceRepository.save(instance)
+    }
+
+    private fun appendAdHocAudit(
+        processInstanceId: Long,
+        adHocNodeId: String,
+        decisionType: String,
+        actorType: String,
+        activityNodeId: String? = null,
+        actorId: String? = null,
+        confidence: Double? = null,
+        recommendation: String? = null,
+        details: Map<String, Any?> = emptyMap()
+    ) {
+        adHocDecisionAuditRepository.save(
+            AdHocDecisionAudit(
+                processInstanceId = processInstanceId,
+                adHocNodeId = adHocNodeId,
+                activityNodeId = activityNodeId,
+                decisionType = decisionType,
+                actorType = actorType,
+                actorId = actorId,
+                confidence = confidence,
+                recommendation = recommendation,
+                details = details
+            )
+        )
+    }
+
     /* =========================
        JSON HELPERS
      ========================= */
@@ -1191,6 +1643,7 @@ class ProcessService(
         require(flows.isArray) { "'flows' must be an array" }
 
         val nodeIds = mutableSetOf<String>()
+        val nodeTypesById = mutableMapOf<String, NodeType>()
 
         nodes.forEach { node ->
             val id = node.get("id")?.asText()
@@ -1319,9 +1772,35 @@ class ProcessService(
             if (!nodeIds.add(id)) {
                 throw IllegalArgumentException("Duplicate node id '$id'")
             }
+            nodeTypesById[id] = nodeType
+        }
+
+        nodes.forEach { node ->
+            val id = node.get("id").asText()
+            val type = NodeType.fromString(node.get("type").asText())
+            if (type != NodeType.AdHocSubProcess) return@forEach
+
+            val config = node.get("config")
+                ?: throw IllegalArgumentException("AdHocSubProcess $id missing 'config'")
+            val activities = config.get("activities")
+                ?: throw IllegalArgumentException("AdHocSubProcess $id missing 'config.activities'")
+            if (!activities.isArray || activities.size() == 0) {
+                throw IllegalArgumentException("AdHocSubProcess $id must define non-empty 'config.activities' array")
+            }
+
+            activities.forEach { activity ->
+                val activityId = activity.asText()
+                if (!nodeIds.contains(activityId)) {
+                    throw IllegalArgumentException("AdHocSubProcess $id references unknown activity '$activityId'")
+                }
+                val activityType = nodeTypesById[activityId]
+                    ?: throw IllegalArgumentException("AdHocSubProcess $id activity '$activityId' missing type")
+                if (activityType != NodeType.UserTask) {
+                    throw IllegalArgumentException("AdHocSubProcess $id activity '$activityId' must be HumanTask/UserTask")
+                }
+            }
         }
 
         return json
     }
 }
-

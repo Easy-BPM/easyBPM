@@ -237,6 +237,31 @@ class ProcessControllerTest : FunSpec({
     }
 
     context("sendMessage") {
+        test("should return ad-hoc context") {
+            val ctx = mapOf(
+                "processInstanceId" to 10L,
+                "adHocNodeId" to "adhoc-1",
+                "eligibleActivities" to listOf("risk-review")
+            )
+            every { mockProcessService.getAdHocContext(10L, "adhoc-1") } returns ctx
+
+            val response = processController.getAdHocContext(10L, "adhoc-1")
+
+            response.statusCode.value() shouldBe 200
+            response.body shouldBe ctx
+        }
+
+        test("should submit ad-hoc decision") {
+            val decision = mapOf("decisionType" to "SELECT_NEXT_ACTIVITY", "activityId" to "risk-review")
+            val result = mapOf("status" to "ok")
+            every { mockProcessService.submitAdHocDecision(10L, "adhoc-1", decision) } returns result
+
+            val response = processController.submitAdHocDecision(10L, "adhoc-1", decision)
+
+            response.statusCode.value() shouldBe 200
+            response.body shouldBe result
+        }
+
         test("should send message successfully") {
             // Arrange
             val messageName = "PaymentReceived"
@@ -311,4 +336,3 @@ class ProcessControllerTest : FunSpec({
         }
     }
 })
-
