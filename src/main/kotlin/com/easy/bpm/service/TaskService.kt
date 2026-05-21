@@ -87,7 +87,7 @@ class TaskService(
         // 2️⃣ OUTPUT mapping → TASK → PROCESS
         applyTaskOutputs(task, currentNode, instance)
 
-        // 4️⃣ Atualizar Task
+        // 3️⃣ Update task
         completeTaskEntity(task, assignee)
         metricsService.recordTaskCompleted()
         val duration = System.currentTimeMillis() - startTime
@@ -107,19 +107,20 @@ class TaskService(
         } catch (_: Exception) {
         }
 
+        // 4️⃣ Ad-hoc activity handling (return to ad-hoc node after task completion)
         val adHocParentNodeId = processService.findAdHocParentForActivity(instance.id, task.nodeId)
         if (!adHocParentNodeId.isNullOrBlank()) {
             processService.onAdHocActivityCompleted(instance.id, adHocParentNodeId, task.nodeId)
             return
         }
 
-        // 5️⃣ Resolver próximos nós
+        // 5️⃣ Resolve next nodes
         val nextNodeIds = getNextNodes(currentNode, definition, instance)
 
-        // 6️⃣ Atualizar instância
+        // 6️⃣ Update instance
         advanceProcess(instance, nextNodeIds, definition)
 
-        // 7️⃣ Continuar execução
+        // 7️⃣ Continue execution
         executeNextSteps(nextNodeIds, instance, definition)
     }
 

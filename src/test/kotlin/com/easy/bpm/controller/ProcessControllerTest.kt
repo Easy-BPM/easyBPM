@@ -236,7 +236,7 @@ class ProcessControllerTest : FunSpec({
         }
     }
 
-    context("sendMessage") {
+    context("ad-hoc operations") {
         test("should return ad-hoc context") {
             val ctx = mapOf(
                 "processInstanceId" to 10L,
@@ -261,7 +261,9 @@ class ProcessControllerTest : FunSpec({
             response.statusCode.value() shouldBe 200
             response.body shouldBe result
         }
+    }
 
+    context("sendMessage") {
         test("should send message successfully") {
             // Arrange
             val messageName = "PaymentReceived"

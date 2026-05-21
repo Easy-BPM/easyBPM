@@ -15,6 +15,7 @@ import com.easy.bpm.repository.task.TaskRepository
 import com.easy.bpm.repository.variable.ProcessVariableRepository
 import com.easy.bpm.repository.variable.TaskVariableRepository
 import com.easy.bpm.repository.worker.WorkerRequestRepository
+import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import jakarta.transaction.Transactional
@@ -25,6 +26,7 @@ import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Sort
 import javax.script.ScriptEngineManager
+import java.time.Instant
 import java.time.LocalDateTime
 
 @Service
@@ -48,6 +50,11 @@ class ProcessService(
 
     companion object {
         const val INTERNAL_TIMER_MESSAGE_NAME = "__internal.timer__"
+        /**
+         * Caps ad-hoc audit trail length per ad-hoc node.
+         * When the cap is exceeded, oldest events are dropped and newest events are retained.
+         */
+        private const val MAX_ADHOC_AUDIT_EVENTS = 200
         private val logger = LoggerFactory.getLogger(ProcessService::class.java)
     }
 
@@ -897,12 +904,17 @@ class ProcessService(
         }
 
         val activities = getAdHocActivities(adHocNode)
-        var state = ensureAdHocState(processInstanceId, adHocNodeId, activities)
+        var decisionState = ensureAdHocState(processInstanceId, adHocNodeId, activities)
 
         val decisionType = (decision["decisionType"] as? String)?.trim()?.uppercase()
             ?: throw IllegalArgumentException("decisionType is required")
-        val actorId = (decision["agentId"] as? String)?.trim().takeUnless { it.isNullOrBlank() }
-            ?: (decision["actorId"] as? String)?.trim().takeUnless { it.isNullOrBlank() }
+        val agentId = (decision["agentId"] as? String)?.trim().takeUnless { it.isNullOrBlank() }
+        val explicitActorId = (decision["actorId"] as? String)?.trim().takeUnless { it.isNullOrBlank() }
+        if (agentId != null && explicitActorId != null && agentId != explicitActorId) {
+            throw IllegalArgumentException("agentId and actorId must match when both are provided")
+        }
+        // Support both agentId and actorId for external orchestrators sending either key.
+        val actorId = agentId ?: explicitActorId
         val actorType = (decision["actorType"] as? String)?.trim()?.lowercase().takeUnless { it.isNullOrBlank() }
             ?: if (actorId != null) "agent" else "system"
         val recommendation = decision["recommendation"] as? String
@@ -923,20 +935,20 @@ class ProcessService(
             }
             "ACTIVATE_ACTIVITY", "SELECT_NEXT_ACTIVITY" -> {
                 if (activityId == null) throw IllegalArgumentException("activityId is required for $decisionType")
-                val eligible = getEligibleAdHocActivities(adHocNode, definition, instance, state)
+                val eligible = getEligibleAdHocActivities(adHocNode, definition, instance, decisionState)
                 if (activityId !in eligible) {
                     throw IllegalArgumentException("Activity '$activityId' is not eligible")
                 }
-                state = markAdHocActivityActivated(processInstanceId, adHocNodeId, activityId, state)
+                decisionState = markAdHocActivityActivated(processInstanceId, adHocNodeId, activityId, decisionState)
                 executeAdHocActivity(instance, adHocNodeId, activityId, definition)
             }
             "SKIP_ACTIVITY" -> {
                 if (activityId == null) throw IllegalArgumentException("activityId is required for SKIP_ACTIVITY")
-                state = markAdHocActivitySkipped(processInstanceId, adHocNodeId, activityId, state)
+                decisionState = markAdHocActivitySkipped(processInstanceId, adHocNodeId, activityId, decisionState)
             }
             "REPEAT_ACTIVITY" -> {
                 if (activityId == null) throw IllegalArgumentException("activityId is required for REPEAT_ACTIVITY")
-                state = markAdHocActivityRequeued(processInstanceId, adHocNodeId, activityId, state)
+                decisionState = markAdHocActivityRequeued(processInstanceId, adHocNodeId, activityId, decisionState)
                 executeAdHocActivity(instance, adHocNodeId, activityId, definition)
             }
             else -> throw IllegalArgumentException("Unsupported decisionType '$decisionType'")
@@ -954,7 +966,7 @@ class ProcessService(
             details = decision
         )
 
-        val refreshedState = getAdHocState(processInstanceId, adHocNodeId) ?: state
+        val refreshedState = getAdHocState(processInstanceId, adHocNodeId) ?: decisionState
         syncAdHocCounters(processInstanceId, adHocNodeId, refreshedState)
         handleAdHocSubProcess(instance, adHocNode, definition)
         return getAdHocContext(processInstanceId, adHocNodeId)
@@ -966,9 +978,9 @@ class ProcessService(
             .orElseThrow { IllegalArgumentException("Process instance not found") }
         val definition = parseDefinition(instance.processDefinition.definitionJson)
         val adHocNode = findNode(definition, adHocNodeId)
-        var state = getAdHocState(processInstanceId, adHocNodeId)
+        val initialState = getAdHocState(processInstanceId, adHocNodeId)
             ?: ensureAdHocState(processInstanceId, adHocNodeId, getAdHocActivities(adHocNode))
-        state = markAdHocActivityCompleted(processInstanceId, adHocNodeId, activityNodeId, state)
+        val state = markAdHocActivityCompleted(processInstanceId, adHocNodeId, activityNodeId, initialState)
 
         appendAdHocAudit(
             processInstanceId = processInstanceId,
@@ -1306,9 +1318,10 @@ class ProcessService(
     private fun getAdHocState(processInstanceId: Long, adHocNodeId: String): MutableMap<String, Any?>? {
         val existing = processVariableRepository.findByProcessInstanceIdAndName(processInstanceId, adHocStateVariableName(adHocNodeId))
             ?: return null
-        val value = objectMapper.convertValue(existing.value, MutableMap::class.java)
-        @Suppress("UNCHECKED_CAST")
-        return value as MutableMap<String, Any?>
+        return objectMapper.convertValue(
+            existing.value,
+            object : TypeReference<MutableMap<String, Any?>>() {}
+        )
     }
 
     private fun ensureAdHocState(
@@ -1409,19 +1422,7 @@ class ProcessService(
         completed.remove(activityNodeId)
         skipped.remove(activityNodeId)
         active.add(activityNodeId)
-        @Suppress("UNCHECKED_CAST")
-        val repeatCounts = ((state["repeatCounts"] as? Map<*, *>) ?: emptyMap<Any, Any>())
-            .mapNotNull { (k, v) ->
-                val key = k as? String ?: return@mapNotNull null
-                val value = when (v) {
-                    is Number -> v.toInt()
-                    is String -> v.toIntOrNull()
-                    else -> 0
-                } ?: 0
-                key to value
-            }
-            .toMap()
-            .toMutableMap()
+        val repeatCounts = parseRepeatCounts(state)
         repeatCounts[activityNodeId] = (repeatCounts[activityNodeId] ?: 0) + 1
         state["completed"] = completed.toList()
         state["skipped"] = skipped.toList()
@@ -1471,9 +1472,9 @@ class ProcessService(
         state: Map<String, Any?>
     ): List<String> {
         val activities = getAdHocActivities(adHocNode)
-        val active = ((state["active"] as? List<*>)?.mapNotNull { it as? String } ?: emptySet())
-        val completed = ((state["completed"] as? List<*>)?.mapNotNull { it as? String } ?: emptySet())
-        val skipped = ((state["skipped"] as? List<*>)?.mapNotNull { it as? String } ?: emptySet())
+        val active = ((state["active"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList())
+        val completed = ((state["completed"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList())
+        val skipped = ((state["skipped"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList())
         val eligibilityNode = adHocNode.get("config")?.get("eligibility")
 
         return activities.filter { activityId ->
@@ -1529,7 +1530,7 @@ class ProcessService(
     ) {
         val audit = getAdHocAudit(processInstanceId, adHocNodeId).toMutableList()
         val event = mapOf(
-            "timestamp" to LocalDateTime.now().toString(),
+            "timestamp" to Instant.now().toString(),
             "processInstanceId" to processInstanceId,
             "adHocNodeId" to adHocNodeId,
             "activityNodeId" to activityNodeId,
@@ -1540,8 +1541,8 @@ class ProcessService(
             "recommendation" to recommendation,
             "details" to details
         )
-        audit.add(0, event)
-        val trimmed = audit.take(200)
+        audit.add(event)
+        val trimmed = audit.takeLast(MAX_ADHOC_AUDIT_EVENTS)
         assignProcessVariables(
             processInstanceId,
             mapOf(adHocAuditVariableName(adHocNodeId) to trimmed)
@@ -1554,9 +1555,26 @@ class ProcessService(
             adHocAuditVariableName(adHocNodeId)
         ) ?: return emptyList()
 
-        val value = objectMapper.convertValue(auditVar.value, List::class.java)
-        @Suppress("UNCHECKED_CAST")
-        return (value as? List<Map<String, Any?>>) ?: emptyList()
+        // Return newest events first for API/UI consumers.
+        return (objectMapper.convertValue(
+            auditVar.value,
+            object : TypeReference<List<Map<String, Any?>>>() {}
+        ) ?: emptyList()).reversed()
+    }
+
+    private fun parseRepeatCounts(state: Map<String, Any?>): MutableMap<String, Int> {
+        return ((state["repeatCounts"] as? Map<*, *>) ?: emptyMap<Any, Any>())
+            .mapNotNull { (k, v) ->
+                val key = k as? String ?: return@mapNotNull null
+                val value = when (v) {
+                    is Number -> v.toInt()
+                    is String -> v.toIntOrNull()
+                    else -> 0
+                } ?: 0
+                key to value
+            }
+            .toMap()
+            .toMutableMap()
     }
 
     /* =========================

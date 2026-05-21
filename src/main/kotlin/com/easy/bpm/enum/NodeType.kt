@@ -23,8 +23,7 @@ enum class NodeType(val typeName: String) {
         private val map = values().associateBy { it.typeName } + mapOf(
             // Backward compatibility for existing process definitions and imports.
             "UserTask" to UserTask,
-            "AdHocSubprocess" to AdHocSubProcess,
-            "AdHocSubProcess" to AdHocSubProcess
+            "AdHocSubprocess" to AdHocSubProcess
         )
         fun fromString(s: String): NodeType = map[s]
             ?: throw IllegalArgumentException("Invalid node type '$s'")
