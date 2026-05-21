@@ -10,13 +10,15 @@ import {
   ArrowRight,
   Loader2,
   Inbox,
-  Briefcase,
   Lock,
   User,
   ShieldCheck,
   Plus,
   Trash2,
-  AlertCircle
+  AlertCircle,
+  ChevronRight,
+  Zap,
+  ListTodo
 } from 'lucide-react';
 
 type VariableType = 'string' | 'number' | 'boolean' | 'json';
@@ -145,104 +147,140 @@ const LoginView: React.FC<{ onLogin: (username: string) => void }> = ({ onLogin 
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-100 p-4">
-      <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-slate-200">
-        <div className="flex flex-col items-center mb-8">
-          <div className="bg-blue-600 p-3 rounded-xl mb-4 shadow-lg shadow-blue-600/30">
-            <ShieldCheck className="text-white" size={32} />
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 p-4">
+      <div className="w-full max-w-md">
+        {/* Card */}
+        <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8 shadow-2xl">
+          <div className="flex flex-col items-center mb-8">
+            <div className="bg-blue-600 p-3 rounded-xl mb-4 shadow-lg shadow-blue-600/40 ring-4 ring-blue-600/20">
+              <ShieldCheck className="text-white" size={28} />
+            </div>
+            <h1 className="text-2xl font-bold text-white">Easy BPM Task Portal</h1>
+            <p className="text-slate-400 mt-1 text-sm">Sign in to open your work inbox</p>
           </div>
-          <h1 className="text-2xl font-bold text-slate-800">Easy BPM Task Portal</h1>
-          <p className="text-slate-500 mt-1">Sign in to open your tasks</p>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-1.5">Username</label>
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
+                <input
+                  type="text"
+                  className="w-full pl-9 pr-4 py-2.5 rounded-lg border border-white/10 bg-white/5 text-white placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm"
+                  placeholder="Enter username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-1.5">Password</label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
+                <input
+                  type="password"
+                  className="w-full pl-9 pr-4 py-2.5 rounded-lg border border-white/10 bg-white/5 text-white placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm"
+                  placeholder="Optional"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2.5 rounded-lg transition-colors shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2 mt-2 text-sm"
+            >
+              {loading ? <Loader2 className="animate-spin" size={18} /> : 'Sign In'}
+            </button>
+          </form>
         </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">Username</label>
-            <div className="relative">
-              <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-              <input
-                type="text"
-                className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                placeholder="Enter username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-              />
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">Password</label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-              <input
-                type="password"
-                className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                placeholder="Optional"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg transition-colors shadow-lg shadow-blue-600/20 flex items-center justify-center gap-2 mt-2"
-          >
-            {loading ? <Loader2 className="animate-spin" size={20} /> : 'Sign In'}
-          </button>
-        </form>
+        <p className="text-center text-[11px] text-slate-600 mt-4">Easy BPM · Task Execution Portal</p>
       </div>
     </div>
   );
 };
 
 const DashboardView: React.FC<{ onNavigate: (view: string) => void; currentUser: string }> = ({ onNavigate, currentUser }) => {
+  type QuickAction = {
+    id: string;
+    icon: React.ElementType;
+    label: string;
+    description: string;
+    accent: 'blue' | 'emerald' | 'purple';
+    badge: string;
+    navigable: boolean;
+  };
+
+  const quickActions: QuickAction[] = [
+    {
+      id: 'inbox',
+      icon: Inbox,
+      label: 'My Inbox',
+      description: 'View and complete your assigned tasks. Open forms, edit variables, and advance process flows.',
+      accent: 'blue',
+      badge: 'Tasks',
+      navigable: true
+    },
+    {
+      id: 'processes',
+      icon: Play,
+      label: 'Start Process',
+      description: 'Trigger new BPM process instances from available deployed workflow definitions.',
+      accent: 'emerald',
+      badge: 'Launch',
+      navigable: true
+    },
+    {
+      id: 'variable-sync',
+      icon: CheckCircle2,
+      label: 'Variable Sync',
+      description: 'Task outputs are automatically synchronized as global process variables on completion.',
+      accent: 'purple',
+      badge: 'Auto',
+      navigable: false
+    }
+  ];
+
+  const accentMap = {
+    blue:    { icon: 'bg-blue-100 text-blue-600',    hover: 'group-hover:bg-blue-600 group-hover:text-white',    badge: 'bg-blue-50 text-blue-600 border-blue-200'   },
+    emerald: { icon: 'bg-emerald-100 text-emerald-600', hover: 'group-hover:bg-emerald-600 group-hover:text-white', badge: 'bg-emerald-50 text-emerald-600 border-emerald-200' },
+    purple:  { icon: 'bg-purple-100 text-purple-600',  hover: 'group-hover:bg-purple-600 group-hover:text-white',  badge: 'bg-purple-50 text-purple-600 border-purple-200'  }
+  };
+
   return (
-    <div className="space-y-6">
-      <header className="mb-8">
+    <div className="space-y-8">
+      <header>
         <h2 className="text-2xl font-bold text-slate-800">Welcome back, {currentUser}</h2>
-        <p className="text-slate-500">Task execution workspace for active BPM instances.</p>
+        <p className="text-slate-500 text-sm mt-1">Task execution workspace for active BPM instances.</p>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div
-          onClick={() => onNavigate('inbox')}
-          className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 cursor-pointer hover:shadow-md transition-shadow group"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <div className="p-3 bg-blue-100 text-blue-600 rounded-lg group-hover:bg-blue-600 group-hover:text-white transition-colors">
-              <Inbox size={24} />
+      <div className="grid grid-cols-1 gap-4">
+        {quickActions.map(({ id, icon: Icon, label, description, accent, badge, navigable }) => {
+          const colors = accentMap[accent];
+          return (
+            <div
+              key={id}
+              onClick={navigable ? () => onNavigate(id) : undefined}
+              className={`bg-white p-5 rounded-xl border border-slate-200 transition-all group flex items-start gap-4 ${
+                navigable ? 'cursor-pointer hover:border-slate-300 hover:shadow-md' : 'cursor-default opacity-80'
+              }`}
+            >
+              <div className={`p-3 rounded-xl flex-shrink-0 transition-colors ${colors.icon} ${navigable ? colors.hover : ''}`}>
+                <Icon size={20} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-0.5">
+                  <span className="text-sm font-semibold text-slate-800">{label}</span>
+                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${colors.badge}`}>{badge}</span>
+                </div>
+                <p className="text-xs text-slate-500 leading-relaxed">{description}</p>
+              </div>
+              {navigable && <ChevronRight size={16} className="text-slate-300 group-hover:text-slate-500 flex-shrink-0 mt-1 transition-colors" />}
             </div>
-            <span className="text-2xl font-bold text-slate-800">Tasks</span>
-          </div>
-          <h3 className="text-slate-600 font-medium">Open Inbox</h3>
-          <p className="text-xs text-slate-400 mt-1">Pending assignments and completions</p>
-        </div>
-
-        <div
-          onClick={() => onNavigate('processes')}
-          className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 cursor-pointer hover:shadow-md transition-shadow group"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <div className="p-3 bg-emerald-100 text-emerald-600 rounded-lg group-hover:bg-emerald-600 group-hover:text-white transition-colors">
-              <Play size={24} />
-            </div>
-            <span className="text-2xl font-bold text-slate-800">Start</span>
-          </div>
-          <h3 className="text-slate-600 font-medium">Available Processes</h3>
-          <p className="text-xs text-slate-400 mt-1">Trigger new process instances</p>
-        </div>
-
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-          <div className="flex items-center justify-between mb-4">
-            <div className="p-3 bg-purple-100 text-purple-600 rounded-lg">
-              <CheckCircle2 size={24} />
-            </div>
-            <span className="text-2xl font-bold text-slate-800">Sync</span>
-          </div>
-          <h3 className="text-slate-600 font-medium">Variables</h3>
-          <p className="text-xs text-slate-400 mt-1">Task outputs synchronized at completion</p>
-        </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -281,7 +319,7 @@ const InboxView: React.FC<{ onSelectTask: (id: number) => void; currentUser: str
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-slate-800">Task Inbox</h2>
-          <p className="text-slate-500">Open tasks, forms, and variable outputs</p>
+          <p className="text-slate-500 text-sm mt-1">Open tasks, forms, and variable outputs</p>
         </div>
 
         <div className="flex bg-slate-200 p-1 rounded-lg self-start">
@@ -305,8 +343,9 @@ const InboxView: React.FC<{ onSelectTask: (id: number) => void; currentUser: str
         </div>
       ) : tasks.length === 0 ? (
         <div className="text-center py-20 bg-white rounded-xl border border-dashed border-slate-300">
-          <Briefcase className="mx-auto text-slate-300 mb-3" size={48} />
-          <p className="text-slate-500">No tasks found in this category.</p>
+          <ListTodo className="mx-auto text-slate-300 mb-3" size={48} />
+          <p className="text-slate-500 font-medium">No tasks found in this category.</p>
+          <p className="text-slate-400 text-sm mt-1">Tasks assigned to you will appear here.</p>
         </div>
       ) : (
         <div className="grid gap-3">
@@ -371,42 +410,56 @@ const ProcessListView: React.FC<{ onViewInbox: () => void }> = ({ onViewInbox })
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-slate-800">Start Process</h2>
-        <p className="text-slate-500">Initiate new workflows from the task portal.</p>
+        <p className="text-slate-500 text-sm mt-1">Initiate new workflows from the task portal.</p>
       </div>
 
       {error && (
-        <div className="p-3 rounded-lg border border-amber-200 bg-amber-50 text-amber-700 text-sm flex items-center gap-2">
-          <AlertCircle size={16} />
+        <div className="p-3 rounded-lg border border-red-200 bg-red-50 text-red-700 text-sm flex items-center gap-2">
+          <AlertCircle size={16} className="flex-shrink-0" />
           {error}
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {processes.map((processDefinition) => (
-          <div
-            key={processDefinition.id}
-            className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between h-48 hover:shadow-md transition-shadow"
-          >
-            <div>
-              <div className="flex justify-between items-start">
-                <h3 className="font-bold text-lg text-slate-800">{processDefinition.processName || processDefinition.key}</h3>
-                <span className="text-xs font-mono bg-slate-100 text-slate-500 px-2 py-1 rounded">v{processDefinition.version}</span>
+      {processes.length === 0 && !error ? (
+        <div className="text-center py-20 bg-white rounded-xl border border-dashed border-slate-300">
+          <Zap className="mx-auto text-slate-300 mb-3" size={48} />
+          <p className="text-slate-500 font-medium">No processes deployed yet.</p>
+          <p className="text-slate-400 text-sm mt-1">Deploy a process via the BPMN Modeler to get started.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {processes.map((processDefinition) => (
+            <div
+              key={processDefinition.id}
+              className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between hover:border-slate-300 hover:shadow-md transition-all"
+            >
+              <div className="flex items-start gap-4">
+                <div className="p-2.5 bg-emerald-100 text-emerald-600 rounded-xl flex-shrink-0">
+                  <Play size={18} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap mb-1">
+                    <h3 className="font-bold text-slate-800 text-sm">{processDefinition.processName || processDefinition.key}</h3>
+                    <span className="text-[10px] font-mono bg-blue-50 text-blue-600 border border-blue-200 px-1.5 py-0.5 rounded">{processDefinition.key}</span>
+                    <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded">v{processDefinition.version}</span>
+                  </div>
+                  <p className="text-xs text-slate-500 line-clamp-2">{processDefinition.description}</p>
+                </div>
               </div>
-              <p className="text-slate-500 text-sm mt-2">{processDefinition.description}</p>
+              <div className="mt-4 flex justify-end">
+                <button
+                  onClick={() => handleStart(processDefinition.key)}
+                  disabled={starting === processDefinition.key}
+                  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 shadow-sm shadow-blue-200"
+                >
+                  {starting === processDefinition.key ? <Loader2 className="animate-spin" size={14} /> : <Play size={14} />}
+                  Start
+                </button>
+              </div>
             </div>
-            <div className="mt-4 flex justify-end">
-              <button
-                onClick={() => handleStart(processDefinition.key)}
-                disabled={starting === processDefinition.key}
-                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 shadow-sm shadow-blue-200"
-              >
-                {starting === processDefinition.key ? <Loader2 className="animate-spin" size={16} /> : <Play size={16} />}
-                Start Process
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
