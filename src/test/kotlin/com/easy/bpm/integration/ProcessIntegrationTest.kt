@@ -3,7 +3,6 @@ package com.easy.bpm.integration
 import com.easy.bpm.enum.ProcessStatus
 import com.easy.bpm.enum.MessageSubscriptionStatus
 import com.easy.bpm.enum.TaskStatus
-import com.easy.bpm.model.process.AdHocDecisionAudit
 import com.easy.bpm.repository.message.MessageSubscriptionRepository
 import com.easy.bpm.repository.process.ProcessInstanceRepository
 import com.easy.bpm.repository.task.TaskRepository
@@ -628,9 +627,9 @@ class ProcessIntegrationTest(
 
         val context = processService.getAdHocContext(instance.id, "adhoc-review")
         @Suppress("UNCHECKED_CAST")
-        val audit = context["auditEvents"] as List<AdHocDecisionAudit>
+        val audit = context["auditEvents"] as List<Map<String, Any?>>
         assertThat(audit).isNotEmpty
-        assertThat(audit.map { it.decisionType })
+        assertThat(audit.mapNotNull { it["decisionType"]?.toString() })
             .contains("SELECT_NEXT_ACTIVITY", "ACTIVITY_COMPLETED", "ACTIVATE_ACTIVITY")
     }
 

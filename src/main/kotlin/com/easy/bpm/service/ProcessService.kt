@@ -5,14 +5,12 @@ import com.easy.bpm.enum.NodeType
 import com.easy.bpm.enum.TaskStatus
 import com.easy.bpm.model.process.ProcessDefinition
 import com.easy.bpm.model.process.ProcessInstance
-import com.easy.bpm.model.process.AdHocDecisionAudit
 import com.easy.bpm.model.task.Task
 import com.easy.bpm.model.variable.ProcessVariable
 import com.easy.bpm.model.variable.TaskVariable
 import com.easy.bpm.repository.process.ProcessDefinitionRepository
 import com.easy.bpm.repository.process.ProcessInstanceRepository
 import com.easy.bpm.repository.process.CallActivityMappingRepository
-import com.easy.bpm.repository.process.AdHocDecisionAuditRepository
 import com.easy.bpm.repository.task.TaskRepository
 import com.easy.bpm.repository.variable.ProcessVariableRepository
 import com.easy.bpm.repository.variable.TaskVariableRepository
@@ -45,8 +43,7 @@ class ProcessService(
     private val metricsService: MetricsService,
     private val workerRequestRepository: WorkerRequestRepository,
     private val callActivityHandler: CallActivityHandler,
-    private val callActivityMappingRepository: CallActivityMappingRepository,
-    private val adHocDecisionAuditRepository: AdHocDecisionAuditRepository
+    private val callActivityMappingRepository: CallActivityMappingRepository
 ) {
 
     companion object {
@@ -875,9 +872,7 @@ class ProcessService(
         val eligible = getEligibleAdHocActivities(adHocNode, definition, instance, state)
         val variables = processVariableRepository.findByProcessInstanceId(processInstanceId)
             .associate { it.name to objectMapper.convertValue(it.value, Any::class.java) }
-        val audit = adHocDecisionAuditRepository
-            .findByProcessInstanceIdAndAdHocNodeIdOrderByCreatedAtDesc(processInstanceId, adHocNodeId)
-            .take(50)
+        val audit = getAdHocAudit(processInstanceId, adHocNodeId)
 
         return mapOf(
             "processInstanceId" to processInstanceId,
@@ -1306,6 +1301,7 @@ class ProcessService(
     private fun adHocCompletedCountVariableName(adHocNodeId: String) = "__adhoc_completed_count__$adHocNodeId"
     private fun adHocSkippedCountVariableName(adHocNodeId: String) = "__adhoc_skipped_count__$adHocNodeId"
     private fun adHocActiveCountVariableName(adHocNodeId: String) = "__adhoc_active_count__$adHocNodeId"
+    private fun adHocAuditVariableName(adHocNodeId: String) = "__adhoc_audit__$adHocNodeId"
 
     private fun getAdHocState(processInstanceId: Long, adHocNodeId: String): MutableMap<String, Any?>? {
         val existing = processVariableRepository.findByProcessInstanceIdAndName(processInstanceId, adHocStateVariableName(adHocNodeId))
@@ -1531,19 +1527,36 @@ class ProcessService(
         recommendation: String? = null,
         details: Map<String, Any?> = emptyMap()
     ) {
-        adHocDecisionAuditRepository.save(
-            AdHocDecisionAudit(
-                processInstanceId = processInstanceId,
-                adHocNodeId = adHocNodeId,
-                activityNodeId = activityNodeId,
-                decisionType = decisionType,
-                actorType = actorType,
-                actorId = actorId,
-                confidence = confidence,
-                recommendation = recommendation,
-                details = details
-            )
+        val audit = getAdHocAudit(processInstanceId, adHocNodeId).toMutableList()
+        val event = mapOf(
+            "timestamp" to LocalDateTime.now().toString(),
+            "processInstanceId" to processInstanceId,
+            "adHocNodeId" to adHocNodeId,
+            "activityNodeId" to activityNodeId,
+            "decisionType" to decisionType,
+            "actorType" to actorType,
+            "actorId" to actorId,
+            "confidence" to confidence,
+            "recommendation" to recommendation,
+            "details" to details
         )
+        audit.add(0, event)
+        val trimmed = audit.take(200)
+        assignProcessVariables(
+            processInstanceId,
+            mapOf(adHocAuditVariableName(adHocNodeId) to trimmed)
+        )
+    }
+
+    private fun getAdHocAudit(processInstanceId: Long, adHocNodeId: String): List<Map<String, Any?>> {
+        val auditVar = processVariableRepository.findByProcessInstanceIdAndName(
+            processInstanceId,
+            adHocAuditVariableName(adHocNodeId)
+        ) ?: return emptyList()
+
+        val value = objectMapper.convertValue(auditVar.value, List::class.java)
+        @Suppress("UNCHECKED_CAST")
+        return (value as? List<Map<String, Any?>>) ?: emptyList()
     }
 
     /* =========================
