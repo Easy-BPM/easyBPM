@@ -114,7 +114,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
               }`}
             >
               <Rocket className="w-3.5 h-3.5" />
-              <span>{isDeploying ? 'Deploying…' : 'Deploy'}</span>
+              <span>{isDeploying ? 'Deploying...' : 'Deploy'}</span>
             </button>
             <button 
               onClick={onExport}
