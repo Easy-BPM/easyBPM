@@ -63,8 +63,8 @@ const App: React.FC = () => {
         currentUser={currentUser}
         onLogout={handleLogout}
       />
-      <main className="flex-1 p-8 overflow-y-auto h-screen">
-        <div className="max-w-6xl mx-auto">{renderView()}</div>
+      <main className="flex-1 px-8 py-8 overflow-y-auto h-screen">
+        <div className="max-w-5xl mx-auto">{renderView()}</div>
       </main>
     </div>
   );
@@ -88,24 +88,26 @@ const LoginView: React.FC<{ onLogin: (username: string) => void }> = ({ onLogin 
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-100 p-4">
-      <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-slate-200">
-        <div className="flex flex-col items-center mb-8">
-          <div className="bg-blue-600 p-3 rounded-xl mb-4 shadow-lg shadow-blue-600/30">
-            <ShieldCheck className="text-white" size={32} />
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 p-4">
+      <div className="w-full max-w-md">
+        {/* Card */}
+        <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8 shadow-2xl">
+          <div className="flex flex-col items-center mb-8">
+            <div className="bg-blue-600 p-3 rounded-xl mb-4 shadow-lg shadow-blue-600/40 ring-4 ring-blue-600/20">
+              <ShieldCheck className="text-white" size={28} />
+            </div>
+            <h1 className="text-2xl font-bold text-white">Easy BPM Admin</h1>
+            <p className="text-slate-400 mt-1 text-sm">Sign in to your operations console</p>
           </div>
-          <h1 className="text-2xl font-bold text-slate-800">Easy Admin</h1>
-          <p className="text-slate-500 mt-1">Operate and monitor BPM instances</p>
-        </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">Username</label>
+            <label className="block text-sm font-medium text-slate-300 mb-1.5">Username</label>
             <div className="relative">
-              <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+              <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
               <input
                 type="text"
-                className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                className="w-full pl-9 pr-4 py-2.5 rounded-lg border border-white/10 bg-white/5 text-white placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm"
                 placeholder="Enter admin username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
@@ -113,12 +115,12 @@ const LoginView: React.FC<{ onLogin: (username: string) => void }> = ({ onLogin 
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">Password</label>
+            <label className="block text-sm font-medium text-slate-300 mb-1.5">Password</label>
             <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
               <input
                 type="password"
-                className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                className="w-full pl-9 pr-4 py-2.5 rounded-lg border border-white/10 bg-white/5 text-white placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm"
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -129,52 +131,84 @@ const LoginView: React.FC<{ onLogin: (username: string) => void }> = ({ onLogin 
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg transition-colors shadow-lg shadow-blue-600/20 flex items-center justify-center gap-2 mt-2"
+            className="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2.5 rounded-lg transition-colors shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2 mt-2 text-sm"
           >
-            {loading ? <Loader2 className="animate-spin" size={20} /> : 'Sign In'}
+            {loading ? <Loader2 className="animate-spin" size={18} /> : 'Sign In'}
           </button>
         </form>
+        </div>
+        <p className="text-center text-[11px] text-slate-600 mt-4">Easy BPM · Process Operations Console</p>
       </div>
     </div>
   );
 };
 
 const DashboardView: React.FC<{ onNavigate: (view: string) => void }> = ({ onNavigate }) => {
+  const quickActions = [
+    {
+      id: 'instances',
+      icon: Search,
+      label: 'Instance Explorer',
+      description: 'Search and inspect live process instances by ID. Manage variables, move nodes, and control lifecycle.',
+      accent: 'blue' as const,
+      badge: 'Live'
+    },
+    {
+      id: 'workflows',
+      icon: Workflow,
+      label: 'Workflow Catalog',
+      description: 'Browse all deployed process definitions across versions.',
+      accent: 'emerald' as const,
+      badge: 'Catalog'
+    },
+    {
+      id: 'code-tasks',
+      icon: Settings2,
+      label: 'Code Task Executions',
+      description: 'Monitor JAR-based code task execution history, results, and error analysis.',
+      accent: 'purple' as const,
+      badge: 'Executions'
+    }
+  ];
+
+  const accentMap = {
+    blue:    { bg: 'bg-blue-50',    icon: 'bg-blue-100 text-blue-600',    hover: 'group-hover:bg-blue-600 group-hover:text-white', border: 'border-blue-100',   badge: 'bg-blue-50 text-blue-600 border-blue-200'   },
+    emerald: { bg: 'bg-emerald-50', icon: 'bg-emerald-100 text-emerald-600', hover: 'group-hover:bg-emerald-600 group-hover:text-white', border: 'border-emerald-100', badge: 'bg-emerald-50 text-emerald-600 border-emerald-200' },
+    purple:  { bg: 'bg-purple-50',  icon: 'bg-purple-100 text-purple-600',  hover: 'group-hover:bg-purple-600 group-hover:text-white', border: 'border-purple-100',  badge: 'bg-purple-50 text-purple-600 border-purple-200'  }
+  };
+
   return (
-    <div className="space-y-6">
-      <header className="mb-8">
-        <h2 className="text-2xl font-bold text-slate-800">Operations Overview</h2>
-        <p className="text-slate-500">Track live instances and act on workflow execution.</p>
+    <div className="space-y-8">
+      <header>
+        <div className="flex items-center gap-2 mb-1">
+          <h2 className="text-2xl font-bold text-slate-800">Operations Overview</h2>
+        </div>
+        <p className="text-slate-500 text-sm">Monitor and control BPM process instances from a central console.</p>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div
-          onClick={() => onNavigate('instances')}
-          className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 cursor-pointer hover:shadow-md transition-shadow group"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <div className="p-3 bg-blue-100 text-blue-600 rounded-lg group-hover:bg-blue-600 group-hover:text-white transition-colors">
-              <Search size={24} />
+      <div className="grid grid-cols-1 gap-4">
+        {quickActions.map(({ id, icon: Icon, label, description, accent, badge }) => {
+          const colors = accentMap[accent];
+          return (
+            <div
+              key={id}
+              onClick={() => onNavigate(id)}
+              className="bg-white p-5 rounded-xl border border-slate-200 cursor-pointer hover:border-slate-300 hover:shadow-md transition-all group flex items-start gap-4"
+            >
+              <div className={`p-3 rounded-xl flex-shrink-0 transition-colors ${colors.icon} ${colors.hover}`}>
+                <Icon size={20} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <h3 className="font-semibold text-slate-800 text-sm">{label}</h3>
+                  <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${colors.badge}`}>{badge}</span>
+                </div>
+                <p className="text-xs text-slate-500 leading-relaxed">{description}</p>
+              </div>
+              <ArrowRightLeft size={14} className="text-slate-300 group-hover:text-slate-500 transition-colors flex-shrink-0 mt-1 rotate-90" />
             </div>
-            <span className="text-2xl font-bold text-slate-800">Live</span>
-          </div>
-          <h3 className="text-slate-600 font-medium">Find Instance</h3>
-          <p className="text-xs text-slate-400 mt-1">Search by instance number</p>
-        </div>
-
-        <div
-          onClick={() => onNavigate('workflows')}
-          className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 cursor-pointer hover:shadow-md transition-shadow group"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <div className="p-3 bg-emerald-100 text-emerald-600 rounded-lg group-hover:bg-emerald-600 group-hover:text-white transition-colors">
-              <Workflow size={24} />
-            </div>
-            <span className="text-2xl font-bold text-slate-800">Catalog</span>
-          </div>
-          <h3 className="text-slate-600 font-medium">Deployed Workflows</h3>
-          <p className="text-xs text-slate-400 mt-1">See deployed process definitions</p>
-        </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -354,32 +388,49 @@ const InstanceExplorerView: React.FC = () => {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-slate-800">Instance Explorer</h2>
-        <p className="text-slate-500">Search a process by instance number, manage variables, and move nodes safely.</p>
+        <p className="text-slate-500 text-sm">Search a process by instance number, manage variables, and move nodes safely.</p>
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
-        <label className="block text-sm font-medium text-slate-700 mb-2">Find Process Instance by Number</label>
+      <div className="bg-white border border-slate-200 rounded-xl p-5">
+        <label className="block text-xs font-semibold uppercase tracking-widest text-slate-400 mb-2">Find Process Instance by Number</label>
         <div className="flex gap-2">
-          <input
-            type="number"
-            className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-            placeholder="e.g. 1001"
-            value={instanceIdInput}
-            onChange={(e) => setInstanceIdInput(e.target.value)}
-          />
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
+            <input
+              type="number"
+              className="w-full pl-9 pr-4 rounded-lg border border-slate-300 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+              placeholder="e.g. 1001"
+              value={instanceIdInput}
+              onChange={(e) => setInstanceIdInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+            />
+          </div>
           <button
             onClick={handleSearch}
             disabled={loading}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors"
+            className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2 disabled:opacity-60"
           >
-            {loading ? <Loader2 className="animate-spin" size={16} /> : 'Search'}
+            {loading ? <Loader2 className="animate-spin" size={15} /> : <><Search size={14} /> Search</>}
           </button>
         </div>
       </div>
 
       {actionMessage && (
-        <div className="bg-slate-900 text-white rounded-lg px-4 py-3 text-sm flex items-center gap-2">
-          <AlertCircle size={16} /> {actionMessage}
+        <div className={`rounded-lg px-4 py-3 text-sm flex items-center gap-2 border ${
+          actionMessage.toLowerCase().includes('successfully') || actionMessage.toLowerCase().includes('success')
+            ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+            : actionMessage.toLowerCase().includes('failed') || actionMessage.toLowerCase().includes('error')
+            ? 'bg-red-50 text-red-800 border-red-200'
+            : 'bg-slate-100 text-slate-700 border-slate-200'
+        }`}>
+          {actionMessage.toLowerCase().includes('successfully') || actionMessage.toLowerCase().includes('success') ? (
+            <CheckCircle2 size={15} className="flex-shrink-0" />
+          ) : actionMessage.toLowerCase().includes('failed') || actionMessage.toLowerCase().includes('error') ? (
+            <AlertCircle size={15} className="flex-shrink-0" />
+          ) : (
+            <AlertCircle size={15} className="flex-shrink-0" />
+          )}
+          {actionMessage}
         </div>
       )}
 
@@ -697,27 +748,41 @@ const WorkflowCatalogView: React.FC = () => {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-slate-800">Deployed Workflows</h2>
-        <p className="text-slate-500">Browse all deployed process definitions and versions.</p>
+        <p className="text-slate-500 text-sm">Browse all deployed process definitions and versions.</p>
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-16">
-          <Loader2 className="animate-spin text-blue-500" size={30} />
+        <div className="flex flex-col items-center justify-center py-20 text-slate-400 gap-3">
+          <Loader2 className="animate-spin text-blue-500" size={28} />
+          <p className="text-sm">Loading process definitions…</p>
+        </div>
+      ) : processes.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20 text-slate-400 gap-3">
+          <Workflow size={40} className="text-slate-300" />
+          <p className="text-sm font-medium text-slate-500">No deployed workflows found</p>
+          <p className="text-xs text-slate-400">Deploy a process from the BPMN Modeler to see it here.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {processes.map((proc) => (
-            <div key={proc.id} className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
-              <div className="flex justify-between items-start gap-3">
-                <div>
-                  <h3 className="font-bold text-lg text-slate-800">{proc.name}</h3>
-                  <p className="text-sm text-slate-500 mt-1">{proc.description || 'No description provided.'}</p>
+            <div key={proc.id} className="bg-white p-5 rounded-xl border border-slate-200 hover:border-slate-300 hover:shadow-md transition-all group">
+              <div className="flex justify-between items-start gap-3 mb-3">
+                <div className="flex items-start gap-3 min-w-0">
+                  <div className="p-2 bg-indigo-50 rounded-lg flex-shrink-0 group-hover:bg-indigo-100 transition-colors">
+                    <Workflow size={16} className="text-indigo-600" />
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="font-semibold text-slate-800 text-sm leading-tight truncate">{proc.name}</h3>
+                    <p className="text-xs text-slate-500 mt-1 leading-relaxed line-clamp-2">{proc.description || 'No description provided.'}</p>
+                  </div>
                 </div>
-                <span className="text-xs font-mono bg-slate-100 text-slate-600 px-2 py-1 rounded">v{proc.version}</span>
+                <span className="text-[10px] font-mono font-bold bg-slate-100 text-slate-600 px-2 py-1 rounded-md flex-shrink-0 border border-slate-200">v{proc.version}</span>
               </div>
-              <div className="mt-4 flex items-center gap-2 text-xs text-slate-500 font-mono">
-                <span className="px-2 py-1 rounded bg-slate-100">ID: {proc.id}</span>
-                {proc.key && <span className="px-2 py-1 rounded bg-slate-100">KEY: {proc.key}</span>}
+              <div className="flex items-center gap-2 text-[11px] font-mono">
+                <span className="px-2 py-1 rounded-md bg-slate-50 text-slate-500 border border-slate-200">#{proc.id}</span>
+                {proc.key && (
+                  <span className="px-2 py-1 rounded-md bg-blue-50 text-blue-600 border border-blue-100 font-semibold">{proc.key}</span>
+                )}
               </div>
             </div>
           ))}
@@ -733,19 +798,21 @@ const MetricCard: React.FC<{ icon: React.ReactNode; title: string; value: string
   value,
   tone
 }) => {
-  const toneClass = {
-    blue: 'bg-blue-100 text-blue-700',
-    emerald: 'bg-emerald-100 text-emerald-700',
-    purple: 'bg-purple-100 text-purple-700'
+  const toneStyles = {
+    blue:    { icon: 'bg-blue-50 text-blue-600',    border: 'border-l-blue-500' },
+    emerald: { icon: 'bg-emerald-50 text-emerald-600', border: 'border-l-emerald-500' },
+    purple:  { icon: 'bg-purple-50 text-purple-600',  border: 'border-l-purple-500' }
   }[tone];
 
   return (
-    <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
-      <div className="flex items-center justify-between mb-3">
-        <div className={`p-2 rounded-lg ${toneClass}`}>{icon}</div>
-        <span className="text-lg font-bold text-slate-800">{value}</span>
+    <div className={`bg-white border border-slate-200 border-l-4 ${toneStyles.border} rounded-xl p-4 shadow-sm`}>
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <p className="text-[10px] uppercase tracking-widest text-slate-400 font-semibold mb-1">{title}</p>
+          <p className="text-base font-bold text-slate-800 leading-tight truncate max-w-[160px]" title={value}>{value}</p>
+        </div>
+        <div className={`p-2 rounded-lg flex-shrink-0 ${toneStyles.icon}`}>{icon}</div>
       </div>
-      <p className="text-xs uppercase tracking-wide text-slate-500">{title}</p>
     </div>
   );
 };
