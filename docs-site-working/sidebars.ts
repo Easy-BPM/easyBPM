@@ -73,6 +73,7 @@ const sidebars: SidebarsConfig = {
       items: [
         'easy-task-portal-overview',
         'easy-task-portal-getting-started',
+        'document-handling',
       ],
     },
     {
