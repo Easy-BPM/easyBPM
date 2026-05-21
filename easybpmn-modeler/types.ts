@@ -116,11 +116,14 @@ export interface FormField {
   id: string;
   name: string;
   title: string;
-  type: 'string' | 'number' | 'text' | 'boolean' | 'radio' | 'select' | 'date';
+  type: 'string' | 'number' | 'text' | 'boolean' | 'radio' | 'select' | 'date' | 'fileUpload' | 'fileDownload' | 'pdfViewer';
   required: boolean;
   readOnly: boolean;
   options?: string[];
   defaultValue?: string;
+  // File-field specific
+  allowedExtensions?: string[];
+  maxSizeMb?: number;
 }
 
 export interface FormTab {

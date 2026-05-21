@@ -728,7 +728,7 @@ const TaskDetailView: React.FC<{ taskId: number; onBack: () => void; currentUser
               <p className="text-sm text-slate-500">
                 This task has a form. Form values will be submitted as task outputs and synchronized as process variables on completion.
               </p>
-              <DynamicForm schema={formDef.schema} initialData={formData} onChange={setFormData} disabled={isCompleted} />
+              <DynamicForm schema={formDef.schema} initialData={formData} onChange={setFormData} disabled={isCompleted} taskId={task.id} processInstanceId={task.processInstanceId} />
             </div>
           ) : (
             <div className="space-y-3">

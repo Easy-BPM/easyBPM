@@ -15,6 +15,19 @@ export interface ProcessDefinition {
   version: number;
 }
 
+// Document metadata returned by POST /api/documents
+export interface DocumentMetadata {
+  id: string; // UUID
+  fileName: string;
+  contentType: string;
+  fileSize: number;
+  taskId: number | null;
+  processInstanceId: number | null;
+  formFieldKey: string | null;
+  uploadedBy: string | null;
+  createdAt: string;
+}
+
 // JSON Schema Types based on provided format
 // Example: {"type": "object", "title": "...", "required": [...], "properties": {...}}
 export interface JsonSchemaProperty {
@@ -22,7 +35,19 @@ export interface JsonSchemaProperty {
   title?: string;
   description?: string;
   enum?: (string | number)[];
-  format?: string; 
+  /**
+   * Extended format values (beyond JSON Schema standard):
+   *   - 'textarea'    → multi-line text area
+   *   - 'date'        → date picker
+   *   - 'fileUpload'  → file upload component (value = document UUID)
+   *   - 'fileDownload'→ file download button (value = document UUID)
+   *   - 'pdfViewer'   → inline PDF viewer (value = document UUID)
+   */
+  format?: string;
+  // File-field specific constraints (present when format is fileUpload/fileDownload/pdfViewer)
+  allowedExtensions?: string[];
+  maxSizeMb?: number;
+  readOnly?: boolean;
 }
 
 export interface JsonSchema {

@@ -1,4 +1,4 @@
-import { Task, TaskStatus, ProcessDefinition, CompleteTaskPayload, Page, Form, AuthLoginResponse, AuthSession } from '../types';
+import { Task, TaskStatus, ProcessDefinition, CompleteTaskPayload, Page, Form, AuthLoginResponse, AuthSession, DocumentMetadata } from '../types';
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080').replace(/\/$/, '');
 const USE_MOCK = false;
@@ -250,5 +250,60 @@ export const bpmService = {
       method: 'POST'
     });
     await assertOk(response, `Claim task ${id}`);
+  },
+
+  // -------------------------------------------------------------------------
+  // Document handling
+  // -------------------------------------------------------------------------
+
+  /** Upload a file, optionally associating it with a task and form field. Returns metadata including the UUID. */
+  uploadDocument: async (
+    file: File,
+    taskId?: number,
+    processInstanceId?: number,
+    formFieldKey?: string
+  ): Promise<DocumentMetadata> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (taskId !== undefined) formData.append('taskId', String(taskId));
+    if (processInstanceId !== undefined) formData.append('processInstanceId', String(processInstanceId));
+    if (formFieldKey) formData.append('formFieldKey', formFieldKey);
+
+    const response = await fetchWithAuth(`${API_BASE_URL}/api/documents`, {
+      method: 'POST',
+      body: formData
+    });
+    await assertOk(response, 'Upload document');
+    return response.json() as Promise<DocumentMetadata>;
+  },
+
+  /** Retrieve document metadata (no binary content). */
+  getDocumentMetadata: async (id: string): Promise<DocumentMetadata> => {
+    const response = await fetchWithAuth(`${API_BASE_URL}/api/documents/${id}`);
+    await assertOk(response, `Get document metadata ${id}`);
+    return response.json() as Promise<DocumentMetadata>;
+  },
+
+  /** Returns the URL to download a document (attachment). Suitable for <a href> usage. */
+  getDocumentDownloadUrl: (id: string): string =>
+    `${API_BASE_URL}/api/documents/${id}/download`,
+
+  /** Returns the URL to preview a document inline (inline for PDFs). Suitable for <iframe src> usage. */
+  getDocumentPreviewUrl: (id: string): string =>
+    `${API_BASE_URL}/api/documents/${id}/preview`,
+
+  /** Delete a document by UUID. */
+  deleteDocument: async (id: string): Promise<void> => {
+    const response = await fetchWithAuth(`${API_BASE_URL}/api/documents/${id}`, {
+      method: 'DELETE'
+    });
+    await assertOk(response, `Delete document ${id}`);
+  },
+
+  /** List documents associated with a task. */
+  listDocumentsByTask: async (taskId: number): Promise<DocumentMetadata[]> => {
+    const response = await fetchWithAuth(`${API_BASE_URL}/api/documents?taskId=${taskId}`);
+    await assertOk(response, `List documents for task ${taskId}`);
+    return response.json() as Promise<DocumentMetadata[]>;
   },
 };
