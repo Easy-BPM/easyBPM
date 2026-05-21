@@ -125,26 +125,26 @@ export const Palette: React.FC<PaletteProps> = ({ onDragStart }) => {
   ];
 
   return (
-    <div className="w-56 bg-white border-r border-slate-200 flex flex-col h-full z-10">
-      <div className="px-4 py-3 border-b border-slate-200">
-        <h2 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Components</h2>
+    <div className="w-64 bg-slate-50 border-r border-slate-200 flex flex-col h-full z-10 shadow-sm">
+      <div className="p-4 border-b border-slate-200 bg-slate-50">
+        <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider">Components</h2>
       </div>
-      <div className="px-3 py-3 space-y-5 overflow-y-auto flex-1">
+      <div className="p-4 space-y-6 overflow-y-auto flex-1">
         {groups.map((group) => (
-          <div key={group.title} className="space-y-1.5">
-            <h3 className="text-[9px] font-bold text-slate-400 uppercase tracking-widest px-1 mb-2">{group.title}</h3>
-            <div className="grid grid-cols-1 gap-1">
+          <div key={group.title} className="space-y-2">
+            <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">{group.title}</h3>
+            <div className="grid grid-cols-1 gap-2">
               {group.items.map((item) => (
                 <div
                   key={item.type}
                   draggable
                   onDragStart={(e) => onDragStart(e, item.type)}
-                  className="flex items-center px-2.5 py-2 bg-slate-50 border border-slate-200 rounded-lg cursor-grab hover:border-blue-300 hover:bg-blue-50 hover:shadow-sm transition-all group"
+                  className="flex items-center p-2.5 bg-white border border-slate-200 rounded-lg shadow-sm cursor-grab hover:border-blue-400 hover:shadow-md transition-all group"
                 >
-                  <div className={`mr-2.5 ${item.color} flex-shrink-0`}>
+                  <div className={`mr-3 ${item.color} group-hover:scale-110 transition-transform flex-shrink-0`}>
                     {item.icon}
                   </div>
-                  <span className="text-xs font-medium text-slate-700 group-hover:text-blue-700 truncate transition-colors">{item.label}</span>
+                  <span className="text-xs font-medium text-slate-700 truncate">{item.label}</span>
                 </div>
               ))}
             </div>
@@ -152,9 +152,9 @@ export const Palette: React.FC<PaletteProps> = ({ onDragStart }) => {
         ))}
       </div>
       
-      <div className="px-4 py-3 border-t border-slate-100 bg-slate-50">
-        <p className="text-[10px] text-slate-400 leading-relaxed">
-          Drag to canvas · Hover to connect · <span className="font-mono bg-white border border-slate-200 rounded px-1 text-slate-500">Del</span> to remove
+      <div className="p-4 border-t border-slate-200 bg-slate-100">
+        <p className="text-xs text-slate-500 leading-relaxed">
+          <span className="font-semibold">Tip:</span> Drag components to canvas. Hover over a node to see connection points. Press <span className="font-mono bg-white border border-slate-200 rounded px-1">Delete</span> to remove.
         </p>
       </div>
     </div>
