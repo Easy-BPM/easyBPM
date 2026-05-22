@@ -127,7 +127,7 @@ const App: React.FC = () => {
 };
 
 const LoginView: React.FC<{ onLogin: (username: string) => void }> = ({ onLogin }) => {
-  const [username, setUsername] = useState('joao');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -137,7 +137,7 @@ const LoginView: React.FC<{ onLogin: (username: string) => void }> = ({ onLogin 
 
     setLoading(true);
     try {
-      await bpmService.login(username.trim());
+      await bpmService.login(username.trim(), password);
       onLogin(username.trim());
     } catch (error) {
       console.error(error);

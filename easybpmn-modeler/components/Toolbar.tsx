@@ -102,55 +102,32 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           <Upload className="w-4 h-4" />
           <span>Import</span>
         </button>
-        <div className="relative group">
-          <div className="flex items-center gap-2">
-            <button
-              onClick={onDeploy}
-              disabled={isExportDisabled || isDeploying}
-              className={`flex items-center space-x-2 px-4 py-2 text-sm font-medium rounded-md transition-all ${
-                isExportDisabled || isDeploying
-                  ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
-                  : 'bg-emerald-600 hover:bg-emerald-700 text-white border border-transparent'
-              }`}
-            >
-              <Rocket className="w-4 h-4" />
-              <span>{isDeploying ? 'Deploying...' : 'Deploy Process'}</span>
-            </button>
-            <button 
-              onClick={onExport}
-              disabled={isExportDisabled}
-              className={`flex items-center space-x-2 px-4 py-2 text-sm font-medium rounded-md transition-all ${
-                isExportDisabled 
-                  ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200' 
-                  : 'text-slate-600 hover:bg-slate-100 bg-white border border-transparent'
-              }`}
-            >
-              <Download className="w-4 h-4" />
-              <span>Export JSON</span>
-              {isExportDisabled && <AlertTriangle className="w-3.5 h-3.5 text-orange-500" />}
-            </button>
-          </div>
-          {isExportDisabled && (
-            <div className="absolute top-full right-0 mt-2 p-3 bg-slate-800 text-white text-[10px] rounded shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 w-80 leading-tight space-y-2">
-              <p className="font-semibold">Resolve validation errors before deploy/export.</p>
-              {validationErrors.length > 0 && (
-                <div>
-                  <p className="text-red-300 font-semibold mb-1">Errors</p>
-                  {validationErrors.slice(0, 4).map((err, idx) => (
-                    <p key={`${idx}-${err}`}>- {err}</p>
-                  ))}
-                </div>
-              )}
-              {validationWarnings.length > 0 && (
-                <div>
-                  <p className="text-amber-300 font-semibold mb-1">Warnings</p>
-                  {validationWarnings.slice(0, 2).map((warn, idx) => (
-                    <p key={`${idx}-${warn}`}>- {warn}</p>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onDeploy}
+            disabled={isExportDisabled || isDeploying}
+            className={`flex items-center space-x-2 px-4 py-2 text-sm font-medium rounded-md transition-all ${
+              isExportDisabled || isDeploying
+                ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
+                : 'bg-emerald-600 hover:bg-emerald-700 text-white border border-transparent'
+            }`}
+          >
+            <Rocket className="w-4 h-4" />
+            <span>{isDeploying ? 'Deploying...' : 'Deploy Process'}</span>
+          </button>
+          <button 
+            onClick={onExport}
+            disabled={isExportDisabled}
+            className={`flex items-center space-x-2 px-4 py-2 text-sm font-medium rounded-md transition-all ${
+              isExportDisabled 
+                ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200' 
+                : 'text-slate-600 hover:bg-slate-100 bg-white border border-transparent'
+            }`}
+          >
+            <Download className="w-4 h-4" />
+            <span>Export JSON</span>
+            {isExportDisabled && <AlertTriangle className="w-3.5 h-3.5 text-orange-500" />}
+          </button>
         </div>
       </div>
     </div>

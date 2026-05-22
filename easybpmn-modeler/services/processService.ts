@@ -27,7 +27,7 @@ const getSession = (): AuthSession | null => {
   }
 };
 
-const fetchWithAuth = (url: string, init?: RequestInit) => {
+export const fetchWithAuth = (url: string, init?: RequestInit) => {
   const session = getSession();
   return fetch(url, {
     ...init,

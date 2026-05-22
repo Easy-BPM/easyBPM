@@ -130,10 +130,13 @@ export const bpmService = {
       return { username, token: `mock-jwt-token-${Date.now()}`, groups: ['ADMIN'], permissions: ['ACCESS_PROCESS_PORTAL'] };
     }
 
-    const res = await fetch(`${API_BASE_URL}/auth/login`, {
+    const url = `${API_BASE_URL}/auth/login`;
+    const body = JSON.stringify({ username, password });
+    console.log('Logging in to:', url, 'with body:', body);
+    const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password })
+      body
     });
     await assertOk(res, 'Login');
     const payload = await res.json() as AuthLoginResponse;
