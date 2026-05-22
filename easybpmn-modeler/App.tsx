@@ -1,4 +1,10 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import {
+  ShieldCheck,
+  User,
+  Lock,
+  Loader2
+} from 'lucide-react';
 import { Palette } from './components/Palette';
 import { Canvas } from './components/Canvas';
 import { PropertiesPanel } from './components/PropertiesPanel';
@@ -1002,18 +1008,57 @@ const ModelerLoginView: React.FC<{ onLogin: (username: string, permissions: stri
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-100 p-4">
-      <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-slate-200">
-        <h1 className="text-2xl font-bold text-slate-800">Easy BPM Modeler</h1>
-        <p className="text-slate-500 mt-1 mb-6">Sign in to design and deploy processes</p>
-        <form onSubmit={submit} className="space-y-4">
-          <input className="w-full rounded-lg border border-slate-300 px-3 py-2.5" placeholder="Username" value={username} onChange={e => setUsername(e.target.value)} />
-          <input className="w-full rounded-lg border border-slate-300 px-3 py-2.5" type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} />
-          <button type="submit" disabled={loading} className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-lg">
-            {loading ? 'Signing in...' : 'Sign In'}
-          </button>
-          {error && <p className="text-sm text-red-600">{error}</p>}
-        </form>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 p-4">
+      <div className="w-full max-w-md">
+        {/* Card */}
+        <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8 shadow-2xl">
+          <div className="flex flex-col items-center mb-8">
+            <div className="bg-blue-600 p-3 rounded-xl mb-4 shadow-lg shadow-blue-600/40 ring-4 ring-blue-600/20">
+              <ShieldCheck className="text-white" size={28} />
+            </div>
+            <h1 className="text-2xl font-bold text-white">Easy BPM Modeler</h1>
+            <p className="text-slate-400 mt-1 text-sm">Sign in to design and deploy processes</p>
+          </div>
+
+          <form onSubmit={submit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-1.5">Username</label>
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
+                <input
+                  type="text"
+                  className="w-full pl-9 pr-4 py-2.5 rounded-lg border border-white/10 bg-white/5 text-white placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm"
+                  placeholder="Enter username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-1.5">Password</label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
+                <input
+                  type="password"
+                  className="w-full pl-9 pr-4 py-2.5 rounded-lg border border-white/10 bg-white/5 text-white placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm"
+                  placeholder="Enter password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2.5 rounded-lg transition-colors shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2 mt-2 text-sm"
+            >
+              {loading ? <Loader2 className="animate-spin" size={18} /> : 'Sign In'}
+            </button>
+            {error && <p className="text-sm text-red-400 mt-2">{error}</p>}
+          </form>
+        </div>
+        <p className="text-center text-[11px] text-slate-600 mt-4">Easy BPM · Process Design & Deployment</p>
       </div>
     </div>
   );
