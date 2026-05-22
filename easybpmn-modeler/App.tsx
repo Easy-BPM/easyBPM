@@ -19,7 +19,7 @@ import { processService } from './services/processService';
 const BOUNDARY_TYPES: NodeType[] = ['error-boundary', 'message-boundary', 'timer-boundary'];
 const START_TYPES: NodeType[] = ['start', 'message-start'];
 const END_TYPES: NodeType[] = ['end'];
-const TASK_TYPES: NodeType[] = ['user-task', 'service-task', 'api-task', 'code-task'];
+const TASK_TYPES: NodeType[] = ['user-task', 'service-task', 'api-task', 'code-task', 'ai-task'];
 const FORM_KEY_PATTERN = /^[A-Za-z][A-Za-z0-9_-]*$/;
 
 // Helper to safely convert values to strings, preventing "[object Object]"
@@ -431,6 +431,9 @@ const App: React.FC = () => {
       'user-task': 'HumanTask',
       'service-task': 'ServiceTask',
       'api-task': 'APITask',
+      'ai-task': 'AiTask',
+      'code-task': 'CodeTask',
+      'call-activity': 'CallActivity',
       'gateway': 'ExclusiveGateway', 
       'parallel-gateway': 'ParallelGateway',
       'timer-event': 'TimerEvent',
@@ -519,6 +522,66 @@ const App: React.FC = () => {
            outputs: (node.data.outputVariables || []).map(v => ({
               source: v.mappingType,
               sourceValue: safeString(v.name),
+              type: v.type,
+              targetVariable: v.value
+           }))
+         };
+       }
+
+       if (node.type === 'ai-task') {
+         base.properties = {
+           providerId: node.data.aiProviderId || 'openai',
+           modelName: node.data.aiModelName || 'gpt-3.5-turbo',
+           credentialId: node.data.aiCredentialId || undefined,
+           credentialRef: node.data.aiCredentialRefName || undefined,
+           endpoint: node.data.aiEndpoint || undefined,
+           promptTemplate: node.data.aiPromptTemplate || '',
+           systemPrompt: node.data.aiSystemPrompt || undefined,
+           userPrompt: node.data.aiUserPrompt || undefined,
+           outputVariable: node.data.aiOutputVariable || '',
+           tuningParams: node.data.aiTuningParams || {
+             temperature: 0.7,
+             topP: 1.0,
+             maxTokens: 2000,
+             frequencyPenalty: 0,
+             presencePenalty: 0,
+             retryCount: 0,
+             backoffMultiplier: 2.0,
+             initialDelayMs: 1000
+           }
+         };
+       }
+
+       if (node.type === 'call-activity') {
+         base.config = {
+           processKey: node.data.callActivityProcessKey || '',
+           propagateAllVariables: node.data.propagateAllVariables || false,
+           inputs: (node.data.inputVariables || []).map(v => ({
+              targetName: String(v.name || ''),
+              type: v.type,
+              source: v.mappingType,
+              value: v.value
+           })),
+           outputs: (node.data.outputVariables || []).map(v => ({
+              source: v.mappingType,
+              sourceValue: String(v.name || ''),
+              type: v.type,
+              targetVariable: v.value
+           }))
+         };
+       }
+
+       if (node.type === 'code-task') {
+         base.properties = {
+           inputs: (node.data.inputVariables || []).map(v => ({
+              targetName: String(v.name || ''),
+              type: v.type,
+              source: v.mappingType,
+              value: v.value
+           })),
+           outputs: (node.data.outputVariables || []).map(v => ({
+              source: v.mappingType,
+              sourceValue: String(v.name || ''),
               type: v.type,
               targetVariable: v.value
            }))

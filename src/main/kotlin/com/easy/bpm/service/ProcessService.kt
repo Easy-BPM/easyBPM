@@ -43,7 +43,8 @@ class ProcessService(
     private val metricsService: MetricsService,
     private val workerRequestRepository: WorkerRequestRepository,
     private val callActivityHandler: CallActivityHandler,
-    private val callActivityMappingRepository: CallActivityMappingRepository
+    private val callActivityMappingRepository: CallActivityMappingRepository,
+    private val aiTaskHandler: com.easy.bpm.handler.AITaskHandler
 ) {
 
     companion object {
@@ -397,6 +398,7 @@ class ProcessService(
             when (nodeType) {
                 NodeType.UserTask -> handleUserTask(instance, node)
                 NodeType.APITask -> handleAPITask(instance, node)
+                NodeType.AiTask -> handleAITask(instance, node)
                 NodeType.ServiceTask -> handleServiceTaskNode(instance, node, definition)
                 NodeType.TimerEvent -> handleTimerEvent(instance, node)
                 NodeType.MessageEvent -> handleMessageEvent(instance, node)
@@ -514,6 +516,41 @@ class ProcessService(
         // Persist instance updated timestamp; instance remains on this node until completion.
         instance.updatedAt = LocalDateTime.now()
         processInstanceRepository.save(instance)
+    }
+
+    private fun handleAITask(
+        instance: ProcessInstance,
+        node: JsonNode
+    ) {
+        val nodeId = node.get("id").asText()
+        
+        try {
+            // Get current process variables as a map
+            val variables = processVariableRepository.findByProcessInstanceId(instance.id)
+                .associateBy({ it.name }, { it.value })
+
+            // Execute AI task (synchronous - waits for provider response)
+            val outputVars = aiTaskHandler.executeAITask(
+                instanceId = instance.id,
+                node = node,
+                inputVariables = variables
+            )
+
+            // Store output variable in process instance
+            outputVars.forEach { (varName, varValue) ->
+                assignProcessVariables(instance.id, mapOf(varName to varValue))
+            }
+
+            logger.info("AI Task completed successfully: instance=${instance.id}, nodeId=$nodeId")
+            
+            // Persist instance updated timestamp
+            instance.updatedAt = LocalDateTime.now()
+            processInstanceRepository.save(instance)
+
+        } catch (ex: com.easy.bpm.handler.AITaskExecutionException) {
+            logger.error("AI Task execution failed: instance=${instance.id}, nodeId=$nodeId, errorCode=${ex.errorCode}", ex)
+            throw ex
+        }
     }
 
     private fun handleServiceTaskNode(

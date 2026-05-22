@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { BpmnNode, BpmnEdge, ProcessVariable, TaskVariable, ValidationIssue } from '../types';
-import { Trash2, Plus, LogIn, LogOut, Layers, Database, Hash, Type, ToggleLeft, Braces, Fingerprint, AlertCircle, FileCode, Mail, Zap, FileText, Code, Info } from 'lucide-react';
+import { Trash2, Plus, LogIn, LogOut, Layers, Database, Hash, Type, ToggleLeft, Braces, Fingerprint, AlertCircle, FileCode, Mail, Zap, FileText, Code, Info, Brain } from 'lucide-react';
 import { validateId } from '../utils/validation';
+import { AIProviderConfigForm } from './AIProviderConfigForm';
+import { PromptEditor } from './PromptEditor';
+import { AITuningPanel } from './AITuningPanel';
 
 interface PropertiesPanelProps {
   selectedNodeUids: string[];
@@ -725,6 +728,72 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                {renderVarList('Output Variable Mapping', 'outputVariables', <LogOut className="w-3.5 h-3.5 text-green-500" />)}
              </div>
            </div>
+        )}
+        {selectedNode.type === 'ai-task' && (
+          <div className="border-t border-slate-100 pt-6 space-y-6">
+            <div className="px-4">
+              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                <Brain className="w-4 h-4 text-pink-600" /> AI Task Configuration
+              </label>
+              <p className="text-[10px] text-slate-400 mt-1">Send prompts to AI providers and store responses in process variables.</p>
+            </div>
+
+            {/* Provider & Model Config */}
+            <div className="px-4">
+              <AIProviderConfigForm
+                providerId={selectedNode.data.aiProviderId}
+                modelName={selectedNode.data.aiModelName}
+                credentialId={selectedNode.data.aiCredentialId}
+                credentialRefName={selectedNode.data.aiCredentialRefName}
+                endpoint={selectedNode.data.aiEndpoint}
+                availableCredentials={[]} // Will be enhanced with backend data later
+                onProviderChange={(id) => onUpdateNode(selectedNode.uid, { aiProviderId: id })}
+                onModelChange={(model) => onUpdateNode(selectedNode.uid, { aiModelName: model })}
+                onCredentialChange={(id) => onUpdateNode(selectedNode.uid, { aiCredentialId: id })}
+                onEndpointChange={(ep) => onUpdateNode(selectedNode.uid, { aiEndpoint: ep })}
+              />
+            </div>
+
+            {/* Prompt Template */}
+            <div className="px-4">
+              <PromptEditor
+                userPrompt={selectedNode.data.aiUserPrompt}
+                systemPrompt={selectedNode.data.aiSystemPrompt}
+                promptTemplate={selectedNode.data.aiPromptTemplate}
+                processVariables={processVariables}
+                onUserPromptChange={(prompt) => onUpdateNode(selectedNode.uid, { aiUserPrompt: prompt })}
+                onSystemPromptChange={(prompt) => onUpdateNode(selectedNode.uid, { aiSystemPrompt: prompt })}
+                onPromptTemplateChange={(template) => onUpdateNode(selectedNode.uid, { aiPromptTemplate: template })}
+              />
+            </div>
+
+            {/* Tuning Parameters */}
+            <div className="px-4">
+              <AITuningPanel
+                tuningParams={selectedNode.data.aiTuningParams}
+                onTuningParamsChange={(params) => onUpdateNode(selectedNode.uid, { aiTuningParams: params })}
+              />
+            </div>
+
+            {/* Output Variable */}
+            <div className="px-4 space-y-3">
+              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider">Response Output</label>
+              <div>
+                <label className="block text-[10px] text-slate-400 mb-1 font-bold">OUTPUT VARIABLE</label>
+                <select
+                  value={selectedNode.data.aiOutputVariable || ''}
+                  onChange={(e) => onUpdateNode(selectedNode.uid, { aiOutputVariable: e.target.value })}
+                  className={inputClassName}
+                >
+                  <option value="">-- Select or create variable --</option>
+                  {processVariables.map(v => (
+                    <option key={v.id} value={v.name}>{v.name}</option>
+                  ))}
+                </select>
+                <p className="text-[10px] text-slate-400 mt-1 leading-tight">The AI response will be stored in this process variable.</p>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>

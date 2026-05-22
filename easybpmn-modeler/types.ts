@@ -1,4 +1,4 @@
-export type NodeType = 'start' | 'end' | 'user-task' | 'service-task' | 'api-task' | 'code-task' | 'call-activity' | 'gateway' | 'parallel-gateway' | 'timer-event' | 'message-start' | 'message-intermediate-catch' | 'message-intermediate-throw' | 'error-boundary' | 'message-boundary' | 'timer-boundary';
+export type NodeType = 'start' | 'end' | 'user-task' | 'service-task' | 'api-task' | 'code-task' | 'ai-task' | 'call-activity' | 'gateway' | 'parallel-gateway' | 'timer-event' | 'message-start' | 'message-intermediate-catch' | 'message-intermediate-throw' | 'error-boundary' | 'message-boundary' | 'timer-boundary';
 
 export interface Position {
   x: number;
@@ -38,6 +38,26 @@ export interface NodeData {
   inputMappings?: Record<string, string>;  // parent var -> child var
   outputMappings?: Record<string, string>; // child var -> parent var
   propagateAllVariables?: boolean;      // Copy all variables (default false)
+  // AI Task specific (BETA)
+  aiProviderId?: string;                 // Provider: 'openai', 'anthropic', etc.
+  aiModelName?: string;                  // Model: 'gpt-4', 'claude-3-opus', etc.
+  aiCredentialId?: string;               // Reference to stored credential
+  aiCredentialRefName?: string;          // Environment variable reference for credential
+  aiUserPrompt?: string;                 // User-facing prompt message
+  aiPromptTemplate?: string;             // Prompt with {{variable}} placeholders
+  aiSystemPrompt?: string;               // System role for AI
+  aiEndpoint?: string;                   // Custom endpoint (for OpenAI/Azure)
+  aiOutputVariable?: string;             // Variable to store AI response
+  aiTuningParams?: {                     // AI tuning parameters (BETA)
+    temperature?: number;                // 0.0-2.0 for OpenAI
+    topP?: number;                       // 0.0-1.0
+    maxTokens?: number;
+    frequencyPenalty?: number;           // -2.0 to 2.0
+    presencePenalty?: number;            // -2.0 to 2.0
+    retryCount?: number;                 // Number of retries
+    backoffMultiplier?: number;          // Exponential backoff
+    initialDelayMs?: number;             // Initial retry delay
+  };
   // Gateway specific
   condition?: string;
   // Message Event specific
