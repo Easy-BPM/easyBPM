@@ -107,6 +107,7 @@ class WorkerListener(
                 workerRequestRepository.save(workerRequest)
 
                 logger.severe("Max retries exceeded for $idempotencyKey, routing to DLQ: ${ex.message}")
+                logger.severe("Worker: Sending to DLQ - processInstanceId=$processInstanceId, nodeId=$nodeId, reason=${ex.message}")
                 routeToDlq(message, ex.message ?: "Unknown error")
 
             } else {
@@ -173,15 +174,22 @@ class WorkerListener(
         val body = properties["body"] ?: emptyMap<String, Any>()
         val entity = HttpEntity(body, headers)
 
-        val response: Map<*, *>? = when (method) {
-            "POST" -> restTemplate.postForEntity(url, entity, Map::class.java).body
-            "PUT" -> restTemplate.exchange(url, org.springframework.http.HttpMethod.PUT, entity, Map::class.java).body
-            "DELETE" -> restTemplate.exchange(url, org.springframework.http.HttpMethod.DELETE, entity, Map::class.java).body
-            "GET" -> restTemplate.exchange(url, org.springframework.http.HttpMethod.GET, entity, Map::class.java).body
+        val response: Any? = when (method) {
+            "POST" -> restTemplate.postForEntity(url, entity, Any::class.java).body
+            "PUT" -> restTemplate.exchange(url, org.springframework.http.HttpMethod.PUT, entity, Any::class.java).body
+            "DELETE" -> restTemplate.exchange(url, org.springframework.http.HttpMethod.DELETE, entity, Any::class.java).body
+            "GET" -> restTemplate.exchange(url, org.springframework.http.HttpMethod.GET, entity, Any::class.java).body
             else -> throw IllegalArgumentException("Unsupported method $method")
         }
 
-        return (response as? Map<*, *>)?.mapKeys { it.key.toString() }?.mapValues { it.value.toString() } ?: emptyMap()
+        // Return response as JSON string to preserve structure for backend to apply output mappings
+        val jsonString = if (response != null) {
+            com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(response)
+        } else {
+            "{}"
+        }
+        
+        return mapOf("__response" to jsonString)
     }
 
     private fun resolveEnv(name: String): String {

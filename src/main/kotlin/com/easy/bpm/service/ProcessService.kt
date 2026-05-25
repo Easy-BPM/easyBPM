@@ -856,27 +856,61 @@ class ProcessService(
         val instance = processInstanceRepository.findById(processInstanceId)
             .orElseThrow { IllegalArgumentException("Process instance not found") }
 
-        // Save or update outputs as process variables
-        outputs.forEach { (k, v) ->
-            val value = objectMapper.readTree(v)
-            val existing = processVariableRepository.findByProcessInstanceIdAndName(instance.id, k)
-            
-            if (existing != null) {
-                existing.value = value
-                processVariableRepository.save(existing)
-            } else {
-                processVariableRepository.save(
-                    ProcessVariable(
-                        processInstanceId = instance.id,
-                        name = k,
-                        value = value
-                    )
-                )
-            }
-        }
-
         val definition = parseDefinition(instance.processDefinition.definitionJson)
         val node = findNode(definition, nodeId)
+
+        // Extract the response JSON from outputs
+        val responseJson = if (outputs.containsKey("__response")) {
+            try {
+                objectMapper.readTree(outputs["__response"])
+            } catch (e: Exception) {
+                logger.warn("Failed to parse response JSON: ${e.message}")
+                objectMapper.createObjectNode()
+            }
+        } else {
+            // Fallback for backwards compatibility with flat output format
+            objectMapper.valueToTree<JsonNode>(outputs)
+        }
+
+        // Apply output mappings from node configuration
+        val nodeConfig = node.get("properties") ?: node.get("config")
+        val outputMappings = nodeConfig?.get("outputs")
+        
+        if (outputMappings != null && outputMappings.isArray) {
+            // Process each output mapping
+            outputMappings.forEach { mapping ->
+                val target = mapping.get("target")?.asText()
+                if (target == "variable") {
+                    val sourceName = mapping.get("sourceName")?.asText()
+                    val targetVarName = mapping.get("value")?.asText()
+                    
+                    if (!sourceName.isNullOrBlank() && !targetVarName.isNullOrBlank()) {
+                        try {
+                            // Extract value from response using path notation (e.g., "data.status")
+                            val value = extractValueByPath(responseJson, sourceName)
+                            
+                            // Save to process variable
+                            val existing = processVariableRepository.findByProcessInstanceIdAndName(instance.id, targetVarName)
+                            if (existing != null) {
+                                existing.value = value
+                                processVariableRepository.save(existing)
+                            } else {
+                                processVariableRepository.save(
+                                    ProcessVariable(
+                                        processInstanceId = instance.id,
+                                        name = targetVarName,
+                                        value = value
+                                    )
+                                )
+                            }
+                            logger.info("Applied output mapping: $sourceName -> $targetVarName")
+                        } catch (e: Exception) {
+                            logger.warn("Failed to apply output mapping for $sourceName: ${e.message}")
+                        }
+                    }
+                }
+            }
+        }
 
         val nextNodes = getNextNodes(node, definition, instance)
 
@@ -888,6 +922,23 @@ class ProcessService(
         metricsService.recordServiceTaskExecution(duration, success = true)
     }
 
+    /**
+     * Extract value from JSON using dot notation path (e.g., "data.status")
+     */
+    private fun extractValueByPath(node: JsonNode, path: String): JsonNode {
+        if (path.isBlank()) return node
+        
+        val parts = path.split(".")
+        var current: JsonNode? = node
+        
+        for (part in parts) {
+            if (current == null) break
+            current = current.get(part)
+        }
+        
+        return current ?: objectMapper.nullNode()
+    }
+
     @Transactional
     fun handleServiceTaskFailed(processInstanceId: Long, nodeId: String, errorMessage: String? = null) {
         val startTime = System.currentTimeMillis()
@@ -895,11 +946,14 @@ class ProcessService(
         val instance = processInstanceRepository.findById(processInstanceId)
             .orElseThrow { IllegalArgumentException("Process instance not found") }
 
+        logger.info("handleServiceTaskFailed: instanceId=$processInstanceId, nodeId=$nodeId, errorMessage=$errorMessage")
+
         val definition = parseDefinition(instance.processDefinition.definitionJson)
         val node = findNode(definition, nodeId)
 
         val errorBoundaryNode = findAttachedErrorBoundary(node, definition)
         if (errorBoundaryNode != null) {
+            logger.info("Found error boundary for node $nodeId, advancing to boundary node")
             val nextNodes = getNextNodes(errorBoundaryNode, definition, instance)
             advanceProcess(instance, nextNodes, definition)
             executeNodes(nextNodes, instance, definition)
@@ -910,10 +964,12 @@ class ProcessService(
         }
 
         // No boundary to recover from this failure; mark instance as failed.
+        logger.info("No error boundary found for node $nodeId, marking instance $processInstanceId as FAILED")
         instance.status = ProcessStatus.FAILED
         instance.currentNode = emptyList()
         instance.updatedAt = LocalDateTime.now()
         processInstanceRepository.save(instance)
+        logger.info("Instance $processInstanceId status set to FAILED")
 
         val duration = System.currentTimeMillis() - startTime
         metricsService.recordServiceTaskExecution(duration, success = false)

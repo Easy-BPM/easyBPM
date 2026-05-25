@@ -473,10 +473,10 @@ const App: React.FC = () => {
               value: v.value
            })),
            outputs: (node.data.outputVariables || []).map(v => ({
-              source: v.mappingType,
-              sourceValue: String(v.name || ''),
+              target: v.mappingType,
+              sourceName: String(v.name || ''),
               type: v.type,
-              targetVariable: v.value
+              value: v.value
            }))
          };
        }
@@ -486,10 +486,10 @@ const App: React.FC = () => {
            url: node.data.apiEndpoint,
            method: node.data.method || 'GET',
            outputs: (node.data.outputVariables || []).map(v => ({
-              source: v.mappingType,
-              sourceValue: String(v.name || ''),
+              target: v.mappingType,
+              sourceName: String(v.name || ''),
               type: v.type,
-              targetVariable: v.value
+              value: v.value
            }))
          };
         const authType = node.data.apiAuthType || 'none';
@@ -520,10 +520,10 @@ const App: React.FC = () => {
               value: v.value
            })),
            outputs: (node.data.outputVariables || []).map(v => ({
-              source: v.mappingType,
-              sourceValue: safeString(v.name),
+              target: v.mappingType,
+              sourceName: safeString(v.name),
               type: v.type,
-              targetVariable: v.value
+              value: v.value
            }))
          };
        }

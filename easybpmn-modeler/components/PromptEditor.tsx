@@ -166,7 +166,7 @@ export const PromptEditor: React.FC<PromptEditorProps> = ({
                   onClick={() => insertVariable(v.name)}
                   className="w-full text-left px-3 py-2 text-xs text-gray-800 hover:bg-blue-100 transition-colors block"
                 >
-                  <span className="font-mono font-semibold text-pink-600">{{v.name}}</span>
+                  <span className="font-mono font-semibold text-pink-600">{`{${v.name}}`}</span>
                   <span className="text-gray-600 ml-2">({v.type})</span>
                 </button>
               ))}
@@ -177,7 +177,7 @@ export const PromptEditor: React.FC<PromptEditorProps> = ({
         {/* Variable Reference Guide */}
         <div className="mt-2 p-2 bg-blue-50 border border-blue-300 rounded text-blue-700">
           <p className="text-xs font-semibold mb-1">📌 Variable Injection</p>
-          <p className="text-xs">Use <code className="bg-white px-1 rounded font-mono">{{'{'}variableName{'}'}}</code> syntax to inject values:</p>
+          <p className="text-xs">Use <code className="bg-white px-1 rounded font-mono">{'{variableName}'}</code> syntax to inject values:</p>
           <div className="mt-1 space-y-1">
             {processVariables.slice(0, 3).map(v => (
               <div key={v.id} className="text-xs font-mono text-blue-600">
@@ -207,7 +207,7 @@ export const PromptEditor: React.FC<PromptEditorProps> = ({
         <ul className="mt-1 space-y-0.5 list-disc list-inside">
           <li>Use multi-line prompts for complex instructions</li>
           <li>Variables are replaced at runtime with actual values</li>
-          <li>Ctrl+{ {'}{'} opens variable autocomplete</li>
+          <li>Ctrl+{'{'} opens variable autocomplete</li>
         </ul>
       </div>
     </div>

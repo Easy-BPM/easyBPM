@@ -38,22 +38,44 @@ class RabbitListenerService(
     @RabbitListener(queues = [AmqpConfig.SERVICE_TASK_DLQ])
     fun onServiceTaskFailed(message: Map<String, Any>) {
         try {
-            val processInstanceIdAny = message["processInstanceId"]
-            val nodeId = message["nodeId"] as? String ?: return
-
-            val processInstanceId = when (processInstanceIdAny) {
-                is Int -> processInstanceIdAny.toLong()
-                is Long -> processInstanceIdAny
-                is String -> processInstanceIdAny.toLong()
-                else -> throw IllegalArgumentException("Invalid processInstanceId type: ${processInstanceIdAny?.javaClass}")
+            val nodeId = message["nodeId"] as? String
+            if (nodeId == null) {
+                System.err.println("DLQ: Missing nodeId in message: $message")
+                return
             }
 
-            val errorMessage = message["dlqReason"]?.toString()
+            val processInstanceIdAny = message["processInstanceId"]
+            val processInstanceId: Long? = when (processInstanceIdAny) {
+                is Int -> processInstanceIdAny.toLong()
+                is Long -> processInstanceIdAny
+                is String -> {
+                    try {
+                        processInstanceIdAny.toLong()
+                    } catch (e: NumberFormatException) {
+                        System.err.println("DLQ: Invalid processInstanceId format: $processInstanceIdAny")
+                        null
+                    }
+                }
+                else -> {
+                    System.err.println("DLQ: Invalid processInstanceId type: ${processInstanceIdAny?.javaClass}")
+                    null
+                }
+            }
+            
+            if (processInstanceId == null) {
+                return
+            }
+
+            val errorMessage = message["dlqReason"]?.toString() ?: "Unknown error"
+            System.out.println("DLQ: Processing failed service task - instanceId=$processInstanceId, nodeId=$nodeId, reason=$errorMessage")
+            
             processService.handleServiceTaskFailed(processInstanceId, nodeId, errorMessage)
+            System.out.println("DLQ: Successfully processed failure for instance=$processInstanceId")
         } catch (ex: Exception) {
             // Log the error but don't re-throw; we don't want to nack the message
             // This prevents stale messages from blocking the listener indefinitely
-            System.err.println("Failed to process DLQ message: ${ex.message}")
+            System.err.println("DLQ: Critical error processing DLQ message: ${ex.message}")
+            System.err.println("DLQ: Message was: $message")
             ex.printStackTrace()
         }
     }
