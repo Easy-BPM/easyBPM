@@ -30,6 +30,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { FormDefinition, FormField, FormTab } from '../types';
 import { fetchWithAuth } from '../services/processService';
+import { generateJsonSchema } from '../utils/formUtils';
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? 'http://localhost:8080';
 const FORM_KEY_PATTERN = /^[A-Za-z][A-Za-z0-9_-]*$/;
@@ -151,26 +152,54 @@ const SortableField: React.FC<{
   );
 };
 
-export const FormModeler: React.FC = () => {
+interface FormModelerProps {
+  formLibrary?: Map<string, FormDefinition>;
+  selectedFormKey?: string | null;
+  onFormSave?: (form: FormDefinition) => void;
+  onFormChange?: (form: FormDefinition) => void;
+}
+
+export const FormModeler: React.FC<FormModelerProps> = ({ formLibrary, selectedFormKey, onFormSave, onFormChange }) => {
   const [form, setForm] = useState<FormDefinition>(() => {
-    const saved = localStorage.getItem('current_form');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        console.error('Failed to parse saved form', e);
-      }
+    // If a form key is selected and exists in library, load it
+    if (selectedFormKey && formLibrary?.has(selectedFormKey)) {
+      const libForm = formLibrary.get(selectedFormKey)!;
+      return {
+        ...libForm,
+        formKey: libForm.formKey || libForm.id
+      };
     }
+
+    // Always start with a fresh empty form
+    const newFormId = `form_${Date.now()}`;
     return {
-      id: `form_${Date.now()}`,
+      id: newFormId,
       name: 'New Form',
+      formKey: newFormId,
       tabs: [{ id: `tab_${Date.now()}`, name: 'General', fields: [] }]
     };
   });
 
+  // Load selected form from library when it changes
+  useEffect(() => {
+    if (selectedFormKey && formLibrary?.has(selectedFormKey)) {
+      const libForm = formLibrary.get(selectedFormKey)!;
+      setForm({
+        ...libForm,
+        formKey: libForm.formKey || libForm.id
+      });
+      setSelectedFieldId(null);
+    }
+  }, [selectedFormKey, formLibrary]);
+
   useEffect(() => {
     localStorage.setItem('current_form', JSON.stringify(form));
   }, [form]);
+
+  // Notify parent of form changes in real-time
+  useEffect(() => {
+    onFormChange?.(form);
+  }, [form, onFormChange]);
 
   const [activeTabId, setActiveTabId] = useState<string | null>(form.tabs[0].id);
   const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
@@ -275,67 +304,6 @@ export const FormModeler: React.FC = () => {
     return null;
   };
 
-  const generateJsonSchema = (formDef: FormDefinition) => {
-    const properties: any = {};
-    const required: string[] = [];
-
-    formDef.tabs.forEach(tab => {
-      tab.fields.forEach(field => {
-        const prop: any = {
-          title: field.title,
-          type: 'string',
-          readOnly: field.readOnly
-        };
-
-        // Map internal types to JSON-Schema type + format + extras
-        switch (field.type) {
-          case 'number':
-            prop.type = 'number';
-            break;
-          case 'boolean':
-            prop.type = 'boolean';
-            break;
-          case 'text':
-            prop.format = 'textarea';
-            break;
-          case 'date':
-            prop.format = 'date';
-            break;
-          case 'fileUpload':
-            prop.format = 'fileUpload';
-            if (field.allowedExtensions?.length) prop.allowedExtensions = field.allowedExtensions;
-            if (field.maxSizeMb) prop.maxSizeMb = field.maxSizeMb;
-            break;
-          case 'fileDownload':
-            prop.format = 'fileDownload';
-            break;
-          case 'pdfViewer':
-            prop.format = 'pdfViewer';
-            break;
-          default:
-            // string, radio, select
-            break;
-        }
-
-        if (field.options && field.options.length > 0) prop.enum = field.options;
-
-        properties[field.name] = prop;
-        if (field.required) required.push(field.name);
-      });
-    });
-
-    return {
-      formId: formDef.id.trim(),
-      name: formDef.name.trim(),
-      schema: {
-        title: formDef.name.trim(),
-        type: 'object',
-        properties,
-        required
-      }
-    };
-  };
-
   const handleDeploy = async () => {
     const validationError = validateForm(form);
     if (validationError) {
@@ -356,6 +324,17 @@ export const FormModeler: React.FC = () => {
       });
 
       if (response.ok) {
+        // Update form with formKey if not present
+        const updatedForm = {
+          ...form,
+          formKey: form.id.trim() // Ensure formKey matches ID
+        };
+        
+        // Add form to library if callback provided
+        if (onFormSave) {
+          onFormSave(updatedForm);
+        }
+        
         toast.success(`Form "${form.name}" deployed successfully!`);
       } else {
         const errorData = await response.json().catch(() => ({}));
@@ -435,20 +414,6 @@ export const FormModeler: React.FC = () => {
             >
               <Code className="w-4 h-4" />
               <span>Schema</span>
-            </button>
-            <button 
-              onClick={handleDeploy}
-              disabled={isDeploying}
-              className={`flex items-center space-x-2 px-4 py-1.5 rounded-md text-sm font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
-                isDeploying ? 'bg-blue-400 text-white' : 'bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-sm shadow-blue-200'
-              }`}
-            >
-              {isDeploying ? (
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <Send className="w-4 h-4" />
-              )}
-              <span>{isDeploying ? 'Deploying...' : 'Deploy Form'}</span>
             </button>
           </div>
         </div>

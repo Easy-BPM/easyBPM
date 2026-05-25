@@ -155,5 +155,6 @@ export interface FormTab {
 export interface FormDefinition {
   id: string;
   name: string;
+  formKey?: string;
   tabs: FormTab[];
 }

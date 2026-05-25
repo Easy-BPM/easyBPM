@@ -10,12 +10,18 @@ import { Canvas } from './components/Canvas';
 import { PropertiesPanel } from './components/PropertiesPanel';
 import { Toolbar } from './components/Toolbar';
 import { FormModeler } from './components/FormModeler';
-import { BpmnNode, BpmnEdge, ProcessVariable, NodeType, AppView, ValidationIssue, ValidationSummary } from './types';
+import { FormLibrary } from './components/FormLibrary';
+import { WelcomeScreen } from './components/WelcomeScreen';
+import { ModelerNavbar } from './components/ModelerNavbar';
+import { BpmnNode, BpmnEdge, ProcessVariable, NodeType, AppView, ValidationIssue, ValidationSummary, FormDefinition } from './types';
 import { generateId, snapToGrid } from './utils/geometry';
 import { validateId } from './utils/validation';
 import { Toaster, toast } from 'sonner';
-import { processService } from './services/processService';
+import { processService, fetchWithAuth } from './services/processService';
+import { formService } from './services/formService';
+import { downloadForm, importForm, generateJsonSchema } from './utils/formUtils';
 
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? 'http://localhost:8080';
 const BOUNDARY_TYPES: NodeType[] = ['error-boundary', 'message-boundary', 'timer-boundary'];
 const START_TYPES: NodeType[] = ['start', 'message-start'];
 const END_TYPES: NodeType[] = ['end'];
@@ -30,7 +36,13 @@ const safeString = (value: any): string => {
   return String(value);
 };
 
+type EditorMode = 'welcome' | 'process-editor' | 'form-editor';
+
 const App: React.FC = () => {
+   // Navigation state
+   const [editorMode, setEditorMode] = useState<EditorMode>('welcome');
+
+   // Process editor state
    const [nodes, setNodes] = useState<BpmnNode[]>([]);
    const [edges, setEdges] = useState<BpmnEdge[]>([]);
    const [variablesRaw, setVariablesRaw] = useState<ProcessVariable[]>([]);
@@ -38,8 +50,15 @@ const App: React.FC = () => {
    const [processName, setProcessName] = useState<string>('');
    const [selectedNodeUids, setSelectedNodeUids] = useState<string[]>([]);
    const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
-   const [currentView, setCurrentView] = useState<AppView>('bpmn');
-   const [isDeploying, setIsDeploying] = useState(false);
+   const [isDeployingProcess, setIsDeployingProcess] = useState(false);
+
+   // Form editor state
+   const [formLibrary, setFormLibrary] = useState<Map<string, FormDefinition>>(new Map());
+   const [selectedFormKey, setSelectedFormKey] = useState<string | null>(null);
+   const [currentEditingForm, setCurrentEditingForm] = useState<FormDefinition | null>(null);
+   const [isDeployingForm, setIsDeployingForm] = useState(false);
+
+   // Auth state
    const [currentUser, setCurrentUser] = useState<string | null>(null);
    const [permissions, setPermissions] = useState<string[]>([]);
    const [authLoading, setAuthLoading] = useState(true);
@@ -699,14 +718,14 @@ const App: React.FC = () => {
     link.click();
   };
 
-  const handleDeploy = async () => {
+  const handleDeployProcess = async () => {
     if (!validationState.isValid) {
       toast.error(validationState.errors[0] || 'Validation failed. Resolve BPM issues before deploy.');
       return;
     }
-    if (isDeploying) return;
+    if (isDeployingProcess) return;
 
-    setIsDeploying(true);
+    setIsDeployingProcess(true);
     try {
       await processService.deployProcess(buildExportObject());
       toast.success('Process deployed successfully.');
@@ -714,8 +733,32 @@ const App: React.FC = () => {
       const message = error instanceof Error ? error.message : 'Unexpected deploy error';
       toast.error(message);
     } finally {
-      setIsDeploying(false);
+      setIsDeployingProcess(false);
     }
+  };
+
+  // Navigation handlers
+  const handleCreateProcess = () => {
+    // Reset process editor state
+    setNodes([]);
+    setEdges([]);
+    setVariablesRaw([]);
+    setProcessId(`process_${Date.now()}`);
+    setProcessName('');
+    setSelectedNodeUids([]);
+    setSelectedEdgeId(null);
+    setEditorMode('process-editor');
+  };
+
+  const handleCreateForm = () => {
+    // Form modeler will initialize its own state
+    setSelectedFormKey(null);
+    setEditorMode('form-editor');
+  };
+
+  const handleBackToWelcome = () => {
+    setEditorMode('welcome');
+    setCurrentEditingForm(null);
   };
 
   const handleImport = (data: any) => {
@@ -948,6 +991,84 @@ const App: React.FC = () => {
     setEdges(eds => eds.filter(e => !uids.includes(e.source) && !uids.includes(e.target)));
   }, []);
 
+  // Form library management methods
+  const handleAddForm = useCallback((form: FormDefinition) => {
+    setFormLibrary(lib => new Map(lib).set(form.formKey, form));
+    setSelectedFormKey(form.formKey);
+    toast.success(`Form "${form.name || form.formKey}" added to library`);
+  }, []);
+
+  const handleFormChange = useCallback((form: FormDefinition) => {
+    // Update form library in real-time as user edits
+    setFormLibrary(lib => new Map(lib).set(form.formKey, form));
+    // Also track the current form being edited
+    setCurrentEditingForm(form);
+  }, []);
+
+  const handleRemoveForm = useCallback((formKey: string) => {
+    setFormLibrary(lib => {
+      const newLib = new Map(lib);
+      newLib.delete(formKey);
+      return newLib;
+    });
+    if (selectedFormKey === formKey) {
+      setSelectedFormKey(null);
+    }
+  }, [selectedFormKey]);
+
+  const handleSelectForm = useCallback((form: FormDefinition) => {
+    setSelectedFormKey(form.formKey);
+  }, []);
+
+  const handleExportForm = () => {
+    const formToExport = currentEditingForm;
+    if (!formToExport) {
+      toast.error('No form to export');
+      return;
+    }
+    downloadForm(formToExport, `form-${formToExport.formKey}.json`);
+    toast.success('Form exported successfully');
+  };
+
+  const handleImportForm = (data: any) => {
+    const result = importForm(data);
+    if (!result.success || !result.form) {
+      toast.error(result.error || 'Failed to import form');
+      return;
+    }
+    handleAddForm(result.form);
+    toast.success(`Form "${result.form.name}" imported successfully`);
+  };
+
+  const handleDeployForm = async () => {
+    const formToDeploy = currentEditingForm;
+    if (!formToDeploy) {
+      toast.error('No form to deploy');
+      return;
+    }
+    setIsDeployingForm(true);
+    try {
+      const schema = generateJsonSchema(formToDeploy);
+      const response = await fetchWithAuth(`${API_BASE_URL}/forms`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(schema)
+      });
+
+      if (response.ok) {
+        toast.success(`Form "${formToDeploy.name}" deployed successfully`);
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        toast.error(`Deployment failed: ${errorData.message || response.statusText}`);
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unexpected deploy error';
+      toast.error(message);
+    } finally {
+      setIsDeployingForm(false);
+    }
+  };
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (['INPUT', 'TEXTAREA', 'SELECT'].includes((e.target as HTMLElement).tagName)) return;
@@ -989,63 +1110,124 @@ const App: React.FC = () => {
     );
   }
 
-  return (
-    <div className="flex flex-col h-screen bg-slate-50">
-      <Toaster position="top-right" richColors />
-      <Toolbar 
-        onClear={() => {setNodes([]); setEdges([]); setVariables([]); setProcessId(`process_${Date.now()}`); setSelectedNodeUids([]); setSelectedEdgeId(null);}} 
-        onExport={handleExport} 
-        onDeploy={handleDeploy}
-        onImport={handleImport}
-        isExportDisabled={!validationState.isValid}
-        validationErrors={validationState.errors}
-        validationWarnings={validationState.warnings}
-        isDeploying={isDeploying}
-        currentView={currentView}
-        onViewChange={setCurrentView}
-      />
-      <div className="flex flex-1 overflow-hidden">
-        {currentView === 'bpmn' ? (
-          <>
-            <Palette onDragStart={(e, type) => e.dataTransfer.setData('application/reactflow', type)} />
-            <div className="flex-1 relative flex flex-col">
-              <Canvas 
-                nodes={nodes} edges={edges} selectedNodeUids={selectedNodeUids} selectedEdgeId={selectedEdgeId}
-                invalidNodeUids={invalidNodeUids}
-                warningNodeUids={warningNodeUids}
-                invalidEdgeIds={invalidEdgeIds}
-                warningEdgeIds={warningEdgeIds}
-                onSelectNodes={setSelectedNodeUids} onSelectEdge={setSelectedEdgeId}
-                onNodesChange={setNodes} onEdgesChange={setEdges} onDrop={handleDrop}
-              />
-            </div>
-            <PropertiesPanel 
-              selectedNodeUids={selectedNodeUids} 
-              nodes={nodes} 
-              selectedEdge={edges.find(e => e.id === selectedEdgeId) || null}
-              processVariables={variables} 
-              processId={processId}
-              processName={processName}
-              onUpdateProcessId={setProcessId}
-              onUpdateProcessName={setProcessName}
-              onUpdateNode={handleUpdateNode} 
-              onUpdateNodeId={handleUpdateNodeId} 
-              onUpdateEdge={handleUpdateEdge}
-              onUpdateVariables={setVariables} 
-              onDeleteNode={uid => handleDeleteNodes([uid])} 
-              onDeleteEdge={id => setEdges(eds => eds.filter(e => e.id !== id))}
-              onFocusValidationIssue={handleFocusValidationIssue}
-              validation={{
-                duplicateNodeIds: validationState.duplicateNodeIds,
-                duplicateGlobalVars: validationState.duplicateGlobalVars,
-                issues: validationState.issues
-              }}
-            />
-          </>
-        ) : (
-          <FormModeler />
-        )}
+  // Render based on editor mode
+  if (editorMode === 'welcome') {
+    return (
+      <div className="h-screen overflow-hidden">
+        <Toaster position="top-right" richColors />
+        <WelcomeScreen
+          onCreateProcess={handleCreateProcess}
+          onCreateForm={handleCreateForm}
+        />
       </div>
+    );
+  }
+
+  if (editorMode === 'process-editor') {
+    return (
+      <div className="flex flex-col h-screen bg-slate-50">
+        <Toaster position="top-right" richColors />
+        
+        {/* Process Editor Navbar */}
+        <ModelerNavbar
+          title={processName || 'New Process'}
+          subtitle={processId}
+          resourceType="process"
+          onBack={handleBackToWelcome}
+          onSave={handleDeployProcess}
+          onExport={handleExport}
+          onImport={handleImport}
+          isSaving={isDeployingProcess}
+        />
+
+        {/* Toolbar */}
+        <Toolbar 
+          onClear={() => {setNodes([]); setEdges([]); setVariables([]); setProcessId(`process_${Date.now()}`); setSelectedNodeUids([]); setSelectedEdgeId(null);}} 
+          isExportDisabled={!validationState.isValid}
+          validationErrors={validationState.errors}
+          validationWarnings={validationState.warnings}
+          currentView="bpmn"
+          onViewChange={() => {}}
+        />
+
+        {/* Canvas */}
+        <div className="flex flex-1 overflow-hidden">
+          <Palette onDragStart={(e, type) => e.dataTransfer.setData('application/reactflow', type)} />
+          <div className="flex-1 relative flex flex-col">
+            <Canvas 
+              nodes={nodes} edges={edges} selectedNodeUids={selectedNodeUids} selectedEdgeId={selectedEdgeId}
+              invalidNodeUids={invalidNodeUids}
+              warningNodeUids={warningNodeUids}
+              invalidEdgeIds={invalidEdgeIds}
+              warningEdgeIds={warningEdgeIds}
+              onSelectNodes={setSelectedNodeUids} onSelectEdge={setSelectedEdgeId}
+              onNodesChange={setNodes} onEdgesChange={setEdges} onDrop={handleDrop}
+            />
+          </div>
+          <PropertiesPanel 
+            selectedNodeUids={selectedNodeUids} 
+            nodes={nodes} 
+            selectedEdge={edges.find(e => e.id === selectedEdgeId) || null}
+            processVariables={variables} 
+            processId={processId}
+            processName={processName}
+            onUpdateProcessId={setProcessId}
+            onUpdateProcessName={setProcessName}
+            onUpdateNode={handleUpdateNode} 
+            onUpdateNodeId={handleUpdateNodeId} 
+            onUpdateEdge={handleUpdateEdge}
+            onUpdateVariables={setVariables} 
+            onDeleteNode={uid => handleDeleteNodes([uid])} 
+            onDeleteEdge={id => setEdges(eds => eds.filter(e => e.id !== id))}
+            onFocusValidationIssue={handleFocusValidationIssue}
+            validation={{
+              duplicateNodeIds: validationState.duplicateNodeIds,
+              duplicateGlobalVars: validationState.duplicateGlobalVars,
+              issues: validationState.issues
+            }}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  if (editorMode === 'form-editor') {
+    return (
+      <div className="flex flex-col h-screen bg-slate-50">
+        <Toaster position="top-right" richColors />
+        
+        {/* Form Editor Navbar */}
+        <ModelerNavbar
+          title={currentEditingForm?.name || 'New Form'}
+          resourceType="form"
+          onBack={handleBackToWelcome}
+          onSave={handleDeployForm}
+          onExport={handleExportForm}
+          onImport={handleImportForm}
+          isSaving={isDeployingForm}
+        />
+
+        {/* Form Editor */}
+        <div className="flex flex-1 overflow-hidden">
+          <FormModeler 
+            formLibrary={formLibrary}
+            selectedFormKey={selectedFormKey}
+            onFormSave={handleAddForm}
+            onFormChange={handleFormChange}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // Default: welcome screen
+  return (
+    <div className="h-screen overflow-hidden">
+      <Toaster position="top-right" richColors />
+      <WelcomeScreen
+        onCreateProcess={handleCreateProcess}
+        onCreateForm={handleCreateForm}
+      />
     </div>
   );
 };
