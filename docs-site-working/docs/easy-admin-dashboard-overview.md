@@ -172,6 +172,95 @@ WHERE status = 'FAILED' OR status = 'SUSPENDED' AND error_message IS NOT NULL
 
 ---
 
+## Important: Failed vs. Incidents — Key Difference
+
+This distinction is critical to understand the dashboard:
+
+### Failed Status
+- **What**: Instance status = FAILED (technical status)
+- **Scope**: All instances that failed for any reason
+- **Example Count**: "Failed: 100" on metric card
+- **Meaning**: 100 instances encountered errors during execution
+- **Auto-Recovery**: Many may auto-recover via retry logic
+- **Action**: Informational metric (no action needed)
+- **Use**: Understanding overall process reliability
+
+### Incidents
+- **What**: Instances flagged as requiring manual intervention
+- **Scope**: Subset of failed/suspended instances that need action
+- **Example Count**: "Incidents: 5" on metric card  
+- **Meaning**: 5 instances require manual investigation/action
+- **Auto-Recovery**: Could not auto-recover, needs human decision
+- **Action**: Actionable items (must be addressed)
+- **Use**: Operations team work queue
+
+### Real Example
+
+```
+Scenario: API Service Temporary Outage (30 minutes)
+
+During Outage:
+- 100 instances attempted external API call
+- All 100 failed with "HTTP 503 - Service Unavailable"
+- Status for all 100: FAILED
+
+Dashboard Metrics:
+Failed: 100
+Incidents: 0 (zero!)
+
+Why Zero Incidents?
+Because after 30 minutes, the API recovered and:
+- Auto-retry kicked in (if configured)
+- All 100 retried successfully
+- No manual action required
+- Incidents remain 0
+
+Operations Team Action:
+None! System handled it automatically.
+
+---
+
+Different Scenario: Data Validation Error
+
+During Day:
+- 100 invoices processed
+- 2 invoices have invalid addresses
+- 2 instances failed at address validation
+- Status for both: FAILED
+
+Dashboard Metrics:
+Failed: 2
+Incidents: 2
+
+Why 2 Incidents?
+Because:
+- Invalid data cannot auto-recover
+- Requires manual data correction
+- Manual retry after fix
+- Operations team must investigate
+
+Operations Team Action:
+1. Check Incidents tab
+2. See 2 data validation failures
+3. Fix invoice addresses in master system
+4. Retry the 2 incidents
+5. Both succeed after fix
+```
+
+### Key Takeaway
+
+| Question | Answer |
+|----------|--------|
+| "Why does Failed=100 but Incidents=0?" | Auto-retries succeeded after service recovery |
+| "Why does Failed=50 but Incidents=45?" | 5 auto-recovered after retry, 45 need manual action |
+| "Should I act on all Failed?" | No, only focus on Incidents (the actionable ones) |
+| "What if Failed and Incidents differ?" | This is normal and indicates auto-recovery working |
+
+**Operations Focus**: Check the **Incidents** card for work items needing action.
+**System Monitoring**: Check the **Failed** card for overall reliability metrics.
+
+---
+
 ## Period Selector
 
 The period selector allows filtering metrics by time range:

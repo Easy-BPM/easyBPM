@@ -1,8 +1,10 @@
 package com.easy.bpm.repository.process
 
 import com.easy.bpm.model.process.ProcessInstance
+import com.easy.bpm.enum.ProcessStatus
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
+import java.time.LocalDateTime
 
 interface ProcessInstanceRepository : JpaRepository<ProcessInstance, Long> {
 
@@ -32,4 +34,32 @@ interface ProcessInstanceRepository : JpaRepository<ProcessInstance, Long> {
      */
     @Query("SELECT pi FROM ProcessInstance pi WHERE pi.nestingLevel = ?1 ORDER BY pi.id DESC")
     fun findByNestingLevel(level: Int): List<ProcessInstance>
+
+    /**
+     * Count instances by status for metrics dashboard
+     */
+    fun countByStatus(status: ProcessStatus): Long
+
+    /**
+     * Count instances created between dates for metrics dashboard
+     */
+    @Query("SELECT COUNT(pi) FROM ProcessInstance pi WHERE pi.createdAt BETWEEN ?1 AND ?2")
+    fun countByCreatedAtBetween(from: LocalDateTime, to: LocalDateTime): Long
+
+    /**
+     * Find all instances for a specific process definition for metrics
+     */
+    @Query("SELECT pi FROM ProcessInstance pi WHERE pi.processDefinition.id = ?1")
+    fun findByProcessDefinitionId(processDefinitionId: Long): List<ProcessInstance>
+
+    /**
+     * Count instances by status within a date range for metrics
+     */
+    @Query("SELECT COUNT(pi) FROM ProcessInstance pi WHERE pi.status = ?1 AND pi.createdAt BETWEEN ?2 AND ?3")
+    fun countByStatusAndCreatedAtBetween(status: ProcessStatus, from: LocalDateTime, to: LocalDateTime): Long
+
+    /**
+     * Find instances with specific statuses for incidents view
+     */
+    fun findByStatusIn(statuses: List<ProcessStatus>): List<ProcessInstance>
 }

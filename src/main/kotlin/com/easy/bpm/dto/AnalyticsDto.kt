@@ -23,8 +23,8 @@ data class ExecutionTrendsResponseDto(
     val p99Ms: Long
 )
 
-// SLA Monitoring
-enum class SLAStatus {
+// SLA Monitoring - Phase 9.3
+enum class SLAStatusEnum {
     MET, AT_RISK, VIOLATED, NOT_APPLICABLE
 }
 
@@ -36,7 +36,7 @@ data class SLAMetricDto(
     val createdAt: LocalDateTime,
     val targetDurationMs: Long,
     val currentDurationMs: Long,
-    val status: SLAStatus,
+    val status: SLAStatusEnum,
     val percentageComplete: Int
 )
 

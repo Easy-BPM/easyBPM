@@ -55,26 +55,28 @@ export const AnalyticsDashboard: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" role="main" aria-label="Analytics Dashboard">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4 lg:gap-0">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <BarChart3 className="w-8 h-8 text-blue-600" />
+          <h2 className="text-2xl lg:text-3xl font-bold text-gray-900 flex items-center gap-2">
+            <BarChart3 className="w-6 lg:w-8 h-6 lg:h-8 text-blue-600" aria-hidden="true" />
             Analytics Dashboard
           </h2>
           <p className="text-gray-600 text-sm mt-1">Process execution analytics and operational insights</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2" role="group" aria-label="Period Selection">
           {['24h', '7d', '30d'].map((p) => (
             <button
               key={p}
               onClick={() => handlePeriodChange(p)}
               disabled={loading}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              aria-pressed={period === p}
+              aria-label={`Show analytics for ${p}`}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors min-h-[44px] min-w-[44px] ${
                 period === p
                   ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'
               } disabled:opacity-50`}
             >
               {p}
@@ -83,65 +85,66 @@ export const AnalyticsDashboard: React.FC = () => {
           <button
             onClick={() => fetchSummary(period)}
             disabled={loading}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+            aria-label="Refresh analytics data"
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50 min-h-[44px] min-w-[44px] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
           >
-            <RefreshCw className={`w-5 h-5 text-gray-600 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-5 h-5 text-gray-600 ${loading ? 'animate-spin' : ''}`} aria-hidden="true" />
           </button>
         </div>
       </div>
 
       {/* Summary Cards */}
       {summary && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4" role="region" aria-label="Summary Metrics">
           {/* Total Processes */}
-          <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-5 border border-blue-200">
-            <p className="text-sm font-medium text-gray-600 mb-1">Total Processes</p>
-            <p className="text-3xl font-bold text-blue-600">{summary.totalProcesses}</p>
-          </div>
+          <article className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-3 sm:p-5 border border-blue-200">
+            <p className="text-xs sm:text-sm font-medium text-gray-600 mb-1">Total Processes</p>
+            <p className="text-2xl sm:text-3xl font-bold text-blue-600" aria-label={`${summary.totalProcesses} total processes`}>{summary.totalProcesses}</p>
+          </article>
 
           {/* Total Instances */}
-          <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-5 border border-purple-200">
-            <p className="text-sm font-medium text-gray-600 mb-1">Total Instances</p>
-            <p className="text-3xl font-bold text-purple-600">{summary.totalInstances}</p>
-          </div>
+          <article className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-3 sm:p-5 border border-purple-200">
+            <p className="text-xs sm:text-sm font-medium text-gray-600 mb-1">Total Instances</p>
+            <p className="text-2xl sm:text-3xl font-bold text-purple-600" aria-label={`${summary.totalInstances} total instances`}>{summary.totalInstances}</p>
+          </article>
 
           {/* Success Rate */}
-          <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-5 border border-green-200">
-            <p className="text-sm font-medium text-gray-600 mb-1">Success Rate</p>
-            <p className="text-3xl font-bold text-green-600">{summary.successRate.toFixed(1)}%</p>
-          </div>
+          <article className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-3 sm:p-5 border border-green-200">
+            <p className="text-xs sm:text-sm font-medium text-gray-600 mb-1">Success Rate</p>
+            <p className="text-2xl sm:text-3xl font-bold text-green-600" aria-label={`${summary.successRate.toFixed(1)} percent success rate`}>{summary.successRate.toFixed(1)}%</p>
+          </article>
 
           {/* Incidents */}
-          <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-lg p-5 border border-red-200">
-            <p className="text-sm font-medium text-gray-600 mb-1">Incidents</p>
-            <p className="text-3xl font-bold text-red-600">{summary.incidentsCount}</p>
-          </div>
+          <article className="bg-gradient-to-br from-red-50 to-red-100 rounded-lg p-3 sm:p-5 border border-red-200">
+            <p className="text-xs sm:text-sm font-medium text-gray-600 mb-1">Incidents</p>
+            <p className="text-2xl sm:text-3xl font-bold text-red-600" aria-label={`${summary.incidentsCount} incidents`}>{summary.incidentsCount}</p>
+          </article>
         </div>
       )}
 
       {/* Detailed Stats Row */}
       {summary && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4" role="region" aria-label="Detailed Statistics">
           {/* Completed */}
-          <div className="bg-white border border-gray-200 rounded-lg p-4">
-            <p className="text-sm text-gray-600 font-medium">Completed</p>
-            <p className="text-2xl font-bold text-green-600">{summary.completedInstances}</p>
+          <article className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4">
+            <p className="text-xs sm:text-sm text-gray-600 font-medium">Completed</p>
+            <p className="text-xl sm:text-2xl font-bold text-green-600" aria-label={`${summary.completedInstances} completed instances`}>{summary.completedInstances}</p>
             <p className="text-xs text-gray-500 mt-2">Successful completions</p>
-          </div>
+          </article>
 
           {/* Failed */}
-          <div className="bg-white border border-gray-200 rounded-lg p-4">
-            <p className="text-sm text-gray-600 font-medium">Failed</p>
-            <p className="text-2xl font-bold text-red-600">{summary.failedInstances}</p>
+          <article className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4">
+            <p className="text-xs sm:text-sm text-gray-600 font-medium">Failed</p>
+            <p className="text-xl sm:text-2xl font-bold text-red-600" aria-label={`${summary.failedInstances} failed instances`}>{summary.failedInstances}</p>
             <p className="text-xs text-gray-500 mt-2">Failed executions</p>
-          </div>
+          </article>
 
           {/* Avg Execution Time */}
-          <div className="bg-white border border-gray-200 rounded-lg p-4">
-            <p className="text-sm text-gray-600 font-medium">Avg Execution Time</p>
-            <p className="text-2xl font-bold text-blue-600">{(summary.averageExecutionTimeMs / 1000).toFixed(1)}s</p>
+          <article className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4">
+            <p className="text-xs sm:text-sm text-gray-600 font-medium">Avg Execution Time</p>
+            <p className="text-xl sm:text-2xl font-bold text-blue-600" aria-label={`${(summary.averageExecutionTimeMs / 1000).toFixed(1)} seconds average execution time`}>{(summary.averageExecutionTimeMs / 1000).toFixed(1)}s</p>
             <p className="text-xs text-gray-500 mt-2">Average duration</p>
-          </div>
+          </article>
         </div>
       )}
 

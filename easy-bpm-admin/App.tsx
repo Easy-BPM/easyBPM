@@ -20,6 +20,10 @@ import { Sidebar } from './components/Sidebar';
 import { WorkflowCanvas } from './components/WorkflowCanvas';
 import { CodeTaskExecutionListPage } from './components/CodeTaskExecutionListPage';
 import { SecurityAdminView } from './components/SecurityAdminView';
+import { ExecutionDashboard } from './components/ExecutionDashboard';
+import { ProcessListView } from './components/ProcessListView';
+import { IncidentsView } from './components/IncidentsView';
+import { AnalyticsDashboard } from './components/AnalyticsDashboard';
 import { adminService } from './services/adminService';
 import { ProcessDefinition, ProcessInstance, ProcessVariable, WorkflowDefinition } from './types';
 
@@ -87,6 +91,12 @@ const App: React.FC = () => {
         return <DashboardView onNavigate={setCurrentView} />;
       case 'instances':
         return <InstanceExplorerView />;
+      case 'processes':
+        return <ProcessListView />;
+      case 'incidents':
+        return <IncidentsView />;
+      case 'analytics':
+        return <AnalyticsDashboard />;
       case 'workflows':
         return <WorkflowCatalogView />;
       case 'code-tasks':
@@ -193,6 +203,21 @@ const LoginView: React.FC<{ onLogin: (username: string, perms: string[]) => void
 };
 
 const DashboardView: React.FC<{ onNavigate: (view: string) => void }> = ({ onNavigate }) => {
+  return (
+    <div className="space-y-8">
+      {/* Execution Dashboard */}
+      <ExecutionDashboard onNavigateToInstances={() => onNavigate('instances')} />
+
+      {/* Quick Actions Section */}
+      <div className="mt-12 pt-8 border-t border-slate-200">
+        <h2 className="text-2xl font-bold text-slate-800 mb-6">Quick Actions</h2>
+        <QuickActionsGrid onNavigate={onNavigate} />
+      </div>
+    </div>
+  );
+};
+
+const QuickActionsGrid: React.FC<{ onNavigate: (view: string) => void }> = ({ onNavigate }) => {
   const quickActions = [
     {
       id: 'instances',
@@ -227,38 +252,29 @@ const DashboardView: React.FC<{ onNavigate: (view: string) => void }> = ({ onNav
   };
 
   return (
-    <div className="space-y-8">
-      <header>
-        <div className="flex items-center gap-2 mb-1">
-          <h2 className="text-2xl font-bold text-slate-800">Operations Overview</h2>
-        </div>
-        <p className="text-slate-500 text-sm">Monitor and control BPM process instances from a central console.</p>
-      </header>
-
-      <div className="grid grid-cols-1 gap-4">
-        {quickActions.map(({ id, icon: Icon, label, description, accent, badge }) => {
-          const colors = accentMap[accent];
-          return (
-            <div
-              key={id}
-              onClick={() => onNavigate(id)}
-              className="bg-white p-5 rounded-xl border border-slate-200 cursor-pointer hover:border-slate-300 hover:shadow-md transition-all group flex items-start gap-4"
-            >
-              <div className={`p-3 rounded-xl flex-shrink-0 transition-colors ${colors.icon} ${colors.hover}`}>
-                <Icon size={20} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <h3 className="font-semibold text-slate-800 text-sm">{label}</h3>
-                  <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${colors.badge}`}>{badge}</span>
-                </div>
-                <p className="text-xs text-slate-500 leading-relaxed">{description}</p>
-              </div>
-              <ArrowRightLeft size={14} className="text-slate-300 group-hover:text-slate-500 transition-colors flex-shrink-0 mt-1 rotate-90" />
+    <div className="grid grid-cols-1 gap-4">
+      {quickActions.map(({ id, icon: Icon, label, description, accent, badge }) => {
+        const colors = accentMap[accent];
+        return (
+          <div
+            key={id}
+            onClick={() => onNavigate(id)}
+            className="bg-white p-5 rounded-xl border border-slate-200 cursor-pointer hover:border-slate-300 hover:shadow-md transition-all group flex items-start gap-4"
+          >
+            <div className={`p-3 rounded-xl flex-shrink-0 transition-colors ${colors.icon} ${colors.hover}`}>
+              <Icon size={20} />
             </div>
-          );
-        })}
-      </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <h3 className="font-semibold text-slate-800 text-sm">{label}</h3>
+                <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${colors.badge}`}>{badge}</span>
+              </div>
+              <p className="text-xs text-slate-500 leading-relaxed">{description}</p>
+            </div>
+            <ArrowRightLeft size={14} className="text-slate-300 group-hover:text-slate-500 transition-colors flex-shrink-0 mt-1 rotate-90" />
+          </div>
+        );
+      })}
     </div>
   );
 };

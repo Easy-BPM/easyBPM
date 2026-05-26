@@ -10,7 +10,19 @@ import {
   ProcessDefinition,
   ProcessInstance,
   ProcessVariable,
-  VariableAssignmentPayload
+  VariableAssignmentPayload,
+  ExecutionMetricsDto,
+  ProcessMetricsDto,
+  ExecutionTimeStatsDto,
+  TrendDataPoint,
+  ProcessListItemDto,
+  ProcessListResponseDto,
+  IncidentDto,
+  IncidentsResponseDto,
+  ExecutionTrendsResponseDto,
+  SLAMetricsResponseDto,
+  ActivityFeedResponseDto,
+  AnalyticsSummaryDto
 } from '../types';
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? 'http://localhost:8080';
@@ -407,6 +419,110 @@ export const adminService = {
       body: JSON.stringify({ userIds })
     });
     if (!res.ok) throw new Error(`Failed to update group users: ${res.statusText}`);
+    return res.json();
+  },
+
+  // ====== Execution Metrics Endpoints ======
+
+  getExecutionMetrics: async (from?: string, to?: string): Promise<ExecutionMetricsDto> => {
+    const params = new URLSearchParams();
+    if (from) params.append('from', from);
+    if (to) params.append('to', to);
+    const queryString = params.toString();
+    const url = queryString ? `${API_BASE_URL}/admin/metrics/execution?${queryString}` : `${API_BASE_URL}/admin/metrics/execution`;
+    const res = await fetchWithAuth(url);
+    if (!res.ok) throw new Error(`Failed to fetch execution metrics: ${res.statusText}`);
+    return res.json();
+  },
+
+  getMetricsPerProcess: async (): Promise<ProcessMetricsDto[]> => {
+    const res = await fetchWithAuth(`${API_BASE_URL}/admin/metrics/processes`);
+    if (!res.ok) throw new Error(`Failed to fetch process metrics: ${res.statusText}`);
+    return res.json();
+  },
+
+  getExecutionTimeStats: async (processId?: string): Promise<ExecutionTimeStatsDto> => {
+    const params = new URLSearchParams();
+    if (processId) params.append('processId', processId);
+    const queryString = params.toString();
+    const url = queryString ? `${API_BASE_URL}/admin/metrics/execution-time?${queryString}` : `${API_BASE_URL}/admin/metrics/execution-time`;
+    const res = await fetchWithAuth(url);
+    if (!res.ok) throw new Error(`Failed to fetch execution time stats: ${res.statusText}`);
+    return res.json();
+  },
+
+  getExecutionTrends: async (processId?: string, bucketSize?: number): Promise<TrendDataPoint[]> => {
+    const params = new URLSearchParams();
+    if (processId) params.append('processId', processId);
+    if (bucketSize) params.append('bucketSize', bucketSize.toString());
+    const queryString = params.toString();
+    const url = queryString ? `${API_BASE_URL}/admin/metrics/trends?${queryString}` : `${API_BASE_URL}/admin/metrics/trends`;
+    const res = await fetchWithAuth(url);
+    if (!res.ok) throw new Error(`Failed to fetch execution trends: ${res.statusText}`);
+    return res.json();
+  },
+
+  // ====== Phase 9.2: Process Management Endpoints ======
+
+  getProcessList: async (page: number = 0, pageSize: number = 20, sortBy: string = 'lastExecutedAt'): Promise<ProcessListResponseDto> => {
+    const params = new URLSearchParams({
+      page: page.toString(),
+      pageSize: pageSize.toString(),
+      sortBy
+    });
+    const res = await fetchWithAuth(`${API_BASE_URL}/admin/processes/list?${params.toString()}`);
+    if (!res.ok) throw new Error(`Failed to fetch process list: ${res.statusText}`);
+    return res.json();
+  },
+
+  getIncidents: async (page: number = 0, pageSize: number = 20): Promise<IncidentsResponseDto> => {
+    const params = new URLSearchParams({
+      page: page.toString(),
+      pageSize: pageSize.toString()
+    });
+    const res = await fetchWithAuth(`${API_BASE_URL}/admin/processes/incidents?${params.toString()}`);
+    if (!res.ok) throw new Error(`Failed to fetch incidents: ${res.statusText}`);
+    return res.json();
+  },
+
+  getProcessDetails: async (processId: string): Promise<ProcessListItemDto> => {
+    const res = await fetchWithAuth(`${API_BASE_URL}/admin/processes/${processId}`);
+    if (!res.ok) throw new Error(`Failed to fetch process details: ${res.statusText}`);
+    return res.json();
+  },
+
+  // ====== Phase 9.3: Analytics Endpoints ======
+
+  getExecutionTrendsAnalytics: async (processId?: string, bucketSizeMinutes: number = 60, hoursBack: number = 24): Promise<ExecutionTrendsResponseDto> => {
+    const params = new URLSearchParams();
+    if (processId) params.append('processId', processId);
+    params.append('bucketSizeMinutes', bucketSizeMinutes.toString());
+    params.append('hoursBack', hoursBack.toString());
+    const res = await fetchWithAuth(`${API_BASE_URL}/admin/analytics/trends?${params.toString()}`);
+    if (!res.ok) throw new Error(`Failed to fetch execution trends: ${res.statusText}`);
+    return res.json();
+  },
+
+  getSLAMetrics: async (): Promise<SLAMetricsResponseDto> => {
+    const res = await fetchWithAuth(`${API_BASE_URL}/admin/analytics/sla`);
+    if (!res.ok) throw new Error(`Failed to fetch SLA metrics: ${res.statusText}`);
+    return res.json();
+  },
+
+  getActivityFeed: async (page: number = 0, pageSize: number = 50): Promise<ActivityFeedResponseDto> => {
+    const params = new URLSearchParams({
+      page: page.toString(),
+      pageSize: pageSize.toString()
+    });
+    const res = await fetchWithAuth(`${API_BASE_URL}/admin/analytics/activity-feed?${params.toString()}`);
+    if (!res.ok) throw new Error(`Failed to fetch activity feed: ${res.statusText}`);
+    return res.json();
+  },
+
+  getAnalyticsSummary: async (period: string = '24h'): Promise<AnalyticsSummaryDto> => {
+    const params = new URLSearchParams({ period });
+    const res = await fetchWithAuth(`${API_BASE_URL}/admin/analytics/summary?${params.toString()}`);
+    if (!res.ok) throw new Error(`Failed to fetch analytics summary: ${res.statusText}`);
     return res.json();
   }
 };

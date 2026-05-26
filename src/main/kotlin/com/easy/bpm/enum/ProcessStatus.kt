@@ -5,5 +5,7 @@ enum class ProcessStatus {
     WAITING,
     COMPLETED,
     FAILED,
-    CANCELLED
+    CANCELLED,
+    SUSPENDED,
+    ERROR
 }

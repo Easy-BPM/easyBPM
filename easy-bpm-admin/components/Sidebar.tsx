@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, Workflow, Search, LogOut, Code2, Zap } from 'lucide-react';
+import { LayoutDashboard, Workflow, Search, LogOut, Code2, Zap, BarChart3, AlertTriangle, TrendingUp } from 'lucide-react';
 
 interface SidebarProps {
   currentView: string;
@@ -14,6 +14,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onChangeView, cur
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'instances', label: 'Instance Search', icon: Search },
+    { id: 'processes', label: 'Process Catalog', icon: BarChart3 },
+    { id: 'incidents', label: 'Incidents', icon: AlertTriangle },
+    { id: 'analytics', label: 'Analytics', icon: TrendingUp },
     { id: 'workflows', label: 'Deployed Workflows', icon: Workflow },
     { id: 'code-tasks', label: 'Code Task Executions', icon: Code2 },
     ...(canManageSecurity ? [{ id: 'security-admin', label: 'Security', icon: LayoutDashboard }] : [])

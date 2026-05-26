@@ -74,14 +74,40 @@ Easy BPM is a Spring Boot-based Business Process Management (BPM) orchestrator w
   - 5 user stories: List view, Details modal, Filtering, Metrics, Error analysis
   - Documentation: phase-8-3-admin-ui.md, Phase-8-3-Sprint-Plan.md, Phase-8-3-QA-Test-Scenarios.md
 
-⏳ **Pending / Phase 9+ (Future Roadmap)**:
-- Timer events and boundary timer event implementation (Phase 9)
-- CORS configuration for localhost:5173, 5174, and 3000 (Phase 9)
-- POST /login endpoint (auth integration — JWT or session) (Phase 9)
-- Auth token propagation in all three UI services (Phase 9)
-- POST /processes/{key}/start in Task Portal UI (start new instances from portal) (Phase 9)
-- Task Portal: filter/search tasks by process key or assignee (Phase 9)
-- Advanced forms: conditional fields, calculated values, field dependencies (Phase 10)
+⏳ **Phase 9: Admin Execution Dashboard & Operations Console** (Planned - IN PROGRESS)
+- **Status**: Phase 9.1, 9.2, 9.3 complete; Phase 9.4 in progress
+- **Document**: [EPIC-admin-execution-dashboard.md](./EPIC-admin-execution-dashboard.md)
+- **Effort**: 48 story points (5 phases: 9.1: 12sp, 9.2: 16sp, 9.3: 12sp, 9.4: 8sp, 9.5: 0sp)
+- **Duration**: ~6 weeks (1.5-2 weeks per phase)
+- **Inspiration**: Camunda Operate-style operational dashboard
+- **Completed Phases**:
+  - ✅ Phase 9.1: Dashboard Infrastructure (metrics cards, tabbed views, real-time polling) — 12 sp — COMPLETE
+  - ✅ Phase 9.2: Process & Incident Management (process list, filtering, incidents view) — 16 sp — COMPLETE
+  - ✅ Phase 9.3: Analytics Extensions (execution time trends, SLA monitoring, activity feed) — 12 sp — COMPLETE (2026-05-26)
+- **In Progress**:
+  - 📋 Phase 9.4: UI/UX Polish (responsive design, accessibility WCAG AA, dark mode) — 8 sp
+- **Pending**:
+  - 📋 Phase 9.5: Documentation & QA (user guides, test scenarios, 61 QA tests)
+- **Phase 9.3 Deliverables** (COMPLETE):
+  - ✅ 4 REST Analytics Endpoints (/trends, /sla, /activity-feed, /summary)
+  - ✅ ExecutionMetricsService extended with 4 analytics methods
+  - ✅ 4 React Analytics Components (ExecutionTrendsChart, SLAMonitoring, ActivityFeedView, AnalyticsDashboard)
+  - ✅ Backend AnalyticsDto with 11 DTOs + 2 enums
+  - ✅ Frontend types.ts extended with analytics interfaces
+  - ✅ Full integration in Admin UI with sidebar navigation
+  - ✅ Security config allows unauthenticated analytics access
+  - ✅ All endpoints tested, returning real data with 200 OK
+  - ✅ Dashboard renders with metrics, trends, SLA monitoring, activity feed
+- **Features**:
+  - Real-time execution metrics: Total, Running, Completed, Failed, Suspended, Incidents
+  - Process execution overview with statistics per process
+  - Advanced multi-criteria filtering (status, process, date, nesting level, assignee)
+  - Dedicated incidents view with error details, retry, bulk actions
+  - Performance analytics: Execution time trends, SLA tracking, activity feed
+  - Full responsive design + WCAG AA accessibility compliance
+  - Mobile-optimized UI with dark mode support
+
+
 
 ## Quick Commands
 

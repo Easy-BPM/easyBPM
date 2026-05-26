@@ -14,6 +14,133 @@ An **incident** is a process instance that requires operational intervention:
 
 ---
 
+## Failed Status vs. Incident: Key Difference
+
+This is an important distinction that often causes confusion:
+
+### Failed Status
+
+**Definition**: An instance status indicating execution error or completion with failure.
+
+**Technical**: Instance has `status = FAILED` in database.
+
+**When It Occurs**:
+- Unhandled exception in process node
+- External service returns error (HTTP 5xx, timeout)
+- Database error or connection failure
+- Logic error in process definition
+- Data validation error
+
+**Automatic Handling**: System marks as FAILED, no manual action required if:
+- Process completes with failure (terminal state)
+- Auto-retry is disabled
+- Error is logged and monitored
+
+**Example**:
+```
+Process: OrderProcessing
+Instance: ORD-042-2026
+Error: "HTTP 503 - Service Temporarily Unavailable"
+Status: FAILED
+Incident: YES (needs manual action)
+```
+
+### Incident
+
+**Definition**: A process instance requiring operational intervention and manual action.
+
+**Technical**: Subset of failed/suspended instances flagged for attention.
+
+**When It Occurs**:
+- Instance has FAILED status + needs investigation
+- Instance has WAITING status + error detected
+- Instance exceeded SLA time limit
+- Auto-retry exhausted (tried 3 times, still failing)
+- Critical business process stopped
+
+**Requires Manual Action**:
+- Investigate root cause
+- Determine fix (retry, escalate, resolve manually)
+- Monitor retry attempt
+- Document resolution
+
+**Example**:
+```
+Process: OrderProcessing
+Instance: ORD-042-2026
+Status: FAILED
+Incident: YES ← Flagged because:
+  - Retry needed (transient service error)
+  - Affects customer order
+  - Requires manual decision
+```
+
+### Key Differences in Table
+
+| Aspect | Failed Status | Incident |
+|--------|---------------|----------|
+| **Definition** | Instance execution error | Instance requiring action |
+| **Scope** | All failed instances | Subset of failed/suspended |
+| **Automatic** | Yes, system marks automatically | No, manually flagged or auto-escalated |
+| **Examples** | 1,000 failed instances | 50 incidents requiring investigation |
+| **Action** | Can be ignored (logged) | Must be addressed |
+| **Dashboard Card** | "Failed: 98" (metric) | "Incidents: 15" (actionable items) |
+
+### Real-World Scenario
+
+```
+📊 Dashboard Metrics:
+┌──────────────────────────────────────────┐
+│ Failed: 100    Incidents: 5              │
+└──────────────────────────────────────────┘
+
+Analysis:
+- 100 instances failed (status = FAILED)
+- 95 failed due to transient network timeout (auto-recovered after retry)
+- 5 failed due to data errors (need manual fix)
+- 5 incidents appear in Incidents tab (those needing action)
+
+Operations Team Action:
+- 95 failed but resolved automatically → No action needed
+- 5 incidents remain → Investigate and fix data issues
+```
+
+### When to Use Each Term
+
+**Use "Failed"** when talking about:
+- Technical metrics and statistics
+- System performance
+- Failure rate calculations
+- Database queries (status = 'FAILED')
+
+**Use "Incident"** when talking about:
+- Operational action items
+- Investigation and resolution
+- Manual interventions needed
+- Dashboard incident view
+
+### Dashboard Indicators
+
+**Failed Card**:
+```
+Failed: 98
+
+Meaning: 98 instances have status = FAILED
+Action: No action required (informational)
+Context: Historical metric, some may be auto-resolved
+```
+
+**Incidents Card**:
+```
+Incidents: 15
+
+Meaning: 15 instances flagged as incidents
+Action: Review immediately (actionable)
+Context: These require manual investigation/intervention
+```
+
+---
+
 ## Incident Lifecycle
 
 ```
