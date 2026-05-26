@@ -1,19 +1,69 @@
 import React from 'react';
-import { Layout, FileText, Plus, Zap, Shield } from 'lucide-react';
+import { Layout, FileText, Plus, Zap, Shield, User, LogOut } from 'lucide-react';
 
 interface WelcomeScreenProps {
   onCreateProcess: () => void;
   onCreateForm: () => void;
   onOpenRecent?: () => void;
+  currentUser?: string | null;
+  onLogout?: () => void;
 }
 
 export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
   onCreateProcess,
   onCreateForm,
-  onOpenRecent
+  onOpenRecent,
+  currentUser,
+  onLogout
 }) => {
+  const [showUserMenu, setShowUserMenu] = React.useState(false);
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 flex flex-col">
+      {/* Top Navbar with User Profile */}
+      <div className="bg-white/5 backdrop-blur-sm border-b border-white/10 px-6 py-4 flex items-center justify-between">
+        <div className="flex-1">
+          <h2 className="text-white font-semibold">Easy BPM Modeler</h2>
+        </div>
+        
+        {currentUser && (
+          <div className="relative">
+            <button
+              onClick={() => setShowUserMenu(!showUserMenu)}
+              className="p-2 hover:bg-white/10 rounded-lg transition-colors text-slate-400 hover:text-white flex items-center gap-2"
+              title="User menu"
+            >
+              <User className="w-4 h-4" />
+              <span className="text-sm font-medium text-slate-300">{currentUser}</span>
+            </button>
+
+            {/* Dropdown Menu */}
+            {showUserMenu && (
+              <div className="absolute right-0 top-full mt-2 w-48 bg-slate-800 border border-white/10 rounded-lg shadow-xl z-50">
+                <div className="px-4 py-3 border-b border-white/10">
+                  <p className="text-xs text-slate-500">Logged in as</p>
+                  <p className="text-sm font-semibold text-white truncate">{currentUser}</p>
+                </div>
+                {onLogout && (
+                  <button
+                    onClick={() => {
+                      onLogout();
+                      setShowUserMenu(false);
+                    }}
+                    className="w-full px-4 py-2 text-left text-sm text-slate-300 hover:text-white hover:bg-white/10 transition-colors flex items-center gap-2"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Logout
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 flex items-center justify-center p-4 overflow-auto">
       <div className="w-full max-w-6xl">
         {/* Header */}
         <div className="text-center mb-16">
@@ -125,6 +175,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
           <p>Easy BPM · Enterprise Process Management</p>
         </div>
       </div>
+    </div>
     </div>
   );
 };

@@ -1118,6 +1118,8 @@ const App: React.FC = () => {
         <WelcomeScreen
           onCreateProcess={handleCreateProcess}
           onCreateForm={handleCreateForm}
+          currentUser={currentUser}
+          onLogout={handleLogout}
         />
       </div>
     );
@@ -1138,6 +1140,8 @@ const App: React.FC = () => {
           onExport={handleExport}
           onImport={handleImport}
           isSaving={isDeployingProcess}
+          currentUser={currentUser}
+          onLogout={handleLogout}
         />
 
         {/* Toolbar */}
@@ -1205,6 +1209,8 @@ const App: React.FC = () => {
           onExport={handleExportForm}
           onImport={handleImportForm}
           isSaving={isDeployingForm}
+          currentUser={currentUser}
+          onLogout={handleLogout}
         />
 
         {/* Form Editor */}
