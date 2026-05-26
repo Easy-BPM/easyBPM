@@ -345,6 +345,15 @@ const InstanceExplorerView: React.FC = () => {
     }
   };
 
+  const getNodeDisplayName = (nodeId: string) => {
+    if (!workflowDefinition?.nodes) return nodeId;
+    const node = workflowDefinition.nodes.find(n => n.id === nodeId);
+    if (node?.name) {
+      return `${node.name} (${nodeId})`;
+    }
+    return nodeId;
+  };
+
   const handleSearch = async () => {
     const parsedId = Number(instanceIdInput);
     if (!parsedId) return;
@@ -638,7 +647,7 @@ const InstanceExplorerView: React.FC = () => {
             <div className="flex flex-wrap gap-2">
               {(instance.nodeHistory ?? []).map((node, idx) => (
                 <span key={`${node}-${idx}`} className="px-3 py-1.5 rounded-full bg-purple-50 text-purple-700 text-xs font-medium border border-purple-200">
-                  {idx + 1}. {node}
+                  {idx + 1}. {getNodeDisplayName(node)}
                 </span>
               ))}
             </div>
