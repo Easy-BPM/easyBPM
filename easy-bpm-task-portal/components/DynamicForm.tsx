@@ -105,7 +105,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
       return (
         <label
           className={`flex items-center p-3 rounded-md border cursor-pointer transition-all ${
-            value ? 'bg-[color:rgba(124,140,255,0.10)] border-[color:rgba(124,140,255,0.25)]' : 'bg-[var(--ui-panel-bg)] border-[var(--ui-border)] hover:border-slate-300'
+            value ? 'bg-[color:rgba(124,140,255,0.10)] border-[color:rgba(124,140,255,0.25)]' : 'bg-[var(--ui-panel-bg)] border-[var(--ui-border)] hover:border-[var(--ui-border)]'
           } ${isReadOnly ? 'opacity-70 pointer-events-none' : ''}`}
         >
           <input

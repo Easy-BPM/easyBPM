@@ -164,7 +164,7 @@ const LoginView: React.FC<{ onLogin: (username: string) => void }> = ({ onLogin 
   return (
     <div className={`${controlShellClass} min-h-screen flex items-center justify-center p-4`}>
       <div className="w-full max-w-md">
-        <div className={`${controlPanelClass} p-8`} style={{ color: '#e6eaf2' }}>
+        <div className={`${controlPanelClass} p-8 text-[#e6eaf2]`}>
           <div className="flex flex-col items-center mb-8">
             <div className="bg-[#7c8cff] p-3 rounded-md mb-4 border border-[#95a2ff]/40">
               <ShieldCheck className="text-white" size={28} />

@@ -92,7 +92,7 @@ export const CodeTaskExecutionTable: React.FC<Props> = ({
   };
 
   return (
-    <div className="overflow-x-auto rounded-md border border-[#364257] bg-[#151922]">
+    <div className="overflow-x-auto rounded-md border border-[var(--ui-border)] bg-[var(--ui-base-1)]">
       <table className="control-table">
         <thead>
           <tr className="border-b border-[#2d3748] bg-[#11161f]">

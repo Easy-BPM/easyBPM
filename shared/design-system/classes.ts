@@ -1,3 +1,5 @@
+type StatusChipValue = 'COMPLETED' | 'FAILED' | 'TIMEOUT';
+
 export const controlShellClass = 'control-shell';
 export const controlPanelClass = 'control-panel';
 export const controlPanelMutedClass = 'control-panel-muted';
@@ -25,4 +27,3 @@ export const statusChipClass = (status: StatusChipValue | string) => {
       return controlChipClass;
   }
 };
-type StatusChipValue = 'COMPLETED' | 'FAILED' | 'TIMEOUT';

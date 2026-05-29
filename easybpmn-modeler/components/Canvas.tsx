@@ -231,7 +231,7 @@ export const Canvas: React.FC<CanvasProps> = ({
   };
 
   return (
-    <div className="flex-1 bg-[#1c2230] relative overflow-hidden select-none control-grid-bg" role="region" aria-label="BPMN canvas" onDragOver={(e) => e.preventDefault()} onDrop={onDrop}>
+    <div className="flex-1 bg-[#1c2230] relative overflow-hidden select-none control-grid-bg" role="region" aria-label="BPMN canvas" tabIndex={0} onDragOver={(e) => e.preventDefault()} onDrop={onDrop}>
       <svg ref={svgRef} className="w-full h-full" onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseDown={handleMouseDownCanvas}>
         <defs>
           <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#a8b2c5" /></marker>
