@@ -13,7 +13,7 @@ export const controlChipWarningClass = 'control-chip control-chip-warning';
 export const controlChipDangerClass = 'control-chip control-chip-danger';
 export const controlEmptyStateClass = 'control-empty-state';
 
-export const statusChipClass = (status: string) => {
+export const statusChipClass = (status: StatusChipValue | string) => {
   switch (status) {
     case 'COMPLETED':
       return controlChipSuccessClass;
@@ -25,3 +25,4 @@ export const statusChipClass = (status: string) => {
       return controlChipClass;
   }
 };
+type StatusChipValue = 'COMPLETED' | 'FAILED' | 'TIMEOUT';

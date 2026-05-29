@@ -221,7 +221,7 @@ export const CodeTaskExecutionMetrics: React.FC<Props> = ({ executions, filters 
             <div className="space-y-1 text-white">
               <div className="flex justify-between">
                 <span>✓ Completed:</span>
-                <span className="font-semibold text-green-600">{metrics.successCount}</span>
+                <span className="font-semibold text-[#21c7a8]">{metrics.successCount}</span>
               </div>
               <div className="flex justify-between">
                 <span>✗ Failed:</span>

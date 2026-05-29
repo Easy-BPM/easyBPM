@@ -41,7 +41,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           New Canvas
         </button>
         {onToggleCompact && (
-          <button onClick={onToggleCompact} className={compactMode ? controlButtonPrimaryClass : controlButtonClass}>
+          <button aria-label="Toggle compact mode" onClick={onToggleCompact} className={compactMode ? controlButtonPrimaryClass : controlButtonClass}>
             {compactMode ? 'Compact Mode On' : 'Compact Mode Off'}
           </button>
         )}
