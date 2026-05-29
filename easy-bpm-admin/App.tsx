@@ -22,14 +22,18 @@ import { CodeTaskExecutionListPage } from './components/CodeTaskExecutionListPag
 import { SecurityAdminView } from './components/SecurityAdminView';
 import { adminService } from './services/adminService';
 import { ProcessDefinition, ProcessInstance, ProcessVariable, WorkflowDefinition } from './types';
+import { controlButtonClass, controlButtonPrimaryClass, controlInputClass, controlPanelClass, controlShellClass } from '../shared/design-system/classes';
 
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<string | null>(null);
   const [permissions, setPermissions] = useState<string[]>([]);
   const [currentView, setCurrentView] = useState('dashboard');
   const [authLoading, setAuthLoading] = useState(true);
+  const [compactMode, setCompactMode] = useState(() => localStorage.getItem('easybpm-admin-compact') === 'true');
 
   useEffect(() => {
+    document.body.classList.remove('control-theme-light');
+    document.body.classList.add('control-theme-dark');
     const session = adminService.getSession();
     if (!session) {
       setAuthLoading(false);
@@ -46,7 +50,15 @@ const App: React.FC = () => {
         setPermissions([]);
       })
       .finally(() => setAuthLoading(false));
+
+    return () => {
+      document.body.classList.remove('control-theme-dark');
+    };
   }, []);
+
+  useEffect(() => {
+    localStorage.setItem('easybpm-admin-compact', String(compactMode));
+  }, [compactMode]);
 
   const handleLogin = (username: string, perms: string[]) => {
     setCurrentUser(username);
@@ -62,7 +74,7 @@ const App: React.FC = () => {
   };
 
   if (authLoading) {
-    return <div className="min-h-screen flex items-center justify-center text-slate-600">Loading session...</div>;
+    return <div className={`${controlShellClass} min-h-screen flex items-center justify-center text-[#a8b2c5]`}>Loading admin session...</div>;
   }
 
   if (!currentUser) {
@@ -71,11 +83,11 @@ const App: React.FC = () => {
 
   if (!permissions.includes('ACCESS_BPM_ADMIN')) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-100">
-        <div className="bg-white border border-slate-200 rounded-xl p-6 text-center">
-          <h2 className="text-lg font-semibold text-slate-800">Access denied</h2>
-          <p className="text-slate-500 mt-1">Your account does not have BPM Admin access.</p>
-          <button onClick={handleLogout} className="mt-4 px-4 py-2 bg-slate-900 text-white rounded-lg">Sign out</button>
+      <div className={`${controlShellClass} min-h-screen flex items-center justify-center px-4`}>
+        <div className={`${controlPanelClass} p-6 text-center max-w-md`}>
+          <h2 className="text-lg font-semibold text-white">Access denied</h2>
+          <p className="text-[#a8b2c5] mt-1">Your account does not have BPM Admin access.</p>
+          <button onClick={handleLogout} className={`${controlButtonClass} mt-4`}>Sign out</button>
         </div>
       </div>
     );
@@ -99,7 +111,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-slate-50 font-sans">
+    <div className={`${controlShellClass} flex min-h-screen font-sans`} data-compact={compactMode}>
       <Sidebar
         currentView={currentView}
         onChangeView={setCurrentView}
@@ -107,8 +119,19 @@ const App: React.FC = () => {
         permissions={permissions}
         onLogout={handleLogout}
       />
-      <main className="flex-1 px-8 py-8 overflow-y-auto h-screen">
-        <div className="max-w-5xl mx-auto">{renderView()}</div>
+      <main className="flex-1 px-6 py-6 overflow-y-auto h-screen">
+        <div className="max-w-6xl mx-auto space-y-6">
+          <div className={`${controlPanelClass} px-4 py-3 flex items-center justify-between`}>
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#7b869b]">Operations</p>
+              <h1 className="text-lg font-semibold text-white">EasyBPM Admin Console</h1>
+            </div>
+            <button className={compactMode ? controlButtonPrimaryClass : controlButtonClass} onClick={() => setCompactMode((value) => !value)}>
+              {compactMode ? 'Compact Mode On' : 'Compact Mode Off'}
+            </button>
+          </div>
+          {renderView()}
+        </div>
       </main>
     </div>
   );
@@ -136,26 +159,25 @@ const LoginView: React.FC<{ onLogin: (username: string, perms: string[]) => void
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 p-4">
+    <div className={`${controlShellClass} min-h-screen flex items-center justify-center p-4`}>
       <div className="w-full max-w-md">
-        {/* Card */}
-        <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8 shadow-2xl">
+        <div className={`${controlPanelClass} p-8`}>
           <div className="flex flex-col items-center mb-8">
-            <div className="bg-blue-600 p-3 rounded-xl mb-4 shadow-lg shadow-blue-600/40 ring-4 ring-blue-600/20">
+            <div className="bg-[#7c8cff] p-3 rounded-md mb-4 border border-[#95a2ff]/40">
               <ShieldCheck className="text-white" size={28} />
             </div>
-            <h1 className="text-2xl font-bold text-white">Easy BPM Admin</h1>
-            <p className="text-slate-400 mt-1 text-sm">Sign in to your operations console</p>
+            <h1 className="text-2xl font-semibold text-white">EasyBPM Control Suite</h1>
+            <p className="text-[#a8b2c5] mt-1 text-sm">Sign in to the admin operations console</p>
           </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-1.5">Username</label>
+            <label className="block text-sm font-medium text-[#a8b2c5] mb-1.5">Username</label>
             <div className="relative">
-              <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
+              <User className="absolute left-3 top-1/2 -translate-y-1/2 text-[#7b869b]" size={16} />
               <input
                 type="text"
-                className="w-full pl-9 pr-4 py-2.5 rounded-lg border border-white/10 bg-white/5 text-white placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm"
+                className={`${controlInputClass} pl-9`}
                 placeholder="Enter admin username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
@@ -163,12 +185,12 @@ const LoginView: React.FC<{ onLogin: (username: string, perms: string[]) => void
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-1.5">Password</label>
+            <label className="block text-sm font-medium text-[#a8b2c5] mb-1.5">Password</label>
             <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-[#7b869b]" size={16} />
               <input
                 type="password"
-                className="w-full pl-9 pr-4 py-2.5 rounded-lg border border-white/10 bg-white/5 text-white placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm"
+                className={`${controlInputClass} pl-9`}
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -179,14 +201,14 @@ const LoginView: React.FC<{ onLogin: (username: string, perms: string[]) => void
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2.5 rounded-lg transition-colors shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2 mt-2 text-sm"
+            className={`${controlButtonPrimaryClass} w-full`}
           >
             {loading ? <Loader2 className="animate-spin" size={18} /> : 'Sign In'}
           </button>
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="text-sm text-[#e56a6a]">{error}</p>}
         </form>
         </div>
-        <p className="text-center text-[11px] text-slate-600 mt-4">Easy BPM · Process Operations Console</p>
+        <p className="text-center text-[11px] text-[#7b869b] mt-4">EasyBPM Control Suite · Process Operations Console</p>
       </div>
     </div>
   );
@@ -221,18 +243,18 @@ const DashboardView: React.FC<{ onNavigate: (view: string) => void }> = ({ onNav
   ];
 
   const accentMap = {
-    blue:    { bg: 'bg-blue-50',    icon: 'bg-blue-100 text-blue-600',    hover: 'group-hover:bg-blue-600 group-hover:text-white', border: 'border-blue-100',   badge: 'bg-blue-50 text-blue-600 border-blue-200'   },
-    emerald: { bg: 'bg-emerald-50', icon: 'bg-emerald-100 text-emerald-600', hover: 'group-hover:bg-emerald-600 group-hover:text-white', border: 'border-emerald-100', badge: 'bg-emerald-50 text-emerald-600 border-emerald-200' },
-    purple:  { bg: 'bg-purple-50',  icon: 'bg-purple-100 text-purple-600',  hover: 'group-hover:bg-purple-600 group-hover:text-white', border: 'border-purple-100',  badge: 'bg-purple-50 text-purple-600 border-purple-200'  }
+    blue:    { icon: 'bg-[rgba(124,140,255,0.14)] text-[#7c8cff]',    hover: 'group-hover:bg-[#7c8cff] group-hover:text-white',    badge: 'bg-[rgba(124,140,255,0.14)] text-[#7c8cff] border-[rgba(124,140,255,0.34)]'   },
+    emerald: { icon: 'bg-[rgba(33,199,168,0.14)] text-[#21c7a8]', hover: 'group-hover:bg-[#21c7a8] group-hover:text-[#0f1115]', badge: 'bg-[rgba(33,199,168,0.14)] text-[#21c7a8] border-[rgba(33,199,168,0.34)]' },
+    purple:  { icon: 'bg-[rgba(124,140,255,0.14)] text-[#aeb8ff]',  hover: 'group-hover:bg-[#7c8cff] group-hover:text-white',  badge: 'bg-[rgba(124,140,255,0.14)] text-[#aeb8ff] border-[rgba(124,140,255,0.34)]'  }
   };
 
   return (
     <div className="space-y-8">
       <header>
         <div className="flex items-center gap-2 mb-1">
-          <h2 className="text-2xl font-bold text-slate-800">Operations Overview</h2>
+          <h2 className="text-2xl font-semibold text-white">Operations Overview</h2>
         </div>
-        <p className="text-slate-500 text-sm">Monitor and control BPM process instances from a central console.</p>
+        <p className="text-[#a8b2c5] text-sm">Monitor and control BPM process instances from a central console.</p>
       </header>
 
       <div className="grid grid-cols-1 gap-4">
@@ -242,19 +264,19 @@ const DashboardView: React.FC<{ onNavigate: (view: string) => void }> = ({ onNav
             <div
               key={id}
               onClick={() => onNavigate(id)}
-              className="bg-white p-5 rounded-xl border border-slate-200 cursor-pointer hover:border-slate-300 hover:shadow-md transition-all group flex items-start gap-4"
+              className={`${controlPanelClass} p-5 cursor-pointer hover:border-[#364257] transition-all group flex items-start gap-4`}
             >
-              <div className={`p-3 rounded-xl flex-shrink-0 transition-colors ${colors.icon} ${colors.hover}`}>
+              <div className={`p-3 rounded-md flex-shrink-0 transition-colors ${colors.icon} ${colors.hover}`}>
                 <Icon size={20} />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
-                  <h3 className="font-semibold text-slate-800 text-sm">{label}</h3>
+                  <h3 className="font-semibold text-white text-sm">{label}</h3>
                   <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${colors.badge}`}>{badge}</span>
                 </div>
-                <p className="text-xs text-slate-500 leading-relaxed">{description}</p>
+                <p className="text-xs text-[#a8b2c5] leading-relaxed">{description}</p>
               </div>
-              <ArrowRightLeft size={14} className="text-slate-300 group-hover:text-slate-500 transition-colors flex-shrink-0 mt-1 rotate-90" />
+              <ArrowRightLeft size={14} className="text-[#7b869b] group-hover:text-white transition-colors flex-shrink-0 mt-1 rotate-90" />
             </div>
           );
         })}

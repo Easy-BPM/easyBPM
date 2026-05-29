@@ -5,6 +5,7 @@ import { validateId } from '../utils/validation';
 import { AIProviderConfigForm } from './AIProviderConfigForm';
 import { PromptEditor } from './PromptEditor';
 import { AITuningPanel } from './AITuningPanel';
+import { controlButtonDangerClass, controlInputClass, controlPanelHeaderClass } from '../../shared/design-system/classes';
 
 interface PropertiesPanelProps {
   selectedNodeUids: string[];
@@ -47,8 +48,8 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
   onFocusValidationIssue,
   validation,
 }) => {
-  const inputClassName = "w-full text-sm bg-white text-slate-800 border border-slate-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-400 focus:outline-none placeholder-slate-400 transition-colors";
-  const smallInputClassName = "text-xs bg-white text-slate-800 border border-slate-300 rounded px-2 py-1.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-400 focus:outline-none placeholder-slate-400 disabled:opacity-50 disabled:bg-slate-50 transition-colors";
+  const inputClassName = `${controlInputClass} text-sm`;
+  const smallInputClassName = `${controlInputClass} text-xs px-2 py-1.5 disabled:opacity-50`;
 
   const selectedNode = nodes.find(n => n.uid === selectedNodeUids[0]);
   const [localNodeId, setLocalNodeId] = useState(selectedNode?.id || '');
@@ -363,10 +364,10 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
   const nodeScopedIssues = validation.issues.filter(issue => issue.nodeUid === selectedNode.uid);
 
   return (
-    <div className="w-80 bg-white border-l border-slate-200 h-full flex flex-col z-10 overflow-hidden" style={{ boxShadow: '-1px 0 3px 0 rgba(0,0,0,0.04)' }}>
-      <div className="px-4 py-3.5 border-b border-slate-200 flex items-center justify-between bg-white">
-        <div><h2 className="text-sm font-semibold text-slate-800">Node Properties</h2><p className="text-[10px] text-slate-400 uppercase font-mono tracking-widest mt-0.5">{selectedNode.type.replace(/-/g, ' ')}</p></div>
-        <button onClick={() => onDeleteNode(selectedNode.uid)} className="text-slate-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-md transition-colors"><Trash2 className="w-4 h-4" /></button>
+    <div className="w-80 bg-[#151922] border-l border-[#2d3748] h-full flex flex-col z-10 overflow-hidden">
+      <div className={`${controlPanelHeaderClass} bg-[#151922]`}>
+        <div><h2 className="text-sm font-semibold text-white">Node Properties</h2><p className="text-[10px] text-[#7b869b] uppercase font-mono tracking-widest mt-0.5">{selectedNode.type.replace(/-/g, ' ')}</p></div>
+        <button onClick={() => onDeleteNode(selectedNode.uid)} className={`${controlButtonDangerClass} min-h-0 h-8 w-8 p-0`}><Trash2 className="w-4 h-4" /></button>
       </div>
       <div className="p-4 flex-1 overflow-y-auto space-y-8">
         {renderValidationSection(nodeScopedIssues, 'Node Validation')}

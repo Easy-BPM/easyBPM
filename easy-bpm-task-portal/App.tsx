@@ -20,6 +20,7 @@ import {
   Zap,
   ListTodo
 } from 'lucide-react';
+import { controlButtonClass, controlButtonPrimaryClass, controlEmptyStateClass, controlInputClass, controlPanelClass, controlShellClass } from '../shared/design-system/classes';
 
 type VariableType = 'string' | 'number' | 'boolean' | 'json';
 
@@ -74,6 +75,14 @@ const App: React.FC = () => {
   const [currentView, setCurrentView] = useState('inbox');
   const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
 
+  useEffect(() => {
+    document.body.classList.remove('control-theme-dark');
+    document.body.classList.add('control-theme-light');
+    return () => {
+      document.body.classList.remove('control-theme-light');
+    };
+  }, []);
+
   const handleLogin = (username: string) => {
     setCurrentUser(username);
     setCurrentView('inbox');
@@ -112,15 +121,21 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-slate-50 font-sans">
+    <div className={`${controlShellClass} flex min-h-screen font-sans`}>
       <Sidebar
         currentView={currentView}
         onChangeView={setCurrentView}
         currentUser={currentUser}
         onLogout={handleLogout}
       />
-      <main className="flex-1 p-8 overflow-y-auto h-screen">
-        <div className="max-w-5xl mx-auto">{renderView()}</div>
+      <main className="flex-1 p-6 overflow-y-auto h-screen">
+        <div className="max-w-6xl mx-auto space-y-6">
+          <div className={`${controlPanelClass} px-4 py-3`}>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#6b778c]">Work Queue</p>
+            <h1 className="text-lg font-semibold text-[#1c2230]">EasyBPM Task Portal</h1>
+          </div>
+          {renderView()}
+        </div>
       </main>
     </div>
   );
@@ -147,26 +162,25 @@ const LoginView: React.FC<{ onLogin: (username: string) => void }> = ({ onLogin 
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 p-4">
+    <div className={`${controlShellClass} min-h-screen flex items-center justify-center p-4`}>
       <div className="w-full max-w-md">
-        {/* Card */}
-        <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8 shadow-2xl">
+        <div className={`${controlPanelClass} p-8`} style={{ color: '#e6eaf2' }}>
           <div className="flex flex-col items-center mb-8">
-            <div className="bg-blue-600 p-3 rounded-xl mb-4 shadow-lg shadow-blue-600/40 ring-4 ring-blue-600/20">
+            <div className="bg-[#7c8cff] p-3 rounded-md mb-4 border border-[#95a2ff]/40">
               <ShieldCheck className="text-white" size={28} />
             </div>
-            <h1 className="text-2xl font-bold text-white">Easy BPM Task Portal</h1>
-            <p className="text-slate-400 mt-1 text-sm">Sign in to open your work inbox</p>
+            <h1 className="text-2xl font-semibold text-white">EasyBPM Control Suite</h1>
+            <p className="text-[#a8b2c5] mt-1 text-sm">Sign in to open your work inbox</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">Username</label>
+              <label className="block text-sm font-medium text-[#a8b2c5] mb-1.5">Username</label>
               <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 text-[#7b869b]" size={16} />
                 <input
                   type="text"
-                  className="w-full pl-9 pr-4 py-2.5 rounded-lg border border-white/10 bg-white/5 text-white placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm"
+                  className={`${controlInputClass} pl-9`}
                   placeholder="Enter username"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
@@ -174,12 +188,12 @@ const LoginView: React.FC<{ onLogin: (username: string) => void }> = ({ onLogin 
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">Password</label>
+              <label className="block text-sm font-medium text-[#a8b2c5] mb-1.5">Password</label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-[#7b869b]" size={16} />
                 <input
                   type="password"
-                  className="w-full pl-9 pr-4 py-2.5 rounded-lg border border-white/10 bg-white/5 text-white placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm"
+                  className={`${controlInputClass} pl-9`}
                   placeholder="Optional"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -190,13 +204,13 @@ const LoginView: React.FC<{ onLogin: (username: string) => void }> = ({ onLogin 
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2.5 rounded-lg transition-colors shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2 mt-2 text-sm"
+              className={`${controlButtonPrimaryClass} w-full`}
             >
               {loading ? <Loader2 className="animate-spin" size={18} /> : 'Sign In'}
             </button>
           </form>
         </div>
-        <p className="text-center text-[11px] text-slate-600 mt-4">Easy BPM · Task Execution Portal</p>
+        <p className="text-center text-[11px] text-[#6b778c] mt-4">EasyBPM Control Suite · Task Execution Portal</p>
       </div>
     </div>
   );
@@ -252,8 +266,8 @@ const DashboardView: React.FC<{ onNavigate: (view: string) => void; currentUser:
   return (
     <div className="space-y-8">
       <header>
-        <h2 className="text-2xl font-bold text-slate-800">Welcome back, {currentUser}</h2>
-        <p className="text-slate-500 text-sm mt-1">Task execution workspace for active BPM instances.</p>
+        <h2 className="text-2xl font-semibold text-[#1c2230]">Welcome back, {currentUser}</h2>
+        <p className="text-[#4d5b71] text-sm mt-1">Task execution workspace for active BPM instances.</p>
       </header>
 
       <div className="grid grid-cols-1 gap-4">
@@ -263,11 +277,11 @@ const DashboardView: React.FC<{ onNavigate: (view: string) => void; currentUser:
             <div
               key={id}
               onClick={navigable ? () => onNavigate(id) : undefined}
-              className={`bg-white p-5 rounded-xl border border-slate-200 transition-all group flex items-start gap-4 ${
-                navigable ? 'cursor-pointer hover:border-slate-300 hover:shadow-md' : 'cursor-default opacity-80'
+              className={`${controlPanelClass} p-5 transition-all group flex items-start gap-4 shadow-sm ${
+                navigable ? 'cursor-pointer hover:border-[#364257] hover:-translate-y-0.5' : 'cursor-default opacity-80'
               }`}
             >
-              <div className={`p-3 rounded-xl flex-shrink-0 transition-colors ${colors.icon} ${navigable ? colors.hover : ''}`}>
+              <div className={`p-3 rounded-md flex-shrink-0 transition-colors ${colors.icon} ${navigable ? colors.hover : ''}`}>
                 <Icon size={20} />
               </div>
               <div className="flex-1 min-w-0">
@@ -318,17 +332,17 @@ const InboxView: React.FC<{ onSelectTask: (id: number) => void; currentUser: str
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-slate-800">Task Inbox</h2>
-          <p className="text-slate-500 text-sm mt-1">Open tasks, forms, and variable outputs</p>
+          <h2 className="text-2xl font-semibold text-[#1c2230]">Task Inbox</h2>
+          <p className="text-[#4d5b71] text-sm mt-1">Open tasks, forms, and variable outputs</p>
         </div>
 
-        <div className="flex bg-slate-200 p-1 rounded-lg self-start">
+        <div className={`${controlPanelClass} flex p-1 self-start shadow-none`}>
           {(['assigned', 'all', 'completed'] as const).map((current) => (
             <button
               key={current}
               onClick={() => setFilter(current)}
               className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
-                filter === current ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600 hover:text-slate-800'
+                filter === current ? 'bg-[#eef2ff] text-[#4d5b71] shadow-sm border border-[#d3dae7]' : 'text-[#6b778c] hover:text-[#1c2230]'
               }`}
             >
               {current.charAt(0).toUpperCase() + current.slice(1)}
@@ -339,13 +353,13 @@ const InboxView: React.FC<{ onSelectTask: (id: number) => void; currentUser: str
 
       {loading ? (
         <div className="flex justify-center py-20">
-          <Loader2 className="animate-spin text-blue-500" size={32} />
+          <Loader2 className="animate-spin text-[#7c8cff]" size={32} />
         </div>
       ) : tasks.length === 0 ? (
-        <div className="text-center py-20 bg-white rounded-xl border border-dashed border-slate-300">
+        <div className={controlEmptyStateClass}>
           <ListTodo className="mx-auto text-slate-300 mb-3" size={48} />
-          <p className="text-slate-500 font-medium">No tasks found in this category.</p>
-          <p className="text-slate-400 text-sm mt-1">Tasks assigned to you will appear here.</p>
+          <p className="text-[#4d5b71] font-medium">No tasks found in this category.</p>
+          <p className="text-[#6b778c] text-sm mt-1">Tasks assigned to you will appear here.</p>
         </div>
       ) : (
         <div className="grid gap-3">
@@ -353,7 +367,7 @@ const InboxView: React.FC<{ onSelectTask: (id: number) => void; currentUser: str
             <div
               key={task.id}
               onClick={() => onSelectTask(task.id)}
-              className="group bg-white p-5 rounded-xl border border-slate-200 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer flex items-center justify-between"
+              className={`${controlPanelClass} group p-5 hover:border-[#7c8cff] transition-all cursor-pointer flex items-center justify-between shadow-sm`}
             >
               <div className="flex items-start gap-4">
                 <div
@@ -368,8 +382,8 @@ const InboxView: React.FC<{ onSelectTask: (id: number) => void; currentUser: str
                     <span className="flex items-center gap-1">
                       <Clock size={12} /> {new Date(task.createdAt).toLocaleDateString()}
                     </span>
-                    <span className="px-2 py-0.5 bg-slate-100 rounded text-slate-600 font-mono">ID: {task.id}</span>
-                    <span className="px-2 py-0.5 bg-slate-100 rounded text-slate-600 font-mono">Process ID: {task.processInstanceId}</span>
+                    <span className="px-2 py-0.5 bg-[#eef2f7] rounded text-[#4d5b71] font-mono">ID: {task.id}</span>
+                    <span className="px-2 py-0.5 bg-[#eef2f7] rounded text-[#4d5b71] font-mono">Process ID: {task.processInstanceId}</span>
                   </div>
                 </div>
               </div>
@@ -409,39 +423,39 @@ const ProcessListView: React.FC<{ onViewInbox: () => void }> = ({ onViewInbox })
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-slate-800">Start Process</h2>
-        <p className="text-slate-500 text-sm mt-1">Initiate new workflows from the task portal.</p>
+        <h2 className="text-2xl font-semibold text-[#1c2230]">Start Process</h2>
+        <p className="text-[#4d5b71] text-sm mt-1">Initiate new workflows from the task portal.</p>
       </div>
 
       {error && (
-        <div className="p-3 rounded-lg border border-red-200 bg-red-50 text-red-700 text-sm flex items-center gap-2">
+        <div className="p-3 rounded-md border border-[#efb2b2] bg-[#fff3f3] text-[#b54848] text-sm flex items-center gap-2">
           <AlertCircle size={16} className="flex-shrink-0" />
           {error}
         </div>
       )}
 
       {processes.length === 0 && !error ? (
-        <div className="text-center py-20 bg-white rounded-xl border border-dashed border-slate-300">
+        <div className={controlEmptyStateClass}>
           <Zap className="mx-auto text-slate-300 mb-3" size={48} />
-          <p className="text-slate-500 font-medium">No processes deployed yet.</p>
-          <p className="text-slate-400 text-sm mt-1">Deploy a process via the BPMN Modeler to get started.</p>
+          <p className="text-[#4d5b71] font-medium">No processes deployed yet.</p>
+          <p className="text-[#6b778c] text-sm mt-1">Deploy a process via the BPMN modeler to get started.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {processes.map((processDefinition) => (
             <div
               key={processDefinition.id}
-              className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between hover:border-slate-300 hover:shadow-md transition-all"
+              className={`${controlPanelClass} p-5 flex flex-col justify-between hover:border-[#364257] transition-all shadow-sm`}
             >
               <div className="flex items-start gap-4">
-                <div className="p-2.5 bg-emerald-100 text-emerald-600 rounded-xl flex-shrink-0">
+                <div className="p-2.5 bg-emerald-100 text-emerald-700 rounded-md flex-shrink-0">
                   <Play size={18} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap mb-1">
                     <h3 className="font-bold text-slate-800 text-sm">{processDefinition.processName || processDefinition.key}</h3>
-                    <span className="text-[10px] font-mono bg-blue-50 text-blue-600 border border-blue-200 px-1.5 py-0.5 rounded">{processDefinition.key}</span>
-                    <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded">v{processDefinition.version}</span>
+                    <span className="text-[10px] font-mono bg-[#eef2ff] text-[#5b68d6] border border-[#d7ddff] px-1.5 py-0.5 rounded">{processDefinition.key}</span>
+                    <span className="text-[10px] bg-[#eef2f7] text-[#4d5b71] px-1.5 py-0.5 rounded">v{processDefinition.version}</span>
                   </div>
                   <p className="text-xs text-slate-500 line-clamp-2">{processDefinition.description}</p>
                 </div>
@@ -450,7 +464,7 @@ const ProcessListView: React.FC<{ onViewInbox: () => void }> = ({ onViewInbox })
                 <button
                   onClick={() => handleStart(processDefinition.key)}
                   disabled={starting === processDefinition.key}
-                  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 shadow-sm shadow-blue-200"
+                  className={`${controlButtonPrimaryClass} disabled:opacity-50`}
                 >
                   {starting === processDefinition.key ? <Loader2 className="animate-spin" size={14} /> : <Play size={14} />}
                   Start

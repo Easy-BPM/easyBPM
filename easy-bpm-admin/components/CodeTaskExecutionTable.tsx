@@ -1,5 +1,6 @@
 import React from 'react';
 import { ArrowUpDown, ArrowUp, ArrowDown, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
+import { statusChipClass } from '../../shared/design-system/classes';
 
 interface CodeTaskExecution {
   executionId: number;
@@ -23,19 +24,6 @@ interface Props {
   onRowClick: (execution: CodeTaskExecution) => void;
   loading?: boolean;
 }
-
-const getStatusColor = (status: string) => {
-  switch (status) {
-    case 'COMPLETED':
-      return { bg: 'bg-green-100', text: 'text-green-800', border: 'border-green-300' };
-    case 'FAILED':
-      return { bg: 'bg-red-100', text: 'text-red-800', border: 'border-red-300' };
-    case 'TIMEOUT':
-      return { bg: 'bg-orange-100', text: 'text-orange-800', border: 'border-orange-300' };
-    default:
-      return { bg: 'bg-slate-100', text: 'text-slate-800', border: 'border-slate-300' };
-  }
-};
 
 const getStatusIcon = (status: string) => {
   switch (status) {
@@ -62,17 +50,17 @@ const SortButton: React.FC<{
   return (
     <button
       onClick={() => onSort(column)}
-      className="flex items-center gap-2 hover:text-slate-900 transition-colors"
+      className="flex items-center gap-2 hover:text-white transition-colors"
     >
       {label}
       {isActive ? (
         sortOrder === 'asc' ? (
-          <ArrowUp size={16} className="text-blue-600" />
+          <ArrowUp size={16} className="text-[#7c8cff]" />
         ) : (
-          <ArrowDown size={16} className="text-blue-600" />
+          <ArrowDown size={16} className="text-[#7c8cff]" />
         )
       ) : (
-        <ArrowUpDown size={16} className="text-slate-400 opacity-0 group-hover:opacity-100" />
+        <ArrowUpDown size={16} className="text-[#7b869b] opacity-0 group-hover:opacity-100" />
       )}
     </button>
   );
@@ -104,20 +92,20 @@ export const CodeTaskExecutionTable: React.FC<Props> = ({
   };
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full">
+    <div className="overflow-x-auto rounded-md border border-[#364257] bg-[#151922]">
+      <table className="control-table">
         <thead>
-          <tr className="border-b border-slate-200 bg-slate-50">
-            <th className="px-6 py-3 text-left text-xs font-semibold text-slate-700">
+          <tr className="border-b border-[#2d3748] bg-[#11161f]">
+            <th className="px-4 py-3 text-left text-xs font-semibold text-[#a8b2c5]">
               Execution ID
             </th>
-            <th className="px-6 py-3 text-left text-xs font-semibold text-slate-700">
+            <th className="px-4 py-3 text-left text-xs font-semibold text-[#a8b2c5]">
               Instance
             </th>
-            <th className="px-6 py-3 text-left text-xs font-semibold text-slate-700">
+            <th className="px-4 py-3 text-left text-xs font-semibold text-[#a8b2c5]">
               Method
             </th>
-            <th className="px-6 py-3 text-left text-xs font-semibold text-slate-700">
+            <th className="px-4 py-3 text-left text-xs font-semibold text-[#a8b2c5]">
               <SortButton
                 label="Status"
                 column="status"
@@ -126,7 +114,7 @@ export const CodeTaskExecutionTable: React.FC<Props> = ({
                 onSort={onSort}
               />
             </th>
-            <th className="px-6 py-3 text-left text-xs font-semibold text-slate-700">
+            <th className="px-4 py-3 text-left text-xs font-semibold text-[#a8b2c5]">
               <SortButton
                 label="Executed At"
                 column="executedAt"
@@ -135,7 +123,7 @@ export const CodeTaskExecutionTable: React.FC<Props> = ({
                 onSort={onSort}
               />
             </th>
-            <th className="px-6 py-3 text-right text-xs font-semibold text-slate-700">
+            <th className="px-4 py-3 text-right text-xs font-semibold text-[#a8b2c5]">
               <SortButton
                 label="Time"
                 column="executionTime"
@@ -146,36 +134,35 @@ export const CodeTaskExecutionTable: React.FC<Props> = ({
             </th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-200">
+        <tbody className="divide-y divide-[#2d3748]">
           {executions.map((execution) => {
-            const statusColor = getStatusColor(execution.status);
             return (
               <tr
                 key={execution.executionId}
                 onClick={() => onRowClick(execution)}
-                className="hover:bg-slate-50 cursor-pointer transition-colors"
+                className="hover:bg-[#1c2230] cursor-pointer transition-colors"
               >
-                <td className="px-6 py-4 text-sm">
-                  <span className="font-mono text-slate-600">#{execution.executionId}</span>
+                <td className="px-4 py-3 text-sm">
+                  <span className="font-mono text-[#a8b2c5]">#{execution.executionId}</span>
                 </td>
-                <td className="px-6 py-4 text-sm">
-                  <span className="font-mono text-blue-600">#{execution.instanceId}</span>
+                <td className="px-4 py-3 text-sm">
+                  <span className="font-mono text-[#7c8cff]">#{execution.instanceId}</span>
                 </td>
-                <td className="px-6 py-4 text-sm text-slate-700">
+                <td className="px-4 py-3 text-sm text-[#e6eaf2]">
                   <div className="font-medium">{execution.methodName}</div>
-                  <div className="text-xs text-slate-500">{execution.className}</div>
+                  <div className="text-xs text-[#7b869b]">{execution.className}</div>
                 </td>
-                <td className="px-6 py-4 text-sm">
-                  <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full font-medium ${statusColor.bg} ${statusColor.text}`}>
+                <td className="px-4 py-3 text-sm">
+                  <div className={statusChipClass(execution.status)}>
                     {getStatusIcon(execution.status)}
                     {execution.status}
                   </div>
                 </td>
-                <td className="px-6 py-4 text-sm text-slate-600">
+                <td className="px-4 py-3 text-sm text-[#a8b2c5]">
                   {formatDate(execution.executedAt)}
                 </td>
-                <td className="px-6 py-4 text-sm text-right">
-                  <span className="font-mono font-semibold text-slate-700">
+                <td className="px-4 py-3 text-sm text-right">
+                  <span className="font-mono font-semibold text-[#e6eaf2]">
                     {formatTime(execution.executionTimeMs)}
                   </span>
                 </td>

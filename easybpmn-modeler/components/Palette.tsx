@@ -1,6 +1,7 @@
 import React from 'react';
 import { NodeType } from '../types';
 import { Circle, User, Settings, GitFork, Plus, Mail, Zap, Clock3, Layers, Code, Brain } from 'lucide-react';
+import { controlPanelClass, controlPanelHeaderClass } from '../../shared/design-system/classes';
 
 interface PaletteProps {
   onDragStart: (event: React.DragEvent, type: NodeType) => void;
@@ -126,26 +127,29 @@ export const Palette: React.FC<PaletteProps> = ({ onDragStart }) => {
   ];
 
   return (
-    <div className="w-64 bg-slate-50 border-r border-slate-200 flex flex-col h-full z-10 shadow-sm">
-      <div className="p-4 border-b border-slate-200 bg-slate-50">
-        <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider">Components</h2>
+    <div className="w-72 bg-[#151922] border-r border-[#2d3748] flex flex-col h-full z-10">
+      <div className={controlPanelHeaderClass}>
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#7b869b]">Palette</p>
+          <h2 className="text-sm font-semibold text-white">Components</h2>
+        </div>
       </div>
-      <div className="p-4 space-y-6 overflow-y-auto flex-1">
+      <div className="p-4 space-y-5 overflow-y-auto flex-1">
         {groups.map((group) => (
-          <div key={group.title} className="space-y-2">
-            <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">{group.title}</h3>
+          <div key={group.title} className={`${controlPanelClass} space-y-3 p-3 shadow-none`}>
+            <h3 className="text-[10px] font-semibold text-[#7b869b] uppercase tracking-[0.16em] px-1">{group.title}</h3>
             <div className="grid grid-cols-1 gap-2">
               {group.items.map((item) => (
                 <div
                   key={item.type}
                   draggable
                   onDragStart={(e) => onDragStart(e, item.type)}
-                  className="flex items-center p-2.5 bg-white border border-slate-200 rounded-lg shadow-sm cursor-grab hover:border-blue-400 hover:shadow-md transition-all group"
+                  className="flex items-center p-2.5 bg-[#151922] border border-[#364257] rounded-md cursor-grab hover:border-[#7c8cff] hover:bg-[#1c2230] transition-all group"
                 >
                   <div className={`mr-3 ${item.color} group-hover:scale-110 transition-transform flex-shrink-0`}>
                     {item.icon}
                   </div>
-                  <span className="text-xs font-medium text-slate-700 truncate">{item.label}</span>
+                  <span className="text-xs font-medium text-[#e6eaf2] truncate">{item.label}</span>
                 </div>
               ))}
             </div>
@@ -153,9 +157,9 @@ export const Palette: React.FC<PaletteProps> = ({ onDragStart }) => {
         ))}
       </div>
       
-      <div className="p-4 border-t border-slate-200 bg-slate-100">
-        <p className="text-xs text-slate-500 leading-relaxed">
-          <span className="font-semibold">Tip:</span> Drag components to canvas. Hover over a node to see connection points. Press <span className="font-mono bg-white border border-slate-200 rounded px-1">Delete</span> to remove.
+      <div className="p-4 border-t border-[#2d3748] bg-[#11161f]">
+        <p className="text-xs text-[#a8b2c5] leading-relaxed">
+          <span className="font-semibold">Tip:</span> Drag components to canvas. Hover over a node to see connection points. Press <span className="font-mono bg-[#1c2230] border border-[#364257] rounded px-1 text-[#e6eaf2]">Delete</span> to remove.
         </p>
       </div>
     </div>

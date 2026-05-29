@@ -3,6 +3,7 @@ import { JsonSchema, JsonSchemaProperty } from '../types';
 import { FileUploadField } from './FileUploadField';
 import { FileDownloadField } from './FileDownloadField';
 import { PdfViewerField } from './PdfViewerField';
+import { controlInputClass, controlPanelClass } from '../../shared/design-system/classes';
 
 interface DynamicFormProps {
   schema: JsonSchema;
@@ -81,10 +82,10 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
     if (prop.enum) {
       return (
         <select
-          className={`w-full rounded-lg border px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all ${
+          className={`${controlInputClass} ${
             isReadOnly
               ? 'bg-slate-100 text-slate-500 border-slate-200 cursor-not-allowed'
-              : 'bg-white border-slate-300 hover:border-slate-400'
+              : ''
           }`}
           value={value}
           onChange={(e) => handleChange(key, e.target.value)}
@@ -103,8 +104,8 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
     if (prop.type === 'boolean') {
       return (
         <label
-          className={`flex items-center p-3 rounded-lg border cursor-pointer transition-all ${
-            value ? 'bg-blue-50 border-blue-200' : 'bg-white border-slate-200 hover:border-slate-300'
+          className={`flex items-center p-3 rounded-md border cursor-pointer transition-all ${
+            value ? 'bg-[#eef2ff] border-[#d7ddff]' : 'bg-white border-slate-200 hover:border-slate-300'
           } ${isReadOnly ? 'opacity-70 pointer-events-none' : ''}`}
         >
           <input
@@ -124,10 +125,10 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
     if (prop.format === 'textarea') {
       return (
         <textarea
-          className={`w-full rounded-lg border px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all min-h-[100px] resize-y ${
+          className={`${controlInputClass} min-h-[100px] resize-y ${
             isReadOnly
               ? 'bg-slate-100 text-slate-500 border-slate-200'
-              : 'bg-white border-slate-300 hover:border-slate-400'
+              : ''
           }`}
           value={value}
           onChange={(e) => handleChange(key, e.target.value)}
@@ -140,10 +141,10 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
     return (
       <input
         type={prop.type === 'number' || prop.type === 'integer' ? 'number' : prop.format === 'date' ? 'date' : 'text'}
-        className={`w-full rounded-lg border px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all ${
+        className={`${controlInputClass} ${
           isReadOnly
             ? 'bg-slate-100 text-slate-500 border-slate-200'
-            : 'bg-white border-slate-300 hover:border-slate-400'
+            : ''
         }`}
         value={value}
         onChange={(e) => {
@@ -161,7 +162,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
   };
 
   return (
-    <div className="space-y-6">
+    <div className={`${controlPanelClass} space-y-6 p-5 shadow-sm`}>
       {schema.title && (
         <h3 className="text-xl font-semibold text-slate-800 border-b border-slate-200 pb-3 mb-4">
           {schema.title}

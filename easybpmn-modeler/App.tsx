@@ -20,6 +20,7 @@ import { Toaster, toast } from 'sonner';
 import { processService, fetchWithAuth } from './services/processService';
 import { formService } from './services/formService';
 import { downloadForm, importForm, generateJsonSchema } from './utils/formUtils';
+import { controlButtonClass, controlButtonPrimaryClass, controlInputClass, controlPanelClass, controlShellClass } from '../shared/design-system/classes';
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? 'http://localhost:8080';
 const BOUNDARY_TYPES: NodeType[] = ['error-boundary', 'message-boundary', 'timer-boundary'];
@@ -62,8 +63,11 @@ const App: React.FC = () => {
    const [currentUser, setCurrentUser] = useState<string | null>(null);
    const [permissions, setPermissions] = useState<string[]>([]);
    const [authLoading, setAuthLoading] = useState(true);
+   const [compactMode, setCompactMode] = useState(() => localStorage.getItem('easybpm-modeler-compact') === 'true');
 
    useEffect(() => {
+     document.body.classList.remove('control-theme-light');
+     document.body.classList.add('control-theme-dark');
      const session = processService.getSession();
      if (!session) {
        setAuthLoading(false);
@@ -80,7 +84,15 @@ const App: React.FC = () => {
          setPermissions([]);
        })
        .finally(() => setAuthLoading(false));
+
+     return () => {
+       document.body.classList.remove('control-theme-dark');
+     };
    }, []);
+
+   useEffect(() => {
+     localStorage.setItem('easybpm-modeler-compact', String(compactMode));
+   }, [compactMode]);
 
    // Wrapper for setVariables that ALWAYS sanitizes before storing
    const setVariables = (vars: ProcessVariable[] | ((prev: ProcessVariable[]) => ProcessVariable[])) => {
@@ -1088,7 +1100,7 @@ const App: React.FC = () => {
   };
 
   if (authLoading) {
-    return <div className="min-h-screen flex items-center justify-center text-slate-600">Loading session...</div>;
+    return <div className={`${controlShellClass} min-h-screen flex items-center justify-center text-[#a8b2c5]`}>Loading modeler session...</div>;
   }
 
   if (!currentUser) {
@@ -1100,11 +1112,11 @@ const App: React.FC = () => {
 
   if (!permissions.includes('ACCESS_BPM_MODELER')) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-100">
-        <div className="bg-white border border-slate-200 rounded-xl p-6 text-center">
-          <h2 className="text-lg font-semibold text-slate-800">Access denied</h2>
-          <p className="text-slate-500 mt-1">Your account does not have BPM Modeler access.</p>
-          <button onClick={handleLogout} className="mt-4 px-4 py-2 bg-slate-900 text-white rounded-lg">Sign out</button>
+      <div className={`${controlShellClass} min-h-screen flex items-center justify-center px-4`}>
+        <div className={`${controlPanelClass} p-6 text-center max-w-md`}>
+          <h2 className="text-lg font-semibold text-white">Access denied</h2>
+          <p className="text-[#a8b2c5] mt-1">Your account does not have BPM modeler access.</p>
+          <button onClick={handleLogout} className={`${controlButtonClass} mt-4`}>Sign out</button>
         </div>
       </div>
     );
@@ -1127,7 +1139,7 @@ const App: React.FC = () => {
 
   if (editorMode === 'process-editor') {
     return (
-      <div className="flex flex-col h-screen bg-slate-50">
+      <div className={`${controlShellClass} flex flex-col h-screen`} data-compact={compactMode}>
         <Toaster position="top-right" richColors />
         
         {/* Process Editor Navbar */}
@@ -1152,6 +1164,8 @@ const App: React.FC = () => {
           validationWarnings={validationState.warnings}
           currentView="bpmn"
           onViewChange={() => {}}
+          compactMode={compactMode}
+          onToggleCompact={() => setCompactMode((value) => !value)}
         />
 
         {/* Canvas */}
@@ -1197,7 +1211,7 @@ const App: React.FC = () => {
 
   if (editorMode === 'form-editor') {
     return (
-      <div className="flex flex-col h-screen bg-slate-50">
+      <div className={`${controlShellClass} flex flex-col h-screen`} data-compact={compactMode}>
         <Toaster position="top-right" richColors />
         
         {/* Form Editor Navbar */}
@@ -1259,26 +1273,25 @@ const ModelerLoginView: React.FC<{ onLogin: (username: string, permissions: stri
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 p-4">
+    <div className={`${controlShellClass} min-h-screen flex items-center justify-center p-4`}>
       <div className="w-full max-w-md">
-        {/* Card */}
-        <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8 shadow-2xl">
+        <div className={`${controlPanelClass} p-8`}>
           <div className="flex flex-col items-center mb-8">
-            <div className="bg-blue-600 p-3 rounded-xl mb-4 shadow-lg shadow-blue-600/40 ring-4 ring-blue-600/20">
+            <div className="bg-[#7c8cff] p-3 rounded-md mb-4 border border-[#95a2ff]/40">
               <ShieldCheck className="text-white" size={28} />
             </div>
-            <h1 className="text-2xl font-bold text-white">Easy BPM Modeler</h1>
-            <p className="text-slate-400 mt-1 text-sm">Sign in to design and deploy processes</p>
+            <h1 className="text-2xl font-semibold text-white">EasyBPM Control Suite</h1>
+            <p className="text-[#a8b2c5] mt-1 text-sm">Sign in to design and deploy workflows</p>
           </div>
 
           <form onSubmit={submit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">Username</label>
+              <label className="block text-sm font-medium text-[#a8b2c5] mb-1.5">Username</label>
               <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 text-[#7b869b]" size={16} />
                 <input
                   type="text"
-                  className="w-full pl-9 pr-4 py-2.5 rounded-lg border border-white/10 bg-white/5 text-white placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm"
+                  className={`${controlInputClass} pl-9`}
                   placeholder="Enter username"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
@@ -1286,12 +1299,12 @@ const ModelerLoginView: React.FC<{ onLogin: (username: string, permissions: stri
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">Password</label>
+              <label className="block text-sm font-medium text-[#a8b2c5] mb-1.5">Password</label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-[#7b869b]" size={16} />
                 <input
                   type="password"
-                  className="w-full pl-9 pr-4 py-2.5 rounded-lg border border-white/10 bg-white/5 text-white placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm"
+                  className={`${controlInputClass} pl-9`}
                   placeholder="Enter password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -1302,14 +1315,14 @@ const ModelerLoginView: React.FC<{ onLogin: (username: string, permissions: stri
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2.5 rounded-lg transition-colors shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2 mt-2 text-sm"
+              className={`${controlButtonPrimaryClass} w-full`}
             >
               {loading ? <Loader2 className="animate-spin" size={18} /> : 'Sign In'}
             </button>
-            {error && <p className="text-sm text-red-400 mt-2">{error}</p>}
+            {error && <p className="text-sm text-[#e56a6a] mt-2">{error}</p>}
           </form>
         </div>
-        <p className="text-center text-[11px] text-slate-600 mt-4">Easy BPM · Process Design & Deployment</p>
+        <p className="text-center text-[11px] text-[#7b869b] mt-4">EasyBPM Control Suite · Process Design & Deployment</p>
       </div>
     </div>
   );

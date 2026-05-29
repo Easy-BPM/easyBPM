@@ -7,6 +7,7 @@ import {
   BarChart3,
   AlertCircle
 } from 'lucide-react';
+import { controlPanelClass } from '../../shared/design-system/classes';
 
 interface CodeTaskExecution {
   executionId: number;
@@ -143,34 +144,34 @@ export const CodeTaskExecutionMetrics: React.FC<Props> = ({ executions, filters 
   const getBgColor = (color: string) => {
     switch (color) {
       case 'green':
-        return 'bg-green-50';
+        return 'bg-[rgba(33,199,168,0.12)]';
       case 'red':
-        return 'bg-red-50';
+        return 'bg-[rgba(229,106,106,0.12)]';
       case 'orange':
-        return 'bg-orange-50';
+        return 'bg-[rgba(242,184,75,0.12)]';
       case 'blue':
-        return 'bg-blue-50';
+        return 'bg-[rgba(124,140,255,0.12)]';
       case 'purple':
-        return 'bg-purple-50';
+        return 'bg-[rgba(124,140,255,0.12)]';
       default:
-        return 'bg-slate-50';
+        return 'bg-[#151922]';
     }
   };
 
   const getBorderColor = (color: string) => {
     switch (color) {
       case 'green':
-        return 'border-green-200';
+        return 'border-[rgba(33,199,168,0.3)]';
       case 'red':
-        return 'border-red-200';
+        return 'border-[rgba(229,106,106,0.3)]';
       case 'orange':
-        return 'border-orange-200';
+        return 'border-[rgba(242,184,75,0.3)]';
       case 'blue':
-        return 'border-blue-200';
+        return 'border-[rgba(124,140,255,0.3)]';
       case 'purple':
-        return 'border-purple-200';
+        return 'border-[rgba(124,140,255,0.3)]';
       default:
-        return 'border-slate-200';
+        return 'border-[#364257]';
     }
   };
 
@@ -179,20 +180,20 @@ export const CodeTaskExecutionMetrics: React.FC<Props> = ({ executions, filters 
       {cards.map((card, index) => (
         <div
           key={index}
-          className={`${getBgColor(card.color)} border ${getBorderColor(card.color)} rounded-lg p-4 flex items-start justify-between`}
+          className={`${getBgColor(card.color)} border ${getBorderColor(card.color)} rounded-md p-4 flex items-start justify-between`}
         >
           <div>
-            <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
+            <p className="text-xs font-semibold text-[#a8b2c5] uppercase tracking-wide">
               {card.title}
             </p>
             <div className="mt-3 flex items-baseline gap-1">
-              <span className="text-3xl font-bold text-slate-900">
+              <span className="text-3xl font-semibold text-white">
                 {typeof card.value === 'number' && card.value % 1 !== 0
                   ? card.value.toFixed(2)
                   : card.value}
               </span>
               {card.unit && (
-                <span className="text-sm font-medium text-slate-600">
+                <span className="text-sm font-medium text-[#a8b2c5]">
                   {card.unit}
                 </span>
               )}
@@ -207,17 +208,17 @@ export const CodeTaskExecutionMetrics: React.FC<Props> = ({ executions, filters 
       {/* Details Row */}
       {executions.length > 0 && (
         <div className="col-span-full grid grid-cols-1 md:grid-cols-3 gap-4 mt-2 text-sm">
-          <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
-            <p className="text-slate-600 font-medium mb-2">Execution Time Range</p>
-            <div className="space-y-1 font-mono text-slate-900">
+          <div className={`${controlPanelClass} p-4`}>
+            <p className="text-[#a8b2c5] font-medium mb-2">Execution Time Range</p>
+            <div className="space-y-1 font-mono text-white">
               <div>Min: <span className="font-semibold">{metrics.minTime}ms</span></div>
               <div>Max: <span className="font-semibold">{metrics.maxTime}ms</span></div>
             </div>
           </div>
 
-          <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
-            <p className="text-slate-600 font-medium mb-2">Status Breakdown</p>
-            <div className="space-y-1 text-slate-900">
+          <div className={`${controlPanelClass} p-4`}>
+            <p className="text-[#a8b2c5] font-medium mb-2">Status Breakdown</p>
+            <div className="space-y-1 text-white">
               <div className="flex justify-between">
                 <span>✓ Completed:</span>
                 <span className="font-semibold text-green-600">{metrics.successCount}</span>
@@ -235,12 +236,12 @@ export const CodeTaskExecutionMetrics: React.FC<Props> = ({ executions, filters 
 
           {/* Filtered Info */}
           {filters && Object.values(filters).some(v => v !== undefined) && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <p className="text-blue-600 font-medium mb-2 flex items-center gap-2">
+            <div className={`${controlPanelClass} p-4`}>
+              <p className="text-[#7c8cff] font-medium mb-2 flex items-center gap-2">
                 <AlertCircle size={16} />
                 Metrics Filtered
               </p>
-              <p className="text-blue-700 text-xs">
+              <p className="text-[#a8b2c5] text-xs">
                 Showing metrics for {executions.length} executions matching your filters
               </p>
             </div>

@@ -231,13 +231,12 @@ export const Canvas: React.FC<CanvasProps> = ({
   };
 
   return (
-    <div className="flex-1 bg-white relative overflow-hidden select-none" onDragOver={(e) => e.preventDefault()} onDrop={onDrop}>
-        <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle, #cbd5e1 1.5px, transparent 1.5px)', backgroundSize: '24px 24px' }}></div>
+    <div className="flex-1 bg-[#1c2230] relative overflow-hidden select-none control-grid-bg" onDragOver={(e) => e.preventDefault()} onDrop={onDrop}>
       <svg ref={svgRef} className="w-full h-full" onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseDown={handleMouseDownCanvas}>
         <defs>
-          <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#334155" /></marker>
-          <marker id="arrowhead-selected" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#3b82f6" /></marker>
-          <marker id="arrowhead-error" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#dc2626" /></marker>
+          <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#a8b2c5" /></marker>
+          <marker id="arrowhead-selected" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#7c8cff" /></marker>
+          <marker id="arrowhead-error" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#e56a6a" /></marker>
           <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0" dy="1" stdDeviation="2" floodColor="#cbd5e1" floodOpacity="0.5"/></filter>
         </defs>
 
