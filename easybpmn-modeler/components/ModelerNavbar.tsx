@@ -136,51 +136,6 @@ export const ModelerNavbar: React.FC<NavbarProps> = ({
             )}
           </button>
         )}
-
-        {/* User Profile Menu - separator and user button */}
-        {currentUser && (
-          <>
-            <div className="w-px h-6 bg-white/10 mx-1"></div>
-            <div className="relative z-40">
-              <button
-                onClick={() => setShowUserMenu(!showUserMenu)}
-                className="p-2 hover:bg-white/10 rounded-lg transition-colors text-slate-400 hover:text-white flex items-center gap-2"
-                title="User menu"
-              >
-                <User className="w-4 h-4" />
-                <span className="text-sm font-medium text-slate-300">{currentUser}</span>
-              </button>
-
-              {/* Dropdown Menu - Fixed positioning to avoid overflow */}
-              {showUserMenu && (
-                <>
-                  {/* Backdrop to close menu on click outside */}
-                  <div 
-                    className="fixed inset-0 z-40" 
-                    onClick={() => setShowUserMenu(false)}
-                  />
-                  {/* Dropdown */}
-                  <div className="absolute right-0 top-full mt-2 w-48 bg-slate-800 border border-white/10 rounded-lg shadow-xl z-50">
-                    <div className="px-4 py-3 border-b border-white/10">
-                      <p className="text-xs text-slate-500">Logged in as</p>
-                      <p className="text-sm font-semibold text-white truncate">{currentUser}</p>
-                    </div>
-                    <button
-                      onClick={() => {
-                        onLogout?.();
-                        setShowUserMenu(false);
-                      }}
-                      className="w-full px-4 py-2 text-left text-sm text-slate-300 hover:text-white hover:bg-white/10 transition-colors flex items-center gap-2"
-                    >
-                      <LogOut className="w-4 h-4" />
-                      Logout
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          </>
-        )}
       </div>
     </div>
   );
