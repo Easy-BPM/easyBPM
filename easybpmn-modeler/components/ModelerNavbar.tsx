@@ -30,7 +30,7 @@ export const ModelerNavbar: React.FC<NavbarProps> = ({
 }) => {
   const [showUserMenu, setShowUserMenu] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
-  const isProcess = resourceType === 'process';
+  const isModeler = resourceType === 'process' || resourceType === 'form';
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -50,12 +50,12 @@ export const ModelerNavbar: React.FC<NavbarProps> = ({
   };
 
   return (
-    <div className={`${isProcess ? 'bg-[#10161c] border-[#25313d] shadow-[0_1px_0_rgba(255,255,255,0.04)]' : 'bg-white/5 border-white/10'} backdrop-blur-sm border-b px-6 py-4 flex items-center justify-between`}>
+    <div className={`${isModeler ? 'bg-[#10161c] border-[#25313d] shadow-[0_1px_0_rgba(255,255,255,0.04)]' : 'bg-white/5 border-white/10'} backdrop-blur-sm border-b px-6 py-4 flex items-center justify-between`}>
       {/* Left: Back button and title */}
       <div className="flex items-center gap-4">
         <button
           onClick={onBack}
-          className={`${isProcess ? 'text-slate-400 hover:text-white hover:bg-white/10' : 'text-slate-400 hover:text-white hover:bg-white/10'} p-2 rounded-lg transition-colors`}
+          className="text-slate-400 hover:text-white hover:bg-white/10 p-2 rounded-lg transition-colors"
           title="Back to welcome screen"
         >
           <ArrowLeft className="w-5 h-5" />
@@ -68,7 +68,7 @@ export const ModelerNavbar: React.FC<NavbarProps> = ({
             ) : (
               <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
             )}
-            <h1 className={`text-lg font-semibold ${isProcess ? 'text-white' : 'text-black'}`}>{title}</h1>
+            <h1 className={`text-lg font-semibold ${isModeler ? 'text-white' : 'text-black'}`}>{title}</h1>
             {hasUnsavedChanges && (
               <span className="text-xs px-2 py-1 bg-yellow-500/20 text-yellow-400 rounded">
                 Unsaved
@@ -76,7 +76,7 @@ export const ModelerNavbar: React.FC<NavbarProps> = ({
             )}
           </div>
           {subtitle && (
-            <p className={`text-xs mt-0.5 ${isProcess ? 'text-slate-400' : 'text-slate-500'}`}>{subtitle}</p>
+            <p className={`text-xs mt-0.5 ${isModeler ? 'text-slate-400' : 'text-slate-500'}`}>{subtitle}</p>
           )}
         </div>
       </div>
@@ -94,7 +94,7 @@ export const ModelerNavbar: React.FC<NavbarProps> = ({
             />
             <button
               onClick={() => fileInputRef.current?.click()}
-              className={`px-3 py-2 rounded-lg transition-colors flex items-center gap-2 ${isProcess ? 'text-slate-300 hover:bg-white/10 hover:text-white' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'}`}
+              className={`px-3 py-2 rounded-lg transition-colors flex items-center gap-2 ${isModeler ? 'text-slate-300 hover:bg-white/10 hover:text-white' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'}`}
               title="Import process from JSON"
             >
               <Upload className="w-4 h-4" />
@@ -105,7 +105,7 @@ export const ModelerNavbar: React.FC<NavbarProps> = ({
         {onExport && (
           <button
             onClick={onExport}
-            className={`px-3 py-2 rounded-lg transition-colors flex items-center gap-2 ${isProcess ? 'text-slate-300 hover:bg-white/10 hover:text-white' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'}`}
+            className={`px-3 py-2 rounded-lg transition-colors flex items-center gap-2 ${isModeler ? 'text-slate-300 hover:bg-white/10 hover:text-white' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'}`}
             title="Export process as JSON"
           >
             <Download className="w-4 h-4" />
