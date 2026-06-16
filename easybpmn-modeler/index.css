@@ -1,0 +1,120 @@
+.process-modeler {
+  color-scheme: dark;
+  background: #0f171d;
+}
+
+.process-modeler .bg-white,
+.process-modeler .bg-slate-50,
+.process-modeler .bg-slate-100 {
+  background-color: #121920 !important;
+}
+
+.process-modeler .bg-blue-50\/30 {
+  background-color: rgba(37, 99, 235, 0.12) !important;
+}
+
+.process-modeler .bg-red-50,
+.process-modeler .bg-red-50\/20 {
+  background-color: rgba(239, 68, 68, 0.12) !important;
+}
+
+.process-modeler .bg-amber-50,
+.process-modeler .bg-yellow-50 {
+  background-color: rgba(245, 158, 11, 0.12) !important;
+}
+
+.process-modeler .bg-emerald-50,
+.process-modeler .bg-green-50 {
+  background-color: rgba(16, 185, 129, 0.12) !important;
+}
+
+.process-modeler .bg-indigo-50 {
+  background-color: rgba(99, 102, 241, 0.12) !important;
+}
+
+.process-modeler .border-slate-50,
+.process-modeler .border-slate-100,
+.process-modeler .border-slate-200,
+.process-modeler .border-slate-300 {
+  border-color: #25313d !important;
+}
+
+.process-modeler .border-blue-200 {
+  border-color: rgba(59, 130, 246, 0.35) !important;
+}
+
+.process-modeler .border-red-200,
+.process-modeler .border-red-300 {
+  border-color: rgba(239, 68, 68, 0.45) !important;
+}
+
+.process-modeler .border-amber-100,
+.process-modeler .border-amber-200,
+.process-modeler .border-yellow-200 {
+  border-color: rgba(245, 158, 11, 0.45) !important;
+}
+
+.process-modeler .border-emerald-200,
+.process-modeler .border-green-100 {
+  border-color: rgba(16, 185, 129, 0.35) !important;
+}
+
+.process-modeler .text-slate-900,
+.process-modeler .text-slate-800,
+.process-modeler .text-slate-700 {
+  color: #e5edf5 !important;
+}
+
+.process-modeler .text-slate-600,
+.process-modeler .text-slate-500 {
+  color: #94a3b8 !important;
+}
+
+.process-modeler .text-slate-400 {
+  color: #7f8ea3 !important;
+}
+
+.process-modeler input,
+.process-modeler textarea,
+.process-modeler select {
+  background-color: #0f171d !important;
+  border-color: #2d3a47 !important;
+  color: #e5edf5 !important;
+  border-radius: 4px !important;
+  font-size: 12px !important;
+  line-height: 1.25rem !important;
+}
+
+.process-modeler input,
+.process-modeler select {
+  min-height: 32px !important;
+  padding: 0.35rem 0.6rem !important;
+}
+
+.process-modeler textarea {
+  padding: 0.45rem 0.6rem !important;
+}
+
+.process-modeler input::placeholder,
+.process-modeler textarea::placeholder {
+  color: #718096 !important;
+}
+
+.process-modeler option {
+  background-color: #101820;
+  color: #e5edf5;
+}
+
+.process-modeler button:hover input,
+.process-modeler button:hover textarea,
+.process-modeler button:hover select {
+  background-color: #0f171d !important;
+}
+
+.process-modeler ::-webkit-scrollbar-thumb {
+  background: #334155;
+}
+
+.process-modeler ::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}

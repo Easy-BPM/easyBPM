@@ -231,14 +231,15 @@ export const Canvas: React.FC<CanvasProps> = ({
   };
 
   return (
-    <div className="flex-1 bg-white relative overflow-hidden select-none" onDragOver={(e) => e.preventDefault()} onDrop={onDrop}>
-        <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle, #cbd5e1 1.5px, transparent 1.5px)', backgroundSize: '24px 24px' }}></div>
+    <div className="flex-1 bg-[#0f171d] relative overflow-hidden select-none" onDragOver={(e) => e.preventDefault()} onDrop={onDrop}>
+        <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle, rgba(148, 163, 184, 0.26) 1px, transparent 1.2px)', backgroundSize: '24px 24px' }}></div>
+        <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_50%_30%,rgba(37,99,235,0.08),transparent_42%)]"></div>
       <svg ref={svgRef} className="w-full h-full" onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseDown={handleMouseDownCanvas}>
         <defs>
-          <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#334155" /></marker>
+          <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#94a3b8" /></marker>
           <marker id="arrowhead-selected" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#3b82f6" /></marker>
           <marker id="arrowhead-error" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#dc2626" /></marker>
-          <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0" dy="1" stdDeviation="2" floodColor="#cbd5e1" floodOpacity="0.5"/></filter>
+          <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0" dy="4" stdDeviation="6" floodColor="#020617" floodOpacity="0.55"/></filter>
         </defs>
 
         {edges.map((edge) => {
@@ -251,7 +252,7 @@ export const Canvas: React.FC<CanvasProps> = ({
           const hasWarning = warningEdgeIds.includes(edge.id);
           const isBoundaryEdge = source?.type?.includes('boundary');
           const labelPos = getLabelPosition(path);
-          const stroke = isSelected ? '#3b82f6' : hasError ? '#dc2626' : isBoundaryEdge ? '#dc2626' : hasWarning ? '#d97706' : '#334155';
+          const stroke = isSelected ? '#3b82f6' : hasError ? '#ef4444' : isBoundaryEdge ? '#ef4444' : hasWarning ? '#f59e0b' : '#94a3b8';
           const markerId = isSelected ? 'url(#arrowhead-selected)' : isBoundaryEdge ? 'url(#arrowhead-error)' : 'url(#arrowhead)';
           return (
             <g key={edge.id} onClick={(e) => {e.stopPropagation(); onSelectEdge(edge.id); onSelectNodes([]);}} className="group cursor-pointer">
@@ -259,8 +260,8 @@ export const Canvas: React.FC<CanvasProps> = ({
               <path d={path} fill="none" stroke={stroke} strokeWidth={isSelected ? "3" : isBoundaryEdge ? "2.5" : "2"} markerEnd={markerId} strokeLinejoin="round" strokeDasharray={isBoundaryEdge ? '5,3' : (hasWarning && !isSelected ? '6 4' : undefined)} />
                 {edge.condition && labelPos && (
                     <g transform={`translate(${labelPos.x}, ${labelPos.y})`}>
-                        <rect x="-10" y="-10" width="20" height="20" fill="white" className="opacity-80" />
-                        <text y="4" textAnchor="middle" className="text-[10px] fill-slate-600 font-mono font-bold">♦</text>
+                        <rect x="-10" y="-10" width="20" height="20" fill="#111827" className="opacity-90" />
+                        <text y="4" textAnchor="middle" className="text-[10px] fill-slate-300 font-mono font-bold">♦</text>
                     </g>
                 )}
             </g>
@@ -287,61 +288,61 @@ export const Canvas: React.FC<CanvasProps> = ({
             {isSelected && <rect x={-node.width/2-4} y={-node.height/2-4} width={node.width+8} height={node.height+8} rx={(isTask || isBoxMessageCatch) ? 8 : (['gateway', 'parallel-gateway'].includes(node.type) ? 4 : '50%')} fill="none" stroke="#3b82f6" strokeWidth="1.5" strokeDasharray="4 2" />}
             {!isSelected && hasError && <rect x={-node.width/2-6} y={-node.height/2-6} width={node.width+12} height={node.height+12} rx={(isTask || isBoxMessageCatch) ? 10 : (['gateway', 'parallel-gateway'].includes(node.type) ? 6 : '50%')} fill="none" stroke="#dc2626" strokeWidth="2" strokeDasharray="5 3" />}
             {!isSelected && !hasError && hasWarning && <rect x={-node.width/2-6} y={-node.height/2-6} width={node.width+12} height={node.height+12} rx={(isTask || isBoxMessageCatch) ? 10 : (['gateway', 'parallel-gateway'].includes(node.type) ? 6 : '50%')} fill="none" stroke="#d97706" strokeWidth="2" strokeDasharray="5 3" />}
-            {node.type === 'start' && <circle r="20" filter="url(#shadow)" className="fill-white stroke-green-500 stroke-[2px]" />}
+            {node.type === 'start' && <circle r="20" filter="url(#shadow)" className="fill-[#111a21] stroke-green-500 stroke-[2px]" />}
             {node.type === 'message-start' && (
               <g>
-                <circle r="20" filter="url(#shadow)" className="fill-white stroke-green-600 stroke-[2px]" />
+                <circle r="20" filter="url(#shadow)" className="fill-[#111a21] stroke-green-500 stroke-[2px]" />
                 <Mail x="-8" y="-8" className="w-4 h-4 text-green-600 pointer-events-none opacity-80" />
               </g>
             )}
             {node.type === 'timer-event' && (
               <g>
-                <circle r="20" filter="url(#shadow)" className="fill-white stroke-amber-600 stroke-[1px]" />
+                <circle r="20" filter="url(#shadow)" className="fill-[#111a21] stroke-amber-500 stroke-[1px]" />
                 <circle r="17" className="fill-none stroke-amber-600 stroke-[1px]" />
                 <Clock3 x="-8" y="-8" className="w-4 h-4 text-amber-600 pointer-events-none opacity-80" />
               </g>
             )}
             {node.type === 'message-intermediate-catch' && (
               <g>
-                <rect x={-node.width/2} y={-node.height/2} width={node.width} height={node.height} rx="6" filter="url(#shadow)" className="fill-white stroke-blue-500 stroke-[2px]" />
+                <rect x={-node.width/2} y={-node.height/2} width={node.width} height={node.height} rx="6" filter="url(#shadow)" className="fill-[#111a21] stroke-blue-500 stroke-[2px]" />
                 <rect x={-node.width/2+4} y={-node.height/2+4} width={node.width-8} height={node.height-8} rx="4" className="fill-none stroke-blue-500 stroke-[1px]" />
                 <Mail x={-node.width/2+8} y={-node.height/2+8} className="w-4 h-4 text-blue-500 pointer-events-none opacity-80" />
               </g>
             )}
             {node.type === 'message-intermediate-throw' && (
               <g>
-                <circle r="20" filter="url(#shadow)" className="fill-white stroke-blue-500 stroke-[1px]" />
+                <circle r="20" filter="url(#shadow)" className="fill-[#111a21] stroke-blue-500 stroke-[1px]" />
                 <circle r="17" className="fill-none stroke-blue-500 stroke-[1px]" />
                 <Mail x="-8" y="-8" className="w-4 h-4 text-blue-500 fill-current pointer-events-none opacity-80" />
               </g>
             )}
             {(isMessageEvent || isTask) && ((node.data.inputVariables?.length || 0) > 0 || (node.data.outputVariables?.length || 0) > 0) && (
               <g transform={`translate(${(isTask || isBoxMessageCatch) ? node.width/2 : 12}, ${(isTask || isBoxMessageCatch) ? -node.height/2 : -18})`}>
-                <circle r="6" className="fill-blue-500 stroke-white stroke-[1.5px]" />
+                <circle r="6" className="fill-blue-500 stroke-[#111a21] stroke-[1.5px]" />
                 <text y="3" textAnchor="middle" className="text-[8px] fill-white font-bold pointer-events-none">{ (node.data.inputVariables?.length || 0) + (node.data.outputVariables?.length || 0) }</text>
               </g>
             )}
             {node.type === 'error-boundary' && (
               <g>
-                <circle r="15" filter="url(#shadow)" className="fill-white stroke-red-600 stroke-[1.5px]" strokeDasharray="3,2" />
+                <circle r="15" filter="url(#shadow)" className="fill-[#111a21] stroke-red-500 stroke-[1.5px]" strokeDasharray="3,2" />
                 <Zap x="-7" y="-7" className="w-3.5 h-3.5 text-red-600 fill-current pointer-events-none" />
               </g>
             )}
             {node.type === 'message-boundary' && (
               <g>
-                <circle r="15" filter="url(#shadow)" className="fill-white stroke-blue-500 stroke-[1.5px]" strokeDasharray="3,2" />
+                <circle r="15" filter="url(#shadow)" className="fill-[#111a21] stroke-blue-500 stroke-[1.5px]" strokeDasharray="3,2" />
                 <Mail x="-7" y="-7" className="w-3.5 h-3.5 text-blue-500 pointer-events-none" />
               </g>
             )}
             {node.type === 'timer-boundary' && (
               <g>
-                <circle r="15" filter="url(#shadow)" className="fill-white stroke-amber-600 stroke-[1.5px]" strokeDasharray="3,2" />
+                <circle r="15" filter="url(#shadow)" className="fill-[#111a21] stroke-amber-500 stroke-[1.5px]" strokeDasharray="3,2" />
                 <Clock3 x="-7" y="-7" className="w-3.5 h-3.5 text-amber-600 pointer-events-none" />
               </g>
             )}
-            {node.type === 'end' && <circle r="20" filter="url(#shadow)" className="fill-white stroke-red-500 stroke-[4px]" />}
-            {['gateway', 'parallel-gateway'].includes(node.type) && <rect width="28" height="28" transform="rotate(45)" x="-14" y="-14" filter="url(#shadow)" className="fill-white stroke-orange-500 stroke-[2px]" />}
-            {isTask && <rect x={-node.width/2} y={-node.height/2} width={node.width} height={node.height} rx="6" filter="url(#shadow)" className={`fill-white stroke-[2px] ${node.type === 'user-task' ? 'stroke-blue-600' : (node.type === 'api-task' ? 'stroke-purple-600' : (node.type === 'code-task' ? 'stroke-indigo-600' : (node.type === 'ai-task' ? 'stroke-pink-600' : (node.type === 'call-activity' ? 'stroke-cyan-600' : 'stroke-amber-600'))))}`} />}
+            {node.type === 'end' && <circle r="20" filter="url(#shadow)" className="fill-[#111a21] stroke-red-500 stroke-[4px]" />}
+            {['gateway', 'parallel-gateway'].includes(node.type) && <rect width="28" height="28" transform="rotate(45)" x="-14" y="-14" filter="url(#shadow)" className="fill-[#111a21] stroke-orange-500 stroke-[2px]" />}
+            {isTask && <rect x={-node.width/2} y={-node.height/2} width={node.width} height={node.height} rx="6" filter="url(#shadow)" className={`fill-[#111a21] stroke-[2px] ${node.type === 'user-task' ? 'stroke-blue-500' : (node.type === 'api-task' ? 'stroke-purple-500' : (node.type === 'code-task' ? 'stroke-indigo-500' : (node.type === 'ai-task' ? 'stroke-pink-500' : (node.type === 'call-activity' ? 'stroke-cyan-500' : 'stroke-amber-500'))))}`} />}
             {node.type === 'user-task' && <User x={-node.width/2+8} y={-node.height/2+8} className="w-4 h-4 text-blue-600 pointer-events-none opacity-80" />}
             {node.type === 'api-task' && <Settings x={-node.width/2+8} y={-node.height/2+8} className="w-4 h-4 text-purple-600 pointer-events-none opacity-80" />}
             {node.type === 'service-task' && <Zap x={-node.width/2+8} y={-node.height/2+8} className="w-4 h-4 text-amber-600 pointer-events-none opacity-80" />}
@@ -358,14 +359,14 @@ export const Canvas: React.FC<CanvasProps> = ({
               style={{ pointerEvents: 'none' }}
             >
                 <div className="flex items-center justify-center h-full px-1 text-center">
-                  <span className={`font-medium leading-tight line-clamp-3 ${(isTask || isBoxMessageCatch) ? 'text-[11px] text-slate-700' : 'text-[10px] text-slate-600'}`}>
+                  <span className={`font-medium leading-tight line-clamp-3 ${(isTask || isBoxMessageCatch) ? 'text-[11px] text-slate-100' : 'text-[10px] text-slate-200'}`}>
                     {node.data.label}
                   </span>
                 </div>
             </foreignObject>
             <g className="opacity-0 group-hover:opacity-100 transition-opacity">
                 {[{x:0,y:-node.height/2},{x:node.width/2,y:0},{x:0,y:node.height/2},{x:-node.width/2,y:0}].map((h, i) => (
-                    <circle key={i} cx={h.x} cy={h.y} r="6" className="fill-white stroke-blue-500 stroke-2 hover:fill-blue-500 cursor-crosshair" onMouseDown={(e) => handleConnectionStart(e, node.uid)} />
+                    <circle key={i} cx={h.x} cy={h.y} r="6" className="fill-[#111a21] stroke-blue-500 stroke-2 hover:fill-blue-500 cursor-crosshair" onMouseDown={(e) => handleConnectionStart(e, node.uid)} />
                 ))}
             </g>
             {(hasError || hasWarning) && (
