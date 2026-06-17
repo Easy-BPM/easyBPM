@@ -40,10 +40,10 @@ out/
 .kotlin
 
 ### Frontend - easybpmn-modeler ###
-easybpmn-modeler/node_modules/
-easybpmn-modeler/dist/
-easybpmn-modeler/.env.local
-easybpmn-modeler/.env.*.local
+easy-bpm-modeler/node_modules/
+easy-bpm-modeler/dist/
+easy-bpm-modeler/.env.local
+easy-bpm-modeler/.env.*.local
 easybpmn-modeler/*.local
 
 ### Frontend - EasyBPM-Process-Portal ###
