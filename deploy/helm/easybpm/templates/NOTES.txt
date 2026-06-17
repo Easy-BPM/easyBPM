@@ -1,0 +1,7 @@
+EasyBPM was deployed.
+
+Backend service:
+  {{ include "easybpm.fullname" . }}-backend:{{ .Values.backend.service.port }}
+
+Use managed PostgreSQL and RabbitMQ values for beta/SaaS environments.
+Do not keep the placeholder secrets from values.yaml in a public environment.

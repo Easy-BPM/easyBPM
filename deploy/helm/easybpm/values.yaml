@@ -1,0 +1,63 @@
+global:
+  imageRegistry: ghcr.io/YOUR_GITHUB_ORG_OR_USER
+  imageTag: v0.1.0-beta.1
+  imagePullPolicy: IfNotPresent
+
+backend:
+  replicaCount: 1
+  image: easybpm-backend
+  service:
+    port: 8080
+  resources: {}
+
+worker:
+  replicaCount: 1
+  image: easybpm-worker
+  resources: {}
+
+web:
+  admin:
+    enabled: true
+    image: easybpm-admin
+    host: admin.easybpm.local
+  modeler:
+    enabled: true
+    image: easybpm-modeler
+    host: modeler.easybpm.local
+  taskPortal:
+    enabled: true
+    image: easybpm-task-portal
+    host: portal.easybpm.local
+  service:
+    port: 8080
+  resources: {}
+
+ingress:
+  enabled: false
+  className: nginx
+  tls: []
+  apiHost: api.easybpm.local
+
+config:
+  loggingLevelComEasyBpm: INFO
+  managementHealthShowDetails: when_authorized
+
+secrets:
+  create: true
+  postgres:
+    url: jdbc:postgresql://postgres.example:5432/easybpm
+    username: easybpm
+    password: change-me
+  rabbitmq:
+    host: rabbitmq.example
+    port: "5672"
+    username: easybpm
+    password: change-me
+  security:
+    adminUsername: admin
+    adminPassword: change-me
+    jwtSecretBase64: replace-with-32-byte-minimum-base64-secret
+  ai:
+    encryptionKey: replace-with-strong-ai-credential-key
+
+existingSecretName: ""

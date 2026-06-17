@@ -1,0 +1,95 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    ports:
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  backend:
+    image: ${IMAGE_REGISTRY}/easybpm-backend:${IMAGE_TAG}
+    environment:
+      SERVER_PORT: "8080"
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_DEFAULT_USER}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_DEFAULT_PASS}
+      EASYBPM_SECURITY_BOOTSTRAP_ADMIN_USERNAME: ${EASYBPM_ADMIN_USERNAME}
+      EASYBPM_SECURITY_BOOTSTRAP_ADMIN_PASSWORD: ${EASYBPM_ADMIN_PASSWORD}
+      EASYBPM_SECURITY_JWT_SECRET: ${EASYBPM_JWT_SECRET_BASE64}
+      AI_ENCRYPTION_KEY: ${AI_ENCRYPTION_KEY}
+      LOGGING_LEVEL_COM_EASY_BPM: INFO
+      MANAGEMENT_ENDPOINT_HEALTH_SHOW_DETAILS: when_authorized
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  worker:
+    image: ${IMAGE_REGISTRY}/easybpm-worker:${IMAGE_TAG}
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_DEFAULT_USER}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_DEFAULT_PASS}
+      EASYBPM_SECURITY_JWT_SECRET: ${EASYBPM_JWT_SECRET_BASE64}
+      AI_ENCRYPTION_KEY: ${AI_ENCRYPTION_KEY}
+      LOGGING_LEVEL_COM_EASY_BPM: INFO
+    depends_on:
+      backend:
+        condition: service_started
+    restart: unless-stopped
+
+  admin:
+    image: ${IMAGE_REGISTRY}/easybpm-admin:${IMAGE_TAG}
+    ports:
+      - "3001:8080"
+    restart: unless-stopped
+
+  modeler:
+    image: ${IMAGE_REGISTRY}/easybpm-modeler:${IMAGE_TAG}
+    ports:
+      - "3000:8080"
+    restart: unless-stopped
+
+  task-portal:
+    image: ${IMAGE_REGISTRY}/easybpm-task-portal:${IMAGE_TAG}
+    ports:
+      - "3002:8080"
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  rabbitmq_data:
