@@ -16,6 +16,7 @@ permissions:
 env:
   REGISTRY: ghcr.io
   IMAGE_PREFIX: ${{ github.repository_owner }}
+  DOCKERHUB_IMAGE: nsandi/easybpm
 
 jobs:
   images:
@@ -27,24 +28,29 @@ jobs:
       matrix:
         include:
           - image: easybpm-backend
+            component: backend
             dockerfile: Dockerfile
             context: .
           - image: easybpm-worker
+            component: worker
             dockerfile: Dockerfile.worker
             context: .
           - image: easybpm-admin
+            component: admin
             dockerfile: deploy/docker/Dockerfile.frontend
             context: .
             build-args: |
               APP_DIR=easy-bpm-admin
               VITE_API_BASE_URL=
           - image: easybpm-modeler
+            component: modeler
             dockerfile: deploy/docker/Dockerfile.frontend
             context: .
             build-args: |
               APP_DIR=easy-bpm-modeler
               VITE_API_BASE_URL=
           - image: easybpm-task-portal
+            component: task-portal
             dockerfile: deploy/docker/Dockerfile.frontend
             context: .
             build-args: |
@@ -65,8 +71,14 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract image metadata
-        id: meta
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Extract GHCR image metadata
+        id: ghcr-meta
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.image }}
@@ -75,6 +87,16 @@ jobs:
             type=ref,event=branch
             type=ref,event=tag
 
+      - name: Extract Docker Hub image metadata
+        id: dockerhub-meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.DOCKERHUB_IMAGE }}
+          tags: |
+            type=sha,prefix=${{ matrix.component }}-
+            type=ref,event=branch,prefix=${{ matrix.component }}-
+            type=ref,event=tag,prefix=${{ matrix.component }}-
+
       - name: Build and push image
         uses: docker/build-push-action@v6
         with:
@@ -82,7 +104,9 @@ jobs:
           file: ${{ matrix.dockerfile }}
           build-args: ${{ matrix.build-args || '' }}
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: |
+            ${{ steps.ghcr-meta.outputs.tags }}
+            ${{ steps.dockerhub-meta.outputs.tags }}
+          labels: ${{ steps.ghcr-meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
