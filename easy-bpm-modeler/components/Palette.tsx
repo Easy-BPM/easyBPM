@@ -1,6 +1,6 @@
 import React from 'react';
 import { NodeType } from '../types';
-import { Circle, User, Settings, GitFork, Plus, Mail, Zap, Clock3, Layers, Code, Brain } from 'lucide-react';
+import { Circle, User, Settings, GitFork, Plus, Mail, Zap, Clock3, Layers, Code, Brain, Rows3 } from 'lucide-react';
 
 interface PaletteProps {
   onDragStart: (event: React.DragEvent, type: NodeType) => void;
@@ -8,6 +8,12 @@ interface PaletteProps {
 
 export const Palette: React.FC<PaletteProps> = ({ onDragStart }) => {
   const groups: { title: string; items: { type: NodeType; label: string; icon: React.ReactNode; color: string }[] }[] = [
+    {
+      title: 'Participants',
+      items: [
+        { type: 'pool', label: 'Pool / Participant', icon: <Rows3 className="w-5 h-5" />, color: 'text-sky-600' },
+      ]
+    },
     {
       title: 'Events',
       items: [
