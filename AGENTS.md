@@ -38,9 +38,9 @@ cd /Users/nathanyel/IdeaProjects/easyBPM/docs-site-working && npm install && npm
 
 ## Integration points and gotchas
 - All three frontends default to `http://localhost:8080` and optionally honor `VITE_API_BASE_URL` (`easy-bpm-admin/services/adminService.ts`, `easybpmn-modeler/services/processService.ts`, `easy-bpm-task-portal/services/bpmService.ts`).
-- Admin and Task Portal login are currently UI-local placeholders. `bpmService.login()` explicitly falls back when `/login` is missing; don’t build features that assume real auth already exists.
-- `WebConfig.kt` currently allows `*` CORS, even though roadmap docs mention tighter localhost-only CORS later.
-- Admin UI already calls subprocess hierarchy endpoints (`/processes/instances/{id}/children`, `/parent`, `/mapping`) in `adminService.ts`; verify backend support before changing those screens, because matching controller routes were not found in the backend code.
+- Frontends previously used UI-local fallbacks for login. The backend now provides authentication endpoints (`POST /auth/login`, `GET /auth/me`) implemented in `src/main/kotlin/com/easy/bpm/controller/AuthController.kt` and `src/main/kotlin/com/easy/bpm/service/AuthService.kt`. Frontend code still contains fallbacks — prefer calling `/auth/login` when `easybpm.security.enabled` is true.
+ - `SecurityConfig.kt` configures CORS for local development (allowed origin patterns: `http://localhost:*`, `http://127.0.0.1:*`) and allows credentials. See `src/main/kotlin/com/easy/bpm/security/SecurityConfig.kt`. Security is toggled via `easybpm.security.enabled` (default: true).
+ - Admin UI already calls subprocess hierarchy endpoints (`/processes/instances/{id}/children`, `/parent`, `/mapping`) in `adminService.ts`. The backend implements these routes in `src/main/kotlin/com/easy/bpm/controller/ProcessController.kt` (see `getChildInstances`, `getParentInstance`, `getCallActivityMapping`).
 - Worker auth resolution is environment-based, not model-stored secrets: `bearer -> $REF`, `basic -> ${REF}_USERNAME/${REF}_PASSWORD`, `apikey -> $REF` (`WorkerListener.kt`).
 - Message-event examples and debugging queries live in `src/test/resources/examples/README.md`; executable coverage is mainly in `ProcessIntegrationTest.kt` and `CallActivityIntegrationTest.kt`.
 - Some docs mention `TaskService.syncTaskVariablesToProcess()`, but that symbol is absent from the current `TaskService.kt`; inspect the current completion flow before refactoring around older docs.
