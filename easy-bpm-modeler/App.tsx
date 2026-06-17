@@ -3,7 +3,9 @@ import {
   ShieldCheck,
   User,
   Lock,
-  Loader2
+  Loader2,
+  PanelRightClose,
+  PanelRightOpen
 } from 'lucide-react';
 import { Palette } from './components/Palette';
 import { Canvas } from './components/Canvas';
@@ -13,11 +15,12 @@ import { FormModeler } from './components/FormModeler';
 import { FormLibrary } from './components/FormLibrary';
 import { WelcomeScreen } from './components/WelcomeScreen';
 import { ModelerNavbar } from './components/ModelerNavbar';
+import { ThemeMode } from './components/ThemeToggle';
 import { BpmnNode, BpmnEdge, ProcessVariable, NodeType, AppView, ValidationIssue, ValidationSummary, FormDefinition } from './types';
 import { generateId, snapToGrid } from './utils/geometry';
 import { validateId } from './utils/validation';
 import { Toaster, toast } from 'sonner';
-import { processService, fetchWithAuth } from './services/processService';
+import { isAuthRequiredError, processService, fetchWithAuth } from './services/processService';
 import { formService } from './services/formService';
 import { downloadForm, importForm, generateJsonSchema } from './utils/formUtils';
 
@@ -26,6 +29,7 @@ const BOUNDARY_TYPES: NodeType[] = ['error-boundary', 'message-boundary', 'timer
 const START_TYPES: NodeType[] = ['start', 'message-start'];
 const END_TYPES: NodeType[] = ['end'];
 const TASK_TYPES: NodeType[] = ['user-task', 'service-task', 'api-task', 'code-task', 'ai-task'];
+const CONTAINER_TYPES: NodeType[] = ['pool'];
 const FORM_KEY_PATTERN = /^[A-Za-z][A-Za-z0-9_-]*$/;
 
 // Helper to safely convert values to strings, preventing "[object Object]"
@@ -39,6 +43,12 @@ const safeString = (value: any): string => {
 type EditorMode = 'welcome' | 'process-editor' | 'form-editor';
 
 const App: React.FC = () => {
+   const [theme, setTheme] = useState<ThemeMode>(() => {
+     const storedTheme = localStorage.getItem('easyBpmModelerTheme');
+     if (storedTheme === 'light' || storedTheme === 'dark') return storedTheme;
+     return window.matchMedia?.('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+   });
+
    // Navigation state
    const [editorMode, setEditorMode] = useState<EditorMode>('welcome');
 
@@ -51,6 +61,7 @@ const App: React.FC = () => {
    const [selectedNodeUids, setSelectedNodeUids] = useState<string[]>([]);
    const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
    const [isDeployingProcess, setIsDeployingProcess] = useState(false);
+   const [isPropertiesPanelVisible, setIsPropertiesPanelVisible] = useState(true);
 
    // Form editor state
    const [formLibrary, setFormLibrary] = useState<Map<string, FormDefinition>>(new Map());
@@ -62,6 +73,13 @@ const App: React.FC = () => {
    const [currentUser, setCurrentUser] = useState<string | null>(null);
    const [permissions, setPermissions] = useState<string[]>([]);
    const [authLoading, setAuthLoading] = useState(true);
+
+   useEffect(() => {
+     localStorage.setItem('easyBpmModelerTheme', theme);
+     document.documentElement.dataset.modelerTheme = theme;
+   }, [theme]);
+
+   const toggleTheme = () => setTheme(current => current === 'dark' ? 'light' : 'dark');
 
    useEffect(() => {
      const session = processService.getSession();
@@ -204,6 +222,10 @@ const App: React.FC = () => {
         addIssue('error', `Flow ${edge.id} target node does not exist.`, { edgeId: edge.id });
         return;
       }
+      if (nodesByUid.get(edge.source)?.type === 'pool' || nodesByUid.get(edge.target)?.type === 'pool') {
+        addIssue('error', `Flow ${edge.id} cannot connect to a pool/participant.`, { edgeId: edge.id });
+        return;
+      }
 
       outgoingByUid.set(edge.source, (outgoingByUid.get(edge.source) || 0) + 1);
       incomingByUid.set(edge.target, (incomingByUid.get(edge.target) || 0) + 1);
@@ -228,6 +250,13 @@ const App: React.FC = () => {
     nodes.forEach(node => {
       const incoming = incomingByUid.get(node.uid) || 0;
       const outgoing = outgoingByUid.get(node.uid) || 0;
+
+      if (CONTAINER_TYPES.includes(node.type)) {
+        if (incoming > 0 || outgoing > 0) {
+          addIssue('error', `Pool ${node.id} is a visual participant and cannot have sequence flows.`, { nodeUid: node.uid, nodeId: node.id });
+        }
+        return;
+      }
 
       if (START_TYPES.includes(node.type)) {
         if (incoming > 0) addIssue('error', `Start node ${node.id} cannot have incoming flows.`, { nodeUid: node.uid, nodeId: node.id });
@@ -333,7 +362,7 @@ const App: React.FC = () => {
           });
       }
 
-      const unreachable = nodes.filter(node => !visited.has(node.uid) && !BOUNDARY_TYPES.includes(node.type));
+      const unreachable = nodes.filter(node => !visited.has(node.uid) && !BOUNDARY_TYPES.includes(node.type) && !CONTAINER_TYPES.includes(node.type));
       unreachable.forEach(node => {
         addIssue('warning', `Unreachable node detected: ${node.id}`, { nodeUid: node.uid, nodeId: node.id });
       });
@@ -385,18 +414,20 @@ const App: React.FC = () => {
     }
   }, []);
 
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDrop = (e: React.DragEvent, canvasPoint?: { x: number; y: number }) => {
     e.preventDefault();
     const type = e.dataTransfer.getData('application/reactflow') as NodeType;
     if (!type) return;
 
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const x = canvasPoint?.x ?? e.clientX - rect.left;
+    const y = canvasPoint?.y ?? e.clientY - rect.top;
 
     let width = 120; 
     let height = 60;
-    if (['start', 'end', 'gateway', 'parallel-gateway', 'timer-event', 'message-start', 'message-intermediate-throw', 'error-boundary', 'message-boundary', 'timer-boundary'].includes(type)) {
+    if (type === 'pool') {
+      width = 640; height = 260;
+    } else if (['start', 'end', 'gateway', 'parallel-gateway', 'timer-event', 'message-start', 'message-intermediate-throw', 'error-boundary', 'message-boundary', 'timer-boundary'].includes(type)) {
       width = 40; height = 40;
     } else {
       width = 120; height = 60;
@@ -433,7 +464,7 @@ const App: React.FC = () => {
       height,
       attachedTo,
       data: {
-        label: `New ${type.replace('-', ' ')}`,
+        label: type === 'pool' ? 'Participant' : `New ${type.replace('-', ' ')}`,
         inputVariables: [],
         outputVariables: [],
       }
@@ -461,7 +492,8 @@ const App: React.FC = () => {
       'message-intermediate-throw': 'MessageIntermediateThrowEvent',
       'error-boundary': 'ErrorBoundaryEvent',
       'message-boundary': 'MessageBoundaryEvent',
-      'timer-boundary': 'TimerEvent'
+      'timer-boundary': 'TimerEvent',
+      'pool': 'Participant'
     };
 
     const nodesData = nodes.map(node => {
@@ -730,6 +762,10 @@ const App: React.FC = () => {
       await processService.deployProcess(buildExportObject());
       toast.success('Process deployed successfully.');
     } catch (error) {
+      if (isAuthRequiredError(error)) {
+        toast.error(error.message);
+        return;
+      }
       const message = error instanceof Error ? error.message : 'Unexpected deploy error';
       toast.error(message);
     } finally {
@@ -778,7 +814,9 @@ const App: React.FC = () => {
       'MessageIntermediateCatchEvent': 'message-intermediate-catch',
       'MessageIntermediateThrowEvent': 'message-intermediate-throw',
       'ErrorBoundaryEvent': 'error-boundary',
-      'MessageBoundaryEvent': 'message-boundary'
+      'MessageBoundaryEvent': 'message-boundary',
+      'Participant': 'pool',
+      'Pool': 'pool'
     };
 
      // 1. Import Variables
@@ -801,7 +839,10 @@ const App: React.FC = () => {
       if (type === 'timer-event' && node.attachedTo) {
         type = 'timer-boundary';
       }
-      if (['start', 'end', 'gateway', 'parallel-gateway', 'timer-event'].includes(type)) {
+      if (type === 'pool') {
+        width = Number(node.width) || 640;
+        height = Number(node.height) || 260;
+      } else if (['start', 'end', 'gateway', 'parallel-gateway', 'timer-event'].includes(type)) {
         width = 40; height = 40;
       } else {
         width = 120; height = 60;
@@ -978,6 +1019,7 @@ const App: React.FC = () => {
   };
 
   const handleUpdateNode = (uid: string, data: Partial<BpmnNode['data']>) => setNodes(nds => nds.map(n => n.uid === uid ? { ...n, data: { ...n.data, ...data } } : n));
+  const handleUpdateNodeFrame = (uid: string, frame: Partial<Pick<BpmnNode, 'width' | 'height'>>) => setNodes(nds => nds.map(n => n.uid === uid ? { ...n, ...frame } : n));
   
   const handleUpdateNodeId = (uid: string, newId: string) => {
     if (!newId.trim()) return;
@@ -1120,6 +1162,8 @@ const App: React.FC = () => {
           onCreateForm={handleCreateForm}
           currentUser={currentUser}
           onLogout={handleLogout}
+          theme={theme}
+          onToggleTheme={toggleTheme}
         />
       </div>
     );
@@ -1127,7 +1171,7 @@ const App: React.FC = () => {
 
   if (editorMode === 'process-editor') {
     return (
-      <div className="process-modeler flex flex-col h-screen bg-[#0f171d]">
+      <div className="process-modeler flex flex-col h-screen" data-theme={theme}>
         <Toaster position="top-right" richColors />
         
         {/* Process Editor Navbar */}
@@ -1142,6 +1186,8 @@ const App: React.FC = () => {
           isSaving={isDeployingProcess}
           currentUser={currentUser}
           onLogout={handleLogout}
+          theme={theme}
+          onToggleTheme={toggleTheme}
         />
 
         {/* Toolbar */}
@@ -1152,12 +1198,23 @@ const App: React.FC = () => {
           validationWarnings={validationState.warnings}
           currentView="bpmn"
           onViewChange={() => {}}
+          theme={theme}
+          onToggleTheme={toggleTheme}
         />
 
         {/* Canvas */}
         <div className="flex flex-1 overflow-hidden">
           <Palette onDragStart={(e, type) => e.dataTransfer.setData('application/reactflow', type)} />
           <div className="flex-1 relative flex flex-col">
+            <button
+              type="button"
+              onClick={() => setIsPropertiesPanelVisible((visible) => !visible)}
+              className="absolute right-4 top-16 z-30 flex h-9 w-9 items-center justify-center rounded-md border border-slate-200 bg-white/95 text-slate-600 shadow-sm backdrop-blur-sm transition-colors hover:bg-slate-100 hover:text-slate-900"
+              title={isPropertiesPanelVisible ? 'Hide properties panel' : 'Show properties panel'}
+              aria-label={isPropertiesPanelVisible ? 'Hide properties panel' : 'Show properties panel'}
+            >
+              {isPropertiesPanelVisible ? <PanelRightClose className="h-4 w-4" /> : <PanelRightOpen className="h-4 w-4" />}
+            </button>
             <Canvas 
               nodes={nodes} edges={edges} selectedNodeUids={selectedNodeUids} selectedEdgeId={selectedEdgeId}
               invalidNodeUids={invalidNodeUids}
@@ -1168,28 +1225,31 @@ const App: React.FC = () => {
               onNodesChange={setNodes} onEdgesChange={setEdges} onDrop={handleDrop}
             />
           </div>
-          <PropertiesPanel 
-            selectedNodeUids={selectedNodeUids} 
-            nodes={nodes} 
-            selectedEdge={edges.find(e => e.id === selectedEdgeId) || null}
-            processVariables={variables} 
-            processId={processId}
-            processName={processName}
-            onUpdateProcessId={setProcessId}
-            onUpdateProcessName={setProcessName}
-            onUpdateNode={handleUpdateNode} 
-            onUpdateNodeId={handleUpdateNodeId} 
-            onUpdateEdge={handleUpdateEdge}
-            onUpdateVariables={setVariables} 
-            onDeleteNode={uid => handleDeleteNodes([uid])} 
-            onDeleteEdge={id => setEdges(eds => eds.filter(e => e.id !== id))}
-            onFocusValidationIssue={handleFocusValidationIssue}
-            validation={{
-              duplicateNodeIds: validationState.duplicateNodeIds,
-              duplicateGlobalVars: validationState.duplicateGlobalVars,
-              issues: validationState.issues
-            }}
-          />
+          {isPropertiesPanelVisible && (
+            <PropertiesPanel
+              selectedNodeUids={selectedNodeUids}
+              nodes={nodes}
+              selectedEdge={edges.find(e => e.id === selectedEdgeId) || null}
+              processVariables={variables}
+              processId={processId}
+              processName={processName}
+              onUpdateProcessId={setProcessId}
+              onUpdateProcessName={setProcessName}
+              onUpdateNode={handleUpdateNode}
+              onUpdateNodeFrame={handleUpdateNodeFrame}
+              onUpdateNodeId={handleUpdateNodeId}
+              onUpdateEdge={handleUpdateEdge}
+              onUpdateVariables={setVariables}
+              onDeleteNode={uid => handleDeleteNodes([uid])}
+              onDeleteEdge={id => setEdges(eds => eds.filter(e => e.id !== id))}
+              onFocusValidationIssue={handleFocusValidationIssue}
+              validation={{
+                duplicateNodeIds: validationState.duplicateNodeIds,
+                duplicateGlobalVars: validationState.duplicateGlobalVars,
+                issues: validationState.issues
+              }}
+            />
+          )}
         </div>
       </div>
     );
@@ -1197,7 +1257,7 @@ const App: React.FC = () => {
 
   if (editorMode === 'form-editor') {
     return (
-      <div className="form-modeler flex flex-col h-screen bg-[#0f171d]">
+      <div className="form-modeler flex flex-col h-screen" data-theme={theme}>
         <Toaster position="top-right" richColors />
         
         {/* Form Editor Navbar */}
@@ -1211,6 +1271,8 @@ const App: React.FC = () => {
           isSaving={isDeployingForm}
           currentUser={currentUser}
           onLogout={handleLogout}
+          theme={theme}
+          onToggleTheme={toggleTheme}
         />
 
         {/* Form Editor */}
@@ -1233,6 +1295,8 @@ const App: React.FC = () => {
       <WelcomeScreen
         onCreateProcess={handleCreateProcess}
         onCreateForm={handleCreateForm}
+        theme={theme}
+        onToggleTheme={toggleTheme}
       />
     </div>
   );

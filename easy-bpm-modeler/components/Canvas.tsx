@@ -1,7 +1,7 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { BpmnNode, BpmnEdge, NodeType, Position } from '../types';
 import { getEdgePath, generateId, snapToGrid } from '../utils/geometry';
-import { User, Settings, GitFork, Plus, Mail, Zap, Clock3, Layers, Code, Brain } from 'lucide-react';
+import { User, Settings, GitFork, Plus, Mail, Zap, Clock3, Layers, Code, Brain, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 
 interface CanvasProps {
   nodes: BpmnNode[];
@@ -16,8 +16,31 @@ interface CanvasProps {
   onSelectEdge: (id: string | null) => void;
   onNodesChange: (nodes: BpmnNode[]) => void;
   onEdgesChange: (edges: BpmnEdge[]) => void;
-  onDrop: (e: React.DragEvent) => void;
+  onDrop: (e: React.DragEvent, canvasPoint?: Position) => void;
 }
+
+type ResizeHandle = 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w' | 'nw';
+
+interface ResizeState {
+  uid: string;
+  handle: ResizeHandle;
+  start: Position;
+  initial: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
+}
+
+const POOL_MIN_WIDTH = 240;
+const POOL_MIN_HEIGHT = 140;
+const MIN_ZOOM = 0.5;
+const MAX_ZOOM = 1.5;
+const ZOOM_STEP = 0.1;
+const WORKSPACE_MIN_WIDTH = 2600;
+const WORKSPACE_MIN_HEIGHT = 1800;
+const WORKSPACE_PADDING = 600;
 
 export const Canvas: React.FC<CanvasProps> = ({
   nodes,
@@ -50,16 +73,35 @@ export const Canvas: React.FC<CanvasProps> = ({
   
   // Selection Box State
   const [selectionBox, setSelectionBox] = useState<{ start: Position; current: Position } | null>(null);
+  const [resizeState, setResizeState] = useState<ResizeState | null>(null);
+  const [zoom, setZoom] = useState(1);
 
-  const getMousePosition = (e: React.MouseEvent | MouseEvent): Position => {
+  const getMousePosition = (e: Pick<MouseEvent, 'clientX' | 'clientY'> | Pick<React.MouseEvent, 'clientX' | 'clientY'> | Pick<React.DragEvent, 'clientX' | 'clientY'>): Position => {
     if (!svgRef.current) return { x: 0, y: 0 };
     const CTM = svgRef.current.getScreenCTM();
     if (!CTM) return { x: 0, y: 0 };
     return {
-      x: (e.clientX - CTM.e) / CTM.a,
-      y: (e.clientY - CTM.f) / CTM.d,
+      x: ((e.clientX - CTM.e) / CTM.a) / zoom,
+      y: ((e.clientY - CTM.f) / CTM.d) / zoom,
     };
   };
+
+  const clampZoom = (value: number) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, Number(value.toFixed(2))));
+  const zoomPercent = Math.round(zoom * 100);
+  const workspace = useMemo(() => {
+    const bounds = nodes.reduce(
+      (acc, node) => ({
+        maxX: Math.max(acc.maxX, node.position.x + node.width),
+        maxY: Math.max(acc.maxY, node.position.y + node.height),
+      }),
+      { maxX: 0, maxY: 0 }
+    );
+
+    return {
+      width: Math.max(WORKSPACE_MIN_WIDTH, bounds.maxX + WORKSPACE_PADDING),
+      height: Math.max(WORKSPACE_MIN_HEIGHT, bounds.maxY + WORKSPACE_PADDING),
+    };
+  }, [nodes]);
 
   const handleMouseDownNode = (e: React.MouseEvent, node: BpmnNode) => {
     e.stopPropagation();
@@ -117,8 +159,61 @@ export const Canvas: React.FC<CanvasProps> = ({
       setMousePos(pos);
   };
 
+  const handleResizeStart = (e: React.MouseEvent, node: BpmnNode, handle: ResizeHandle) => {
+    e.stopPropagation();
+    onSelectNodes([node.uid]);
+    onSelectEdge(null);
+    setIsDraggingNodes(false);
+    setSelectionBox(null);
+    setResizeState({
+      uid: node.uid,
+      handle,
+      start: getMousePosition(e),
+      initial: {
+        x: node.position.x,
+        y: node.position.y,
+        width: node.width,
+        height: node.height,
+      },
+    });
+  };
+
   const handleMouseMove = (e: React.MouseEvent) => {
     const pos = getMousePosition(e);
+    if (resizeState) {
+      const dx = pos.x - resizeState.start.x;
+      const dy = pos.y - resizeState.start.y;
+      const initial = resizeState.initial;
+      const right = initial.x + initial.width;
+      const bottom = initial.y + initial.height;
+
+      let x = initial.x;
+      let y = initial.y;
+      let width = initial.width;
+      let height = initial.height;
+
+      if (resizeState.handle.includes('e')) {
+        width = snapToGrid(Math.max(POOL_MIN_WIDTH, initial.width + dx));
+      }
+      if (resizeState.handle.includes('s')) {
+        height = snapToGrid(Math.max(POOL_MIN_HEIGHT, initial.height + dy));
+      }
+      if (resizeState.handle.includes('w')) {
+        x = snapToGrid(Math.min(initial.x + dx, right - POOL_MIN_WIDTH));
+        width = right - x;
+      }
+      if (resizeState.handle.includes('n')) {
+        y = snapToGrid(Math.min(initial.y + dy, bottom - POOL_MIN_HEIGHT));
+        height = bottom - y;
+      }
+
+      onNodesChange(nodes.map((node) => node.uid === resizeState.uid
+        ? { ...node, position: { x, y }, width, height }
+        : node
+      ));
+      return;
+    }
+
     if (connectingNodeUid) setMousePos(pos);
     if (selectionBox) setSelectionBox({ ...selectionBox, current: pos });
 
@@ -182,6 +277,7 @@ export const Canvas: React.FC<CanvasProps> = ({
     setIsDraggingNodes(false);
     setInitialNodePositions(new Map());
     setConnectingNodeUid(null);
+    setResizeState(null);
 
     if (selectionBox) {
         const x = Math.min(selectionBox.start.x, selectionBox.current.x);
@@ -205,8 +301,17 @@ export const Canvas: React.FC<CanvasProps> = ({
   };
 
   const handleNodeMouseUp = (e: React.MouseEvent, targetNode: BpmnNode) => {
+      if (targetNode.type === 'pool') {
+          setConnectingNodeUid(null);
+          return;
+      }
       if (connectingNodeUid && connectingNodeUid !== targetNode.uid) {
           e.stopPropagation();
+          const sourceNode = nodes.find((node) => node.uid === connectingNodeUid);
+          if (sourceNode?.type === 'pool') {
+            setConnectingNodeUid(null);
+            return;
+          }
           const exists = edges.some(edge => edge.source === connectingNodeUid && edge.target === targetNode.uid);
           if (!exists) {
             const newEdge: BpmnEdge = {
@@ -231,16 +336,136 @@ export const Canvas: React.FC<CanvasProps> = ({
   };
 
   return (
-    <div className="flex-1 bg-[#0f171d] relative overflow-hidden select-none" onDragOver={(e) => e.preventDefault()} onDrop={onDrop}>
-        <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle, rgba(148, 163, 184, 0.26) 1px, transparent 1.2px)', backgroundSize: '24px 24px' }}></div>
-        <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_50%_30%,rgba(37,99,235,0.08),transparent_42%)]"></div>
-      <svg ref={svgRef} className="w-full h-full" onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseDown={handleMouseDownCanvas}>
+    <div className="modeler-canvas flex-1 relative overflow-hidden select-none">
+      <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_50%_30%,rgba(37,99,235,0.08),transparent_42%)]"></div>
+      <div className="absolute right-4 top-4 z-20 flex items-center gap-1 rounded-md border border-slate-200 bg-white/95 p-1 shadow-sm backdrop-blur-sm">
+        <button
+          type="button"
+          onClick={() => setZoom((current) => clampZoom(current - ZOOM_STEP))}
+          className="flex h-8 w-8 items-center justify-center rounded text-slate-600 hover:bg-slate-100 hover:text-slate-900 disabled:opacity-40"
+          disabled={zoom <= MIN_ZOOM}
+          title="Zoom out"
+          aria-label="Zoom out"
+        >
+          <ZoomOut className="h-4 w-4" />
+        </button>
+        <span className="w-12 text-center text-xs font-semibold tabular-nums text-slate-600">{zoomPercent}%</span>
+        <button
+          type="button"
+          onClick={() => setZoom((current) => clampZoom(current + ZOOM_STEP))}
+          className="flex h-8 w-8 items-center justify-center rounded text-slate-600 hover:bg-slate-100 hover:text-slate-900 disabled:opacity-40"
+          disabled={zoom >= MAX_ZOOM}
+          title="Zoom in"
+          aria-label="Zoom in"
+        >
+          <ZoomIn className="h-4 w-4" />
+        </button>
+        <button
+          type="button"
+          onClick={() => setZoom(1)}
+          className="flex h-8 w-8 items-center justify-center rounded text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+          title="Reset zoom"
+          aria-label="Reset zoom"
+        >
+          <RotateCcw className="h-4 w-4" />
+        </button>
+      </div>
+      <div
+        className="absolute inset-0 overflow-auto"
+        onDragOver={(e) => e.preventDefault()}
+        onDrop={(e) => onDrop(e, getMousePosition(e))}
+      >
+      <svg
+        ref={svgRef}
+        width={workspace.width * zoom}
+        height={workspace.height * zoom}
+        className="block"
+        style={{
+          backgroundImage: 'radial-gradient(circle, var(--modeler-canvas-grid) 1px, transparent 1.2px)',
+          backgroundSize: `${24 * zoom}px ${24 * zoom}px`,
+        }}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseDown={handleMouseDownCanvas}
+      >
         <defs>
           <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#94a3b8" /></marker>
           <marker id="arrowhead-selected" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#3b82f6" /></marker>
           <marker id="arrowhead-error" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#dc2626" /></marker>
           <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0" dy="4" stdDeviation="6" floodColor="#020617" floodOpacity="0.55"/></filter>
         </defs>
+
+        <g transform={`scale(${zoom})`}>
+        {nodes.filter(node => node.type === 'pool').map((node) => {
+          const isSelected = selectedNodeUids.includes(node.uid);
+          const hasError = invalidNodeUids.includes(node.uid);
+          const hasWarning = warningNodeUids.includes(node.uid);
+          const label = node.data.label || node.id;
+
+          return (
+            <g
+              key={node.uid}
+              transform={`translate(${node.position.x + node.width / 2}, ${node.position.y + node.height / 2})`}
+              onMouseDown={(e) => handleMouseDownNode(e, node)}
+              onMouseUp={(e) => handleNodeMouseUp(e, node)}
+              onMouseEnter={() => setHoveredNodeUid(node.uid)}
+              onMouseLeave={() => setHoveredNodeUid(null)}
+              className="cursor-move group"
+            >
+              {isSelected && <rect x={-node.width/2-4} y={-node.height/2-4} width={node.width+8} height={node.height+8} rx="10" fill="none" stroke="#3b82f6" strokeWidth="1.5" strokeDasharray="4 2" />}
+              {!isSelected && hasError && <rect x={-node.width/2-6} y={-node.height/2-6} width={node.width+12} height={node.height+12} rx="12" fill="none" stroke="#dc2626" strokeWidth="2" strokeDasharray="5 3" />}
+              {!isSelected && !hasError && hasWarning && <rect x={-node.width/2-6} y={-node.height/2-6} width={node.width+12} height={node.height+12} rx="12" fill="none" stroke="#d97706" strokeWidth="2" strokeDasharray="5 3" />}
+              <rect x={-node.width/2} y={-node.height/2} width={node.width} height={node.height} rx="8" className="fill-[#111a21] stroke-sky-500 stroke-[2px] opacity-80" />
+              <rect x={-node.width/2} y={-node.height/2} width="44" height={node.height} rx="8" className="fill-blue-500/10 stroke-sky-500 stroke-[1.5px]" />
+              <line x1={-node.width/2 + 44} y1={-node.height/2} x2={-node.width/2 + 44} y2={node.height/2} className="stroke-sky-500 stroke-[1.5px]" />
+              <line x1={-node.width/2 + 44} y1="0" x2={node.width/2} y2="0" className="stroke-sky-500/40 stroke-[1px]" strokeDasharray="6 4" />
+              <text
+                transform={`translate(${-node.width/2 + 22}, 0) rotate(-90)`}
+                textAnchor="middle"
+                className="fill-sky-300 text-[12px] font-semibold pointer-events-none"
+              >
+                {label}
+              </text>
+              <text
+                x={-node.width/2 + 56}
+                y={-node.height/2 + 22}
+                className="fill-slate-400 text-[10px] font-mono pointer-events-none"
+              >
+                {node.id}
+              </text>
+              {(hasError || hasWarning) && (
+                <g transform={`translate(${node.width/2 + 10}, ${-node.height/2 - 10})`}>
+                  <circle r="9" fill={hasError ? '#dc2626' : '#d97706'} stroke="#ffffff" strokeWidth="2" />
+                  <text y="3" textAnchor="middle" className="text-[10px] fill-white font-bold pointer-events-none">!</text>
+                </g>
+              )}
+              {isSelected && ([
+                { handle: 'nw' as ResizeHandle, x: -node.width/2, y: -node.height/2, cursor: 'nwse-resize' },
+                { handle: 'n' as ResizeHandle, x: 0, y: -node.height/2, cursor: 'ns-resize' },
+                { handle: 'ne' as ResizeHandle, x: node.width/2, y: -node.height/2, cursor: 'nesw-resize' },
+                { handle: 'e' as ResizeHandle, x: node.width/2, y: 0, cursor: 'ew-resize' },
+                { handle: 'se' as ResizeHandle, x: node.width/2, y: node.height/2, cursor: 'nwse-resize' },
+                { handle: 's' as ResizeHandle, x: 0, y: node.height/2, cursor: 'ns-resize' },
+                { handle: 'sw' as ResizeHandle, x: -node.width/2, y: node.height/2, cursor: 'nesw-resize' },
+                { handle: 'w' as ResizeHandle, x: -node.width/2, y: 0, cursor: 'ew-resize' },
+              ]).map(({ handle, x, y, cursor }) => (
+                <rect
+                  key={handle}
+                  x={x - 5}
+                  y={y - 5}
+                  width="10"
+                  height="10"
+                  rx="2"
+                  fill="#ffffff"
+                  stroke="#3b82f6"
+                  strokeWidth="1.5"
+                  style={{ cursor }}
+                  onMouseDown={(e) => handleResizeStart(e, node, handle)}
+                />
+              ))}
+            </g>
+          );
+        })}
 
         {edges.map((edge) => {
           const source = nodes.find((n) => n.uid === edge.source);
@@ -276,7 +501,7 @@ export const Canvas: React.FC<CanvasProps> = ({
             />
         )}
 
-        {nodes.map((node) => {
+        {nodes.filter(node => node.type !== 'pool').map((node) => {
           const isTask = node.type === 'user-task' || node.type === 'service-task' || node.type === 'api-task' || node.type === 'code-task' || node.type === 'ai-task' || node.type === 'call-activity';
           const isBoxMessageCatch = node.type === 'message-intermediate-catch';
           const isMessageEvent = ['message-start', 'message-intermediate-catch', 'message-intermediate-throw'].includes(node.type);
@@ -378,7 +603,9 @@ export const Canvas: React.FC<CanvasProps> = ({
           </g>
         )})}
         {selectionBox && <rect x={Math.min(selectionBox.start.x, selectionBox.current.x)} y={Math.min(selectionBox.start.y, selectionBox.current.y)} width={Math.abs(selectionBox.current.x - selectionBox.start.x)} height={Math.abs(selectionBox.current.y - selectionBox.start.y)} fill="rgba(59, 130, 246, 0.1)" stroke="#3b82f6" strokeWidth="1" strokeDasharray="4,2" pointerEvents="none" />}
+        </g>
       </svg>
+      </div>
     </div>
   );
 };

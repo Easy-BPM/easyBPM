@@ -1,6 +1,7 @@
 import React from 'react';
 import { Cpu, AlertTriangle } from 'lucide-react';
 import { AppView } from '../types';
+import { ThemeMode, ThemeToggle } from './ThemeToggle';
 
 interface ToolbarProps {
   onClear: () => void;
@@ -9,29 +10,34 @@ interface ToolbarProps {
   validationWarnings?: string[];
   currentView: AppView;
   onViewChange: (view: AppView) => void;
+  theme: ThemeMode;
+  onToggleTheme: () => void;
 }
 
 export const Toolbar: React.FC<ToolbarProps> = ({
   onClear,
   isExportDisabled,
   validationErrors = [],
-  validationWarnings = []
+  validationWarnings = [],
+  theme,
+  onToggleTheme
 }) => {
   return (
-    <div className="min-h-14 bg-[#121920] border-b border-[#25313d] flex items-center justify-between px-6 py-2 shadow-[0_1px_0_rgba(255,255,255,0.04)] z-10 relative gap-3 flex-wrap">
+    <div className="modeler-toolbar min-h-14 border-b flex items-center justify-between px-6 py-2 z-10 relative gap-3 flex-wrap">
       <div className="flex items-center space-x-3">
         <div className="bg-blue-600 p-2 rounded-lg shadow-[0_0_24px_rgba(37,99,235,0.35)]">
           <Cpu className="w-5 h-5 text-white" />
         </div>
         <div>
-          <h1 className="text-sm font-semibold text-white">Easy BPMN Modeler</h1>
+          <h1 className="text-sm font-semibold modeler-heading">Easy BPMN Modeler</h1>
         </div>
       </div>
 
       <div className="flex items-center gap-3 flex-wrap justify-end">
+        <ThemeToggle theme={theme} onToggle={onToggleTheme} />
         <button 
           onClick={onClear}
-          className="px-3 py-1.5 text-xs font-medium text-slate-300 hover:bg-white/10 hover:text-white rounded-md transition-colors"
+          className="modeler-ghost-button px-3 py-1.5 text-xs font-medium rounded-md transition-colors"
         >
           New Canvas
         </button>

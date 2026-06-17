@@ -16,6 +16,7 @@ interface PropertiesPanelProps {
   onUpdateProcessId: (id: string) => void;
   onUpdateProcessName: (name: string) => void;
   onUpdateNode: (uid: string, data: Partial<BpmnNode['data']>) => void;
+  onUpdateNodeFrame: (uid: string, frame: Partial<Pick<BpmnNode, 'width' | 'height'>>) => void;
   onUpdateNodeId: (uid: string, newId: string) => void;
   onUpdateEdge: (edgeId: string, data: Partial<BpmnEdge>) => void;
   onUpdateVariables: (variables: ProcessVariable[]) => void;
@@ -39,6 +40,7 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
   onUpdateProcessId,
   onUpdateProcessName,
   onUpdateNode,
+  onUpdateNodeFrame,
   onUpdateNodeId,
   onUpdateEdge,
   onUpdateVariables,
@@ -381,6 +383,34 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
           <div><label className="block text-[10px] text-slate-400 mb-1 font-bold">LABEL</label><input type="text" value={selectedNode.data.label} onChange={e => onUpdateNode(selectedNode.uid, { label: e.target.value })} className={inputClassName} placeholder="Task Label" /></div>
           <div><label className="block text-[10px] text-slate-400 mb-1 font-bold">DESCRIPTION</label><textarea value={selectedNode.data.description || ''} onChange={e => onUpdateNode(selectedNode.uid, { description: e.target.value })} className={`${inputClassName} h-20 resize-none`} placeholder="Describe this step..." /></div>
         </div>
+        {selectedNode.type === 'pool' && (
+          <div className="border-t border-slate-100 pt-6 space-y-4">
+            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider">Pool Layout</label>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[10px] text-slate-400 mb-1 font-bold">WIDTH</label>
+                <input
+                  type="number"
+                  min={240}
+                  className={inputClassName}
+                  value={selectedNode.width}
+                  onChange={e => onUpdateNodeFrame(selectedNode.uid, { width: Math.max(240, Number(e.target.value) || 240) })}
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] text-slate-400 mb-1 font-bold">HEIGHT</label>
+                <input
+                  type="number"
+                  min={140}
+                  className={inputClassName}
+                  value={selectedNode.height}
+                  onChange={e => onUpdateNodeFrame(selectedNode.uid, { height: Math.max(140, Number(e.target.value) || 140) })}
+                />
+              </div>
+            </div>
+            <p className="text-[10px] text-slate-400 leading-tight">Pools are visual BPMN participants. They do not receive sequence flows or execute process logic.</p>
+          </div>
+        )}
         {isMessageEvent && (
           <div className="border-t border-slate-100 pt-6 space-y-6">
             <div className="px-4 space-y-4">

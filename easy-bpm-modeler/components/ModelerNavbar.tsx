@@ -1,5 +1,6 @@
 import React from 'react';
-import { ArrowLeft, Home, Save, Eye, Code, Download, Upload, User, LogOut } from 'lucide-react';
+import { ArrowLeft, Save, Download, Upload } from 'lucide-react';
+import { ThemeMode, ThemeToggle } from './ThemeToggle';
 
 interface NavbarProps {
   title: string;
@@ -13,6 +14,8 @@ interface NavbarProps {
   hasUnsavedChanges?: boolean;
   currentUser?: string | null;
   onLogout?: () => void;
+  theme: ThemeMode;
+  onToggleTheme: () => void;
 }
 
 export const ModelerNavbar: React.FC<NavbarProps> = ({
@@ -25,10 +28,9 @@ export const ModelerNavbar: React.FC<NavbarProps> = ({
   onImport,
   isSaving,
   hasUnsavedChanges,
-  currentUser,
-  onLogout
+  theme,
+  onToggleTheme
 }) => {
-  const [showUserMenu, setShowUserMenu] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const isModeler = resourceType === 'process' || resourceType === 'form';
 
@@ -50,7 +52,7 @@ export const ModelerNavbar: React.FC<NavbarProps> = ({
   };
 
   return (
-    <div className={`${isModeler ? 'bg-[#10161c] border-[#25313d] shadow-[0_1px_0_rgba(255,255,255,0.04)]' : 'bg-white/5 border-white/10'} backdrop-blur-sm border-b px-6 py-4 flex items-center justify-between`}>
+    <div className={`${isModeler ? 'modeler-navbar' : 'bg-white/5 border-white/10'} backdrop-blur-sm border-b px-6 py-4 flex items-center justify-between`}>
       {/* Left: Back button and title */}
       <div className="flex items-center gap-4">
         <button
@@ -68,7 +70,7 @@ export const ModelerNavbar: React.FC<NavbarProps> = ({
             ) : (
               <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
             )}
-            <h1 className={`text-lg font-semibold ${isModeler ? 'text-white' : 'text-black'}`}>{title}</h1>
+            <h1 className={`text-lg font-semibold ${isModeler ? 'modeler-heading' : 'text-black'}`}>{title}</h1>
             {hasUnsavedChanges && (
               <span className="text-xs px-2 py-1 bg-yellow-500/20 text-yellow-400 rounded">
                 Unsaved
@@ -76,13 +78,14 @@ export const ModelerNavbar: React.FC<NavbarProps> = ({
             )}
           </div>
           {subtitle && (
-            <p className={`text-xs mt-0.5 ${isModeler ? 'text-slate-400' : 'text-slate-500'}`}>{subtitle}</p>
+            <p className={`text-xs mt-0.5 ${isModeler ? 'modeler-muted' : 'text-slate-500'}`}>{subtitle}</p>
           )}
         </div>
       </div>
 
       {/* Right: Action buttons */}
       <div className="flex items-center gap-3">
+        <ThemeToggle theme={theme} onToggle={onToggleTheme} />
         {onImport && (
           <>
             <input 

@@ -1,5 +1,5 @@
-import React from 'react';
-import { Zap, Mail, Clock3 } from 'lucide-react';
+import React, { useState } from 'react';
+import { Zap, Mail, Clock3, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 import { WorkflowDefinition, WorkflowNode } from '../types';
 
 type Props = {
@@ -12,6 +12,10 @@ type Edge = {
   from: string;
   to: string;
 };
+
+const MIN_ZOOM = 0.5;
+const MAX_ZOOM = 1.5;
+const ZOOM_STEP = 0.1;
 
 const CurrentTokenPin: React.FC<{ x: number; y: number }> = ({ x, y }) => (
   <g transform={`translate(${x}, ${y})`}>
@@ -27,6 +31,7 @@ const labelForNode = (node: WorkflowNode): string => {
 };
 
 const nodeSizeByType = (type: string): { width: number; height: number } => {
+  if (type === 'Participant' || type === 'Pool') return { width: 640, height: 260 };
   if (type === 'StartEvent' || type === 'EndEvent') return { width: 40, height: 40 };
   if (type.toLowerCase().includes('gateway')) return { width: 40, height: 40 };
   if (type.toLowerCase().includes('boundary')) return { width: 30, height: 30 };
@@ -51,6 +56,7 @@ const getNodeStyle = (type: string, visited: boolean, current: boolean): string 
   if (type === 'HumanTask' || type === 'UserTask' || type === 'humanTask' || type === 'userTask') return 'fill-white stroke-blue-700';
   if (type === 'ServiceTask') return 'fill-white stroke-amber-600';
   if (type === 'APITask') return 'fill-white stroke-purple-600';
+  if (type === 'Participant' || type === 'Pool') return 'fill-white stroke-sky-500';
   return 'fill-white stroke-slate-400';
 };
 
@@ -99,7 +105,12 @@ const isBoundaryEvent = (node: WorkflowNode): boolean => {
   return node.type.toLowerCase().includes('boundary') || !!node.attachedTo;
 };
 
+const isParticipant = (node: WorkflowNode): boolean => {
+  return node.type === 'Participant' || node.type === 'Pool';
+};
+
 export const WorkflowCanvas: React.FC<Props> = ({ definition, nodeHistory, currentNodes }) => {
+  const [zoom, setZoom] = useState(1);
   const nodes = definition.nodes ?? [];
   if (nodes.length === 0) {
     return <p className="text-sm text-slate-500">No workflow nodes available for this definition.</p>;
@@ -117,7 +128,8 @@ export const WorkflowCanvas: React.FC<Props> = ({ definition, nodeHistory, curre
   const nodeById = new Map(nodes.map((n) => [n.id, n]));
   
   // Separate regular nodes and boundary events
-  const regularNodes = nodes.filter(n => !isBoundaryEvent(n));
+  const poolNodes = nodes.filter(isParticipant);
+  const regularNodes = nodes.filter(n => !isBoundaryEvent(n) && !isParticipant(n));
   const boundaryNodes = nodes.filter(n => isBoundaryEvent(n));
 
   const bounds = nodes.reduce(
@@ -140,10 +152,45 @@ export const WorkflowCanvas: React.FC<Props> = ({ definition, nodeHistory, curre
   const height = Math.max(320, bounds.maxY - bounds.minY + padding * 2);
   const offsetX = padding - bounds.minX;
   const offsetY = padding - bounds.minY;
+  const clampZoom = (value: number) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, Number(value.toFixed(2))));
+  const zoomPercent = Math.round(zoom * 100);
 
   return (
-    <div className="w-full overflow-auto rounded-xl border border-slate-200 bg-slate-50">
-      <svg width={width} height={height} className="min-w-full">
+    <div className="relative w-full rounded-xl border border-slate-200 bg-slate-50">
+      <div className="absolute right-3 top-3 z-10 flex items-center gap-1 rounded-md border border-slate-200 bg-white/95 p-1 shadow-sm backdrop-blur-sm">
+        <button
+          type="button"
+          onClick={() => setZoom((current) => clampZoom(current - ZOOM_STEP))}
+          className="flex h-8 w-8 items-center justify-center rounded text-slate-600 hover:bg-slate-100 hover:text-slate-900 disabled:opacity-40"
+          disabled={zoom <= MIN_ZOOM}
+          title="Zoom out"
+          aria-label="Zoom out"
+        >
+          <ZoomOut className="h-4 w-4" />
+        </button>
+        <span className="w-12 text-center text-xs font-semibold tabular-nums text-slate-600">{zoomPercent}%</span>
+        <button
+          type="button"
+          onClick={() => setZoom((current) => clampZoom(current + ZOOM_STEP))}
+          className="flex h-8 w-8 items-center justify-center rounded text-slate-600 hover:bg-slate-100 hover:text-slate-900 disabled:opacity-40"
+          disabled={zoom >= MAX_ZOOM}
+          title="Zoom in"
+          aria-label="Zoom in"
+        >
+          <ZoomIn className="h-4 w-4" />
+        </button>
+        <button
+          type="button"
+          onClick={() => setZoom(1)}
+          className="flex h-8 w-8 items-center justify-center rounded text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+          title="Reset zoom"
+          aria-label="Reset zoom"
+        >
+          <RotateCcw className="h-4 w-4" />
+        </button>
+      </div>
+      <div className="max-h-[620px] overflow-auto">
+      <svg width={width * zoom} height={height * zoom} className="block min-w-full">
         <defs>
           {/* Standard flow arrow (inactive) */}
           <marker id="wf-arrow" markerWidth="12" markerHeight="12" refX="11" refY="6" orient="auto" markerUnits="strokeWidth">
@@ -159,11 +206,39 @@ export const WorkflowCanvas: React.FC<Props> = ({ definition, nodeHistory, curre
           </marker>
         </defs>
 
+        <g transform={`scale(${zoom})`}>
+        {/* Draw BPMN participants/pools behind the executable process path */}
+        {poolNodes.map((node) => {
+          const size = getNodeSize(node);
+          const x = (node.position?.x ?? 0) + offsetX;
+          const y = (node.position?.y ?? 0) + offsetY;
+
+          return (
+            <g key={node.id}>
+              <rect x={x} y={y} width={size.width} height={size.height} rx={8} className="fill-white stroke-sky-500 stroke-[2] opacity-80" />
+              <rect x={x} y={y} width={44} height={size.height} rx={8} className="fill-blue-50 stroke-sky-500 stroke-[1.5]" />
+              <line x1={x + 44} y1={y} x2={x + 44} y2={y + size.height} className="stroke-sky-500 stroke-[1.5]" />
+              <line x1={x + 44} y1={y + size.height / 2} x2={x + size.width} y2={y + size.height / 2} className="stroke-sky-500/40 stroke-[1]" strokeDasharray="6 4" />
+              <text
+                transform={`translate(${x + 22}, ${y + size.height / 2}) rotate(-90)`}
+                textAnchor="middle"
+                className="fill-sky-700 text-[12px] font-semibold"
+              >
+                {labelForNode(node)}
+              </text>
+              <text x={x + 56} y={y + 22} className="fill-slate-500 text-[10px] font-mono">
+                {node.id}
+              </text>
+            </g>
+          );
+        })}
+
         {/* Draw regular edges and boundary event exception arrows */}
         {edges.map((edge) => {
           const source = nodeById.get(edge.from);
           const target = nodeById.get(edge.to);
           if (!source || !target) return null;
+          if (isParticipant(source) || isParticipant(target)) return null;
 
           // Skip edges TO boundary events (they're drawn separately in the boundary connection section)
           if (isBoundaryEvent(target)) return null;
@@ -403,7 +478,9 @@ export const WorkflowCanvas: React.FC<Props> = ({ definition, nodeHistory, curre
             </g>
           );
         })}
+        </g>
       </svg>
+      </div>
     </div>
   );
 };

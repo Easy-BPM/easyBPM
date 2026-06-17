@@ -1,5 +1,6 @@
 import React from 'react';
 import { Layout, FileText, Plus, Zap, Shield, User, LogOut } from 'lucide-react';
+import { ThemeMode, ThemeToggle } from './ThemeToggle';
 
 interface WelcomeScreenProps {
   onCreateProcess: () => void;
@@ -7,6 +8,8 @@ interface WelcomeScreenProps {
   onOpenRecent?: () => void;
   currentUser?: string | null;
   onLogout?: () => void;
+  theme: ThemeMode;
+  onToggleTheme: () => void;
 }
 
 export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
@@ -14,20 +17,24 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
   onCreateForm,
   onOpenRecent,
   currentUser,
-  onLogout
+  onLogout,
+  theme,
+  onToggleTheme
 }) => {
   const [showUserMenu, setShowUserMenu] = React.useState(false);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 flex flex-col">
+    <div className="welcome-modeler min-h-screen flex flex-col" data-theme={theme}>
       {/* Top Navbar with User Profile */}
       <div className="bg-white/5 backdrop-blur-sm border-b border-white/10 px-6 py-4 flex items-center justify-between">
         <div className="flex-1">
           <h2 className="text-white font-semibold">Easy BPM Modeler</h2>
         </div>
         
-        {currentUser && (
-          <div className="relative">
+        <div className="flex items-center gap-3">
+          <ThemeToggle theme={theme} onToggle={onToggleTheme} />
+          {currentUser && (
+            <div className="relative">
             <button
               onClick={() => setShowUserMenu(!showUserMenu)}
               className="p-2 hover:bg-white/10 rounded-lg transition-colors text-slate-400 hover:text-white flex items-center gap-2"
@@ -58,8 +65,9 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
                 )}
               </div>
             )}
-          </div>
-        )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Main Content */}
