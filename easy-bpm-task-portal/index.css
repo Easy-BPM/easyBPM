@@ -1,0 +1,163 @@
+.task-portal-app {
+  --app-bg: #f8fafc;
+  --app-surface: #ffffff;
+  --app-surface-muted: #f1f5f9;
+  --app-surface-soft: #f8fafc;
+  --app-border: #e2e8f0;
+  --app-border-strong: #cbd5e1;
+  --app-text: #0f172a;
+  --app-text-soft: #334155;
+  --app-text-muted: #64748b;
+  --app-input-bg: #ffffff;
+  --app-input-border: #cbd5e1;
+  --app-input-text: #0f172a;
+  --app-placeholder: #94a3b8;
+  color-scheme: light;
+  background: var(--app-bg);
+  color: var(--app-text);
+}
+
+.task-portal-app[data-theme="dark"] {
+  --app-bg: #0f171d;
+  --app-surface: #121920;
+  --app-surface-muted: #1a2430;
+  --app-surface-soft: #101820;
+  --app-border: #25313d;
+  --app-border-strong: #2d3a47;
+  --app-text: #e5edf5;
+  --app-text-soft: #cbd5e1;
+  --app-text-muted: #94a3b8;
+  --app-input-bg: #0f171d;
+  --app-input-border: #2d3a47;
+  --app-input-text: #e5edf5;
+  --app-placeholder: #718096;
+  color-scheme: dark;
+}
+
+.login-shell[data-theme="light"] {
+  background: linear-gradient(135deg, #f8fafc 0%, #eef6ff 52%, #e8f5f0 100%) !important;
+}
+
+.login-shell[data-theme="dark"] {
+  background: linear-gradient(135deg, #020617 0%, #0f172a 52%, #172554 100%) !important;
+}
+
+.theme-toggle {
+  align-items: center;
+  background-color: var(--app-surface-muted);
+  border: 1px solid var(--app-border);
+  border-radius: 999px;
+  color: var(--app-text-soft);
+  display: inline-flex;
+  flex: 0 0 auto;
+  height: 32px;
+  justify-content: center;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  width: 32px;
+}
+
+.theme-toggle:hover {
+  background-color: color-mix(in srgb, var(--app-text) 8%, transparent);
+  color: var(--app-text);
+}
+
+.task-portal-app[data-theme="light"] .app-sidebar {
+  background-color: #ffffff !important;
+  border-color: var(--app-border) !important;
+  color: var(--app-text) !important;
+}
+
+.task-portal-app[data-theme="light"] .app-sidebar .text-white,
+.task-portal-app[data-theme="light"] .app-sidebar .text-slate-200 {
+  color: var(--app-text) !important;
+}
+
+.task-portal-app[data-theme="light"] .app-sidebar .text-slate-400,
+.task-portal-app[data-theme="light"] .app-sidebar .text-slate-500,
+.task-portal-app[data-theme="light"] .app-sidebar .text-slate-600 {
+  color: var(--app-text-muted) !important;
+}
+
+.task-portal-app[data-theme="light"] .app-sidebar .border-slate-800,
+.task-portal-app[data-theme="light"] .app-sidebar .border-slate-800\/80 {
+  border-color: var(--app-border) !important;
+}
+
+.task-portal-app[data-theme="light"] .app-sidebar .hover\:bg-slate-800\/50:hover,
+.task-portal-app[data-theme="light"] .app-sidebar .hover\:bg-slate-800\/60:hover,
+.task-portal-app[data-theme="light"] .app-sidebar .hover\:bg-slate-800:hover {
+  background-color: #f1f5f9 !important;
+}
+
+.task-portal-app[data-theme="dark"] .bg-white,
+.task-portal-app[data-theme="dark"] .bg-slate-50,
+.task-portal-app[data-theme="dark"] .bg-slate-50\/50,
+.task-portal-app[data-theme="dark"] .bg-slate-100 {
+  background-color: var(--app-surface) !important;
+}
+
+.task-portal-app[data-theme="dark"] .bg-slate-200 {
+  background-color: var(--app-surface-muted) !important;
+}
+
+.task-portal-app[data-theme="dark"] .border-slate-100,
+.task-portal-app[data-theme="dark"] .border-slate-200,
+.task-portal-app[data-theme="dark"] .border-slate-300 {
+  border-color: var(--app-border) !important;
+}
+
+.task-portal-app[data-theme="dark"] .text-slate-900,
+.task-portal-app[data-theme="dark"] .text-slate-800,
+.task-portal-app[data-theme="dark"] .text-slate-700 {
+  color: var(--app-text) !important;
+}
+
+.task-portal-app[data-theme="dark"] .text-slate-600,
+.task-portal-app[data-theme="dark"] .text-slate-500 {
+  color: var(--app-text-muted) !important;
+}
+
+.task-portal-app[data-theme="dark"] .text-slate-400 {
+  color: #7f8ea3 !important;
+}
+
+.task-portal-app[data-theme="dark"] input,
+.task-portal-app[data-theme="dark"] textarea,
+.task-portal-app[data-theme="dark"] select {
+  background-color: var(--app-input-bg) !important;
+  border-color: var(--app-input-border) !important;
+  color: var(--app-input-text) !important;
+}
+
+.task-portal-app[data-theme="dark"] input::placeholder,
+.task-portal-app[data-theme="dark"] textarea::placeholder {
+  color: var(--app-placeholder) !important;
+}
+
+.task-portal-app[data-theme="dark"] option {
+  background-color: var(--app-surface-soft);
+  color: var(--app-input-text);
+}
+
+.task-portal-app[data-theme="dark"] .shadow-sm,
+.task-portal-app[data-theme="dark"] .shadow-md {
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) !important;
+}
+
+.task-portal-app.login-shell[data-theme="light"] .bg-white\/5 {
+  background-color: rgba(255, 255, 255, 0.82) !important;
+}
+
+.task-portal-app.login-shell[data-theme="light"] .border-white\/10 {
+  border-color: rgba(203, 213, 225, 0.9) !important;
+}
+
+.task-portal-app.login-shell[data-theme="light"] .text-white,
+.task-portal-app.login-shell[data-theme="light"] .text-slate-300 {
+  color: var(--app-text) !important;
+}
+
+.task-portal-app.login-shell[data-theme="light"] .text-slate-400,
+.task-portal-app.login-shell[data-theme="light"] .text-slate-500 {
+  color: var(--app-text-muted) !important;
+}
