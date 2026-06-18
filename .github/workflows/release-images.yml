@@ -4,10 +4,8 @@ on:
   push:
     branches:
       - master
-      - main
     tags:
       - 'v*'
-  workflow_dispatch:
 
 permissions:
   contents: read
@@ -83,7 +81,6 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.image }}
           tags: |
-            type=sha,prefix=
             type=ref,event=branch
             type=ref,event=tag
 
@@ -93,7 +90,6 @@ jobs:
         with:
           images: ${{ env.DOCKERHUB_IMAGE }}
           tags: |
-            type=sha,suffix=-${{ matrix.component }}
             type=ref,event=branch,suffix=-${{ matrix.component }}
             type=ref,event=tag,suffix=-${{ matrix.component }}
 

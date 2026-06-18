@@ -1,0 +1,78 @@
+/**
+ * Any CSS included here will be global. The classic template
+ * bundles Infima by default. Infima is a CSS framework designed to
+ * work well for content-centric websites.
+ */
+
+/* You can override the default Infima variables here. */
+:root {
+  --ifm-color-primary: #12825c;
+  --ifm-color-primary-dark: #0f7452;
+  --ifm-color-primary-darker: #0d6749;
+  --ifm-color-primary-darkest: #0a513a;
+  --ifm-color-primary-light: #17966c;
+  --ifm-color-primary-lighter: #1da579;
+  --ifm-color-primary-lightest: #2fc08f;
+  --ifm-code-font-size: 95%;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
+  --easybpm-ink: #17211d;
+  --easybpm-muted: #587166;
+  --easybpm-panel: #f4f8f6;
+  --easybpm-line: #dce8e3;
+}
+
+[data-theme='dark'] {
+  --ifm-color-primary: #44d890;
+  --ifm-color-primary-dark: #31cb7f;
+  --ifm-color-primary-darker: #29be75;
+  --ifm-color-primary-darkest: #20995d;
+  --ifm-color-primary-light: #63e0a3;
+  --ifm-color-primary-lighter: #7de7b4;
+  --ifm-color-primary-lightest: #a8f0ce;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
+  --easybpm-ink: #eaf7f1;
+  --easybpm-muted: #abc6bb;
+  --easybpm-panel: #13211b;
+  --easybpm-line: #263b32;
+}
+
+.navbar {
+  box-shadow: 0 1px 0 var(--easybpm-line);
+}
+
+.theme-doc-markdown h1 {
+  letter-spacing: 0;
+}
+
+.theme-doc-markdown table {
+  display: table;
+  width: 100%;
+}
+
+.theme-doc-markdown th {
+  white-space: nowrap;
+}
+
+.easybpm-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 1rem;
+  margin: 1.25rem 0;
+}
+
+.easybpm-card {
+  border: 1px solid var(--easybpm-line);
+  border-radius: 8px;
+  padding: 1rem;
+  background: var(--easybpm-panel);
+}
+
+.easybpm-card h3 {
+  margin-top: 0;
+  margin-bottom: .35rem;
+}
+
+.easybpm-card p {
+  color: var(--easybpm-muted);
+  margin-bottom: 0;
+}
