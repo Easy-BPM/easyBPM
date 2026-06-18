@@ -1,8 +1,8 @@
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/easybpm
-    username: meu_usuario
-    password: minha_senha
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/easybpm}
+    username: ${SPRING_DATASOURCE_USERNAME:meu_usuario}
+    password: ${SPRING_DATASOURCE_PASSWORD:minha_senha}
     driver-class-name: org.postgresql.Driver
 
   flyway:
@@ -29,10 +29,10 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,metrics,prometheus
+        include: ${MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE:health,metrics,prometheus}
   endpoint:
     health:
-      show-details: always
+      show-details: ${MANAGEMENT_ENDPOINT_HEALTH_SHOW_DETAILS:always}
   metrics:
     export:
       prometheus:
@@ -46,9 +46,9 @@ management:
 
 logging:
   level:
-    root: INFO
-    com.easy.bpm: DEBUG
-    org.hibernate: WARN
+    root: ${LOGGING_LEVEL_ROOT:INFO}
+    com.easy.bpm: ${LOGGING_LEVEL_COM_EASY_BPM:DEBUG}
+    org.hibernate: ${LOGGING_LEVEL_ORG_HIBERNATE:WARN}
     org.hibernate.SQL: WARN
     org.hibernate.type.descriptor.sql.BasicBinder: WARN
   pattern:

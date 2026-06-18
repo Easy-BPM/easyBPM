@@ -18,15 +18,16 @@ enum class NodeType(val typeName: String) {
     MessageIntermediateCatchEvent("MessageIntermediateCatchEvent"),
     MessageIntermediateThrowEvent("MessageIntermediateThrowEvent"),
     ErrorBoundaryEvent("ErrorBoundaryEvent"),
+    Participant("Participant"),
     CallActivity("CallActivity");
 
     companion object {
         private val map = values().associateBy { it.typeName } + mapOf(
             // Backward compatibility for existing process definitions and imports.
-            "UserTask" to UserTask
+            "UserTask" to UserTask,
+            "Pool" to Participant
         )
         fun fromString(s: String): NodeType = map[s]
             ?: throw IllegalArgumentException("Invalid node type '$s'")
     }
 }
-

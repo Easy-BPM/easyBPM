@@ -1,15 +1,18 @@
 
 import React from 'react';
 import { LayoutDashboard, CheckSquare, PlayCircle, LogOut, Zap } from 'lucide-react';
+import { ThemeMode, ThemeToggle } from './ThemeToggle';
 
 interface SidebarProps {
   currentView: string;
   onChangeView: (view: string) => void;
   currentUser: string;
   onLogout: () => void;
+  theme: ThemeMode;
+  onToggleTheme: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ currentView, onChangeView, currentUser, onLogout }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ currentView, onChangeView, currentUser, onLogout, theme, onToggleTheme }) => {
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'inbox', label: 'My Inbox', icon: CheckSquare },
@@ -17,7 +20,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onChangeView, cur
   ];
 
   return (
-    <aside className="w-64 bg-slate-950 text-white flex flex-col h-screen sticky top-0 border-r border-slate-800">
+    <aside className="app-sidebar w-64 bg-slate-950 text-white flex flex-col h-screen sticky top-0 border-r border-slate-800">
       {/* Brand header */}
       <div className="px-5 py-5 border-b border-slate-800/80">
         <div className="flex items-center gap-3">
@@ -74,6 +77,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onChangeView, cur
           >
             <LogOut size={14} />
           </button>
+          <ThemeToggle theme={theme} onToggle={onToggleTheme} />
         </div>
       </div>
     </aside>

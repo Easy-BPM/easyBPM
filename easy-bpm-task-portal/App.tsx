@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { bpmService } from './services/bpmService';
 import { DynamicForm } from './components/DynamicForm';
+import { ThemeMode, ThemeToggle } from './components/ThemeToggle';
 import { Task, ProcessDefinition, TaskStatus, Form } from './types';
 import {
   Play,
@@ -70,9 +71,21 @@ const mapToVariableEntries = (variables: Record<string, any>): VariableEntry[] =
 };
 
 const App: React.FC = () => {
+  const [theme, setTheme] = useState<ThemeMode>(() => {
+    const storedTheme = localStorage.getItem('easyBpmTaskPortalTheme');
+    if (storedTheme === 'light' || storedTheme === 'dark') return storedTheme;
+    return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  });
   const [currentUser, setCurrentUser] = useState<string | null>(null);
   const [currentView, setCurrentView] = useState('inbox');
   const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
+
+  useEffect(() => {
+    localStorage.setItem('easyBpmTaskPortalTheme', theme);
+    document.documentElement.dataset.easyBpmTaskPortalTheme = theme;
+  }, [theme]);
+
+  const toggleTheme = () => setTheme((current) => current === 'dark' ? 'light' : 'dark');
 
   const handleLogin = (username: string) => {
     setCurrentUser(username);
@@ -91,7 +104,7 @@ const App: React.FC = () => {
   };
 
   if (!currentUser) {
-    return <LoginView onLogin={handleLogin} />;
+    return <LoginView onLogin={handleLogin} theme={theme} onToggleTheme={toggleTheme} />;
   }
 
   const renderView = () => {
@@ -112,12 +125,14 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-slate-50 font-sans">
+    <div className="task-portal-app flex min-h-screen bg-slate-50 font-sans" data-theme={theme}>
       <Sidebar
         currentView={currentView}
         onChangeView={setCurrentView}
         currentUser={currentUser}
         onLogout={handleLogout}
+        theme={theme}
+        onToggleTheme={toggleTheme}
       />
       <main className="flex-1 p-8 overflow-y-auto h-screen">
         <div className="max-w-5xl mx-auto">{renderView()}</div>
@@ -126,7 +141,7 @@ const App: React.FC = () => {
   );
 };
 
-const LoginView: React.FC<{ onLogin: (username: string) => void }> = ({ onLogin }) => {
+const LoginView: React.FC<{ onLogin: (username: string) => void; theme: ThemeMode; onToggleTheme: () => void }> = ({ onLogin, theme, onToggleTheme }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -147,7 +162,10 @@ const LoginView: React.FC<{ onLogin: (username: string) => void }> = ({ onLogin 
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 p-4">
+    <div className="task-portal-app login-shell min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 p-4" data-theme={theme}>
+      <div className="absolute right-5 top-5">
+        <ThemeToggle theme={theme} onToggle={onToggleTheme} />
+      </div>
       <div className="w-full max-w-md">
         {/* Card */}
         <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8 shadow-2xl">

@@ -1,0 +1,390 @@
+.process-modeler,
+.form-modeler,
+.welcome-modeler {
+  --modeler-bg: #f8fafc;
+  --modeler-surface: #ffffff;
+  --modeler-surface-muted: #f1f5f9;
+  --modeler-surface-subtle: #f8fafc;
+  --modeler-border: #dbe3ec;
+  --modeler-border-strong: #cbd5e1;
+  --modeler-text: #0f172a;
+  --modeler-text-soft: #334155;
+  --modeler-text-muted: #64748b;
+  --modeler-input-bg: #ffffff;
+  --modeler-input-border: #cbd5e1;
+  --modeler-input-text: #0f172a;
+  --modeler-placeholder: #94a3b8;
+  --modeler-canvas-bg: #eef4fb;
+  --modeler-canvas-grid: rgba(71, 85, 105, 0.22);
+  --modeler-node-fill: #ffffff;
+  --modeler-node-label: #0f172a;
+  --modeler-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+  color-scheme: light;
+  background: var(--modeler-bg);
+  color: var(--modeler-text);
+}
+
+.process-modeler[data-theme="dark"],
+.form-modeler[data-theme="dark"],
+.welcome-modeler[data-theme="dark"] {
+  --modeler-bg: #0f171d;
+  --modeler-surface: #121920;
+  --modeler-surface-muted: #1a2430;
+  --modeler-surface-subtle: #101820;
+  --modeler-border: #25313d;
+  --modeler-border-strong: #2d3a47;
+  --modeler-text: #e5edf5;
+  --modeler-text-soft: #cbd5e1;
+  --modeler-text-muted: #94a3b8;
+  --modeler-input-bg: #0f171d;
+  --modeler-input-border: #2d3a47;
+  --modeler-input-text: #e5edf5;
+  --modeler-placeholder: #718096;
+  --modeler-canvas-bg: #0f171d;
+  --modeler-canvas-grid: rgba(148, 163, 184, 0.26);
+  --modeler-node-fill: #111a21;
+  --modeler-node-label: #f1f5f9;
+  --modeler-shadow: 0 1px 0 rgba(255, 255, 255, 0.04);
+  color-scheme: dark;
+  background: var(--modeler-bg);
+}
+
+.modeler-navbar,
+.modeler-toolbar {
+  background-color: var(--modeler-surface);
+  border-color: var(--modeler-border);
+  box-shadow: var(--modeler-shadow);
+}
+
+.modeler-heading {
+  color: var(--modeler-text);
+}
+
+.modeler-muted {
+  color: var(--modeler-text-muted);
+}
+
+.modeler-canvas {
+  background-color: var(--modeler-canvas-bg);
+}
+
+.modeler-ghost-button {
+  color: var(--modeler-text-soft);
+}
+
+.modeler-ghost-button:hover,
+.theme-toggle:hover {
+  background-color: color-mix(in srgb, var(--modeler-text) 8%, transparent);
+  color: var(--modeler-text);
+}
+
+.theme-toggle {
+  align-items: center;
+  background-color: var(--modeler-surface-muted);
+  border: 1px solid var(--modeler-border);
+  border-radius: 999px;
+  color: var(--modeler-text-soft);
+  display: inline-flex;
+  height: 32px;
+  justify-content: center;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  width: 32px;
+}
+
+.welcome-modeler[data-theme="light"] {
+  background: linear-gradient(135deg, #f8fafc 0%, #eef6ff 52%, #e8f5f0 100%);
+}
+
+.welcome-modeler[data-theme="dark"] {
+  background: linear-gradient(135deg, #020617 0%, #0f172a 52%, #172554 100%);
+}
+
+.welcome-modeler[data-theme="light"] .bg-white\/5 {
+  background-color: rgba(255, 255, 255, 0.82) !important;
+}
+
+.welcome-modeler[data-theme="light"] .border-white\/10 {
+  border-color: rgba(203, 213, 225, 0.9) !important;
+}
+
+.welcome-modeler[data-theme="light"] .text-white {
+  color: #0f172a !important;
+}
+
+.welcome-modeler[data-theme="light"] .text-slate-300,
+.welcome-modeler[data-theme="light"] .text-slate-400 {
+  color: #475569 !important;
+}
+
+.welcome-modeler[data-theme="light"] .text-slate-500 {
+  color: #64748b !important;
+}
+
+.welcome-modeler[data-theme="light"] .bg-slate-700\/50 {
+  background-color: #e2e8f0 !important;
+}
+
+.welcome-modeler[data-theme="light"] .bg-slate-800 {
+  background-color: #ffffff !important;
+}
+
+.process-modeler[data-theme="light"] .bg-\[\#0f171d\],
+.process-modeler[data-theme="light"] .bg-\[\#121920\],
+.process-modeler[data-theme="light"] .bg-\[\#10161c\],
+.form-modeler[data-theme="light"] .bg-\[\#0f171d\],
+.form-modeler[data-theme="light"] .bg-\[\#121920\],
+.form-modeler[data-theme="light"] .bg-\[\#10161c\] {
+  background-color: var(--modeler-surface) !important;
+}
+
+.process-modeler[data-theme="light"] .border-\[\#25313d\],
+.form-modeler[data-theme="light"] .border-\[\#25313d\] {
+  border-color: var(--modeler-border) !important;
+}
+
+.process-modeler[data-theme="light"] .text-white,
+.process-modeler[data-theme="light"] .text-slate-100,
+.process-modeler[data-theme="light"] .text-slate-200,
+.form-modeler[data-theme="light"] .text-white,
+.form-modeler[data-theme="light"] .text-slate-100,
+.form-modeler[data-theme="light"] .text-slate-200 {
+  color: var(--modeler-text) !important;
+}
+
+.process-modeler[data-theme="light"] .text-slate-300,
+.process-modeler[data-theme="light"] .text-slate-400,
+.form-modeler[data-theme="light"] .text-slate-300,
+.form-modeler[data-theme="light"] .text-slate-400 {
+  color: var(--modeler-text-muted) !important;
+}
+
+.process-modeler[data-theme="light"] .bg-white\/\[0\.04\],
+.form-modeler[data-theme="light"] .bg-white\/\[0\.04\] {
+  background-color: var(--modeler-surface) !important;
+}
+
+.process-modeler[data-theme="light"] .border-white\/\[0\.07\],
+.form-modeler[data-theme="light"] .border-white\/\[0\.07\] {
+  border-color: var(--modeler-border) !important;
+}
+
+.process-modeler[data-theme="light"] .bg-black\/10,
+.form-modeler[data-theme="light"] .bg-black\/10 {
+  background-color: var(--modeler-surface-muted) !important;
+}
+
+.process-modeler[data-theme="light"] .fill-\[\#111a21\],
+.form-modeler[data-theme="light"] .fill-\[\#111a21\] {
+  fill: var(--modeler-node-fill) !important;
+}
+
+.process-modeler[data-theme="light"] .stroke-\[\#111a21\],
+.form-modeler[data-theme="light"] .stroke-\[\#111a21\] {
+  stroke: var(--modeler-node-fill) !important;
+}
+
+.process-modeler[data-theme="light"] .fill-slate-100,
+.process-modeler[data-theme="light"] .fill-slate-200,
+.form-modeler[data-theme="light"] .fill-slate-100,
+.form-modeler[data-theme="light"] .fill-slate-200 {
+  fill: var(--modeler-node-label) !important;
+}
+
+.process-modeler[data-theme="dark"] .bg-slate-100\/50,
+.form-modeler[data-theme="dark"] .bg-slate-100\/50 {
+  background-color: #0f171d !important;
+}
+
+.process-modeler[data-theme="dark"] .bg-white,
+.process-modeler[data-theme="dark"] .bg-slate-50,
+.process-modeler[data-theme="dark"] .bg-slate-100,
+.form-modeler[data-theme="dark"] .bg-white,
+.form-modeler[data-theme="dark"] .bg-slate-50,
+.form-modeler[data-theme="dark"] .bg-slate-100 {
+  background-color: #121920 !important;
+}
+
+.process-modeler[data-theme="dark"] .bg-blue-50\/30,
+.form-modeler[data-theme="dark"] .bg-blue-50,
+.form-modeler[data-theme="dark"] .bg-blue-50\/30,
+.form-modeler[data-theme="dark"] .bg-blue-50\/40 {
+  background-color: rgba(37, 99, 235, 0.12) !important;
+}
+
+.process-modeler[data-theme="dark"] .bg-red-50,
+.process-modeler[data-theme="dark"] .bg-red-50\/20,
+.form-modeler[data-theme="dark"] .bg-red-50,
+.form-modeler[data-theme="dark"] .bg-red-50\/20 {
+  background-color: rgba(239, 68, 68, 0.12) !important;
+}
+
+.process-modeler[data-theme="dark"] .bg-amber-50,
+.process-modeler[data-theme="dark"] .bg-yellow-50,
+.form-modeler[data-theme="dark"] .bg-amber-50,
+.form-modeler[data-theme="dark"] .bg-yellow-50 {
+  background-color: rgba(245, 158, 11, 0.12) !important;
+}
+
+.process-modeler[data-theme="dark"] .bg-emerald-50,
+.process-modeler[data-theme="dark"] .bg-green-50,
+.form-modeler[data-theme="dark"] .bg-emerald-50,
+.form-modeler[data-theme="dark"] .bg-green-50 {
+  background-color: rgba(16, 185, 129, 0.12) !important;
+}
+
+.process-modeler[data-theme="dark"] .bg-indigo-50,
+.form-modeler[data-theme="dark"] .bg-indigo-50 {
+  background-color: rgba(99, 102, 241, 0.12) !important;
+}
+
+.process-modeler[data-theme="dark"] .border-slate-50,
+.process-modeler[data-theme="dark"] .border-slate-100,
+.process-modeler[data-theme="dark"] .border-slate-200,
+.process-modeler[data-theme="dark"] .border-slate-300,
+.form-modeler[data-theme="dark"] .border-slate-50,
+.form-modeler[data-theme="dark"] .border-slate-100,
+.form-modeler[data-theme="dark"] .border-slate-200,
+.form-modeler[data-theme="dark"] .border-slate-300 {
+  border-color: #25313d !important;
+}
+
+.process-modeler[data-theme="dark"] .border-blue-200,
+.form-modeler[data-theme="dark"] .border-blue-200 {
+  border-color: rgba(59, 130, 246, 0.35) !important;
+}
+
+.process-modeler[data-theme="dark"] .border-red-200,
+.process-modeler[data-theme="dark"] .border-red-300,
+.form-modeler[data-theme="dark"] .border-red-200,
+.form-modeler[data-theme="dark"] .border-red-300 {
+  border-color: rgba(239, 68, 68, 0.45) !important;
+}
+
+.process-modeler[data-theme="dark"] .border-amber-100,
+.process-modeler[data-theme="dark"] .border-amber-200,
+.process-modeler[data-theme="dark"] .border-yellow-200,
+.form-modeler[data-theme="dark"] .border-amber-100,
+.form-modeler[data-theme="dark"] .border-amber-200,
+.form-modeler[data-theme="dark"] .border-yellow-200 {
+  border-color: rgba(245, 158, 11, 0.45) !important;
+}
+
+.process-modeler[data-theme="dark"] .border-emerald-200,
+.process-modeler[data-theme="dark"] .border-green-100,
+.form-modeler[data-theme="dark"] .border-emerald-200,
+.form-modeler[data-theme="dark"] .border-green-100 {
+  border-color: rgba(16, 185, 129, 0.35) !important;
+}
+
+.process-modeler[data-theme="dark"] .text-slate-900,
+.process-modeler[data-theme="dark"] .text-slate-800,
+.process-modeler[data-theme="dark"] .text-slate-700,
+.form-modeler[data-theme="dark"] .text-slate-900,
+.form-modeler[data-theme="dark"] .text-slate-800,
+.form-modeler[data-theme="dark"] .text-slate-700 {
+  color: #e5edf5 !important;
+}
+
+.process-modeler[data-theme="dark"] .text-slate-600,
+.process-modeler[data-theme="dark"] .text-slate-500,
+.form-modeler[data-theme="dark"] .text-slate-600,
+.form-modeler[data-theme="dark"] .text-slate-500 {
+  color: #94a3b8 !important;
+}
+
+.process-modeler[data-theme="dark"] .text-slate-400,
+.form-modeler[data-theme="dark"] .text-slate-400 {
+  color: #7f8ea3 !important;
+}
+
+.process-modeler input,
+.process-modeler textarea,
+.process-modeler select,
+.form-modeler input,
+.form-modeler textarea,
+.form-modeler select {
+  background-color: var(--modeler-input-bg) !important;
+  border-color: var(--modeler-input-border) !important;
+  color: var(--modeler-input-text) !important;
+  border-radius: 4px !important;
+  font-size: 12px !important;
+  line-height: 1.25rem !important;
+}
+
+.process-modeler input,
+.process-modeler select,
+.form-modeler input,
+.form-modeler select {
+  min-height: 32px !important;
+  padding: 0.35rem 0.6rem !important;
+}
+
+.process-modeler textarea,
+.form-modeler textarea {
+  padding: 0.45rem 0.6rem !important;
+}
+
+.process-modeler input::placeholder,
+.process-modeler textarea::placeholder,
+.form-modeler input::placeholder,
+.form-modeler textarea::placeholder {
+  color: var(--modeler-placeholder) !important;
+}
+
+.process-modeler option,
+.form-modeler option {
+  background-color: var(--modeler-surface-subtle);
+  color: var(--modeler-input-text);
+}
+
+.process-modeler button:hover input,
+.process-modeler button:hover textarea,
+.process-modeler button:hover select,
+.form-modeler button:hover input,
+.form-modeler button:hover textarea,
+.form-modeler button:hover select {
+  background-color: var(--modeler-input-bg) !important;
+}
+
+.process-modeler[data-theme="dark"] ::-webkit-scrollbar-thumb,
+.form-modeler[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: #334155;
+}
+
+.process-modeler[data-theme="dark"] ::-webkit-scrollbar-thumb:hover,
+.form-modeler[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+.form-modeler .rounded-xl,
+.form-modeler .rounded-lg {
+  border-radius: 6px !important;
+}
+
+.form-modeler .rounded-md {
+  border-radius: 4px !important;
+}
+
+.form-modeler input:disabled,
+.form-modeler textarea:disabled,
+.form-modeler select:disabled {
+  background-color: var(--modeler-surface-muted) !important;
+  color: var(--modeler-text-muted) !important;
+  opacity: 1 !important;
+}
+
+.form-modeler[data-theme="dark"] .shadow-sm {
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) !important;
+}
+
+.form-modeler .ring-blue-100 {
+  --tw-ring-color: rgba(59, 130, 246, 0.25) !important;
+}
+
+.form-modeler[data-theme="dark"] .bg-slate-900\/40 {
+  background-color: rgba(2, 6, 23, 0.72) !important;
+}
+
+.form-modeler .opacity-40 {
+  color: #94a3b8;
+}

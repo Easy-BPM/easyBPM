@@ -1,0 +1,89 @@
+{{- if .Values.ingress.enabled }}
+{{- $apiPaths := list "/auth" "/processes" "/forms" "/tasks" "/code-tasks" "/admin" "/api" "/actuator" -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "easybpm.fullname" . }}
+  labels:
+    {{- include "easybpm.labels" . | nindent 4 }}
+spec:
+  ingressClassName: {{ .Values.ingress.className | quote }}
+  {{- if .Values.ingress.tls }}
+  tls:
+    {{- toYaml .Values.ingress.tls | nindent 4 }}
+  {{- end }}
+  rules:
+    - host: {{ .Values.ingress.apiHost | quote }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "easybpm.fullname" . }}-backend
+                port:
+                  number: {{ .Values.backend.service.port }}
+    {{- if .Values.web.admin.enabled }}
+    - host: {{ .Values.web.admin.host | quote }}
+      http:
+        paths:
+          {{- range $apiPaths }}
+          - path: {{ . }}
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "easybpm.fullname" $ }}-backend
+                port:
+                  number: {{ $.Values.backend.service.port }}
+          {{- end }}
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "easybpm.fullname" . }}-admin
+                port:
+                  number: {{ .Values.web.service.port }}
+    {{- end }}
+    {{- if .Values.web.modeler.enabled }}
+    - host: {{ .Values.web.modeler.host | quote }}
+      http:
+        paths:
+          {{- range $apiPaths }}
+          - path: {{ . }}
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "easybpm.fullname" $ }}-backend
+                port:
+                  number: {{ $.Values.backend.service.port }}
+          {{- end }}
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "easybpm.fullname" . }}-modeler
+                port:
+                  number: {{ .Values.web.service.port }}
+    {{- end }}
+    {{- if .Values.web.taskPortal.enabled }}
+    - host: {{ .Values.web.taskPortal.host | quote }}
+      http:
+        paths:
+          {{- range $apiPaths }}
+          - path: {{ . }}
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "easybpm.fullname" $ }}-backend
+                port:
+                  number: {{ $.Values.backend.service.port }}
+          {{- end }}
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "easybpm.fullname" . }}-task-portal
+                port:
+                  number: {{ .Values.web.service.port }}
+    {{- end }}
+{{- end }}

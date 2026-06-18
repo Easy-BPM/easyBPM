@@ -20,14 +20,27 @@ import { Sidebar } from './components/Sidebar';
 import { WorkflowCanvas } from './components/WorkflowCanvas';
 import { CodeTaskExecutionListPage } from './components/CodeTaskExecutionListPage';
 import { SecurityAdminView } from './components/SecurityAdminView';
+import { ThemeMode, ThemeToggle } from './components/ThemeToggle';
 import { adminService } from './services/adminService';
 import { ProcessDefinition, ProcessInstance, ProcessVariable, WorkflowDefinition } from './types';
 
 const App: React.FC = () => {
+  const [theme, setTheme] = useState<ThemeMode>(() => {
+    const storedTheme = localStorage.getItem('easyBpmAdminTheme');
+    if (storedTheme === 'light' || storedTheme === 'dark') return storedTheme;
+    return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  });
   const [currentUser, setCurrentUser] = useState<string | null>(null);
   const [permissions, setPermissions] = useState<string[]>([]);
   const [currentView, setCurrentView] = useState('dashboard');
   const [authLoading, setAuthLoading] = useState(true);
+
+  useEffect(() => {
+    localStorage.setItem('easyBpmAdminTheme', theme);
+    document.documentElement.dataset.easyBpmAdminTheme = theme;
+  }, [theme]);
+
+  const toggleTheme = () => setTheme((current) => current === 'dark' ? 'light' : 'dark');
 
   useEffect(() => {
     const session = adminService.getSession();
@@ -66,12 +79,12 @@ const App: React.FC = () => {
   }
 
   if (!currentUser) {
-    return <LoginView onLogin={handleLogin} />;
+    return <LoginView onLogin={handleLogin} theme={theme} onToggleTheme={toggleTheme} />;
   }
 
   if (!permissions.includes('ACCESS_BPM_ADMIN')) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-100">
+      <div className="admin-app min-h-screen flex items-center justify-center bg-slate-100" data-theme={theme}>
         <div className="bg-white border border-slate-200 rounded-xl p-6 text-center">
           <h2 className="text-lg font-semibold text-slate-800">Access denied</h2>
           <p className="text-slate-500 mt-1">Your account does not have BPM Admin access.</p>
@@ -99,13 +112,15 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-slate-50 font-sans">
+    <div className="admin-app flex min-h-screen bg-slate-50 font-sans" data-theme={theme}>
       <Sidebar
         currentView={currentView}
         onChangeView={setCurrentView}
         currentUser={currentUser}
         permissions={permissions}
         onLogout={handleLogout}
+        theme={theme}
+        onToggleTheme={toggleTheme}
       />
       <main className="flex-1 px-8 py-8 overflow-y-auto h-screen">
         <div className="max-w-5xl mx-auto">{renderView()}</div>
@@ -114,7 +129,7 @@ const App: React.FC = () => {
   );
 };
 
-const LoginView: React.FC<{ onLogin: (username: string, perms: string[]) => void }> = ({ onLogin }) => {
+const LoginView: React.FC<{ onLogin: (username: string, perms: string[]) => void; theme: ThemeMode; onToggleTheme: () => void }> = ({ onLogin, theme, onToggleTheme }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -136,7 +151,10 @@ const LoginView: React.FC<{ onLogin: (username: string, perms: string[]) => void
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 p-4">
+    <div className="admin-app login-shell min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 p-4" data-theme={theme}>
+      <div className="absolute right-5 top-5">
+        <ThemeToggle theme={theme} onToggle={onToggleTheme} />
+      </div>
       <div className="w-full max-w-md">
         {/* Card */}
         <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8 shadow-2xl">

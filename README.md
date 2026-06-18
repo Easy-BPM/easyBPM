@@ -1,113 +1,100 @@
-# Easy BPM — Local dev notes
+# EasyBPM
 
-Overview
-- This repository is a Spring Boot BPM engine. Recent changes add RabbitMQ-based async execution for `ServiceTask` nodes and a small `worker/` service that consumes service-task requests and publishes completions.
+EasyBPM is a Kotlin/Spring Boot business process engine with a React modeler, an admin console, a task portal, and an async worker for external/API work. It stores process definitions as an internal JSON graph, persists process execution state in PostgreSQL, and uses RabbitMQ to hand long-running work to the worker.
 
-Key changes
-- Added RabbitMQ service to `docker-compose.yml`.
-- Monolith publishes service-task requests (see `src/main/kotlin/com/easy/bpm/messaging/RabbitPublisher.kt`).
-- Monolith listens for completions in `src/main/kotlin/com/easy/bpm/messaging/RabbitListenerService.kt` and `ProcessService` has `handleServiceTaskCompleted(...)` to continue execution.
-- A simple worker scaffold lives in `worker/` and executes HTTP-style integrations, publishing completion events back to the exchange.
+## What Is In This Repository
 
-Prerequisites
+| Path | Purpose |
+| --- | --- |
+| `src/main/kotlin/com/easy/bpm` | Main Spring Boot backend and BPM runtime |
+| `worker/` | Second Spring Boot app that consumes RabbitMQ work and reuses backend classes |
+| `easy-bpm-modeler/` | React/Vite process and form modeler |
+| `easy-bpm-admin/` | React/Vite admin console for instances, variables, security, and code-task audits |
+| `easy-bpm-task-portal/` | React/Vite portal for users to start processes and complete human tasks |
+| `docs-site-working/` | Docusaurus documentation site |
+| `src/test/kotlin/com/easy/bpm` | Unit, controller, repository, worker, and integration tests |
+| `src/main/resources/db/migration` | Flyway migrations for the PostgreSQL schema |
+
+## Architecture
+
+```mermaid
+flowchart LR
+  Modeler["Modeler UI\n:3000"] --> Backend["Backend API\n:8080"]
+  Admin["Admin UI\n:3001 local / :5173 compose"] --> Backend
+  Portal["Task Portal\n:3002 local / :5174 compose"] --> Backend
+  Backend --> Postgres["PostgreSQL\n:5432"]
+  Backend --> Rabbit["RabbitMQ\n:5672 / :15672"]
+  Rabbit --> Worker["Worker app"]
+  Worker --> External["External APIs / services"]
+  Worker --> Rabbit
+```
+
+The main runtime flow is:
+
+1. A process is modeled in `easy-bpm-modeler/`.
+2. The modeler exports an internal JSON graph, not BPMN XML.
+3. The backend stores it in `ProcessDefinition.definitionJson`.
+4. `ProcessService` deploys, starts, and executes process instances.
+5. Human work is stored in `task` and `task_variable`.
+6. API/service work is published to RabbitMQ and executed by `worker/`.
+7. Completion messages resume waiting process instances in the backend.
+
+## Main Capabilities
+
+- Process deployment, versioning, starting, execution, stopping, and manual node movement.
+- JSONB process and task variables with typed API responses.
+- Human task claim and completion flows.
+- Dynamic forms with stable `formId` references.
+- Message catch/throw events with correlation keys.
+- Parallel and exclusive gateway execution.
+- Call activity/subprocess support with parent/child instance hierarchy and variable mappings.
+- Async API task execution through RabbitMQ and the worker.
+- Code-task jar upload, reflection metadata discovery, execution, and audit history.
+- Document upload, preview, download, and task-form integration.
+- JWT/RBAC security with bootstrapped admin user and group.
+- Actuator health, metrics, and Prometheus endpoints.
+
+## Prerequisites
+
 - Java 21
-- Docker & Docker Compose
-- (Windows) use `gradlew.bat` or WSL; on mac/linux use `./gradlew`
+- Docker and Docker Compose
+- Node.js 18+ for the React apps
+- Node.js 20+ for the Docusaurus docs site
 
-Quick start (local)
+## Quick Start: Local Development
 
-1. Start infrastructure (Postgres + RabbitMQ):
+Start PostgreSQL and RabbitMQ:
 
-```powershell
-docker-compose up -d
-docker-compose ps
+```bash
+docker-compose up -d postgres rabbitmq
 ```
 
-2. Run the monolith (from repo root):
-
-```powershell
-.
-\gradlew.bat bootRun
-```
-
-Or (POSIX):
+Run the backend:
 
 ```bash
 ./gradlew bootRun
 ```
 
-3. Run the worker (in a separate terminal):
+Run the worker in another terminal:
 
-```powershell
-cd worker
-.
-\gradlew.bat bootRun
+```bash
+./gradlew :worker:bootRun
 ```
 
-4. RabbitMQ management UI: http://localhost:15672 (user: `easybpm` / pass: `easybpm`)
+Run the frontends as needed:
 
-Notes
-- The monolith no longer executes `ServiceTask` HTTP calls synchronously; it publishes a request message and waits for an external worker to send a completion message.
-- The worker implemented here is intentionally minimal (see `worker/src/main/kotlin/com/easy/bpm/worker/WorkerListener.kt`) — extend security, retries, timeouts and idempotency as needed.
-- DB migrations remain managed by Flyway (`src/main/resources/db/migration`). Initially the monolith and worker share the same database; a later step is splitting DBs per service.
-
-Example message (ServiceTask request)
-
-```json
-{
-  "processInstanceId": 123,
-  "nodeId": "send-email",
-  "properties": {
-    "url": "https://example.com/webhook",
-    "method": "POST",
-    "headers": { "Authorization": "Bearer ..." },
-    "body": { "foo": "bar" }
-  }
-}
+```bash
+cd easy-bpm-modeler && npm install && npm run dev
+cd easy-bpm-admin && npm install && npm run dev
+cd easy-bpm-task-portal && npm install && npm run dev
 ```
 
-Next steps
-- Harden worker (retries, DLQ, idempotency keys).
-- Add health checks and metrics for both services.
-- Optionally split services and DB ownership when ready.
+Useful local URLs:
 
-# Message Events: Catch & Throw
-
-## Overview
-This BPM engine supports BPMN-style Message Catch and Message Throw events for process orchestration and external system integration. Message events enable asynchronous communication and process coordination using message name and correlation key.
-
-## How It Works
-- **Message Catch Event**: Pauses a process instance, waiting for a message with a specific name and correlation key.
-- **Message Throw Event**: Sends a message with a name, correlation key, and optional payload. Any waiting process instance with a matching catch event resumes.
-- **Correlation**: Matching is performed on both `messageName` and `correlationKey`. The correlation key can be a literal or a variable expression.
-
-## Example Usage
-See `src/main/resources/examples/message-catch-process.json` and `message-throw-process.json` for minimal working examples.
-
-- Deploy both processes via the API or UI.
-- Start an instance of the catch process (it will wait at the message event).
-- Start an instance of the throw process (it will send the message and complete).
-- The catch process will resume and complete when the message is delivered.
-
-## Integration Testing
-Integration tests (see `ProcessIntegrationTest`) validate:
-- Message Catch event pauses the process as expected.
-- Message Throw event sends a message with the correct correlation key.
-- The engine resumes and completes the waiting process instance when the message is delivered.
-
-## Example API Call
-Send a message to resume a process:
-```json
-POST /processes/messages
-{
-  "messageName": "Order",
-  "correlationKey": "004",
-  "variables": {}
-}
-```
-
-## References
-- Example definitions: `src/main/resources/examples/`
-- Integration tests: `src/test/kotlin/com/easy/bpm/integration/ProcessIntegrationTest.kt`
-
----
+| Service | URL |
+| --- | --- |
+| Backend API | `http://localhost:8080` |
+| Swagger UI | `http://localhost:8080/swagger-ui.html` |
+| RabbitMQ management | `http://localhost:15672` |
+| Modeler | `http://localhost:3000` |
+| Admin UI | `http://localhost:3001` |
