@@ -35,6 +35,7 @@ services:
       SPRING_DATASOURCE_USERNAME: meu_usuario
       SPRING_DATASOURCE_PASSWORD: minha_senha
       SPRING_RABBITMQ_HOST: rabbitmq
+      EASYBPM_SECURITY_JWT_EXPIRATION_MS: "86400000"
     command: sh -c "java -jar /app/app.jar --server.port=8080"
     ports:
       - "8080:8080"

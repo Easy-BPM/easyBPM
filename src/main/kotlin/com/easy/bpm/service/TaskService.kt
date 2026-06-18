@@ -598,13 +598,23 @@ class TaskService(
 
     private fun persistTaskVariables(task: Task, variables: Map<String, Any>) {
         variables.forEach { (key, value) ->
-            taskVariableRepository.save(
-                TaskVariable(
-                    taskId = task.id,
-                    name = key,
-                    value = objectMapper.valueToTree(value)
+            val valueNode = objectMapper.valueToTree<JsonNode>(value)
+            val existingVariables = taskVariableRepository.findAllByTaskIdAndNameOrderByIdDesc(task.id, key)
+            val latest = existingVariables.firstOrNull()
+
+            if (latest != null) {
+                latest.value = valueNode
+                taskVariableRepository.save(latest)
+                existingVariables.drop(1).forEach { taskVariableRepository.delete(it) }
+            } else {
+                taskVariableRepository.save(
+                    TaskVariable(
+                        taskId = task.id,
+                        name = key,
+                        value = valueNode
+                    )
                 )
-            )
+            }
         }
     }
 
@@ -628,7 +638,8 @@ class TaskService(
 
             val finalValue: JsonNode = if (!sourceName.isNullOrBlank()) {
                 val taskVar = taskVariableRepository
-                    .findByTaskIdAndName(task.id, sourceName)
+                    .findAllByTaskIdAndNameOrderByIdDesc(task.id, sourceName)
+                    .firstOrNull()
                     ?: throw IllegalArgumentException("Task variable '$sourceName' not found")
                 taskVar.value
             } else {

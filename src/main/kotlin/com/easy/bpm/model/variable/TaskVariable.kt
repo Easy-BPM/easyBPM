@@ -16,6 +16,6 @@ data class TaskVariable(
 
     @Type(JsonBinaryType::class)
     @Column(columnDefinition = "jsonb")
-    val value: JsonNode
+    var value: JsonNode
 )
 

@@ -79,6 +79,7 @@ const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<string | null>(null);
   const [currentView, setCurrentView] = useState('inbox');
   const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
 
   useEffect(() => {
     localStorage.setItem('easyBpmTaskPortalTheme', theme);
@@ -87,12 +88,43 @@ const App: React.FC = () => {
 
   const toggleTheme = () => setTheme((current) => current === 'dark' ? 'light' : 'dark');
 
+  useEffect(() => {
+    const session = bpmService.getSession();
+    if (!session?.username) {
+      setAuthLoading(false);
+      return;
+    }
+
+    setCurrentUser(session.username);
+    bpmService.me()
+      .then((me) => setCurrentUser(me.username))
+      .catch(() => {
+        bpmService.clearSession();
+        setCurrentUser(null);
+        setCurrentView('inbox');
+        setSelectedTaskId(null);
+      })
+      .finally(() => setAuthLoading(false));
+  }, []);
+
+  useEffect(() => {
+    const handleAuthExpired = () => {
+      setCurrentUser(null);
+      setCurrentView('inbox');
+      setSelectedTaskId(null);
+    };
+
+    window.addEventListener('easybpm-portal-auth-expired', handleAuthExpired);
+    return () => window.removeEventListener('easybpm-portal-auth-expired', handleAuthExpired);
+  }, []);
+
   const handleLogin = (username: string) => {
     setCurrentUser(username);
     setCurrentView('inbox');
   };
 
   const handleLogout = () => {
+    bpmService.clearSession();
     setCurrentUser(null);
     setCurrentView('inbox');
     setSelectedTaskId(null);
@@ -102,6 +134,10 @@ const App: React.FC = () => {
     setSelectedTaskId(taskId);
     setCurrentView('task-detail');
   };
+
+  if (authLoading) {
+    return <div className="min-h-screen flex items-center justify-center text-slate-600">Loading session...</div>;
+  }
 
   if (!currentUser) {
     return <LoginView onLogin={handleLogin} theme={theme} onToggleTheme={toggleTheme} />;
@@ -152,8 +188,8 @@ const LoginView: React.FC<{ onLogin: (username: string) => void; theme: ThemeMod
 
     setLoading(true);
     try {
-      await bpmService.login(username.trim(), password);
-      onLogin(username.trim());
+      const session = await bpmService.login(username.trim(), password);
+      onLogin(session.username);
     } catch (error) {
       console.error(error);
     } finally {
@@ -641,6 +677,38 @@ const TaskDetailView: React.FC<{ taskId: number; onBack: () => void; currentUser
     return output;
   };
 
+  const validateFormData = (): string | null => {
+    if (!formDef) return null;
+
+    const schema = formDef.schema;
+    const properties = schema.properties || {};
+
+    for (const key of schema.required || []) {
+      const prop = properties[key];
+      const value = formData[key];
+      const label = prop?.title || key;
+
+      if (prop?.readOnly) continue;
+
+      if (prop?.type === 'boolean') {
+        if (typeof value !== 'boolean') {
+          return `${label} is required.`;
+        }
+        continue;
+      }
+
+      if (value === undefined || value === null || value === '') {
+        return `${label} is required.`;
+      }
+
+      if (Array.isArray(value) && value.length === 0) {
+        return `${label} is required.`;
+      }
+    }
+
+    return null;
+  };
+
   const validateVariableEntries = (): string | null => {
     if (formDef) return null;
 
@@ -668,6 +736,12 @@ const TaskDetailView: React.FC<{ taskId: number; onBack: () => void; currentUser
 
   const handleComplete = async () => {
     if (!task) return;
+
+    const formValidationError = validateFormData();
+    if (formValidationError) {
+      setError(formValidationError);
+      return;
+    }
 
     const validationError = validateVariableEntries();
     if (validationError) {

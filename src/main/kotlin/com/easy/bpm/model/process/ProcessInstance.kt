@@ -17,6 +17,7 @@ data class ProcessInstance(
         @JoinColumn(name = "process_definition_id")
         val processDefinition: ProcessDefinition,
 
+        @Enumerated(EnumType.STRING)
         var status: ProcessStatus,
 
         @Type(JsonBinaryType::class)

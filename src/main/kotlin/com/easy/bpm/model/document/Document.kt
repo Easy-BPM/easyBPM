@@ -1,6 +1,8 @@
 package com.easy.bpm.model.document
 
 import jakarta.persistence.*
+import org.hibernate.annotations.JdbcTypeCode
+import org.hibernate.type.SqlTypes
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -28,7 +30,7 @@ data class Document(
     @Column(name = "file_size", nullable = false)
     val fileSize: Long,
 
-    @Lob
+    @JdbcTypeCode(SqlTypes.BINARY)
     @Column(name = "content", nullable = false)
     val content: ByteArray,
 

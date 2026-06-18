@@ -29,7 +29,7 @@
           { "targetName": "priority", "type": "string", "source": "variable", "value": "priority" }
         ],
         "outputs": [
-          { "target": "process", "sourceName": "approved", "type": "boolean", "value": "approved" }
+          { "target": "variable", "sourceName": "approved", "type": "boolean", "value": "approved" }
         ]
       }
     },
@@ -46,7 +46,7 @@
         "candidateGroups": "LEGAL",
         "formId": "qaManagerReview",
         "outputs": [
-          { "target": "process", "sourceName": "legalDone", "type": "boolean", "value": "legalDone" }
+          { "target": "variable", "sourceName": "legalDone", "type": "boolean", "value": "legalDone" }
         ]
       }
     },
@@ -62,7 +62,7 @@
         "candidateGroups": "SECURITY",
         "formId": "qaManagerReview",
         "outputs": [
-          { "target": "process", "sourceName": "securityDone", "type": "boolean", "value": "securityDone" }
+          { "target": "variable", "sourceName": "securityDone", "type": "boolean", "value": "securityDone" }
         ]
       }
     },
@@ -72,8 +72,8 @@
   ],
   "flows": [
     { "from": "start", "to": "risk_gateway", "condition": null },
-    { "from": "risk_gateway", "to": "parallel_fork", "condition": "priority == 'HIGH' || riskScore >= 70" },
-    { "from": "risk_gateway", "to": "standard_review", "condition": "priority != 'HIGH' && riskScore < 70" },
+    { "from": "risk_gateway", "to": "parallel_fork", "condition": "${priority} == 'HIGH' || ${riskScore} >= 70" },
+    { "from": "risk_gateway", "to": "standard_review", "condition": "${priority} != 'HIGH' && ${riskScore} < 70" },
     { "from": "parallel_fork", "to": "legal_check", "condition": null },
     { "from": "parallel_fork", "to": "security_check", "condition": null },
     { "from": "legal_check", "to": "parallel_join", "condition": null },

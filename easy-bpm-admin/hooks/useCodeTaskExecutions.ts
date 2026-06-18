@@ -96,6 +96,8 @@ export const useCodeTaskExecutions = (props: UseCodeTaskExecutionsProps) => {
 
       if (!response.ok) {
         if (response.status === 401) {
+          localStorage.removeItem(AUTH_STORAGE_KEY);
+          window.dispatchEvent(new Event('easybpm-admin-auth-expired'));
           throw new Error('Unauthorized: please sign in again.');
         }
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);

@@ -6,6 +6,87 @@ export interface FormExportData {
   form: FormDefinition;
 }
 
+const fieldTypeFromSchema = (property: any): FormDefinition['tabs'][number]['fields'][number]['type'] => {
+  if (property.format === 'textarea') return 'text';
+  if (property.format === 'date') return 'date';
+  if (property.format === 'fileUpload') return 'fileUpload';
+  if (property.format === 'fileDownload') return 'fileDownload';
+  if (property.format === 'pdfViewer') return 'pdfViewer';
+  if (property.enum?.length) return 'select';
+  if (property.type === 'number' || property.type === 'integer') return 'number';
+  if (property.type === 'boolean') return 'boolean';
+  return 'string';
+};
+
+const formFromBackendSchema = (data: any): FormDefinition | null => {
+  const schema = data.schema && typeof data.schema === 'object' ? data.schema : null;
+  if (!schema?.properties || typeof schema.properties !== 'object') return null;
+
+  const requiredFields = Array.isArray(schema.required) ? schema.required : [];
+  const fields = Object.entries(schema.properties).map(([name, rawProperty], index) => {
+    const property = rawProperty as any;
+    return {
+      id: `field_${name || index}`,
+      name,
+      title: property.title || name,
+      type: fieldTypeFromSchema(property),
+      required: requiredFields.includes(name),
+      readOnly: Boolean(property.readOnly),
+      options: Array.isArray(property.enum) ? property.enum.map(String) : undefined,
+      allowedExtensions: Array.isArray(property.allowedExtensions) ? property.allowedExtensions : undefined,
+      maxSizeMb: property.maxSizeMb
+    };
+  });
+
+  const formKey = String(data.formId || data.id || `form_${Date.now()}`);
+  return {
+    id: formKey,
+    formKey,
+    name: String(data.name || schema.title || formKey),
+    tabs: [
+      {
+        id: `tab_${Date.now()}`,
+        name: 'General',
+        fields
+      }
+    ]
+  };
+};
+
+const normalizeImportedForm = (data: any): FormDefinition | null => {
+  const candidate = data.form || formFromBackendSchema(data);
+  if (!candidate) return null;
+
+  const flatFields = Array.isArray(candidate.fields) ? candidate.fields : [];
+  const tabs = Array.isArray(candidate.tabs) && candidate.tabs.length > 0
+    ? candidate.tabs
+    : [{ id: `tab_${Date.now()}`, name: 'General', fields: flatFields }];
+
+  const formKey = String(candidate.formKey || candidate.id || `form_${Date.now()}`);
+  return {
+    ...candidate,
+    id: String(candidate.id || formKey),
+    formKey,
+    name: String(candidate.name || formKey),
+    tabs: tabs.map((tab, tabIndex) => ({
+      id: String(tab.id || `tab_${tabIndex + 1}`),
+      name: String(tab.name || `Tab ${tabIndex + 1}`),
+      fields: Array.isArray(tab.fields) ? tab.fields.map((field, fieldIndex) => ({
+        id: String(field.id || `field_${tabIndex + 1}_${fieldIndex + 1}`),
+        name: String(field.name || `field_${fieldIndex + 1}`),
+        title: String(field.title || field.name || `Field ${fieldIndex + 1}`),
+        type: field.type || 'string',
+        required: Boolean(field.required),
+        readOnly: Boolean(field.readOnly),
+        options: field.options,
+        defaultValue: field.defaultValue,
+        allowedExtensions: field.allowedExtensions,
+        maxSizeMb: field.maxSizeMb
+      })) : []
+    }))
+  };
+};
+
 /**
  * Export a form as JSON for backup/sharing
  */
@@ -46,11 +127,10 @@ export const downloadForm = (form: FormDefinition, filename?: string): void => {
  */
 export const importForm = (data: FormExportData): { success: boolean; form?: FormDefinition; error?: string } => {
   try {
-    if (!data.form) {
+    const form = normalizeImportedForm(data);
+    if (!form) {
       return { success: false, error: 'Invalid form data: missing form object' };
     }
-
-    const form = data.form;
 
     // Validate required fields
     if (!form.formKey || typeof form.formKey !== 'string') {
@@ -61,8 +141,8 @@ export const importForm = (data: FormExportData): { success: boolean; form?: For
       return { success: false, error: 'Invalid form: missing or invalid name' };
     }
 
-    if (!Array.isArray(form.fields)) {
-      return { success: false, error: 'Invalid form: fields must be an array' };
+    if (!Array.isArray(form.tabs)) {
+      return { success: false, error: 'Invalid form: tabs must be an array' };
     }
 
     // Return validated form

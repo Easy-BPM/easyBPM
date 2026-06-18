@@ -35,6 +35,23 @@
       "usedBy": ["qa_user_task_forms"]
     }
   ],
+  "formsModelerImportable": [
+    {
+      "id": "qaIntakeForm",
+      "file": "forms-modeler/qa-intake-form.modeler.json",
+      "usedBy": ["qa_user_task_forms"]
+    },
+    {
+      "id": "qaManagerReview",
+      "file": "forms-modeler/qa-manager-review-form.modeler.json",
+      "usedBy": ["qa_user_task_forms", "qa_gateway_routing", "qa_code_task_component"]
+    },
+    {
+      "id": "qaFinanceReview",
+      "file": "forms-modeler/qa-finance-review-form.modeler.json",
+      "usedBy": ["qa_user_task_forms"]
+    }
+  ],
   "processes": [
     {
       "id": "qa_user_task_forms",

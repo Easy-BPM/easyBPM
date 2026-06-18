@@ -89,6 +89,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
           value={value}
           onChange={(e) => handleChange(key, e.target.value)}
           disabled={isReadOnly}
+          required={isRequired}
         >
           <option value="">Select option...</option>
           {prop.enum.map((opt) => (
@@ -132,6 +133,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
           value={value}
           onChange={(e) => handleChange(key, e.target.value)}
           disabled={isReadOnly}
+          required={isRequired}
           placeholder={prop.description || `Enter ${prop.title || key}...`}
         />
       );
@@ -155,6 +157,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
           }
         }}
         disabled={isReadOnly}
+        required={isRequired}
         placeholder={prop.description || `Enter ${prop.title || key}...`}
       />
     );

@@ -1,0 +1,37 @@
+{
+  "version": "1.0.0",
+  "exportedAt": "2026-06-18T00:00:00.000Z",
+  "form": {
+    "id": "qaIntakeForm",
+    "name": "QA Intake Form",
+    "formKey": "qaIntakeForm",
+    "fields": [
+      { "id": "field_request_title", "name": "requestTitle", "title": "Request title", "type": "string", "required": true, "readOnly": false },
+      { "id": "field_amount", "name": "amount", "title": "Amount", "type": "number", "required": true, "readOnly": false },
+      { "id": "field_priority", "name": "priority", "title": "Priority", "type": "select", "required": true, "readOnly": false, "options": ["LOW", "NORMAL", "HIGH"] },
+      { "id": "field_requested_date", "name": "requestedDate", "title": "Requested date", "type": "date", "required": true, "readOnly": false },
+      { "id": "field_request_notes", "name": "requestNotes", "title": "Request notes", "type": "text", "required": false, "readOnly": false },
+      { "id": "field_supporting_document", "name": "supportingDocument", "title": "Supporting document", "type": "fileUpload", "required": false, "readOnly": false, "allowedExtensions": ["pdf", "png", "jpg"], "maxSizeMb": 10 }
+    ],
+    "tabs": [
+      {
+        "id": "tab_general",
+        "name": "General",
+        "fields": [
+          { "id": "field_request_title", "name": "requestTitle", "title": "Request title", "type": "string", "required": true, "readOnly": false },
+          { "id": "field_amount", "name": "amount", "title": "Amount", "type": "number", "required": true, "readOnly": false },
+          { "id": "field_priority", "name": "priority", "title": "Priority", "type": "select", "required": true, "readOnly": false, "options": ["LOW", "NORMAL", "HIGH"] },
+          { "id": "field_requested_date", "name": "requestedDate", "title": "Requested date", "type": "date", "required": true, "readOnly": false }
+        ]
+      },
+      {
+        "id": "tab_documents",
+        "name": "Documents",
+        "fields": [
+          { "id": "field_request_notes", "name": "requestNotes", "title": "Request notes", "type": "text", "required": false, "readOnly": false },
+          { "id": "field_supporting_document", "name": "supportingDocument", "title": "Supporting document", "type": "fileUpload", "required": false, "readOnly": false, "allowedExtensions": ["pdf", "png", "jpg"], "maxSizeMb": 10 }
+        ]
+      }
+    ]
+  }
+}

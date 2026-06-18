@@ -26,7 +26,7 @@
         "correlationKeys": ["caseId"],
         "timeoutSeconds": null,
         "payload": [
-          { "source": "variable", "sourceName": "payload", "sourceValue": "payload", "target": "process", "targetVariable": "messagePayload", "type": "json", "value": "messagePayload" }
+          { "source": "variable", "sourceName": "payload", "sourceValue": "payload", "target": "variable", "targetVariable": "messagePayload", "type": "json", "value": "messagePayload" }
         ]
       },
       "properties": {
@@ -48,7 +48,7 @@
         "correlationKeys": ["caseId"],
         "timeoutSeconds": 300,
         "payload": [
-          { "source": "variable", "sourceName": "invoiceReceived", "sourceValue": "invoiceReceived", "target": "process", "targetVariable": "invoiceReceived", "type": "boolean", "value": "invoiceReceived" }
+          { "source": "variable", "sourceName": "invoiceReceived", "sourceValue": "invoiceReceived", "target": "variable", "targetVariable": "invoiceReceived", "type": "boolean", "value": "invoiceReceived" }
         ]
       }
     },

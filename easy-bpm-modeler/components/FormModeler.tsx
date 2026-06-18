@@ -184,10 +184,12 @@ export const FormModeler: React.FC<FormModelerProps> = ({ formLibrary, selectedF
   useEffect(() => {
     if (selectedFormKey && formLibrary?.has(selectedFormKey)) {
       const libForm = formLibrary.get(selectedFormKey)!;
-      setForm({
+      const nextForm = {
         ...libForm,
         formKey: libForm.formKey || libForm.id
-      });
+      };
+      setForm(nextForm);
+      setActiveTabId(nextForm.tabs[0]?.id || null);
       setSelectedFieldId(null);
     }
   }, [selectedFormKey, formLibrary]);
@@ -217,6 +219,19 @@ export const FormModeler: React.FC<FormModelerProps> = ({ formLibrary, selectedF
 
   const activeTab = form.tabs.find(t => t.id === activeTabId);
   const selectedField = activeTab?.fields.find(f => f.id === selectedFieldId);
+
+  useEffect(() => {
+    if (form.tabs.length === 0) {
+      setActiveTabId(null);
+      setSelectedFieldId(null);
+      return;
+    }
+
+    if (!activeTabId || !form.tabs.some(tab => tab.id === activeTabId)) {
+      setActiveTabId(form.tabs[0].id);
+      setSelectedFieldId(null);
+    }
+  }, [form.tabs, activeTabId]);
 
   const handleUpdateForm = (data: Partial<FormDefinition>) => {
     setForm(prev => ({ ...prev, ...data }));

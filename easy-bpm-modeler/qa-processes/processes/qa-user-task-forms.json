@@ -43,9 +43,9 @@
           { "targetName": "priority", "type": "string", "source": "variable", "value": "priority" }
         ],
         "outputs": [
-          { "target": "process", "sourceName": "requestTitle", "type": "string", "value": "requestTitle" },
-          { "target": "process", "sourceName": "amount", "type": "number", "value": "amount" },
-          { "target": "process", "sourceName": "priority", "type": "string", "value": "priority" }
+          { "target": "variable", "sourceName": "requestTitle", "type": "string", "value": "requestTitle" },
+          { "target": "variable", "sourceName": "amount", "type": "number", "value": "amount" },
+          { "target": "variable", "sourceName": "priority", "type": "string", "value": "priority" }
         ]
       }
     },
@@ -66,8 +66,8 @@
           { "targetName": "amount", "type": "number", "source": "variable", "value": "amount" }
         ],
         "outputs": [
-          { "target": "process", "sourceName": "approved", "type": "boolean", "value": "approved" },
-          { "target": "process", "sourceName": "managerComment", "type": "string", "value": "managerComment" }
+          { "target": "variable", "sourceName": "approved", "type": "boolean", "value": "approved" },
+          { "target": "variable", "sourceName": "managerComment", "type": "string", "value": "managerComment" }
         ]
       }
     },
@@ -97,9 +97,9 @@
           { "targetName": "managerComment", "type": "string", "source": "variable", "value": "managerComment" }
         ],
         "outputs": [
-          { "target": "process", "sourceName": "financeApproved", "type": "boolean", "value": "financeApproved" },
-          { "target": "process", "sourceName": "paymentMethod", "type": "string", "value": "paymentMethod" },
-          { "target": "process", "sourceName": "financeComment", "type": "string", "value": "financeComment" }
+          { "target": "variable", "sourceName": "financeApproved", "type": "boolean", "value": "financeApproved" },
+          { "target": "variable", "sourceName": "paymentMethod", "type": "string", "value": "paymentMethod" },
+          { "target": "variable", "sourceName": "financeComment", "type": "string", "value": "financeComment" }
         ]
       }
     },
@@ -126,8 +126,8 @@
     { "from": "start", "to": "submit_request", "condition": null },
     { "from": "submit_request", "to": "manager_review", "condition": null },
     { "from": "manager_review", "to": "approval_gateway", "condition": null },
-    { "from": "approval_gateway", "to": "finance_review", "condition": "approved == true" },
-    { "from": "approval_gateway", "to": "end_rejected", "condition": "approved == false" },
+    { "from": "approval_gateway", "to": "finance_review", "condition": "${approved} == true" },
+    { "from": "approval_gateway", "to": "end_rejected", "condition": "${approved} == false" },
     { "from": "finance_review", "to": "end_approved", "condition": null }
   ]
 }

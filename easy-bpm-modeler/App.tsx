@@ -524,7 +524,7 @@ const App: React.FC = () => {
               value: v.value
            })),
            outputs: (node.data.outputVariables || []).map(v => ({
-              target: v.mappingType,
+              target: 'variable',
               sourceName: String(v.name || ''),
               type: v.type,
               value: v.value
@@ -537,7 +537,7 @@ const App: React.FC = () => {
            url: node.data.apiEndpoint,
            method: node.data.method || 'GET',
            outputs: (node.data.outputVariables || []).map(v => ({
-              target: v.mappingType,
+              target: 'variable',
               sourceName: String(v.name || ''),
               type: v.type,
               value: v.value
@@ -571,7 +571,7 @@ const App: React.FC = () => {
               value: v.value
            })),
            outputs: (node.data.outputVariables || []).map(v => ({
-              target: v.mappingType,
+              target: 'variable',
               sourceName: safeString(v.name),
               type: v.type,
               value: v.value
@@ -880,7 +880,7 @@ const App: React.FC = () => {
            id: Math.random().toString(36).substr(2, 9),
            name: String(o.sourceName || ''),
            type: o.type,
-           mappingType: o.target,
+           mappingType: 'variable',
            value: o.value
          }));
        }
@@ -905,7 +905,7 @@ const App: React.FC = () => {
              id: Math.random().toString(36).substr(2, 9),
              name: String(o.sourceValue || o.sourceName || ''),
              type: o.type,
-             mappingType: o.source || o.target || 'variable',
+             mappingType: 'variable',
              value: o.targetVariable || o.value
            }));
          }
@@ -926,7 +926,7 @@ const App: React.FC = () => {
              id: Math.random().toString(36).substr(2, 9),
              name: String(o.sourceValue || o.sourceName || ''),
              type: o.type,
-             mappingType: o.source || o.target || 'variable',
+             mappingType: 'variable',
              value: o.targetVariable || o.value
            }));
          }
@@ -954,7 +954,7 @@ const App: React.FC = () => {
                id: Math.random().toString(36).substr(2, 9),
                name: String(o.sourceValue || o.sourceName || ''),
                type: o.type,
-               mappingType: o.source || o.target || 'variable',
+               mappingType: 'variable',
                value: o.targetVariable || o.value
              }));
            } else {
@@ -983,7 +983,7 @@ const App: React.FC = () => {
              id: Math.random().toString(36).substr(2, 9),
              name: String(o.sourceName || ''),
              type: o.type,
-             mappingType: o.target,
+             mappingType: 'variable',
              value: o.value
            }));
          }

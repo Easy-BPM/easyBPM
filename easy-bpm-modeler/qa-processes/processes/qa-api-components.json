@@ -31,7 +31,7 @@
           "ref": "QA_PARTNER_BEARER_TOKEN"
         },
         "outputs": [
-          { "source": "static", "sourceValue": "BEARER_OK", "sourceName": "status", "type": "string", "target": "process", "targetVariable": "bearerStatus", "value": "bearerStatus" }
+          { "source": "static", "sourceValue": "BEARER_OK", "sourceName": "status", "type": "string", "target": "variable", "targetVariable": "bearerStatus", "value": "bearerStatus" }
         ]
       }
     },
@@ -51,7 +51,7 @@
           "ref": "QA_BASIC_CREDENTIALS"
         },
         "outputs": [
-          { "source": "static", "sourceValue": "BASIC_OK", "sourceName": "status", "type": "string", "target": "process", "targetVariable": "basicStatus", "value": "basicStatus" }
+          { "source": "static", "sourceValue": "BASIC_OK", "sourceName": "status", "type": "string", "target": "variable", "targetVariable": "basicStatus", "value": "basicStatus" }
         ]
       }
     },
@@ -78,8 +78,8 @@
           "source": "easy-bpm-modeler-qa"
         },
         "outputs": [
-          { "source": "static", "sourceValue": "APIKEY_OK", "sourceName": "status", "type": "string", "target": "process", "targetVariable": "apiKeyStatus", "value": "apiKeyStatus" },
-          { "source": "static", "sourceValue": "{\"ok\":true}", "sourceName": "payload", "type": "json", "target": "process", "targetVariable": "apiPayload", "value": "apiPayload" }
+          { "source": "static", "sourceValue": "APIKEY_OK", "sourceName": "status", "type": "string", "target": "variable", "targetVariable": "apiKeyStatus", "value": "apiKeyStatus" },
+          { "source": "static", "sourceValue": "{\"ok\":true}", "sourceName": "payload", "type": "json", "target": "variable", "targetVariable": "apiPayload", "value": "apiPayload" }
         ]
       }
     },

@@ -93,13 +93,20 @@ const authHeaders = (): HeadersInit => {
 };
 
 const fetchWithAuth = async (url: string, init?: RequestInit): Promise<Response> => {
-  return fetch(url, {
+  const response = await fetch(url, {
     ...init,
     headers: {
       ...(init?.headers ?? {}),
       ...authHeaders()
     }
   });
+
+  if (response.status === 401) {
+    localStorage.removeItem(AUTH_STORAGE_KEY);
+    window.dispatchEvent(new Event('easybpm-admin-auth-expired'));
+  }
+
+  return response;
 };
 
 export const adminService = {

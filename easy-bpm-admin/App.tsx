@@ -61,6 +61,17 @@ const App: React.FC = () => {
       .finally(() => setAuthLoading(false));
   }, []);
 
+  useEffect(() => {
+    const handleAuthExpired = () => {
+      setCurrentUser(null);
+      setPermissions([]);
+      setCurrentView('dashboard');
+    };
+
+    window.addEventListener('easybpm-admin-auth-expired', handleAuthExpired);
+    return () => window.removeEventListener('easybpm-admin-auth-expired', handleAuthExpired);
+  }, []);
+
   const handleLogin = (username: string, perms: string[]) => {
     setCurrentUser(username);
     setPermissions(perms);

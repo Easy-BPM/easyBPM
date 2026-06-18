@@ -33,7 +33,7 @@
         "type": "string",
         "title": "Supporting document",
         "format": "fileUpload",
-        "allowedExtensions": [".pdf", ".png", ".jpg"],
+        "allowedExtensions": ["pdf", "png", "jpg"],
         "maxSizeMb": 10
       }
     }

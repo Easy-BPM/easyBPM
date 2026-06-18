@@ -35,7 +35,7 @@
           { "targetName": "1", "type": "number", "source": "variable", "value": "amount" }
         ],
         "outputs": [
-          { "target": "process", "sourceName": "returnValue", "type": "string", "value": "processedOrderMessage" }
+          { "target": "variable", "sourceName": "returnValue", "type": "string", "value": "processedOrderMessage" }
         ]
       },
       "properties": {
@@ -84,7 +84,7 @@
           { "targetName": "managerComment", "type": "string", "source": "variable", "value": "processedOrderMessage" }
         ],
         "outputs": [
-          { "target": "process", "sourceName": "approved", "type": "boolean", "value": "approved" }
+          { "target": "variable", "sourceName": "approved", "type": "boolean", "value": "approved" }
         ]
       }
     },
@@ -103,7 +103,7 @@
           { "targetName": "managerComment", "type": "string", "source": "variable", "value": "codeTaskError" }
         ],
         "outputs": [
-          { "target": "process", "sourceName": "managerComment", "type": "string", "value": "codeTaskError" }
+          { "target": "variable", "sourceName": "managerComment", "type": "string", "value": "codeTaskError" }
         ]
       }
     },
