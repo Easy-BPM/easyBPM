@@ -87,6 +87,7 @@ export interface BpmnEdge {
   target: string; // Points to node.uid
   label?: string;
   condition?: string; 
+  waypoints?: Position[]; // Optional visual bend points for manual routing
 }
 
 export interface ProcessVariable {

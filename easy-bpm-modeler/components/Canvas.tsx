@@ -1,6 +1,6 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { BpmnNode, BpmnEdge, NodeType, Position } from '../types';
-import { getEdgePath, generateId, snapToGrid } from '../utils/geometry';
+import { getEdgePath, getEdgeRoutePoints, generateId, snapToGrid } from '../utils/geometry';
 import { User, Settings, GitFork, Plus, Mail, Zap, Clock3, Layers, Code, Brain, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 
 interface CanvasProps {
@@ -31,6 +31,11 @@ interface ResizeState {
     width: number;
     height: number;
   };
+}
+
+interface WaypointDragState {
+  edgeId: string;
+  waypointIndex: number;
 }
 
 const POOL_MIN_WIDTH = 240;
@@ -74,6 +79,7 @@ export const Canvas: React.FC<CanvasProps> = ({
   // Selection Box State
   const [selectionBox, setSelectionBox] = useState<{ start: Position; current: Position } | null>(null);
   const [resizeState, setResizeState] = useState<ResizeState | null>(null);
+  const [waypointDragState, setWaypointDragState] = useState<WaypointDragState | null>(null);
   const [zoom, setZoom] = useState(1);
 
   const getMousePosition = (e: Pick<MouseEvent, 'clientX' | 'clientY'> | Pick<React.MouseEvent, 'clientX' | 'clientY'> | Pick<React.DragEvent, 'clientX' | 'clientY'>): Position => {
@@ -178,6 +184,32 @@ export const Canvas: React.FC<CanvasProps> = ({
     });
   };
 
+  const handleWaypointDragStart = (e: React.MouseEvent, edgeId: string, waypointIndex: number) => {
+    e.stopPropagation();
+    onSelectEdge(edgeId);
+    onSelectNodes([]);
+    setSelectionBox(null);
+    setIsDraggingNodes(false);
+    setWaypointDragState({ edgeId, waypointIndex });
+  };
+
+  const handleAddWaypoint = (e: React.MouseEvent, edge: BpmnEdge, point: Position, insertIndex: number) => {
+    e.stopPropagation();
+    const newWaypoint = { x: snapToGrid(point.x), y: snapToGrid(point.y) };
+    const waypoints = [...(edge.waypoints || [])];
+    waypoints.splice(insertIndex, 0, newWaypoint);
+    onEdgesChange(edges.map(item => item.id === edge.id ? { ...item, waypoints } : item));
+    onSelectEdge(edge.id);
+    onSelectNodes([]);
+    setWaypointDragState({ edgeId: edge.id, waypointIndex: insertIndex });
+  };
+
+  const handleRemoveWaypoint = (e: React.MouseEvent, edge: BpmnEdge, waypointIndex: number) => {
+    e.stopPropagation();
+    const waypoints = (edge.waypoints || []).filter((_, index) => index !== waypointIndex);
+    onEdgesChange(edges.map(item => item.id === edge.id ? { ...item, waypoints: waypoints.length > 0 ? waypoints : undefined } : item));
+  };
+
   const handleMouseMove = (e: React.MouseEvent) => {
     const pos = getMousePosition(e);
     if (resizeState) {
@@ -211,6 +243,17 @@ export const Canvas: React.FC<CanvasProps> = ({
         ? { ...node, position: { x, y }, width, height }
         : node
       ));
+      return;
+    }
+
+    if (waypointDragState) {
+      const updatedWaypoint = { x: snapToGrid(pos.x), y: snapToGrid(pos.y) };
+      onEdgesChange(edges.map((edge) => {
+        if (edge.id !== waypointDragState.edgeId) return edge;
+        const waypoints = [...(edge.waypoints || [])];
+        waypoints[waypointDragState.waypointIndex] = updatedWaypoint;
+        return { ...edge, waypoints };
+      }));
       return;
     }
 
@@ -278,6 +321,7 @@ export const Canvas: React.FC<CanvasProps> = ({
     setInitialNodePositions(new Map());
     setConnectingNodeUid(null);
     setResizeState(null);
+    setWaypointDragState(null);
 
     if (selectionBox) {
         const x = Math.min(selectionBox.start.x, selectionBox.current.x);
@@ -471,7 +515,8 @@ export const Canvas: React.FC<CanvasProps> = ({
           const source = nodes.find((n) => n.uid === edge.source);
           const target = nodes.find((n) => n.uid === edge.target);
           if (!source || !target) return null;
-          const path = getEdgePath(source, target);
+          const routePoints = getEdgeRoutePoints(source, target, edge.waypoints);
+          const path = getEdgePath(source, target, edge.waypoints);
           const isSelected = selectedEdgeId === edge.id;
           const hasError = invalidEdgeIds.includes(edge.id);
           const hasWarning = warningEdgeIds.includes(edge.id);
@@ -483,6 +528,43 @@ export const Canvas: React.FC<CanvasProps> = ({
             <g key={edge.id} onClick={(e) => {e.stopPropagation(); onSelectEdge(edge.id); onSelectNodes([]);}} className="group cursor-pointer">
                 <path d={path} stroke="transparent" strokeWidth="15" fill="none" />
               <path d={path} fill="none" stroke={stroke} strokeWidth={isSelected ? "3" : isBoundaryEdge ? "2.5" : "2"} markerEnd={markerId} strokeLinejoin="round" strokeDasharray={isBoundaryEdge ? '5,3' : (hasWarning && !isSelected ? '6 4' : undefined)} />
+                {isSelected && (
+                  <g>
+                    {routePoints.slice(0, -1).map((point, index) => {
+                      const nextPoint = routePoints[index + 1];
+                      const midpoint = { x: (point.x + nextPoint.x) / 2, y: (point.y + nextPoint.y) / 2 };
+                      return (
+                        <circle
+                          key={`add-${index}`}
+                          cx={midpoint.x}
+                          cy={midpoint.y}
+                          r="5"
+                          fill="#3b82f6"
+                          stroke="#ffffff"
+                          strokeWidth="1.5"
+                          className="opacity-80 hover:opacity-100 cursor-copy"
+                          onMouseDown={(event) => handleAddWaypoint(event, edge, midpoint, index)}
+                        />
+                      );
+                    })}
+                    {(edge.waypoints || []).map((point, index) => (
+                      <rect
+                        key={`waypoint-${index}`}
+                        x={point.x - 6}
+                        y={point.y - 6}
+                        width="12"
+                        height="12"
+                        rx="2"
+                        fill="#ffffff"
+                        stroke="#3b82f6"
+                        strokeWidth="1.5"
+                        className="cursor-move"
+                        onMouseDown={(event) => handleWaypointDragStart(event, edge.id, index)}
+                        onDoubleClick={(event) => handleRemoveWaypoint(event, edge, index)}
+                      />
+                    ))}
+                  </g>
+                )}
                 {edge.condition && labelPos && (
                     <g transform={`translate(${labelPos.x}, ${labelPos.y})`}>
                         <rect x="-10" y="-10" width="20" height="20" fill="#111827" className="opacity-90" />

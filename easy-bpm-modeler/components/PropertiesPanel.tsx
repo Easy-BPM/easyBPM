@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BpmnNode, BpmnEdge, ProcessVariable, TaskVariable, ValidationIssue } from '../types';
-import { Trash2, Plus, LogIn, LogOut, Layers, Database, Hash, Type, ToggleLeft, Braces, Fingerprint, AlertCircle, FileCode, Mail, Zap, FileText, Code, Info, Brain } from 'lucide-react';
+import { Trash2, Plus, LogIn, LogOut, Layers, Database, Hash, Type, ToggleLeft, Braces, Fingerprint, AlertCircle, FileCode, Mail, Zap, FileText, Code, Info, Brain, RotateCcw } from 'lucide-react';
 import { validateId } from '../utils/validation';
 import { AIProviderConfigForm } from './AIProviderConfigForm';
 import { PromptEditor } from './PromptEditor';
@@ -280,7 +280,26 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
     return (
       <div className="w-80 bg-white border-l border-slate-200 h-full flex flex-col z-10 overflow-hidden" style={{ boxShadow: '-1px 0 3px 0 rgba(0,0,0,0.04)' }}>
         <div className="px-4 py-3.5 border-b border-slate-200 flex items-center justify-between bg-white"><h2 className="text-sm font-semibold text-slate-800">Connection</h2><button onClick={() => onDeleteEdge(selectedEdge.id)} className="text-slate-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-md transition-colors"><Trash2 className="w-4 h-4" /></button></div>
-        <div className="p-4 space-y-4"><label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Condition Expression</label><input type="text" value={selectedEdge.condition || ''} onChange={(e) => onUpdateEdge(selectedEdge.id, { condition: e.target.value })} placeholder="${orderTotal} > 100" className={`${inputClassName} font-mono`} /><p className="text-[11px] text-slate-400 leading-tight">Use variables defined in the Global Process Data.</p></div>
+        <div className="p-4 space-y-5">
+          <div className="space-y-2">
+            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Condition Expression</label>
+            <input type="text" value={selectedEdge.condition || ''} onChange={(e) => onUpdateEdge(selectedEdge.id, { condition: e.target.value })} placeholder="${orderTotal} > 100" className={`${inputClassName} font-mono`} />
+            <p className="text-[11px] text-slate-400 leading-tight">Use variables defined in the Global Process Data.</p>
+          </div>
+          <div className="space-y-2 border-t border-slate-100 pt-4">
+            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Manual route</label>
+            <p className="text-[11px] text-slate-400 leading-tight">Select the connection, drag white bend points, or use blue midpoint handles to add bends.</p>
+            <button
+              type="button"
+              onClick={() => onUpdateEdge(selectedEdge.id, { waypoints: undefined })}
+              disabled={!selectedEdge.waypoints || selectedEdge.waypoints.length === 0}
+              className="inline-flex items-center gap-2 rounded-md border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              Reset to auto route
+            </button>
+          </div>
+        </div>
       </div>
     );
   }

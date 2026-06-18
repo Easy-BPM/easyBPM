@@ -16,7 +16,7 @@ import { FormLibrary } from './components/FormLibrary';
 import { WelcomeScreen } from './components/WelcomeScreen';
 import { ModelerNavbar } from './components/ModelerNavbar';
 import { ThemeMode } from './components/ThemeToggle';
-import { BpmnNode, BpmnEdge, ProcessVariable, NodeType, AppView, ValidationIssue, ValidationSummary, FormDefinition } from './types';
+import { BpmnNode, BpmnEdge, ProcessVariable, NodeType, AppView, ValidationIssue, ValidationSummary, FormDefinition, Position } from './types';
 import { generateId, snapToGrid } from './utils/geometry';
 import { validateId } from './utils/validation';
 import { Toaster, toast } from 'sonner';
@@ -730,7 +730,8 @@ const App: React.FC = () => {
       flows: edges.map(e => ({
         from: nodes.find(n => n.uid === e.source)?.id, 
         to: nodes.find(n => n.uid === e.target)?.id, 
-        condition: e.condition || null 
+        condition: e.condition || null,
+        waypoints: e.waypoints && e.waypoints.length > 0 ? e.waypoints : undefined
       }))
     };
   };
@@ -1005,7 +1006,12 @@ const App: React.FC = () => {
       id: `edge_${Math.random().toString(36).substr(2, 9)}`,
       source: idToUidMap.get(flow.from) || '',
       target: idToUidMap.get(flow.to) || '',
-      condition: flow.condition
+      condition: flow.condition,
+      waypoints: Array.isArray(flow.waypoints)
+        ? flow.waypoints
+            .map((point: any) => ({ x: Number(point.x), y: Number(point.y) }))
+            .filter((point: Position) => Number.isFinite(point.x) && Number.isFinite(point.y))
+        : undefined
     })).filter((e: BpmnEdge) => e.source && e.target);
 
     // Update State

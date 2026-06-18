@@ -17,50 +17,64 @@ const getHandlePosition = (node: BpmnNode, direction: 'top' | 'right' | 'bottom'
   }
 };
 
-export const getEdgePath = (source: BpmnNode, target: BpmnNode): string => {
+type HandleDirection = 'top' | 'right' | 'bottom' | 'left';
+
+const getBestHandleDirection = (from: Position, to: Position): HandleDirection => {
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+
+  if (Math.abs(dx) > Math.abs(dy)) {
+    return dx > 0 ? 'right' : 'left';
+  }
+
+  return dy > 0 ? 'bottom' : 'top';
+};
+
+const getOppositeHandleDirection = (direction: HandleDirection): HandleDirection => {
+  switch (direction) {
+    case 'top': return 'bottom';
+    case 'right': return 'left';
+    case 'bottom': return 'top';
+    case 'left': return 'right';
+  }
+};
+
+export const pointsToPath = (points: Position[]): string => {
+  if (points.length === 0) return '';
+  const [start, ...rest] = points;
+  return `M ${start.x} ${start.y}${rest.map(point => ` L ${point.x} ${point.y}`).join('')}`;
+};
+
+export const getEdgeRoutePoints = (source: BpmnNode, target: BpmnNode, waypoints: Position[] = []): Position[] => {
   const sourceCenter = { x: source.position.x + source.width / 2, y: source.position.y + source.height / 2 };
   const targetCenter = { x: target.position.x + target.width / 2, y: target.position.y + target.height / 2 };
 
-  const dx = targetCenter.x - sourceCenter.x;
-  const dy = targetCenter.y - sourceCenter.y;
-
-  let startDir: 'top' | 'right' | 'bottom' | 'left' = 'right';
-  let endDir: 'top' | 'right' | 'bottom' | 'left' = 'left';
-
-  // Determine best connection faces based on relative position
-  if (Math.abs(dx) > Math.abs(dy)) {
-    // Horizontal relationship dominant
-    if (dx > 0) {
-      startDir = 'right';
-      endDir = 'left';
-    } else {
-      startDir = 'left';
-      endDir = 'right';
-    }
-  } else {
-    // Vertical relationship dominant
-    if (dy > 0) {
-      startDir = 'bottom';
-      endDir = 'top';
-    } else {
-      startDir = 'top';
-      endDir = 'bottom';
-    }
-  }
+  const firstTarget = waypoints[0] || targetCenter;
+  const lastSource = waypoints[waypoints.length - 1] || sourceCenter;
+  const startDir = getBestHandleDirection(sourceCenter, firstTarget);
+  const endDir = getOppositeHandleDirection(getBestHandleDirection(lastSource, targetCenter));
 
   const start = getHandlePosition(source, startDir);
   const end = getHandlePosition(target, endDir);
+
+  if (waypoints.length > 0) {
+    return [start, ...waypoints, end];
+  }
 
   // Manhattan Routing (Orthogonal lines)
   // Calculate midpoints to create 90-degree turns
   
   if (['left', 'right'].includes(startDir)) {
       const midX = (start.x + end.x) / 2;
-      return `M ${start.x} ${start.y} L ${midX} ${start.y} L ${midX} ${end.y} L ${end.x} ${end.y}`;
-  } else {
-      const midY = (start.y + end.y) / 2;
-      return `M ${start.x} ${start.y} L ${start.x} ${midY} L ${end.x} ${midY} L ${end.x} ${end.y}`;
+      return [start, { x: midX, y: start.y }, { x: midX, y: end.y }, end];
   }
+
+  const midY = (start.y + end.y) / 2;
+  return [start, { x: start.x, y: midY }, { x: end.x, y: midY }, end];
+};
+
+export const getEdgePath = (source: BpmnNode, target: BpmnNode, waypoints: Position[] = []): string => {
+  return pointsToPath(getEdgeRoutePoints(source, target, waypoints));
 };
 
 export const generateId = (prefix: string = 'node'): string => {
