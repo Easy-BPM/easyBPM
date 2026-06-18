@@ -10,7 +10,7 @@ import org.springframework.http.HttpHeaders
 import org.springframework.stereotype.Service
 import org.springframework.web.util.UriComponentsBuilder
 import org.springframework.web.client.RestTemplate
-import org.springframework.web.client.RestClientException
+import org.springframework.http.client.SimpleClientHttpRequestFactory
 import java.security.MessageDigest
 import java.time.LocalDateTime
 import java.util.logging.Logger
@@ -31,7 +31,12 @@ class WorkerListener(
         const val INITIAL_RETRY_DELAY_MS = 5000
     }
 
-    private val restTemplate = RestTemplate()
+    private val restTemplate = RestTemplate(
+        SimpleClientHttpRequestFactory().apply {
+            setConnectTimeout(10000)
+            setReadTimeout(30000)
+        }
+    )
     private val logger = Logger.getLogger(WorkerListener::class.java.name)
 
     @RabbitListener(queues = [REQUEST_QUEUE])
@@ -82,6 +87,10 @@ class WorkerListener(
         )
 
         try {
+            workerRequest.status = WorkerRequestStatus.IN_PROGRESS
+            workerRequest.lastAttemptAt = LocalDateTime.now()
+            workerRequestRepository.save(workerRequest)
+
             // Perform the work
             val result = executeRequest(processInstanceId, nodeId, properties)
 

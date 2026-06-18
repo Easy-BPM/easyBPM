@@ -28,6 +28,12 @@ data class ProcessInstance(
         @Column(name = "node_history", columnDefinition = "jsonb")
         var nodeHistory: List<String> = emptyList(),
 
+        @Column(name = "error_message", columnDefinition = "TEXT")
+        var errorMessage: String? = null,
+
+        @Column(name = "error_node_id", length = 255)
+        var errorNodeId: String? = null,
+
         val createdAt: LocalDateTime = LocalDateTime.now(),
 
         var updatedAt: LocalDateTime = LocalDateTime.now(),

@@ -534,6 +534,23 @@ const InstanceExplorerView: React.FC = () => {
             />
           </div>
 
+          {instance.status === 'FAILED' && (
+            <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 shadow-sm">
+              <div className="flex items-center gap-2 font-semibold">
+                <AlertCircle size={16} />
+                Instance error
+              </div>
+              {instance.errorNodeId && (
+                <p className="mt-2">
+                  Node: <span className="font-mono">{getNodeDisplayName(instance.errorNodeId)}</span>
+                </p>
+              )}
+              <pre className="mt-2 whitespace-pre-wrap break-words rounded-lg border border-red-100 bg-white/70 p-3 text-xs text-red-900">
+                {instance.errorMessage || 'The instance failed, but no error message was recorded.'}
+              </pre>
+            </div>
+          )}
+
           {/* Instance Hierarchy Breadcrumb */}
           {(parentInstance || childInstances.length > 0) && (
             <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4">

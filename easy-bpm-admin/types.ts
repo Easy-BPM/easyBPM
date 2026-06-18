@@ -59,6 +59,8 @@ export interface ProcessInstance {
   status: string;
   currentNode?: string[];
   nodeHistory?: string[];
+  errorMessage?: string | null;
+  errorNodeId?: string | null;
   createdAt: string;
   updatedAt: string;
   parentInstanceId?: number;

@@ -440,7 +440,13 @@ class ProcessService(
                 metricsService.recordNodeExecution(duration, nodeType.toString())
                 return true // Signal to stop further execution
             } else {
-                throw ex
+                val nodeId = node.get("id").asText()
+                val errorMessage = ex.message ?: ex.javaClass.simpleName
+                logger.error("Unhandled process node failure: instance=${instance.id}, nodeId=$nodeId", ex)
+                failInstance(instance, nodeId, errorMessage)
+                val duration = System.currentTimeMillis() - startTime
+                metricsService.recordNodeExecution(duration, nodeType.toString())
+                return true
             }
         }
 
@@ -965,14 +971,24 @@ class ProcessService(
 
         // No boundary to recover from this failure; mark instance as failed.
         logger.info("No error boundary found for node $nodeId, marking instance $processInstanceId as FAILED")
-        instance.status = ProcessStatus.FAILED
-        instance.currentNode = emptyList()
-        instance.updatedAt = LocalDateTime.now()
-        processInstanceRepository.save(instance)
+        failInstance(instance, nodeId, errorMessage ?: "Service task failed")
         logger.info("Instance $processInstanceId status set to FAILED")
 
         val duration = System.currentTimeMillis() - startTime
         metricsService.recordServiceTaskExecution(duration, success = false)
+    }
+
+    fun markServiceTaskTimedOut(processInstanceId: Long, nodeId: String, errorMessage: String) {
+        handleServiceTaskFailed(processInstanceId, nodeId, errorMessage)
+    }
+
+    private fun failInstance(instance: ProcessInstance, nodeId: String, errorMessage: String) {
+        instance.status = ProcessStatus.FAILED
+        instance.currentNode = emptyList()
+        instance.errorNodeId = nodeId
+        instance.errorMessage = errorMessage.take(4000)
+        instance.updatedAt = LocalDateTime.now()
+        processInstanceRepository.save(instance)
     }
 
     @Transactional

@@ -21,6 +21,12 @@ interface WorkerRequestRepository : JpaRepository<WorkerRequest, Long> {
     @Query("FROM WorkerRequest WHERE status = 'DLQ'")
     fun findDlqMessages(): List<WorkerRequest>
 
+    @Query("FROM WorkerRequest WHERE status IN :statuses AND lastAttemptAt < :before")
+    fun findTimedOutRequests(
+        @Param("statuses") statuses: Collection<WorkerRequestStatus>,
+        @Param("before") before: LocalDateTime
+    ): List<WorkerRequest>
+
     fun deleteByProcessInstanceId(processInstanceId: Long)
 }
 

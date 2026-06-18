@@ -105,6 +105,9 @@ class MessageTimeoutService(
 
         if (!handledByBoundary) {
             instance.status = ProcessStatus.FAILED
+            instance.currentNode = emptyList()
+            instance.errorNodeId = subscription.nodeId
+            instance.errorMessage = "Message subscription timed out: message=${subscription.messageName}, correlationKey=${subscription.correlationKey}"
             instance.updatedAt = LocalDateTime.now()
             processInstanceRepository.save(instance)
 
