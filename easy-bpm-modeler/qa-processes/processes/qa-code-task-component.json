@@ -1,0 +1,120 @@
+{
+  "processId": "qa_code_task_component",
+  "processName": "QA Code Task Component",
+  "metadata": {
+    "version": "1.0",
+    "purpose": "Contract sample for code-task component QA with JAR, class, method, input/output mapping, and boundary recovery.",
+    "jarFile": "../jars/test-service.jar",
+    "modelerImportNote": "Current modeler importer does not hydrate CodeTask config from JSON. Use this file to verify display/import limitations and backend contract shape.",
+    "backendDeployNote": "Current ProcessService enum recognizes CodeTask, but executeNode does not route to CodeTaskHandler yet."
+  },
+  "variables": [
+    { "name": "orderId", "type": "string", "initialValue": "ORDER-1001" },
+    { "name": "amount", "type": "number", "initialValue": "1250" },
+    { "name": "customerTier", "type": "string", "initialValue": "GOLD" },
+    { "name": "processedOrderMessage", "type": "string", "initialValue": "" },
+    { "name": "codeTaskError", "type": "string", "initialValue": "" },
+    { "name": "approved", "type": "boolean", "initialValue": "false" }
+  ],
+  "nodes": [
+    { "id": "start", "name": "Start", "type": "StartEvent", "position": { "x": 80, "y": 240 }, "width": 40, "height": 40, "next": ["process_order_code"] },
+    {
+      "id": "process_order_code",
+      "name": "Process Order Code",
+      "type": "CodeTask",
+      "position": { "x": 260, "y": 220 },
+      "width": 120,
+      "height": 60,
+      "next": ["review_result"],
+      "config": {
+        "jarId": 1,
+        "className": "TestService",
+        "methodName": "processOrder",
+        "inputs": [
+          { "targetName": "0", "type": "string", "source": "variable", "value": "orderId" },
+          { "targetName": "1", "type": "number", "source": "variable", "value": "amount" }
+        ],
+        "outputs": [
+          { "target": "process", "sourceName": "returnValue", "type": "string", "value": "processedOrderMessage" }
+        ]
+      },
+      "properties": {
+        "jarId": 1,
+        "className": "TestService",
+        "methodName": "processOrder",
+        "inputs": [
+          { "targetName": "0", "type": "string", "source": "variable", "value": "orderId" },
+          { "targetName": "1", "type": "number", "source": "variable", "value": "amount" }
+        ],
+        "outputs": [
+          { "source": "variable", "sourceValue": "returnValue", "type": "string", "targetVariable": "processedOrderMessage" }
+        ]
+      }
+    },
+    {
+      "id": "code_error",
+      "name": "Code Error Boundary",
+      "type": "ErrorBoundaryEvent",
+      "position": { "x": 345, "y": 280 },
+      "width": 30,
+      "height": 30,
+      "next": ["manual_recovery"],
+      "attachedTo": "process_order_code",
+      "config": {
+        "errorCode": "CODE_TASK_ERROR",
+        "exceptionVariable": "codeTaskError"
+      },
+      "error": {
+        "code": "CODE_TASK_ERROR"
+      }
+    },
+    {
+      "id": "review_result",
+      "name": "Review Result",
+      "type": "HumanTask",
+      "position": { "x": 500, "y": 160 },
+      "width": 120,
+      "height": 60,
+      "next": ["end_ok"],
+      "config": {
+        "candidateGroups": "QA",
+        "formId": "qaManagerReview",
+        "inputs": [
+          { "targetName": "amount", "type": "number", "source": "variable", "value": "amount" },
+          { "targetName": "managerComment", "type": "string", "source": "variable", "value": "processedOrderMessage" }
+        ],
+        "outputs": [
+          { "target": "process", "sourceName": "approved", "type": "boolean", "value": "approved" }
+        ]
+      }
+    },
+    {
+      "id": "manual_recovery",
+      "name": "Manual Recovery",
+      "type": "HumanTask",
+      "position": { "x": 500, "y": 340 },
+      "width": 120,
+      "height": 60,
+      "next": ["end_recovered"],
+      "config": {
+        "candidateGroups": "ADMIN",
+        "formId": "qaManagerReview",
+        "inputs": [
+          { "targetName": "managerComment", "type": "string", "source": "variable", "value": "codeTaskError" }
+        ],
+        "outputs": [
+          { "target": "process", "sourceName": "managerComment", "type": "string", "value": "codeTaskError" }
+        ]
+      }
+    },
+    { "id": "end_ok", "name": "End OK", "type": "EndEvent", "position": { "x": 720, "y": 180 }, "width": 40, "height": 40, "next": [] },
+    { "id": "end_recovered", "name": "End Recovered", "type": "EndEvent", "position": { "x": 720, "y": 360 }, "width": 40, "height": 40, "next": [] }
+  ],
+  "flows": [
+    { "from": "start", "to": "process_order_code", "condition": null },
+    { "from": "process_order_code", "to": "review_result", "condition": null },
+    { "from": "code_error", "to": "manual_recovery", "condition": null },
+    { "from": "review_result", "to": "end_ok", "condition": null },
+    { "from": "manual_recovery", "to": "end_recovered", "condition": null }
+  ]
+}

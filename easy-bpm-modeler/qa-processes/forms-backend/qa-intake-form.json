@@ -1,0 +1,41 @@
+{
+  "formId": "qaIntakeForm",
+  "name": "QA Intake Form",
+  "schema": {
+    "title": "QA Intake Form",
+    "type": "object",
+    "required": ["requestTitle", "amount", "priority", "requestedDate"],
+    "properties": {
+      "requestTitle": {
+        "type": "string",
+        "title": "Request title"
+      },
+      "amount": {
+        "type": "number",
+        "title": "Amount"
+      },
+      "priority": {
+        "type": "string",
+        "title": "Priority",
+        "enum": ["LOW", "NORMAL", "HIGH"]
+      },
+      "requestedDate": {
+        "type": "string",
+        "title": "Requested date",
+        "format": "date"
+      },
+      "requestNotes": {
+        "type": "string",
+        "title": "Request notes",
+        "format": "textarea"
+      },
+      "supportingDocument": {
+        "type": "string",
+        "title": "Supporting document",
+        "format": "fileUpload",
+        "allowedExtensions": [".pdf", ".png", ".jpg"],
+        "maxSizeMb": 10
+      }
+    }
+  }
+}

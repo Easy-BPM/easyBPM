@@ -1,0 +1,41 @@
+{
+  "formId": "qaFinanceReview",
+  "name": "QA Finance Review",
+  "schema": {
+    "title": "QA Finance Review",
+    "type": "object",
+    "required": ["financeApproved", "paymentMethod"],
+    "properties": {
+      "amount": {
+        "type": "number",
+        "title": "Amount",
+        "readOnly": true
+      },
+      "managerComment": {
+        "type": "string",
+        "title": "Manager comment",
+        "readOnly": true
+      },
+      "financeApproved": {
+        "type": "boolean",
+        "title": "Finance approval"
+      },
+      "paymentMethod": {
+        "type": "string",
+        "title": "Payment method",
+        "enum": ["WIRE", "CARD", "INVOICE"]
+      },
+      "financeComment": {
+        "type": "string",
+        "title": "Finance comment",
+        "format": "textarea"
+      },
+      "approvedPdf": {
+        "type": "string",
+        "title": "Approved PDF",
+        "format": "pdfViewer",
+        "readOnly": true
+      }
+    }
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "formId": "qaManagerReview",
+  "name": "QA Manager Review",
+  "schema": {
+    "title": "QA Manager Review",
+    "type": "object",
+    "required": ["approved", "managerComment"],
+    "properties": {
+      "requestTitle": {
+        "type": "string",
+        "title": "Request title",
+        "readOnly": true
+      },
+      "amount": {
+        "type": "number",
+        "title": "Amount",
+        "readOnly": true
+      },
+      "approved": {
+        "type": "boolean",
+        "title": "Approve request"
+      },
+      "managerComment": {
+        "type": "string",
+        "title": "Manager comment",
+        "format": "textarea"
+      }
+    }
+  }
+}
