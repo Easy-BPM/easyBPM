@@ -1,41 +1,53 @@
-# Website
+# Easy BPM Public Docs
 
-This website is built using [Docusaurus](https://docusaurus.io/), a modern static website generator.
+This site is built with [Docusaurus](https://docusaurus.io/).
 
-## Installation
-
-```bash
-yarn
-```
-
-## Local Development
+## Install
 
 ```bash
-yarn start
+npm ci
 ```
 
-This command starts a local development server and opens up a browser window. Most changes are reflected live without having to restart the server.
+## Development
+
+```bash
+npm run start
+```
+
+This starts the Docusaurus development server with live reload.
+
+## Search
+
+The docs use local/offline search. The search index is generated only during production build, so the search box is limited in `npm run start`.
+
+Use this command when you need to test search locally:
+
+```bash
+npm run serve:search
+```
+
+That script runs `npm run build` first, then serves the generated static site with the search index available.
 
 ## Build
 
 ```bash
-yarn build
+npm run build
 ```
 
-This command generates static content into the `build` directory and can be served using any static contents hosting service.
+The generated static site is written to `build`.
 
-## Deployment
+## Versioning
 
-Using SSH:
+Documentation versions are created from the current `docs` snapshot with Docusaurus.
 
 ```bash
-USE_SSH=true yarn deploy
+npm run docusaurus docs:version v0.1.0-beta.1
 ```
 
-Not using SSH:
+This creates:
 
-```bash
-GIT_USER=<Your GitHub username> yarn deploy
-```
+- `versions.json`
+- `versioned_docs/version-v0.1.0-beta.1`
+- `versioned_sidebars/version-v0.1.0-beta.1-sidebars.json`
 
-If you are using GitHub pages for hosting, this command is a convenient way to build the website and push to the `gh-pages` branch.
+Keep `docs` for the current/next documentation, and create a new version whenever a release needs a frozen docs snapshot.

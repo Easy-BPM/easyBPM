@@ -51,6 +51,21 @@ const config: Config = {
     ],
   ],
 
+  plugins: [
+    [
+      require.resolve('@easyops-cn/docusaurus-search-local'),
+      {
+        hashed: true,
+        indexDocs: true,
+        indexBlog: false,
+        docsRouteBasePath: '/docs',
+        language: ['en'],
+        highlightSearchTermsOnTargetPage: true,
+        explicitSearchResultPath: true,
+      },
+    ],
+  ],
+
   themeConfig: {
     image: 'img/docusaurus-social-card.jpg',
     colorMode: {
@@ -67,6 +82,10 @@ const config: Config = {
         },
         {to: '/docs/api/overview', label: 'API', position: 'left'},
         {to: '/docs/guides/create-process', label: 'Guides', position: 'left'},
+        {
+          type: 'docsVersionDropdown',
+          position: 'right',
+        },
         {
           href: 'https://github.com/Easy-BPM/easyBPM',
           label: 'GitHub',
@@ -121,7 +140,7 @@ const config: Config = {
           ],
         },
       ],
-      copyright: `Copyright © ${new Date().getFullYear()} Easy BPM. Built with Docusaurus.`,
+      copyright: `Copyright (c) ${new Date().getFullYear()} Easy BPM. Built with Docusaurus.`,
     },
     prism: {
       theme: prismThemes.github,
