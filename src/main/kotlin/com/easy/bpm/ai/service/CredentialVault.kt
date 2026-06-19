@@ -11,7 +11,6 @@ import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
 import java.util.*
 import javax.crypto.Cipher
-import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.spec.SecretKeySpec
 
@@ -31,10 +30,11 @@ class CredentialVault(
     // In production, encryption key should come from environment variable (e.g., ENCRYPTION_KEY)
     private val encryptionKey: SecretKey by lazy {
         val keyStr = System.getenv("AI_ENCRYPTION_KEY") ?: "default-dev-key-change-in-prod-1234"
-        val decodedKey = Base64.getDecoder().decode(
-            if (keyStr.length >= 32) keyStr.substring(0, 32) else keyStr.padEnd(32, 'x')
-        )
-        SecretKeySpec(decodedKey, 0, decodedKey.size, "AES")
+        val keyBytes = keyStr
+            .take(32)
+            .padEnd(32, 'x')
+            .toByteArray(Charsets.UTF_8)
+        SecretKeySpec(keyBytes, "AES")
     }
 
     /**
@@ -119,10 +119,8 @@ class CredentialVault(
      * @throws IllegalArgumentException if credential not found or access denied
      */
     fun retrieveCredential(credentialId: String, userId: String, userRole: String = "USER"): String {
-        val credential = credentialRepository.findByIdAndOwnerId(credentialId, userId)
-            ?: throw IllegalArgumentException("Credential not found: $credentialId")
-        
-        val cred = credential.get()
+        val cred = credentialRepository.findByIdAndOwnerId(credentialId, userId)
+            .orElseThrow { IllegalArgumentException("Credential not found: $credentialId") }
         
         // RBAC check
         if (!cred.isAccessibleBy(userId, userRole)) {
@@ -172,10 +170,8 @@ class CredentialVault(
      * @return Credential DTO with masked token (last 4 chars only)
      */
     fun getCredentialDto(credentialId: String, userId: String): AICredentialResponseDto {
-        val credential = credentialRepository.findByIdAndOwnerId(credentialId, userId)
-            ?: throw IllegalArgumentException("Credential not found: $credentialId")
-        
-        val cred = credential.get()
+        val cred = credentialRepository.findByIdAndOwnerId(credentialId, userId)
+            .orElseThrow { IllegalArgumentException("Credential not found: $credentialId") }
         return AICredentialResponseDto(
             id = cred.id,
             providerId = cred.providerId,
@@ -216,10 +212,8 @@ class CredentialVault(
      * @param userId User ID (must be owner)
      */
     fun deleteCredential(credentialId: String, userId: String) {
-        val credential = credentialRepository.findByIdAndOwnerId(credentialId, userId)
-            ?: throw IllegalArgumentException("Credential not found: $credentialId")
-        
-        val cred = credential.get()
+        val cred = credentialRepository.findByIdAndOwnerId(credentialId, userId)
+            .orElseThrow { IllegalArgumentException("Credential not found: $credentialId") }
         cred.deactivate()
         credentialRepository.save(cred)
         
@@ -252,8 +246,8 @@ class CredentialVault(
      */
     fun isCredentialValid(credentialId: String, userId: String): Boolean {
         return credentialRepository.findByIdAndOwnerId(credentialId, userId)
-            ?.let { it.isPresent && it.get().isActive }
-            ?: false
+            .map { it.isActive }
+            .orElse(false)
     }
 }
 

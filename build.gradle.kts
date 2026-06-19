@@ -62,8 +62,6 @@ kotlin {
 	}
 	sourceSets.named("test") {
 		kotlin.exclude(
-			"com/easy/bpm/ai/**",
-			"com/easy/bpm/handler/AITaskHandler*.kt",
 			"com/easy/bpm/integration/ProcessService*AITaskIntegrationTest.kt"
 		)
 	}

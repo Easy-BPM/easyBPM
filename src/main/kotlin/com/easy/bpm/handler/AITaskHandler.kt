@@ -276,7 +276,7 @@ class AITaskHandler(
         var result = template
 
         // Find all {{varName}} patterns
-        val pattern = Regex("""\\{\\{([a-zA-Z_][a-zA-Z0-9_]*)\\}\\}""")
+        val pattern = Regex("""\{\{([a-zA-Z_][a-zA-Z0-9_]*)\}\}""")
 
         pattern.findAll(template).forEach { match ->
             val varName = match.groupValues[1]
