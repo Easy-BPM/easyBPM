@@ -248,7 +248,8 @@ class DocumentServiceTest : FunSpec() {
             service.sanitizeFileName("my-report.pdf") shouldBe "my-report.pdf"
         }
     }
-})
+    }
+}
 
 // ---------------------------------------------------------------------------
 // Helpers

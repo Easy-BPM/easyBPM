@@ -2,6 +2,7 @@ package com.easy.bpm.service
 
 import com.easy.bpm.enum.NodeType
 import com.easy.bpm.enum.ProcessStatus
+import com.easy.bpm.handler.AITaskHandler
 import com.easy.bpm.model.form.Form
 import com.easy.bpm.model.process.ProcessDefinition
 import com.easy.bpm.model.process.ProcessInstance
@@ -50,6 +51,7 @@ class ProcessServiceTest : FunSpec() {
     val mockWorkerRequestRepository = mockk<WorkerRequestRepository>()
     val mockCallActivityHandler = mockk<CallActivityHandler>()
     val mockCallActivityMappingRepository = mockk<CallActivityMappingRepository>()
+    val mockAITaskHandler = mockk<AITaskHandler>()
 
     val processService = ProcessService(
         mockProcessDefinitionRepository,
@@ -66,7 +68,8 @@ class ProcessServiceTest : FunSpec() {
         mockMetricsService,
         mockWorkerRequestRepository,
         mockCallActivityHandler,
-        mockCallActivityMappingRepository
+        mockCallActivityMappingRepository,
+        mockAITaskHandler
     )
 
     val objectMapper = ObjectMapper()
@@ -94,7 +97,7 @@ class ProcessServiceTest : FunSpec() {
                 definitionJson = processJson.toString(),
                 version = 1
             )
-            every { mockProcessDefinitionRepository.save(any()) } returns expectedDefinition
+            every { mockProcessDefinitionRepository.save(any<ProcessDefinition>()) } returns expectedDefinition
 
             // Act
             val result = processService.deployProcess(processJson)
@@ -103,7 +106,7 @@ class ProcessServiceTest : FunSpec() {
             result shouldNotBe null
             result.processName shouldBe "my-process"
             result.version shouldBe 1
-            verify { mockProcessDefinitionRepository.save(any()) }
+            verify { mockProcessDefinitionRepository.save(any<ProcessDefinition>()) }
         }
 
         test("should increment version for existing process definition") {
@@ -131,7 +134,7 @@ class ProcessServiceTest : FunSpec() {
                 definitionJson = processJson.toString(),
                 version = 2
             )
-            every { mockProcessDefinitionRepository.save(any()) } returns expectedDefinition
+            every { mockProcessDefinitionRepository.save(any<ProcessDefinition>()) } returns expectedDefinition
 
             // Act
             val result = processService.deployProcess(processJson)
@@ -178,7 +181,7 @@ class ProcessServiceTest : FunSpec() {
             )
 
             every { mockProcessDefinitionRepository.findById(definitionId) } returns Optional.of(definition)
-            every { mockProcessInstanceRepository.save(any()) } returns ProcessInstance(
+            every { mockProcessInstanceRepository.save(any<ProcessInstance>()) } returns ProcessInstance(
                 id = 100,
                 processDefinition = definition,
                 status = ProcessStatus.ACTIVE,
@@ -386,11 +389,11 @@ class ProcessServiceTest : FunSpec() {
             every { mockTaskRepository.delete(pendingSourceTask) } just runs
 
             every { mockFormService.getLatestVersionByName("approve-request") } returns null
-            every { mockTaskRepository.save(any()) } answers {
+            every { mockTaskRepository.save(any<Task>()) } answers {
                 firstArg<Task>().copy(id = 2002)
             }
 
-            every { mockProcessInstanceRepository.save(any()) } answers { firstArg() }
+            every { mockProcessInstanceRepository.save(any<ProcessInstance>()) } answers { firstArg<ProcessInstance>() }
 
             // Act
             val result = processService.moveProcessNode(processInstanceId, "manual-review", "approve-request")
@@ -402,7 +405,7 @@ class ProcessServiceTest : FunSpec() {
             verify(exactly = 1) { mockTaskVariableRepository.deleteByTaskId(pendingSourceTask.id) }
             verify(exactly = 1) { mockTaskRepository.delete(pendingSourceTask) }
             verify(exactly = 1) {
-                mockTaskRepository.save(match {
+                mockTaskRepository.save(match<Task> {
                     it.processInstanceId == processInstanceId &&
                         it.nodeId == "approve-request" &&
                         it.title == "Approve Request"
@@ -445,7 +448,7 @@ class ProcessServiceTest : FunSpec() {
 
             every { mockProcessInstanceRepository.findById(processInstanceId) } returns Optional.of(instance)
             every { mockObjectMapper.readTree(definitionJson) } returns objectMapper.readTree(definitionJson)
-            every { mockProcessInstanceRepository.save(any()) } answers { firstArg() }
+            every { mockProcessInstanceRepository.save(any<ProcessInstance>()) } answers { firstArg<ProcessInstance>() }
 
             // Act
             processService.handleServiceTaskFailed(processInstanceId, "api-task", "network timeout")
@@ -453,7 +456,7 @@ class ProcessServiceTest : FunSpec() {
             // Assert
             instance.status shouldBe ProcessStatus.FAILED
             instance.currentNode shouldBe emptyList()
-            verify(exactly = 1) { mockProcessInstanceRepository.save(match { it.status == ProcessStatus.FAILED }) }
+            verify(exactly = 1) { mockProcessInstanceRepository.save(match<ProcessInstance> { it.status == ProcessStatus.FAILED }) }
         }
     }
 

@@ -157,7 +157,8 @@ class DocumentControllerTest : FunSpec() {
             response.body?.size shouldBe 2
         }
     }
-})
+    }
+}
 
 // ---------------------------------------------------------------------------
 // Helpers

@@ -20,7 +20,7 @@ spring:
     hibernate:
       ddl-auto: update
     properties:
-      hibernate.globally_quoted_identifiers: true
+      hibernate.globally_quoted_identifiers: false
       hibernate.jdbc.batch_size: 10
       hibernate.order_inserts: true
       hibernate.order_updates: true
@@ -47,4 +47,3 @@ easybpm:
     enabled: false
     # Use a 24-hour expiry during tests to prevent JWT expiry across slow CI runs
     jwt-expiration-ms: 86400000
-
