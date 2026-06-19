@@ -13,12 +13,13 @@
     "serve": "docusaurus serve",
     "write-translations": "docusaurus write-translations",
     "write-heading-ids": "docusaurus write-heading-ids",
+    "postinstall": "node scripts/patch-gray-matter-js-yaml.mjs",
     "typecheck": "tsc"
   },
   "dependencies": {
-    "@docusaurus/core": "3.10.0",
-    "@docusaurus/faster": "3.10.0",
-    "@docusaurus/preset-classic": "3.10.0",
+    "@docusaurus/core": "3.10.1",
+    "@docusaurus/faster": "3.10.1",
+    "@docusaurus/preset-classic": "3.10.1",
     "@easyops-cn/docusaurus-search-local": "^0.55.2",
     "@mdx-js/react": "^3.0.0",
     "clsx": "^2.0.0",
@@ -27,11 +28,23 @@
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
-    "@docusaurus/module-type-aliases": "3.10.0",
-    "@docusaurus/tsconfig": "3.10.0",
-    "@docusaurus/types": "3.10.0",
+    "@docusaurus/module-type-aliases": "3.10.1",
+    "@docusaurus/tsconfig": "3.10.1",
+    "@docusaurus/types": "3.10.1",
     "@types/react": "^19.0.0",
-    "typescript": "~6.0.2"
+    "typescript": "~6.0.3"
+  },
+  "overrides": {
+    "@babel/core": "^7.29.7",
+    "http-proxy-middleware": "^4.1.1",
+    "joi": "^17.13.4",
+    "js-yaml": "^4.2.0",
+    "launch-editor": "^2.14.1",
+    "serialize-javascript": "^7.0.6",
+    "shell-quote": "^1.8.4",
+    "uuid": "^14.0.0",
+    "webpack-dev-server": "^5.2.5",
+    "ws": "^8.21.0"
   },
   "browserslist": {
     "production": [
