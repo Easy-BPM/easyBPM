@@ -33,7 +33,8 @@ import org.springframework.data.domain.Sort
 import java.time.LocalDateTime
 import java.util.*
 
-class ProcessServiceTest : FunSpec({
+class ProcessServiceTest : FunSpec() {
+    init {
     val mockProcessDefinitionRepository = mockk<ProcessDefinitionRepository>()
     val mockProcessInstanceRepository = mockk<ProcessInstanceRepository>()
     val mockProcessVariableRepository = mockk<ProcessVariableRepository>()
@@ -482,5 +483,5 @@ class ProcessServiceTest : FunSpec({
             result shouldBe null
         }
     }
-})
-
+    }
+}

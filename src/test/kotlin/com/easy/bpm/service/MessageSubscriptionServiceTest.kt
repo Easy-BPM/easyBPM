@@ -12,7 +12,8 @@ import io.mockk.*
 import java.time.LocalDateTime
 import java.util.*
 
-class MessageSubscriptionServiceTest : FunSpec({
+class MessageSubscriptionServiceTest : FunSpec() {
+    init {
     val mockMessageSubscriptionRepository = mockk<MessageSubscriptionRepository>()
     val messageSubscriptionService = MessageSubscriptionService(mockMessageSubscriptionRepository)
 
@@ -414,5 +415,5 @@ class MessageSubscriptionServiceTest : FunSpec({
             verify { mockMessageSubscriptionRepository.deleteById(subscriptionId) }
         }
     }
-})
-
+    }
+}

@@ -13,6 +13,7 @@ import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.AccessDeniedException
+import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.*
 
@@ -91,6 +92,63 @@ class TaskController(
         }
     }
 
+    @PostMapping("/{id}/unclaim")
+    @Operation(summary = "Unclaim a task", description = "Remove the current assignee and return the task to the available pool")
+    fun unclaimTask(
+        @PathVariable id: Long,
+        @AuthenticationPrincipal principal: AuthenticatedUser? = null
+    ): ResponseEntity<TaskResponseDto> {
+        if (principal == null) {
+            return ResponseEntity.status(401).build()
+        }
+        return try {
+            ResponseEntity.ok(taskService.unclaimTask(id, principal.username, principal.groups))
+        } catch (_: AccessDeniedException) {
+            ResponseEntity.status(403).build()
+        } catch (ex: IllegalArgumentException) {
+            ResponseEntity.badRequest().build()
+        } catch (ex: IllegalStateException) {
+            ResponseEntity.status(409).build()
+        }
+    }
+
+    @PostMapping("/{id}/draft")
+    @Operation(summary = "Save a task draft", description = "Persist task variables without completing the task")
+    fun saveDraft(
+        @PathVariable id: Long,
+        @RequestBody body: Map<String, Any>,
+        @AuthenticationPrincipal principal: AuthenticatedUser? = null
+    ): ResponseEntity<TaskResponseDto> {
+        if (principal == null) {
+            return ResponseEntity.status(401).build()
+        }
+        return try {
+            ResponseEntity.ok(taskService.saveTaskDraft(id, principal.username, principal.groups, extractVariables(body)))
+        } catch (_: AccessDeniedException) {
+            ResponseEntity.status(403).build()
+        } catch (ex: IllegalArgumentException) {
+            ResponseEntity.badRequest().build()
+        } catch (ex: IllegalStateException) {
+            ResponseEntity.status(409).build()
+        }
+    }
+
+    @PutMapping("/{id}/assignee")
+    @PreAuthorize("hasAuthority('ACCESS_BPM_ADMIN')")
+    @Operation(summary = "Reassign a task", description = "Admin operation to update the existing task assignee")
+    fun reassignTask(
+        @PathVariable id: Long,
+        @RequestBody body: Map<String, Any?>
+    ): ResponseEntity<TaskResponseDto> {
+        return try {
+            ResponseEntity.ok(taskService.reassignTask(id, body["assignee"] as? String))
+        } catch (ex: IllegalArgumentException) {
+            ResponseEntity.badRequest().build()
+        } catch (ex: IllegalStateException) {
+            ResponseEntity.status(409).build()
+        }
+    }
+
     @PostMapping("/{id}/complete")
     @Operation(summary = "Complete a task", description = "Mark a task as completed and provide task variables")
     fun completeTask(
@@ -127,11 +185,7 @@ class TaskController(
         val assignee = principal?.username ?: (body["assignee"] as? String)
             ?: return ResponseEntity.badRequest().body("Missing assignee")
 
-        val vars = (body["variables"] as? Map<*, *>)?.mapNotNull {
-            val key = it.key as? String
-            val value = it.value
-            if (key != null && value != null) key to value else null
-        }?.toMap() ?: emptyMap()
+        val vars = extractVariables(body)
 
         return try {
             if (principal == null) {
@@ -150,5 +204,13 @@ class TaskController(
     }
 
 
+}
+
+private fun extractVariables(body: Map<String, Any?>): Map<String, Any> {
+    return (body["variables"] as? Map<*, *>)?.mapNotNull {
+        val key = it.key as? String
+        val value = it.value
+        if (key != null && value != null) key to value else null
+    }?.toMap() ?: emptyMap()
 }
 

@@ -13,7 +13,8 @@ import java.time.LocalDateTime
 import java.util.Optional
 import java.util.UUID
 
-class DocumentServiceTest : FunSpec({
+class DocumentServiceTest : FunSpec() {
+    init {
 
     val mockRepository = mockk<DocumentRepository>()
     val service = DocumentService(mockRepository)

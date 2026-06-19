@@ -5,7 +5,8 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.maps.shouldContain
 import io.mockk.*
 
-class RabbitListenerServiceTest : FunSpec({
+class RabbitListenerServiceTest : FunSpec() {
+    init {
     val mockProcessService = mockk<ProcessService>()
     val rabbitListenerService = RabbitListenerService(mockProcessService)
 
@@ -277,5 +278,5 @@ class RabbitListenerServiceTest : FunSpec({
             verify { mockProcessService.handleMessageReceived(messageName, correlationKey, variables) }
         }
     }
-})
-
+    }
+}

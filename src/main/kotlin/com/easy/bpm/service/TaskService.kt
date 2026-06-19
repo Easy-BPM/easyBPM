@@ -66,11 +66,10 @@ class TaskService(
     fun completeTask(taskId: Long, assignee: String, groups: Set<String>, variables: Map<String, Any>) {
         val startTime = System.currentTimeMillis()
 
-        val task = getActiveTask(taskId)
+        val task = getActiveTaskForUpdate(taskId)
         authorizeTaskInteraction(task, assignee, groups)
         if (task.assignee == null) {
             task.assignee = assignee
-            taskRepository.save(task)
         }
         if (task.assignee != assignee) {
             throw IllegalStateException("Task is assigned to another user")
@@ -190,7 +189,7 @@ class TaskService(
     fun getVisibleTaskResponseById(id: Long, username: String, groups: Set<String>): TaskResponseDto? {
         val task = getTaskById(id) ?: return null
         if (!isTaskVisibleForUser(task, username, groups)) {
-            throw IllegalStateException("User is not allowed to view this task")
+            throw AccessDeniedException("User is not allowed to view this task")
         }
         return toResponseDto(task)
     }
@@ -206,17 +205,51 @@ class TaskService(
 
     @Transactional
     fun claimTask(taskId: Long, username: String, groups: Set<String>): TaskResponseDto {
-        val task = getActiveTask(taskId)
+        val task = getActiveTaskForUpdate(taskId)
         authorizeTaskInteraction(task, username, groups)
 
         if (task.assignee == null) {
             task.assignee = username
-            taskRepository.save(task)
         } else if (task.assignee != username) {
             throw IllegalStateException("Task already claimed by another user")
         }
 
-        return toResponseDto(task)
+        return toResponseDto(taskRepository.save(task))
+    }
+
+    @Transactional
+    fun unclaimTask(taskId: Long, username: String, groups: Set<String>): TaskResponseDto {
+        val task = getActiveTaskForUpdate(taskId)
+        authorizeTaskInteraction(task, username, groups)
+
+        if (task.assignee != null && task.assignee != username) {
+            throw IllegalStateException("Task is assigned to another user")
+        }
+
+        task.assignee = null
+        return toResponseDto(taskRepository.save(task))
+    }
+
+    @Transactional
+    fun saveTaskDraft(taskId: Long, username: String, groups: Set<String>, variables: Map<String, Any>): TaskResponseDto {
+        val task = getActiveTaskForUpdate(taskId)
+        authorizeTaskInteraction(task, username, groups)
+
+        if (task.assignee == null) {
+            task.assignee = username
+        } else if (task.assignee != username) {
+            throw IllegalStateException("Task is assigned to another user")
+        }
+
+        persistTaskVariables(task, variables)
+        return toResponseDto(taskRepository.save(task))
+    }
+
+    @Transactional
+    fun reassignTask(taskId: Long, assignee: String?): TaskResponseDto {
+        val task = getActiveTaskForUpdate(taskId)
+        task.assignee = assignee?.trim()?.takeIf { it.isNotEmpty() }
+        return toResponseDto(taskRepository.save(task))
     }
 
     /* =========================
@@ -706,6 +739,17 @@ class TaskService(
 
     private fun getActiveTask(taskId: Long): Task {
         val task = taskRepository.findById(taskId)
+            .orElseThrow { IllegalArgumentException("Task not found") }
+
+        if (task.status == TaskStatus.COMPLETED) {
+            throw IllegalStateException("Task already completed")
+        }
+
+        return task
+    }
+
+    private fun getActiveTaskForUpdate(taskId: Long): Task {
+        val task = taskRepository.findByIdForUpdate(taskId)
             .orElseThrow { IllegalArgumentException("Task not found") }
 
         if (task.status == TaskStatus.COMPLETED) {

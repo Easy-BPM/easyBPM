@@ -15,7 +15,8 @@ import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.PageRequest
 
-class ProcessControllerTest : FunSpec({
+class ProcessControllerTest : FunSpec() {
+    init {
     val mockProcessService = mockk<ProcessService>()
     val objectMapper = ObjectMapper()
 
@@ -310,5 +311,5 @@ class ProcessControllerTest : FunSpec({
             verify { mockProcessService.handleMessageReceived(messageName, correlationKey, null) }
         }
     }
-})
-
+    }
+}

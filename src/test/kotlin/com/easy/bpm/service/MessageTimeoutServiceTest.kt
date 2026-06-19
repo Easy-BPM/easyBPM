@@ -17,7 +17,8 @@ import io.mockk.verify
 import java.time.LocalDateTime
 import java.util.Optional
 
-class MessageTimeoutServiceTest : FunSpec({
+class MessageTimeoutServiceTest : FunSpec() {
+    init {
     val mockMessageSubscriptionRepository = mockk<MessageSubscriptionRepository>()
     val mockProcessInstanceRepository = mockk<ProcessInstanceRepository>()
     val mockProcessService = mockk<ProcessService>()
@@ -218,5 +219,5 @@ class MessageTimeoutServiceTest : FunSpec({
             verify(exactly = 0) { mockMessageSubscriptionRepository.findByIdForUpdate(any()) }
         }
     }
-})
-
+    }
+}

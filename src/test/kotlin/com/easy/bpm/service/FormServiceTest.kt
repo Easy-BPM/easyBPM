@@ -11,7 +11,8 @@ import io.kotest.matchers.collections.shouldHaveSize
 import io.mockk.*
 import java.util.*
 
-class FormServiceTest : FunSpec({
+class FormServiceTest : FunSpec() {
+    init {
     val mockFormRepository = mockk<FormDefinitionRepository>()
     val formService = FormService(mockFormRepository)
     val objectMapper = ObjectMapper()
@@ -197,5 +198,5 @@ class FormServiceTest : FunSpec({
             result.shouldBeEmpty()
         }
     }
-})
-
+    }
+}

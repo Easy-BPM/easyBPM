@@ -12,7 +12,8 @@ import org.springframework.mock.web.MockMultipartFile
 import java.time.LocalDateTime
 import java.util.UUID
 
-class DocumentControllerTest : FunSpec({
+class DocumentControllerTest : FunSpec() {
+    init {
 
     val mockService = mockk<DocumentService>()
     val controller = DocumentController(mockService)

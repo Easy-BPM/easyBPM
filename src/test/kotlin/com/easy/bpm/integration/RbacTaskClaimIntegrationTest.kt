@@ -15,6 +15,7 @@ import com.easy.bpm.repository.security.AppUserRepository
 import com.easy.bpm.repository.security.PermissionRepository
 import com.easy.bpm.repository.security.UserGroupRepository
 import com.easy.bpm.repository.task.TaskRepository
+import com.easy.bpm.repository.variable.TaskVariableRepository
 import com.easy.bpm.security.AppUserDetailsService
 import com.easy.bpm.service.TaskService
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -37,6 +38,9 @@ class RbacTaskClaimIntegrationTest : IntegrationTestBase() {
 
     @Autowired
     private lateinit var taskRepository: TaskRepository
+
+    @Autowired
+    private lateinit var taskVariableRepository: TaskVariableRepository
 
     @Autowired
     private lateinit var processDefinitionRepository: ProcessDefinitionRepository
@@ -101,6 +105,57 @@ class RbacTaskClaimIntegrationTest : IntegrationTestBase() {
 
         assertEquals("alice", claimed.assignee)
         assertEquals("alice", taskRepository.findById(task.id).orElseThrow().assignee)
+    }
+
+    @Test
+    fun `user cannot claim task already claimed by another user`() {
+        val task = createTask(candidateGroups = mutableSetOf("FINANCE"))
+        taskService.claimTask(task.id, "alice", setOf("FINANCE"))
+
+        assertThrows(AccessDeniedException::class.java) {
+            taskService.claimTask(task.id, "bob", setOf("FINANCE"))
+        }
+    }
+
+    @Test
+    fun `user can unclaim their task`() {
+        val task = createTask(candidateGroups = mutableSetOf("FINANCE"))
+        taskService.claimTask(task.id, "alice", setOf("FINANCE"))
+
+        val unclaimed = taskService.unclaimTask(task.id, "alice", setOf("FINANCE"))
+
+        assertEquals(null, unclaimed.assignee)
+        assertEquals(null, taskRepository.findById(task.id).orElseThrow().assignee)
+    }
+
+    @Test
+    fun `saving draft persists variables while keeping assignee`() {
+        val task = createTask(candidateGroups = mutableSetOf("FINANCE"))
+        taskService.claimTask(task.id, "alice", setOf("FINANCE"))
+
+        val draft = taskService.saveTaskDraft(
+            task.id,
+            "alice",
+            setOf("FINANCE"),
+            mapOf("approvalComment" to "Needs more evidence", "approved" to false)
+        )
+
+        val variables = taskVariableRepository.findByTaskId(task.id).associate { it.name to it.value }
+        assertEquals("alice", draft.assignee)
+        assertEquals("Needs more evidence", variables["approvalComment"]?.asText())
+        assertEquals(false, variables["approved"]?.asBoolean())
+        assertEquals("alice", taskRepository.findById(task.id).orElseThrow().assignee)
+    }
+
+    @Test
+    fun `admin reassignment updates existing assignee field`() {
+        val task = createTask(candidateGroups = mutableSetOf("FINANCE"))
+        taskService.claimTask(task.id, "alice", setOf("FINANCE"))
+
+        val reassigned = taskService.reassignTask(task.id, "bob")
+
+        assertEquals("bob", reassigned.assignee)
+        assertEquals("bob", taskRepository.findById(task.id).orElseThrow().assignee)
     }
 
     private fun createTask(candidateGroups: MutableSet<String> = mutableSetOf(), candidateUsers: MutableSet<String> = mutableSetOf()): Task {
