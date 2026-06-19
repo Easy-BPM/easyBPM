@@ -139,6 +139,15 @@
   color: var(--app-input-text);
 }
 
+.task-portal-app[data-theme="dark"] .dynamic-boolean-field.dynamic-boolean-selected {
+  background-color: #12325f !important;
+  border-color: #3b82f6 !important;
+}
+
+.task-portal-app[data-theme="dark"] .dynamic-boolean-field.dynamic-boolean-selected .dynamic-boolean-label {
+  color: #e5edf5 !important;
+}
+
 .task-portal-app[data-theme="dark"] .shadow-sm,
 .task-portal-app[data-theme="dark"] .shadow-md {
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) !important;

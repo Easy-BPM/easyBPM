@@ -4,12 +4,14 @@ import {
   AuthCurrentUser,
   AuthLoginResponse,
   AuthSession,
+  BpmTask,
   CallActivityMapping,
   MoveNodePayload,
   Page,
   ProcessDefinition,
   ProcessInstance,
   ProcessVariable,
+  TaskStatus,
   VariableAssignmentPayload
 } from '../types';
 
@@ -208,6 +210,38 @@ export const adminService = {
 
     const res = await fetchWithAuth(`${API_BASE_URL}/processes/instances/${instanceId}/variables`);
     if (!res.ok) throw new Error(`Failed to fetch variables: ${res.statusText}`);
+    return res.json();
+  },
+
+  getTasks: async (options?: {
+    page?: number;
+    size?: number;
+    assignee?: string;
+    status?: TaskStatus | '';
+  }): Promise<Page<BpmTask>> => {
+    const params = new URLSearchParams({
+      page: String(options?.page ?? 0),
+      size: String(options?.size ?? 20)
+    });
+
+    if (options?.assignee?.trim()) params.set('assignee', options.assignee.trim());
+    if (options?.status) params.set('status', options.status);
+
+    const hasFilters = Boolean(options?.assignee?.trim() || options?.status);
+    const path = hasFilters ? '/tasks/search' : '/tasks';
+    const res = await fetchWithAuth(`${API_BASE_URL}${path}?${params.toString()}`);
+    if (!res.ok) throw new Error(`Failed to fetch tasks: ${res.statusText}`);
+    return res.json();
+  },
+
+  reassignTask: async (taskId: number, assignee: string | null): Promise<BpmTask> => {
+    const nextAssignee = assignee?.trim() ? assignee.trim() : null;
+    const res = await fetchWithAuth(`${API_BASE_URL}/tasks/${taskId}/assignee`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ assignee: nextAssignee })
+    });
+    if (!res.ok) throw new Error(`Failed to reassign task: ${res.statusText}`);
     return res.json();
   },
 

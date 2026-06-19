@@ -13,7 +13,8 @@
     { "name": "managerComment", "type": "string", "initialValue": "" },
     { "name": "financeApproved", "type": "boolean", "initialValue": "false" },
     { "name": "financeComment", "type": "string", "initialValue": "" },
-    { "name": "paymentMethod", "type": "string", "initialValue": "" }
+    { "name": "paymentMethod", "type": "string", "initialValue": "" },
+    { "name": "supportingDocument", "type": "string", "initialValue": "" }
   ],
   "nodes": [
     {
@@ -45,7 +46,8 @@
         "outputs": [
           { "target": "variable", "sourceName": "requestTitle", "type": "string", "value": "requestTitle" },
           { "target": "variable", "sourceName": "amount", "type": "number", "value": "amount" },
-          { "target": "variable", "sourceName": "priority", "type": "string", "value": "priority" }
+          { "target": "variable", "sourceName": "priority", "type": "string", "value": "priority" },
+          { "target": "variable", "sourceName": "supportingDocument", "type": "string", "value": "supportingDocument" }
         ]
       }
     },
@@ -94,7 +96,8 @@
         "formId": "qaFinanceReview",
         "inputs": [
           { "targetName": "amount", "type": "number", "source": "variable", "value": "amount" },
-          { "targetName": "managerComment", "type": "string", "source": "variable", "value": "managerComment" }
+          { "targetName": "managerComment", "type": "string", "source": "variable", "value": "managerComment" },
+          { "targetName": "approvedPdf", "type": "string", "source": "variable", "value": "supportingDocument" }
         ],
         "outputs": [
           { "target": "variable", "sourceName": "financeApproved", "type": "boolean", "value": "financeApproved" },

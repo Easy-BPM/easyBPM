@@ -73,6 +73,26 @@ export interface ProcessVariable {
   value: unknown;
 }
 
+export type TaskStatus = 'PENDING' | 'COMPLETED';
+
+export interface BpmTask {
+  id: number;
+  title?: string | null;
+  name: string;
+  description?: string | null;
+  processInstanceId: number;
+  nodeId: string;
+  assignee?: string | null;
+  candidateUsers: string[];
+  candidateGroups: string[];
+  status: TaskStatus;
+  createdAt: string;
+  completedAt?: string | null;
+  formDbId?: number | null;
+  formId?: string | null;
+  variables: Record<string, unknown>;
+}
+
 export interface NodeHistoryItem {
   nodeId: string;
   timestamp?: string;
@@ -133,4 +153,3 @@ export interface AdminGroup {
   name: string;
   permissions: string[];
 }
-

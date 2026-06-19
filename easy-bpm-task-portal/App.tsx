@@ -3,7 +3,7 @@ import { Sidebar } from './components/Sidebar';
 import { bpmService } from './services/bpmService';
 import { DynamicForm } from './components/DynamicForm';
 import { ThemeMode, ThemeToggle } from './components/ThemeToggle';
-import { Task, ProcessDefinition, TaskStatus, Form } from './types';
+import { Task, ProcessDefinition, TaskStatus, Form, JsonSchemaProperty } from './types';
 import {
   Play,
   CheckCircle2,
@@ -70,6 +70,21 @@ const mapToVariableEntries = (variables: Record<string, any>): VariableEntry[] =
       value: stringifyVariableValue(value, type)
     };
   });
+};
+
+const defaultFormValue = (prop: JsonSchemaProperty) => {
+  if (prop.type === 'boolean') return false;
+  return '';
+};
+
+const normalizeFormVariables = (form: Form, data: Record<string, any>): Record<string, any> => {
+  const normalized = { ...(data || {}) };
+  Object.entries(form.schema.properties || {}).forEach(([key, prop]) => {
+    if (normalized[key] === undefined || normalized[key] === null) {
+      normalized[key] = defaultFormValue(prop);
+    }
+  });
+  return normalized;
 };
 
 const App: React.FC = () => {
@@ -665,6 +680,7 @@ const TaskDetailView: React.FC<{ taskId: number; onBack: () => void; currentUser
         try {
           const loadedForm = await bpmService.getFormById(selectedTask.formDbId);
           setFormDef(loadedForm);
+          setFormData(normalizeFormVariables(loadedForm, taskVariables));
         } catch (loadFormError) {
           setError((loadFormError as Error).message);
         }
@@ -678,7 +694,7 @@ const TaskDetailView: React.FC<{ taskId: number; onBack: () => void; currentUser
 
   const buildCompletionVariables = (): Record<string, any> => {
     if (formDef) {
-      return formData;
+      return normalizeFormVariables(formDef, formData);
     }
 
     const output: Record<string, any> = {};
@@ -697,9 +713,11 @@ const TaskDetailView: React.FC<{ taskId: number; onBack: () => void; currentUser
     const schema = formDef.schema;
     const properties = schema.properties || {};
 
+    const normalizedData = normalizeFormVariables(formDef, formData);
+
     for (const key of schema.required || []) {
       const prop = properties[key];
-      const value = formData[key];
+      const value = normalizedData[key];
       const label = prop?.title || key;
 
       if (prop?.readOnly) continue;

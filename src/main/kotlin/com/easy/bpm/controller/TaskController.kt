@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import com.easy.bpm.security.AuthenticatedUser
+import com.easy.bpm.security.AppPermissions
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.http.ResponseEntity
@@ -30,7 +31,7 @@ class TaskController(
         pageable: Pageable,
         @AuthenticationPrincipal principal: AuthenticatedUser? = null
     ): Page<TaskResponseDto> {
-        return if (principal == null) {
+        return if (principal == null || principal.isBpmAdmin()) {
             taskService.getTaskResponses(pageable)
         } else {
             taskService.getVisibleTaskResponses(principal.username, principal.groups, pageable)
@@ -43,7 +44,7 @@ class TaskController(
         @PathVariable id: Long,
         @AuthenticationPrincipal principal: AuthenticatedUser? = null
     ): ResponseEntity<TaskResponseDto> {
-        if (principal == null) {
+        if (principal == null || principal.isBpmAdmin()) {
             return taskService.getTaskResponseById(id)
                 ?.let { ResponseEntity.ok(it) }
                 ?: ResponseEntity.notFound().build()
@@ -65,7 +66,7 @@ class TaskController(
         pageable: Pageable,
         @AuthenticationPrincipal principal: AuthenticatedUser? = null
     ): Page<TaskResponseDto> {
-        return if (principal == null) {
+        return if (principal == null || principal.isBpmAdmin()) {
             taskService.searchTaskResponses(assignee, status, pageable)
         } else {
             taskService.searchVisibleTaskResponses(principal.username, principal.groups, assignee, status, pageable)
@@ -206,11 +207,13 @@ class TaskController(
 
 }
 
-private fun extractVariables(body: Map<String, Any?>): Map<String, Any> {
+private fun extractVariables(body: Map<String, Any?>): Map<String, Any?> {
     return (body["variables"] as? Map<*, *>)?.mapNotNull {
         val key = it.key as? String
         val value = it.value
-        if (key != null && value != null) key to value else null
+        if (key != null) key to value else null
     }?.toMap() ?: emptyMap()
 }
 
+private fun AuthenticatedUser.isBpmAdmin(): Boolean =
+    permissionCodes.contains(AppPermissions.ACCESS_BPM_ADMIN)

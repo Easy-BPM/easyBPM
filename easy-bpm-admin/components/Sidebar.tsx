@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, Workflow, Search, LogOut, Code2, Zap } from 'lucide-react';
+import { LayoutDashboard, Workflow, Search, LogOut, Code2, Zap, UserRoundCheck } from 'lucide-react';
 import { ThemeMode, ThemeToggle } from './ThemeToggle';
 
 interface SidebarProps {
@@ -17,6 +17,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onChangeView, cur
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'instances', label: 'Instance Search', icon: Search },
+    { id: 'task-resources', label: 'Task Resources', icon: UserRoundCheck },
     { id: 'workflows', label: 'Deployed Workflows', icon: Workflow },
     { id: 'code-tasks', label: 'Code Task Executions', icon: Code2 },
     ...(canManageSecurity ? [{ id: 'security-admin', label: 'Security', icon: LayoutDashboard }] : [])

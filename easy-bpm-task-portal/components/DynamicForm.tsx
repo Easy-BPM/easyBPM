@@ -13,6 +13,38 @@ interface DynamicFormProps {
   processInstanceId?: number;
 }
 
+const defaultValueForProperty = (prop: JsonSchemaProperty) => {
+  if (prop.type === 'boolean') return false;
+  return '';
+};
+
+const normalizeFormData = (schema: JsonSchema, data: Record<string, any>) => {
+  const normalized = { ...(data || {}) };
+  Object.entries(schema.properties || {}).forEach(([key, prop]) => {
+    if (normalized[key] === undefined || normalized[key] === null) {
+      normalized[key] = defaultValueForProperty(prop);
+    }
+  });
+  return normalized;
+};
+
+const hasSameValues = (left: Record<string, any>, right: Record<string, any>) => {
+  const keys = new Set([...Object.keys(left), ...Object.keys(right)]);
+  for (const key of keys) {
+    if (left[key] !== right[key]) return false;
+  }
+  return true;
+};
+
+const documentValueToString = (value: any) => {
+  if (typeof value === 'string') return value;
+  if (value && typeof value === 'object') {
+    if (typeof value.id === 'string') return value.id;
+    if (typeof value.value === 'string') return value.value;
+  }
+  return '';
+};
+
 export const DynamicForm: React.FC<DynamicFormProps> = ({
   schema,
   initialData,
@@ -21,11 +53,15 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
   taskId,
   processInstanceId
 }) => {
-  const [formData, setFormData] = React.useState<Record<string, any>>(initialData || {});
+  const [formData, setFormData] = React.useState<Record<string, any>>(() => normalizeFormData(schema, initialData || {}));
 
   useEffect(() => {
-    setFormData(initialData || {});
-  }, [initialData]);
+    const normalized = normalizeFormData(schema, initialData || {});
+    setFormData(normalized);
+    if (!hasSameValues(normalized, initialData || {})) {
+      onChange(normalized);
+    }
+  }, [initialData, onChange, schema]);
 
   const handleChange = (key: string, value: any) => {
     const updated = { ...formData, [key]: value };
@@ -47,7 +83,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
         <FileUploadField
           fieldKey={key}
           label={prop.title || key}
-          value={typeof value === 'string' ? value : ''}
+          value={documentValueToString(value)}
           onChange={(newVal) => handleChange(key, newVal)}
           disabled={isReadOnly}
           taskId={taskId}
@@ -62,7 +98,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
     if (prop.format === 'fileDownload') {
       return (
         <FileDownloadField
-          value={typeof value === 'string' ? value : ''}
+          value={documentValueToString(value)}
           label={prop.title || key}
         />
       );
@@ -71,7 +107,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
     if (prop.format === 'pdfViewer') {
       return (
         <PdfViewerField
-          value={typeof value === 'string' ? value : ''}
+          value={documentValueToString(value)}
           label={prop.title || key}
         />
       );
@@ -104,9 +140,9 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
     if (prop.type === 'boolean') {
       return (
         <label
-          className={`flex items-center p-3 rounded-lg border cursor-pointer transition-all ${
+          className={`dynamic-boolean-field flex items-center p-3 rounded-lg border cursor-pointer transition-all ${
             value ? 'bg-blue-50 border-blue-200' : 'bg-white border-slate-200 hover:border-slate-300'
-          } ${isReadOnly ? 'opacity-70 pointer-events-none' : ''}`}
+          } ${value ? 'dynamic-boolean-selected' : ''} ${isReadOnly ? 'opacity-70 pointer-events-none' : ''}`}
         >
           <input
             type="checkbox"
@@ -115,7 +151,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
             onChange={(e) => handleChange(key, e.target.checked)}
             disabled={isReadOnly}
           />
-          <span className="ml-3 text-sm text-slate-700 font-medium">
+          <span className="dynamic-boolean-label ml-3 text-sm text-slate-700 font-medium">
             {prop.description || 'Yes, ' + (prop.title || key)}
           </span>
         </label>

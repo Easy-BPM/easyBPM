@@ -14,12 +14,14 @@ import {
   StopCircle,
   Trash2,
   User,
+  UserRoundCheck,
   Workflow
 } from 'lucide-react';
 import { Sidebar } from './components/Sidebar';
 import { WorkflowCanvas } from './components/WorkflowCanvas';
 import { CodeTaskExecutionListPage } from './components/CodeTaskExecutionListPage';
 import { SecurityAdminView } from './components/SecurityAdminView';
+import { TaskResourcesView } from './components/TaskResourcesView';
 import { ThemeMode, ThemeToggle } from './components/ThemeToggle';
 import { adminService } from './services/adminService';
 import { ProcessDefinition, ProcessInstance, ProcessVariable, WorkflowDefinition } from './types';
@@ -111,6 +113,8 @@ const App: React.FC = () => {
         return <DashboardView onNavigate={setCurrentView} />;
       case 'instances':
         return <InstanceExplorerView />;
+      case 'task-resources':
+        return <TaskResourcesView />;
       case 'workflows':
         return <WorkflowCatalogView />;
       case 'code-tasks':
@@ -232,6 +236,14 @@ const DashboardView: React.FC<{ onNavigate: (view: string) => void }> = ({ onNav
       badge: 'Live'
     },
     {
+      id: 'task-resources',
+      icon: UserRoundCheck,
+      label: 'Task Resources',
+      description: 'Inspect pending user tasks, update ownership, and return work to shared candidate pools.',
+      accent: 'amber' as const,
+      badge: 'Assignments'
+    },
+    {
       id: 'workflows',
       icon: Workflow,
       label: 'Workflow Catalog',
@@ -251,6 +263,7 @@ const DashboardView: React.FC<{ onNavigate: (view: string) => void }> = ({ onNav
 
   const accentMap = {
     blue:    { bg: 'bg-blue-50',    icon: 'bg-blue-100 text-blue-600',    hover: 'group-hover:bg-blue-600 group-hover:text-white', border: 'border-blue-100',   badge: 'bg-blue-50 text-blue-600 border-blue-200'   },
+    amber:   { bg: 'bg-amber-50',   icon: 'bg-amber-100 text-amber-600',   hover: 'group-hover:bg-amber-600 group-hover:text-white', border: 'border-amber-100',  badge: 'bg-amber-50 text-amber-600 border-amber-200' },
     emerald: { bg: 'bg-emerald-50', icon: 'bg-emerald-100 text-emerald-600', hover: 'group-hover:bg-emerald-600 group-hover:text-white', border: 'border-emerald-100', badge: 'bg-emerald-50 text-emerald-600 border-emerald-200' },
     purple:  { bg: 'bg-purple-50',  icon: 'bg-purple-100 text-purple-600',  hover: 'group-hover:bg-purple-600 group-hover:text-white', border: 'border-purple-100',  badge: 'bg-purple-50 text-purple-600 border-purple-200'  }
   };
