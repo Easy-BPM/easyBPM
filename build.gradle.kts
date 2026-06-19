@@ -25,15 +25,15 @@ dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-data-jpa")
 	implementation("com.vladmihalcea:hibernate-types-60:2.21.1")
 	implementation("org.jetbrains.kotlin:kotlin-reflect")
-	implementation("org.postgresql:postgresql:42.7.1")
+	implementation("org.postgresql:postgresql:42.7.11")
 	implementation("org.springframework.boot:spring-boot-starter-web")
 	implementation("org.springframework.boot:spring-boot-starter-security")
 	implementation("org.springframework.boot:spring-boot-starter-amqp")
 	implementation("org.springframework.boot:spring-boot-starter-actuator")
 	implementation("io.micrometer:micrometer-core")
 	implementation("io.micrometer:micrometer-registry-prometheus")
-	implementation("org.flywaydb:flyway-core:9.16.1")
-	implementation("com.vladmihalcea:hibernate-types-60:2.21.1")
+	implementation("org.flywaydb:flyway-core")
+	implementation("org.flywaydb:flyway-database-postgresql")
 	implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.2.0")
 	implementation("io.jsonwebtoken:jjwt-api:0.12.5")
 	runtimeOnly("io.jsonwebtoken:jjwt-impl:0.12.5")
@@ -52,7 +52,6 @@ dependencies {
 	testImplementation("io.kotest:kotest-runner-junit5:5.8.1")
 	testImplementation("io.kotest:kotest-assertions-core:5.8.1")
 	testImplementation("io.mockk:mockk:1.13.8")
-	implementation("org.jboss.logging:jboss-logging:3.5.3.Final")
 }
 
 kotlin {
