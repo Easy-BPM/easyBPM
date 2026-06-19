@@ -13,13 +13,15 @@ import {
   Inbox,
   Lock,
   User,
+  Save,
   ShieldCheck,
   Plus,
   Trash2,
   AlertCircle,
   ChevronRight,
   Zap,
-  ListTodo
+  ListTodo,
+  Unlock
 } from 'lucide-react';
 
 type VariableType = 'string' | 'number' | 'boolean' | 'json';
@@ -628,6 +630,10 @@ const TaskDetailView: React.FC<{ taskId: number; onBack: () => void; currentUser
   const [variableEntries, setVariableEntries] = useState<VariableEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [savingDraft, setSavingDraft] = useState(false);
+  const [unclaiming, setUnclaiming] = useState(false);
+  const [claimNoticeOpen, setClaimNoticeOpen] = useState(false);
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -640,7 +646,15 @@ const TaskDetailView: React.FC<{ taskId: number; onBack: () => void; currentUser
     setFormDef(null);
 
     try {
-      const selectedTask = await bpmService.getTaskById(taskId);
+      const initialTask = await bpmService.getTaskById(taskId);
+      const selectedTask = initialTask.status !== TaskStatus.COMPLETED && initialTask.assignee === null
+        ? await bpmService.claimTask(taskId)
+        : initialTask;
+
+      if (initialTask.assignee === null && selectedTask.assignee === currentUser) {
+        setClaimNoticeOpen(true);
+      }
+
       setTask(selectedTask);
 
       const taskVariables = selectedTask.variables || {};
@@ -751,6 +765,7 @@ const TaskDetailView: React.FC<{ taskId: number; onBack: () => void; currentUser
 
     setSubmitting(true);
     setError(null);
+    setActionMessage(null);
 
     try {
       await bpmService.completeTask(task.id, {
@@ -765,6 +780,48 @@ const TaskDetailView: React.FC<{ taskId: number; onBack: () => void; currentUser
     }
   };
 
+  const handleSaveDraft = async () => {
+    if (!task) return;
+
+    const validationError = validateVariableEntries();
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
+    setSavingDraft(true);
+    setError(null);
+    setActionMessage(null);
+
+    try {
+      const savedTask = await bpmService.saveTaskDraft(task.id, buildCompletionVariables());
+      setTask(savedTask);
+      setActionMessage('Draft saved.');
+    } catch (draftError) {
+      setError((draftError as Error).message);
+    } finally {
+      setSavingDraft(false);
+    }
+  };
+
+  const handleUnclaim = async () => {
+    if (!task) return;
+
+    setUnclaiming(true);
+    setError(null);
+    setActionMessage(null);
+
+    try {
+      const updatedTask = await bpmService.unclaimTask(task.id);
+      setTask(updatedTask);
+      setActionMessage('Task unclaimed.');
+    } catch (unclaimError) {
+      setError((unclaimError as Error).message);
+    } finally {
+      setUnclaiming(false);
+    }
+  };
+
   if (loading || !task) {
     return (
       <div className="flex justify-center pt-20">
@@ -774,6 +831,8 @@ const TaskDetailView: React.FC<{ taskId: number; onBack: () => void; currentUser
   }
 
   const isCompleted = task.status === TaskStatus.COMPLETED;
+  const isOwner = task.assignee === currentUser;
+  const isReadOnly = isCompleted || !isOwner;
 
   return (
     <div className="max-w-3xl mx-auto space-y-6 pb-20">
@@ -790,6 +849,9 @@ const TaskDetailView: React.FC<{ taskId: number; onBack: () => void; currentUser
               </span>
               <span className="text-xs font-bold text-slate-500 tracking-wider uppercase bg-slate-100 px-2 py-1 rounded border border-slate-200">
                 Task #{task.id}
+              </span>
+              <span className="text-xs font-bold text-indigo-600 tracking-wider uppercase bg-indigo-50 px-2 py-1 rounded border border-indigo-100 inline-flex items-center gap-1">
+                <User size={12} /> Owner: {task.assignee || 'Unassigned'}
               </span>
               {(task.formId || formDef?.formId) && (
                 <span className="text-xs font-bold text-emerald-600 tracking-wider uppercase bg-emerald-50 px-2 py-1 rounded border border-emerald-100">
@@ -815,42 +877,91 @@ const TaskDetailView: React.FC<{ taskId: number; onBack: () => void; currentUser
             </div>
           )}
 
+          {actionMessage && (
+            <div className="p-3 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 text-sm flex items-center gap-2">
+              <CheckCircle2 size={16} />
+              {actionMessage}
+            </div>
+          )}
+
           {formDef ? (
             <div className="space-y-3">
               <p className="text-sm text-slate-500">
                 This task has a form. Form values will be submitted as task outputs and synchronized as process variables on completion.
               </p>
-              <DynamicForm schema={formDef.schema} initialData={formData} onChange={setFormData} disabled={isCompleted} taskId={task.id} processInstanceId={task.processInstanceId} />
+              <DynamicForm schema={formDef.schema} initialData={formData} onChange={setFormData} disabled={isReadOnly} taskId={task.id} processInstanceId={task.processInstanceId} />
             </div>
           ) : (
             <div className="space-y-3">
               <p className="text-sm text-slate-500">
                 This task has no form definition. Edit existing task variables or create new ones. All submitted variables will be available as global process variables after completion.
               </p>
-              <TaskVariableEditor entries={variableEntries} onChange={setVariableEntries} disabled={isCompleted} />
+              <TaskVariableEditor entries={variableEntries} onChange={setVariableEntries} disabled={isReadOnly} />
             </div>
           )}
         </div>
 
         {!isCompleted && (
-          <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
+          <div className="p-6 bg-slate-50 border-t border-slate-100 flex flex-col sm:flex-row sm:justify-between gap-3">
             <button
-              onClick={onBack}
-              className="px-4 py-2 bg-white border border-slate-300 rounded-lg text-slate-700 font-medium hover:bg-slate-50 transition-colors"
+              onClick={handleUnclaim}
+              disabled={!isOwner || unclaiming || submitting || savingDraft}
+              className="px-4 py-2 bg-white border border-slate-300 rounded-lg text-slate-700 font-medium hover:bg-slate-50 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
             >
-              Cancel
+              {unclaiming ? <Loader2 className="animate-spin" size={16} /> : <Unlock size={16} />}
+              Unclaim Task
             </button>
-            <button
-              onClick={handleComplete}
-              disabled={submitting}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 shadow-sm shadow-blue-200 transition-all flex items-center gap-2"
-            >
-              {submitting ? <Loader2 className="animate-spin" size={16} /> : <CheckCircle2 size={16} />}
-              Complete Task
-            </button>
+            <div className="flex flex-col sm:flex-row justify-end gap-3">
+              <button
+                onClick={onBack}
+                className="px-4 py-2 bg-white border border-slate-300 rounded-lg text-slate-700 font-medium hover:bg-slate-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveDraft}
+                disabled={isReadOnly || savingDraft || submitting || unclaiming}
+                className="px-4 py-2 bg-white border border-blue-200 text-blue-700 rounded-lg font-medium hover:bg-blue-50 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {savingDraft ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
+                Save Draft
+              </button>
+              <button
+                onClick={handleComplete}
+                disabled={isReadOnly || submitting || savingDraft || unclaiming}
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 shadow-sm shadow-blue-200 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {submitting ? <Loader2 className="animate-spin" size={16} /> : <CheckCircle2 size={16} />}
+                Complete Task
+              </button>
+            </div>
           </div>
         )}
       </div>
+
+      {claimNoticeOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 px-4">
+          <div className="w-full max-w-sm rounded-xl bg-white border border-slate-200 shadow-xl p-5">
+            <div className="flex items-start gap-3">
+              <div className="p-2 rounded-lg bg-blue-50 text-blue-600">
+                <CheckCircle2 size={20} />
+              </div>
+              <div className="flex-1">
+                <h2 className="text-base font-semibold text-slate-900">Task Claimed</h2>
+                <p className="text-sm text-slate-600 mt-1">This task has been claimed and assigned to you.</p>
+              </div>
+            </div>
+            <div className="mt-5 flex justify-end">
+              <button
+                onClick={() => setClaimNoticeOpen(false)}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700"
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

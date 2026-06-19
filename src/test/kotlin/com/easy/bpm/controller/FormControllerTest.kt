@@ -11,7 +11,8 @@ import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.collections.shouldHaveSize
 import io.mockk.*
 
-class FormControllerTest : FunSpec({
+class FormControllerTest : FunSpec() {
+    init {
     val mockFormService = mockk<FormService>()
     val objectMapper = ObjectMapper()
 
@@ -180,5 +181,5 @@ class FormControllerTest : FunSpec({
             result shouldHaveSize 1
         }
     }
-})
-
+    }
+}

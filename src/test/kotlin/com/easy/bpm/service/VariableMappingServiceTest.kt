@@ -15,7 +15,8 @@ import io.mockk.verify
 import org.springframework.test.context.junit4.SpringRunner
 import java.math.BigDecimal
 
-class VariableMappingServiceTest : FunSpec({
+class VariableMappingServiceTest : FunSpec() {
+    init {
 
     val processVariableRepository = mockk<ProcessVariableRepository>(relaxed = true)
     val objectMapper = ObjectMapper()
@@ -410,5 +411,5 @@ class VariableMappingServiceTest : FunSpec({
         }
     }
 
-})
-
+    }
+}

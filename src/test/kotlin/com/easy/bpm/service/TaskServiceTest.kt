@@ -27,7 +27,8 @@ import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Sort
 import java.util.*
 
-class TaskServiceTest : FunSpec({
+class TaskServiceTest : FunSpec() {
+    init {
     val mockTaskRepository = mockk<TaskRepository>()
     val mockProcessInstanceRepository = mockk<ProcessInstanceRepository>()
     val mockProcessVariableRepository = mockk<ProcessVariableRepository>()
@@ -277,5 +278,5 @@ class TaskServiceTest : FunSpec({
     }
 
 
-})
-
+    }
+}

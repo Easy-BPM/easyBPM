@@ -257,11 +257,55 @@ export const bpmService = {
     await assertOk(response, `Complete task ${id}`);
   },
 
-  claimTask: async (id: number): Promise<void> => {
+  claimTask: async (id: number): Promise<Task> => {
+    if (USE_MOCK) {
+      await delay(120);
+      const task = MOCK_TASKS.find(t => t.id === id);
+      if (!task) throw new Error('Task not found');
+      const session = getSession();
+      if (!task.assignee && session?.username) task.assignee = session.username;
+      return task;
+    }
+
     const response = await fetchWithAuth(`${API_BASE_URL}/tasks/${id}/claim`, {
       method: 'POST'
     });
     await assertOk(response, `Claim task ${id}`);
+    return response.json();
+  },
+
+  unclaimTask: async (id: number): Promise<Task> => {
+    if (USE_MOCK) {
+      await delay(120);
+      const task = MOCK_TASKS.find(t => t.id === id);
+      if (!task) throw new Error('Task not found');
+      task.assignee = null;
+      return task;
+    }
+
+    const response = await fetchWithAuth(`${API_BASE_URL}/tasks/${id}/unclaim`, {
+      method: 'POST'
+    });
+    await assertOk(response, `Unclaim task ${id}`);
+    return response.json();
+  },
+
+  saveTaskDraft: async (id: number, variables: Record<string, any>): Promise<Task> => {
+    if (USE_MOCK) {
+      await delay(200);
+      const task = MOCK_TASKS.find(t => t.id === id);
+      if (!task) throw new Error('Task not found');
+      task.variables = variables;
+      return task;
+    }
+
+    const response = await fetchWithAuth(`${API_BASE_URL}/tasks/${id}/draft`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ variables })
+    });
+    await assertOk(response, `Save draft for task ${id}`);
+    return response.json();
   },
 
   // -------------------------------------------------------------------------

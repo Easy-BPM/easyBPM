@@ -15,7 +15,8 @@ import io.kotest.matchers.collections.shouldContain
 import io.kotest.matchers.collections.shouldHaveSize
 import io.mockk.*
 
-class GatewayServiceTest : FunSpec({
+class GatewayServiceTest : FunSpec() {
+    init {
     val mockProcessVariableRepository = mockk<ProcessVariableRepository>()
     val objectMapper = ObjectMapper()
 
@@ -182,5 +183,5 @@ class GatewayServiceTest : FunSpec({
             result.shouldBeEmpty()
         }
     }
-})
-
+    }
+}

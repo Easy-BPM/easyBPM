@@ -13,7 +13,8 @@ import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.PageRequest
 import org.springframework.http.HttpStatus
 
-class TaskControllerTest : FunSpec({
+class TaskControllerTest : FunSpec() {
+    init {
     val mockTaskService = mockk<TaskService>()
 
     val taskController = TaskController(mockTaskService)
@@ -332,5 +333,5 @@ class TaskControllerTest : FunSpec({
             verify { mockTaskService.completeTask(taskId, assignee, any()) }
         }
     }
-})
-
+    }
+}
