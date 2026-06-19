@@ -61,7 +61,7 @@ services:
     restart: unless-stopped
 
   easy-bpm-admin:
-    image: node:18
+    image: node:22
     container_name: Easy_BPM_Admin
     working_dir: /app
     volumes:
@@ -77,7 +77,7 @@ services:
       - backend
 
   easy-bpm-task-portal:
-    image: node:18
+    image: node:22
     container_name: Easy_BPM_Task_Portal
     working_dir: /app
     volumes:
@@ -93,7 +93,7 @@ services:
       - backend
 
   easy-bpm-modeler:
-    image: node:18
+    image: node:22
     container_name: Easy_BPM_Modeler
     working_dir: /app
     volumes:
@@ -111,11 +111,11 @@ services:
   # DEV DOCS: temporary docs dev server for local documentation editing.
   # Remove this service from docker-compose.yml when not needed.
   docs:
-    image: node:20-bullseye
+    image: node:22-bullseye
     container_name: Easy_BPM_Docs
     working_dir: /app
     volumes:
-      - ./docs-site-working:/app
+      - ./docs-site-public:/app
       - docs_node_modules:/app/node_modules
     command: sh -c "npm install --force && npm run start -- --host 0.0.0.0 --port 9000"
     ports:

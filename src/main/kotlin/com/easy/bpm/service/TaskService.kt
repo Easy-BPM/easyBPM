@@ -14,6 +14,7 @@ import com.easy.bpm.repository.variable.ProcessVariableRepository
 import com.easy.bpm.repository.variable.TaskVariableRepository
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.node.NullNode
 import jakarta.transaction.Transactional
 import org.springframework.stereotype.Service
 import org.springframework.data.domain.Page
@@ -58,12 +59,12 @@ class TaskService(
      ========================= */
 
     @Transactional
-    fun completeTask(taskId: Long, assignee: String, variables: Map<String, Any>) {
+    fun completeTask(taskId: Long, assignee: String, variables: Map<String, Any?>) {
         completeTask(taskId, assignee, emptySet(), variables)
     }
 
     @Transactional
-    fun completeTask(taskId: Long, assignee: String, groups: Set<String>, variables: Map<String, Any>) {
+    fun completeTask(taskId: Long, assignee: String, groups: Set<String>, variables: Map<String, Any?>) {
         val startTime = System.currentTimeMillis()
 
         val task = getActiveTaskForUpdate(taskId)
@@ -231,7 +232,7 @@ class TaskService(
     }
 
     @Transactional
-    fun saveTaskDraft(taskId: Long, username: String, groups: Set<String>, variables: Map<String, Any>): TaskResponseDto {
+    fun saveTaskDraft(taskId: Long, username: String, groups: Set<String>, variables: Map<String, Any?>): TaskResponseDto {
         val task = getActiveTaskForUpdate(taskId)
         authorizeTaskInteraction(task, username, groups)
 
@@ -629,7 +630,7 @@ class TaskService(
        VARIABLE MANAGEMENT
      ========================= */
 
-    private fun persistTaskVariables(task: Task, variables: Map<String, Any>) {
+    private fun persistTaskVariables(task: Task, variables: Map<String, Any?>) {
         variables.forEach { (key, value) ->
             val valueNode = objectMapper.valueToTree<JsonNode>(value)
             val existingVariables = taskVariableRepository.findAllByTaskIdAndNameOrderByIdDesc(task.id, key)
@@ -673,8 +674,7 @@ class TaskService(
                 val taskVar = taskVariableRepository
                     .findAllByTaskIdAndNameOrderByIdDesc(task.id, sourceName)
                     .firstOrNull()
-                    ?: throw IllegalArgumentException("Task variable '$sourceName' not found")
-                taskVar.value
+                taskVar?.value ?: NullNode.instance
             } else {
                 parseStaticValue(output.get("value"))
             }
@@ -802,4 +802,3 @@ class TaskService(
     private fun parseStaticValue(valueNode: JsonNode): JsonNode =
         if (valueNode.isTextual) objectMapper.readTree(valueNode.asText()) else valueNode
 }
-
