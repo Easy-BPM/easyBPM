@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import http from "node:http";
+import { writeFile } from "node:fs/promises";
 import { performance } from "node:perf_hooks";
 
 const args = parseArgs(process.argv.slice(2));
@@ -9,6 +10,7 @@ const username = arg("username", "admin");
 const password = arg("password", "admin");
 const instances = intArg("instances", 100);
 const concurrency = intArg("concurrency", 20);
+const durationSeconds = optionalIntArg("duration-seconds");
 const mockPort = intArg("mock-port", 19090);
 const mockDelayMs = intArg("mock-delay-ms", 250);
 const pollIntervalMs = intArg("poll-interval-ms", 250);
@@ -16,6 +18,7 @@ const timeoutSeconds = intArg("timeout-seconds", 180);
 const securityDisabled = boolArg("security-disabled", false);
 const externalUrl = arg("external-url", `http://host.docker.internal:${mockPort}/mock-api`);
 const processId = arg("process-id", `benchmark-api-task-${Date.now()}`);
+const outputFile = args.get("output-file");
 
 let mockRequestCount = 0;
 
@@ -40,7 +43,11 @@ try {
   console.log(`Backend: ${backendUrl}`);
   console.log(`Mock API: http://0.0.0.0:${mockPort}/mock-api (${mockDelayMs}ms delay)`);
   console.log(`Worker-facing URL in process: ${externalUrl}`);
-  console.log(`Instances: ${instances}, submit concurrency: ${concurrency}`);
+  console.log(
+    durationSeconds
+      ? `Duration: ${durationSeconds}s, submit concurrency: ${concurrency}`
+      : `Instances: ${instances}, submit concurrency: ${concurrency}`
+  );
 
   const token = securityDisabled ? null : await login();
   const processDefinition = buildProcessDefinition(processId, externalUrl);
@@ -48,11 +55,13 @@ try {
   const deployedKey = deployed.key || deployed.processId || processId;
 
   const startWall = performance.now();
-  const results = await runPool(
-    Array.from({ length: instances }, (_, index) => index),
-    concurrency,
-    async (index) => runInstance(deployedKey, token, index)
-  );
+  const results = durationSeconds
+    ? await runForDuration(deployedKey, token, durationSeconds, concurrency)
+    : await runPool(
+        Array.from({ length: instances }, (_, index) => index),
+        concurrency,
+        async (index) => runInstance(deployedKey, token, index)
+      );
   const totalMs = performance.now() - startWall;
 
   const completed = results.filter((r) => r.status === "COMPLETED");
@@ -62,7 +71,9 @@ try {
 
   const summary = {
     processId: deployedKey,
-    instances,
+    requestedInstances: durationSeconds ? null : instances,
+    durationSeconds: durationSeconds ?? null,
+    submitted: results.length,
     completed: completed.length,
     failed: failed.length,
     unfinished: other.length,
@@ -80,12 +91,31 @@ try {
   };
 
   console.log(JSON.stringify(summary, null, 2));
+  if (outputFile) {
+    await writeFile(outputFile, `${JSON.stringify({ summary, results }, null, 2)}\n`, "utf8");
+  }
 
   if (failed.length > 0 || other.length > 0) {
     process.exitCode = 1;
   }
 } finally {
   await close(mockServer);
+}
+
+async function runForDuration(deployedKey, token, seconds, limit) {
+  const results = [];
+  const stopSubmittingAt = performance.now() + seconds * 1000;
+  let nextIndex = 0;
+
+  async function runOne() {
+    while (performance.now() < stopSubmittingAt) {
+      const current = nextIndex++;
+      results[current] = await runInstance(deployedKey, token, current);
+    }
+  }
+
+  await Promise.all(Array.from({ length: limit }, runOne));
+  return results.filter(Boolean);
 }
 
 async function runInstance(deployedKey, token, index) {
@@ -220,6 +250,16 @@ function arg(name, fallback) {
 
 function intArg(name, fallback) {
   const value = Number.parseInt(arg(name, String(fallback)), 10);
+  if (Number.isNaN(value) || value <= 0) {
+    throw new Error(`--${name} must be a positive integer`);
+  }
+  return value;
+}
+
+function optionalIntArg(name) {
+  const raw = args.get(name);
+  if (raw === undefined) return null;
+  const value = Number.parseInt(raw, 10);
   if (Number.isNaN(value) || value <= 0) {
     throw new Error(`--${name} must be a positive integer`);
   }

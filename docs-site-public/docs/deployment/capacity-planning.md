@@ -94,18 +94,34 @@ node scripts/benchmark-worker-throughput.mjs \
   --external-url http://host.docker.internal:19090/mock-api
 ```
 
-Example local Docker results:
+For sustained load tests, use duration mode:
 
-| Setup | Mock API latency | Instances | Completed | Throughput |
-| --- | ---: | ---: | ---: | ---: |
-| 1 worker | 250 ms | 50 | 50 | ~3.57 API tasks/sec |
-| 1 worker | 1000 ms | 30 | 30 | ~0.97 API tasks/sec |
-| 3 workers | 1000 ms | 60 | 60 | ~2.86 API tasks/sec |
-| 3 workers | 250 ms | 100 | 100 | ~10.72 API tasks/sec |
+```bash
+node scripts/benchmark-worker-throughput.mjs \
+  --backend-url http://localhost:8080 \
+  --duration-seconds 300 \
+  --concurrency 40 \
+  --mock-delay-ms 250 \
+  --external-url http://host.docker.internal:19090/mock-api \
+  --output-file benchmark-result.json
+```
+
+Example local Docker results from higher-volume runs:
+
+| Setup | Mock API latency | Submitted | Completed | Throughput | p95 latency |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 1 worker | 250 ms | 200 | 200 | ~3.75 API tasks/sec | ~10.87 s |
+| 3 workers | 250 ms | 300 | 300 | ~10.88 API tasks/sec | ~5.81 s |
+| 1 worker | 1000 ms | 120 | 120 | ~0.98 API tasks/sec | ~30.77 s |
+| 3 workers | 1000 ms | 180 | 180 | ~2.93 API tasks/sec | ~20.66 s |
 
 ![Example worker throughput benchmark results](/img/benchmarks/worker-throughput-example.svg)
 
-These values are sample results from a local Docker environment. They are useful for understanding the relationship between worker count, external API latency, and throughput, but they are not product limits or production sizing guarantees.
+![Example worker latency benchmark results](/img/benchmarks/worker-latency-example.svg)
+
+These values are sample results from a local Docker environment. They are useful for understanding the relationship between worker count, external API latency, throughput, and queue wait time, but they are not product limits or production sizing guarantees.
+
+In these runs, adding workers improved throughput close to linearly because the bottleneck was the external API wait time. Latency still increased when many process instances were submitted at once, because some work waited in RabbitMQ until a worker was available.
 
 ## Scaling notes
 
