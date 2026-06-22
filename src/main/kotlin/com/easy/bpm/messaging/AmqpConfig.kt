@@ -14,15 +14,19 @@ class AmqpConfig {
     companion object {
         const val EXCHANGE = "bpm.exchange"
         const val SERVICE_TASK_REQUESTS_QUEUE = "service-task-requests"
+        const val SERVICE_TASK_RETRY_QUEUE = "service-task-requests.retry"
         const val SERVICE_TASK_COMPLETIONS_QUEUE = "service-task-completions"
         const val SERVICE_TASK_DLQ = "service-task-requests.dlq"
         const val REQUEST_ROUTING_KEY = "service.task.request"
+        const val RETRY_ROUTING_KEY = "service.task.request.retry"
         const val COMPLETION_ROUTING_KEY = "service.task.completed"
         const val DLQ_ROUTING_KEY = "service.task.request.dlq"
         const val TASK_CREATED_QUEUE = "task-created"
         const val TASK_COMPLETED_QUEUE = "task-completed"
         const val TASK_CREATED_ROUTING_KEY = "task.created"
         const val TASK_COMPLETED_ROUTING_KEY = "task.completed"
+        const val MESSAGE_EXPECTED_QUEUE = "message-expected"
+        const val MESSAGE_EXPECTED_ROUTING_KEY = "message.event.expected"
         const val MESSAGE_EVENTS_QUEUE = "message-events"
         const val MESSAGE_EVENTS_ROUTING_KEY = "message.event.received"
         const val MAX_RETRIES = 3
@@ -31,6 +35,18 @@ class AmqpConfig {
 
     @Bean
     fun serviceTaskRequestsQueue() = Queue(SERVICE_TASK_REQUESTS_QUEUE, true)
+
+    @Bean
+    fun serviceTaskRetryQueue() = Queue(
+        SERVICE_TASK_RETRY_QUEUE,
+        true,
+        false,
+        false,
+        mapOf(
+            "x-dead-letter-exchange" to EXCHANGE,
+            "x-dead-letter-routing-key" to REQUEST_ROUTING_KEY
+        )
+    )
 
     @Bean
     fun serviceTaskCompletionsQueue() = Queue(SERVICE_TASK_COMPLETIONS_QUEUE, true)
@@ -48,11 +64,18 @@ class AmqpConfig {
     fun messageEventsQueue() = Queue(MESSAGE_EVENTS_QUEUE, true)
 
     @Bean
+    fun messageExpectedQueue() = Queue(MESSAGE_EXPECTED_QUEUE, true)
+
+    @Bean
     fun exchange() = TopicExchange(EXCHANGE)
 
     @Bean
     fun bindingRequests(@Qualifier("serviceTaskRequestsQueue") queue: Queue, exchange: TopicExchange): Binding =
         BindingBuilder.bind(queue).to(exchange).with(REQUEST_ROUTING_KEY)
+
+    @Bean
+    fun bindingRetries(@Qualifier("serviceTaskRetryQueue") queue: Queue, exchange: TopicExchange): Binding =
+        BindingBuilder.bind(queue).to(exchange).with(RETRY_ROUTING_KEY)
 
     @Bean
     fun bindingCompletions(@Qualifier("serviceTaskCompletionsQueue") queue: Queue, exchange: TopicExchange): Binding =
@@ -73,6 +96,10 @@ class AmqpConfig {
     @Bean
     fun bindingMessageEvents(@Qualifier("messageEventsQueue") queue: Queue, exchange: TopicExchange): Binding =
         BindingBuilder.bind(queue).to(exchange).with(MESSAGE_EVENTS_ROUTING_KEY)
+
+    @Bean
+    fun bindingMessageExpected(@Qualifier("messageExpectedQueue") queue: Queue, exchange: TopicExchange): Binding =
+        BindingBuilder.bind(queue).to(exchange).with(MESSAGE_EXPECTED_ROUTING_KEY)
 
     @Bean
     fun messageConverter() = Jackson2JsonMessageConverter()

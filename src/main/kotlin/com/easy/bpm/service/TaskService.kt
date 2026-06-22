@@ -729,8 +729,8 @@ class TaskService(
     }
 
     private fun getProcessInstance(instanceId: Long): ProcessInstance =
-        processInstanceRepository.findById(instanceId)
-            .orElseThrow { IllegalArgumentException("Process instance not found") }
+        processInstanceRepository.findByIdForUpdate(instanceId)
+            ?: throw IllegalArgumentException("Process instance not found")
 
     private fun parseDefinition(definitionJson: String): JsonNode =
         objectMapper.readTree(definitionJson)

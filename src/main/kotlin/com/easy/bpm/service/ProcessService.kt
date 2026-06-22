@@ -196,8 +196,8 @@ class ProcessService(
 
     @Transactional
     fun assignProcessVariables(processInstanceId: Long, variables: Map<String, Any?>): List<ProcessVariable> {
-        val instance = processInstanceRepository.findById(processInstanceId)
-            .orElseThrow { IllegalArgumentException("Process instance not found") }
+        val instance = processInstanceRepository.findByIdForUpdate(processInstanceId)
+            ?: throw IllegalArgumentException("Process instance not found")
 
         variables.forEach { (name, value) ->
             val jsonValue = if (value == null) objectMapper.nullNode() else objectMapper.valueToTree(value)
@@ -225,8 +225,8 @@ class ProcessService(
 
     @Transactional
     fun moveProcessNode(processInstanceId: Long, fromNode: String, toNode: String): ProcessInstance {
-        val instance = processInstanceRepository.findById(processInstanceId)
-            .orElseThrow { IllegalArgumentException("Process instance not found") }
+        val instance = processInstanceRepository.findByIdForUpdate(processInstanceId)
+            ?: throw IllegalArgumentException("Process instance not found")
 
         val currentNodes = instance.currentNode ?: emptyList()
         if (!currentNodes.contains(fromNode)) {
@@ -859,8 +859,8 @@ class ProcessService(
     fun handleServiceTaskCompleted(processInstanceId: Long, nodeId: String, outputs: Map<String, String>) {
         val startTime = System.currentTimeMillis()
         
-        val instance = processInstanceRepository.findById(processInstanceId)
-            .orElseThrow { IllegalArgumentException("Process instance not found") }
+        val instance = processInstanceRepository.findByIdForUpdate(processInstanceId)
+            ?: throw IllegalArgumentException("Process instance not found")
 
         val definition = parseDefinition(instance.processDefinition.definitionJson)
         val node = findNode(definition, nodeId)
@@ -949,8 +949,8 @@ class ProcessService(
     fun handleServiceTaskFailed(processInstanceId: Long, nodeId: String, errorMessage: String? = null) {
         val startTime = System.currentTimeMillis()
 
-        val instance = processInstanceRepository.findById(processInstanceId)
-            .orElseThrow { IllegalArgumentException("Process instance not found") }
+        val instance = processInstanceRepository.findByIdForUpdate(processInstanceId)
+            ?: throw IllegalArgumentException("Process instance not found")
 
         logger.info("handleServiceTaskFailed: instanceId=$processInstanceId, nodeId=$nodeId, errorMessage=$errorMessage")
 
@@ -1006,8 +1006,8 @@ class ProcessService(
             variables
         ) ?: throw IllegalArgumentException("No waiting subscription for message '$messageName' with correlationKey '$correlationKey'")
 
-        val instance = processInstanceRepository.findById(subscription.processInstanceId)
-            .orElseThrow { IllegalArgumentException("Process instance ${subscription.processInstanceId} not found") }
+        val instance = processInstanceRepository.findByIdForUpdate(subscription.processInstanceId)
+            ?: throw IllegalArgumentException("Process instance ${subscription.processInstanceId} not found")
 
         // Save received message variables as process variables
         variables?.forEach { (k, v) ->
@@ -1047,7 +1047,7 @@ class ProcessService(
      */
     @Transactional
     fun handleSubscriptionTimeout(processInstanceId: Long, nodeId: String): Boolean {
-        val instance = processInstanceRepository.findById(processInstanceId).orElse(null) ?: return false
+        val instance = processInstanceRepository.findByIdForUpdate(processInstanceId) ?: return false
         val definition = parseDefinition(instance.processDefinition.definitionJson)
         val node = findNode(definition, nodeId)
 
@@ -1067,7 +1067,7 @@ class ProcessService(
      */
     @Transactional
     fun handleTimerTimeout(processInstanceId: Long, nodeId: String): Boolean {
-        val instance = processInstanceRepository.findById(processInstanceId).orElse(null) ?: return false
+        val instance = processInstanceRepository.findByIdForUpdate(processInstanceId) ?: return false
         val definition = parseDefinition(instance.processDefinition.definitionJson)
         val node = findNode(definition, nodeId)
 

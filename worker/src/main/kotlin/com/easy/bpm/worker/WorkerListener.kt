@@ -24,6 +24,7 @@ class WorkerListener(
     companion object {
         const val EXCHANGE = "bpm.exchange"
         const val REQUEST_ROUTING_KEY = "service.task.request"
+        const val RETRY_ROUTING_KEY = "service.task.request.retry"
         const val COMPLETION_ROUTING_KEY = "service.task.completed"
         const val DLQ_ROUTING_KEY = "service.task.request.dlq"
         const val REQUEST_QUEUE = "service-task-requests"
@@ -216,11 +217,10 @@ class WorkerListener(
     }
 
     private fun scheduleRetry(message: Map<String, Any>, delayMs: Long) {
-        // For now, requeue directly. In production, use RabbitMQ delayed exchange plugin or external scheduler
-        Thread {
-            Thread.sleep(delayMs)
-            rabbitTemplate.convertAndSend(EXCHANGE, REQUEST_ROUTING_KEY, message)
-        }.start()
+        rabbitTemplate.convertAndSend(EXCHANGE, RETRY_ROUTING_KEY, message) { amqpMessage ->
+            amqpMessage.messageProperties.expiration = delayMs.toString()
+            amqpMessage
+        }
     }
 
     private fun routeToDlq(message: Map<String, Any>, reason: String) {

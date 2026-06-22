@@ -27,6 +27,24 @@ interface WorkerRequestRepository : JpaRepository<WorkerRequest, Long> {
         @Param("before") before: LocalDateTime
     ): List<WorkerRequest>
 
+    @Query(
+        value = """
+            SELECT *
+            FROM worker_request
+            WHERE status IN (:statuses)
+              AND last_attempt_at < :before
+            ORDER BY last_attempt_at ASC, id ASC
+            LIMIT :batchSize
+            FOR UPDATE SKIP LOCKED
+        """,
+        nativeQuery = true
+    )
+    fun claimTimedOutRequests(
+        @Param("statuses") statuses: Collection<String>,
+        @Param("before") before: LocalDateTime,
+        @Param("batchSize") batchSize: Int
+    ): List<WorkerRequest>
+
     fun deleteByProcessInstanceId(processInstanceId: Long)
 }
 

@@ -1,10 +1,17 @@
 package com.easy.bpm.repository.process
 
 import com.easy.bpm.model.process.ProcessInstance
+import jakarta.persistence.LockModeType
 import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.Lock
 import org.springframework.data.jpa.repository.Query
+import org.springframework.data.repository.query.Param
 
 interface ProcessInstanceRepository : JpaRepository<ProcessInstance, Long> {
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT pi FROM ProcessInstance pi WHERE pi.id = :id")
+    fun findByIdForUpdate(@Param("id") id: Long): ProcessInstance?
 
     /**
      * Find all child process instances for a given parent instance.
