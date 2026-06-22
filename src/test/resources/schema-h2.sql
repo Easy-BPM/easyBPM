@@ -147,6 +147,26 @@ CREATE INDEX idx_message_subscription_lookup ON message_subscription(message_nam
 CREATE INDEX idx_message_subscription_timeout ON message_subscription(timeout_at);
 
 -- ============================================================================
+-- V31: External Message Inbox
+-- ============================================================================
+
+CREATE TABLE message_event_inbox (
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    message_id VARCHAR(255) NOT NULL,
+    message_name VARCHAR(255) NOT NULL,
+    correlation_key VARCHAR(255) NOT NULL,
+    payload CLOB,
+    status VARCHAR(50) NOT NULL DEFAULT 'RECEIVED',
+    error_message VARCHAR(1000),
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    processed_at TIMESTAMP,
+    CONSTRAINT uk_message_event_inbox_message_id UNIQUE (message_id)
+);
+
+CREATE INDEX idx_message_event_inbox_status_created ON message_event_inbox(status, created_at);
+CREATE INDEX idx_message_event_inbox_correlation ON message_event_inbox(message_name, correlation_key, status);
+
+-- ============================================================================
 -- V13: Node history tracking
 -- ============================================================================
 

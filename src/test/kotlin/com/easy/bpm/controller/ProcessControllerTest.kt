@@ -2,6 +2,10 @@ package com.easy.bpm.controller
 
 import com.easy.bpm.model.process.ProcessDefinition
 import com.easy.bpm.model.process.ProcessInstance
+import com.easy.bpm.model.message.MessageEventInbox
+import com.easy.bpm.enum.MessageEventInboxStatus
+import com.easy.bpm.service.ExternalMessageAcceptance
+import com.easy.bpm.service.MessageEventInboxService
 import com.easy.bpm.service.ProcessService
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -18,9 +22,10 @@ import org.springframework.data.domain.PageRequest
 class ProcessControllerTest : FunSpec() {
     init {
     val mockProcessService = mockk<ProcessService>()
+    val mockMessageEventInboxService = mockk<MessageEventInboxService>()
     val objectMapper = ObjectMapper()
 
-    val processController = ProcessController(mockProcessService, objectMapper)
+    val processController = ProcessController(mockProcessService, mockMessageEventInboxService, objectMapper)
 
     beforeEach {
         clearAllMocks()
@@ -253,16 +258,29 @@ class ProcessControllerTest : FunSpec() {
                 "variables" to variables
             )
 
-            every { mockProcessService.handleMessageReceived(messageName, correlationKey, variables) } just runs
+            val inboxMessage = MessageEventInbox(
+                messageId = "msg-123",
+                messageName = messageName,
+                correlationKey = correlationKey,
+                payload = variables,
+                status = MessageEventInboxStatus.PROCESSED
+            )
+
+            every {
+                mockMessageEventInboxService.acceptExternalMessage("msg-123", messageName, correlationKey, variables)
+            } returns ExternalMessageAcceptance(inboxMessage, duplicate = false)
 
             // Act
-            val result = processController.sendMessage(request)
+            val result = processController.sendMessage("msg-123", request)
 
             // Assert
             result["status"] shouldBe "success"
+            result["messageId"] shouldBe "msg-123"
             result["messageName"] shouldBe messageName
             result["correlationKey"] shouldBe correlationKey
-            verify { mockProcessService.handleMessageReceived(messageName, correlationKey, variables) }
+            result["correlated"] shouldBe true
+            result["duplicate"] shouldBe false
+            verify { mockMessageEventInboxService.acceptExternalMessage("msg-123", messageName, correlationKey, variables) }
         }
 
         test("should throw exception when messageName is missing") {
@@ -274,7 +292,7 @@ class ProcessControllerTest : FunSpec() {
 
             // Act & Assert
             shouldThrow<IllegalArgumentException> {
-                processController.sendMessage(request)
+                processController.sendMessage(null, request)
             }
         }
 
@@ -287,7 +305,7 @@ class ProcessControllerTest : FunSpec() {
 
             // Act & Assert
             shouldThrow<IllegalArgumentException> {
-                processController.sendMessage(request)
+                processController.sendMessage(null, request)
             }
         }
 
@@ -301,14 +319,74 @@ class ProcessControllerTest : FunSpec() {
                 "correlationKey" to correlationKey
             )
 
-            every { mockProcessService.handleMessageReceived(messageName, correlationKey, null) } just runs
+            val inboxMessage = MessageEventInbox(
+                messageId = "body-msg-123",
+                messageName = messageName,
+                correlationKey = correlationKey,
+                payload = null,
+                status = MessageEventInboxStatus.PROCESSED
+            )
+
+            every {
+                mockMessageEventInboxService.acceptExternalMessage("body-msg-123", messageName, correlationKey, null)
+            } returns ExternalMessageAcceptance(inboxMessage, duplicate = false)
 
             // Act
-            val result = processController.sendMessage(request)
+            val result = processController.sendMessage(null, request + ("messageId" to "body-msg-123"))
 
             // Assert
             result["status"] shouldBe "success"
-            verify { mockProcessService.handleMessageReceived(messageName, correlationKey, null) }
+            verify { mockMessageEventInboxService.acceptExternalMessage("body-msg-123", messageName, correlationKey, null) }
+        }
+
+        test("should return unmatched when no process is waiting") {
+            val messageName = "PaymentReceived"
+            val correlationKey = "order-123"
+            val request = mapOf(
+                "messageName" to messageName,
+                "correlationKey" to correlationKey
+            )
+            val inboxMessage = MessageEventInbox(
+                messageId = "msg-unmatched",
+                messageName = messageName,
+                correlationKey = correlationKey,
+                status = MessageEventInboxStatus.UNMATCHED,
+                errorMessage = "No waiting subscription"
+            )
+
+            every {
+                mockMessageEventInboxService.acceptExternalMessage("msg-unmatched", messageName, correlationKey, null)
+            } returns ExternalMessageAcceptance(inboxMessage, duplicate = false)
+
+            val result = processController.sendMessage("msg-unmatched", request)
+
+            result["status"] shouldBe "unmatched"
+            result["correlated"] shouldBe false
+            result["duplicate"] shouldBe false
+        }
+
+        test("should not reprocess duplicate message id") {
+            val messageName = "PaymentReceived"
+            val correlationKey = "order-123"
+            val request = mapOf(
+                "messageName" to messageName,
+                "correlationKey" to correlationKey
+            )
+            val inboxMessage = MessageEventInbox(
+                messageId = "msg-duplicate",
+                messageName = messageName,
+                correlationKey = correlationKey,
+                status = MessageEventInboxStatus.PROCESSED
+            )
+
+            every {
+                mockMessageEventInboxService.acceptExternalMessage("msg-duplicate", messageName, correlationKey, null)
+            } returns ExternalMessageAcceptance(inboxMessage, duplicate = true)
+
+            val result = processController.sendMessage("msg-duplicate", request)
+
+            result["status"] shouldBe "success"
+            result["duplicate"] shouldBe true
         }
     }
     }
