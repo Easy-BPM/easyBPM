@@ -4,9 +4,11 @@ import com.easy.bpm.controller.data.AssignProcessVariablesRequest
 import com.easy.bpm.controller.data.CallActivityMappingResponse
 import com.easy.bpm.controller.data.DeployProcessRequest
 import com.easy.bpm.controller.data.MoveNodeRequest
+import com.easy.bpm.enum.MessageEventInboxStatus
 import com.easy.bpm.model.process.ProcessDefinition
 import com.easy.bpm.model.process.ProcessInstance
 import com.easy.bpm.model.variable.ProcessVariable
+import com.easy.bpm.service.MessageEventInboxService
 import com.easy.bpm.service.ProcessService
 import com.easy.bpm.util.ParseXMLToJsonFormat.convertXmlToInternalJson
 import com.fasterxml.jackson.databind.JsonNode
@@ -43,6 +45,7 @@ SELECT * FROM process_INSTANCE
 @Tag(name = "Processes", description = "Process definition and instance management")
 class ProcessController(
         private val processService: ProcessService,
+        private val messageEventInboxService: MessageEventInboxService,
         private val objectMapper: ObjectMapper
 ) {
 
@@ -281,6 +284,7 @@ class ProcessController(
                             summary = "Correlate message to waiting instance",
                             value = """
                             {
+                              "messageId": "invoice-INV-7788",
                               "messageName": "invoice-received",
                               "correlationKey": "ORDER-12345",
                               "variables": {
@@ -295,6 +299,7 @@ class ProcessController(
                 )
             ]
         )
+        @RequestHeader(name = "Idempotency-Key", required = false) idempotencyKey: String?,
         @RequestBody request: Map<String, Any>
     ): Map<String, Any> {
         val messageName = request["messageName"] as? String
@@ -303,14 +308,30 @@ class ProcessController(
             ?: throw IllegalArgumentException("Missing correlationKey")
         @Suppress("UNCHECKED_CAST")
         val variables = request["variables"] as? Map<String, Any>
+        val messageId = idempotencyKey ?: request["messageId"] as? String
 
-        processService.handleMessageReceived(messageName, correlationKey, variables)
+        val acceptance = messageEventInboxService.acceptExternalMessage(messageId, messageName, correlationKey, variables)
+        val inboxMessage = acceptance.message
+        val correlated = inboxMessage.status == MessageEventInboxStatus.PROCESSED
 
         return mapOf(
-            "status" to "success",
-            "message" to "Message received and process resumed",
-            "messageName" to messageName,
-            "correlationKey" to correlationKey
+            "status" to when (inboxMessage.status) {
+                MessageEventInboxStatus.PROCESSED -> "success"
+                MessageEventInboxStatus.UNMATCHED -> "unmatched"
+                MessageEventInboxStatus.FAILED -> "failed"
+                MessageEventInboxStatus.RECEIVED -> "received"
+            },
+            "message" to when (inboxMessage.status) {
+                MessageEventInboxStatus.PROCESSED -> "Message received and process resumed"
+                MessageEventInboxStatus.UNMATCHED -> "Message received but no process was waiting for this correlation"
+                MessageEventInboxStatus.FAILED -> "Message received but processing failed"
+                MessageEventInboxStatus.RECEIVED -> "Message received"
+            },
+            "messageId" to inboxMessage.messageId,
+            "messageName" to inboxMessage.messageName,
+            "correlationKey" to inboxMessage.correlationKey,
+            "correlated" to correlated,
+            "duplicate" to acceptance.duplicate
         )
     }
 
