@@ -1,3 +1,4 @@
+{{- include "easybpm.validateLicense" . }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -24,6 +25,11 @@ spec:
           env:
             - name: LOGGING_LEVEL_COM_EASY_BPM
               value: {{ .Values.config.loggingLevelComEasyBpm | quote }}
+            - name: EASYBPM_LICENSE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "easybpm.secretName" . }}
+                  key: {{ include "easybpm.licenseSecretKey" . }}
           envFrom:
             - secretRef:
                 name: {{ include "easybpm.secretName" . }}

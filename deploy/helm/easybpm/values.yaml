@@ -42,6 +42,10 @@ config:
   loggingLevelComEasyBpm: INFO
   managementHealthShowDetails: when_authorized
 
+license:
+  key: ""
+  secretKey: EASYBPM_LICENSE_KEY
+
 secrets:
   create: true
   postgres:

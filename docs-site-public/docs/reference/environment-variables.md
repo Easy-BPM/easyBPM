@@ -17,6 +17,7 @@ title: Environment Variables
 | `SPRING_RABBITMQ_USERNAME` | `easybpm` |
 | `SPRING_RABBITMQ_PASSWORD` | `easybpm` |
 | `MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE` | `health,metrics,prometheus` |
+| `EASYBPM_LICENSE_KEY` | Required for licensed deployments. |
 
 ## Security bootstrap
 

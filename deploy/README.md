@@ -44,7 +44,8 @@ When moving to Kubernetes:
 
 1. Use managed PostgreSQL and managed RabbitMQ if possible.
 2. Store app secrets in the platform secret manager.
-3. Deploy with `deploy/helm/easybpm`.
-4. Add per-environment values files in a separate private infra repo when needed.
+3. Provide a valid Easy BPM license through the Helm `license.key` value or an existing Secret containing `EASYBPM_LICENSE_KEY`.
+4. Deploy with `deploy/helm/easybpm`.
+5. Add per-environment values files in a separate private infra repo when needed.
 
 The app repo should own the chart shape. The infra repo should own environment values.

@@ -33,3 +33,20 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- define "easybpm.image" -}}
 {{- printf "%s/%s:%s" .Values.global.imageRegistry .image .Values.global.imageTag -}}
 {{- end -}}
+
+{{- define "easybpm.licenseSecretKey" -}}
+{{- default "EASYBPM_LICENSE_KEY" .Values.license.secretKey -}}
+{{- end -}}
+
+{{- define "easybpm.validateLicense" -}}
+{{- $licenseSecretKey := include "easybpm.licenseSecretKey" . -}}
+{{- if not $licenseSecretKey -}}
+{{- fail "license.secretKey is required and must name the Secret key that stores the Easy BPM license." -}}
+{{- end -}}
+{{- if and .Values.secrets.create (not .Values.existingSecretName) -}}
+{{- $licenseKey := required "license.key is required when Helm creates the Easy BPM Secret. Set --set license.key=<valid-license> or use existingSecretName with a Secret that contains EASYBPM_LICENSE_KEY." .Values.license.key -}}
+{{- if or (eq $licenseKey "change-me") (eq $licenseKey "replace-with-valid-license-key") -}}
+{{- fail "license.key must be a valid Easy BPM license, not a placeholder value." -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
