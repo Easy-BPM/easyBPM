@@ -48,6 +48,30 @@ The main runtime flow is:
 6. API/service work is published to RabbitMQ and executed by `worker/`.
 7. Completion messages resume waiting process instances in the backend.
 
+Example async workflow:
+
+```mermaid
+sequenceDiagram
+  participant User as User / Portal
+  participant Backend as Backend API
+  participant DB as PostgreSQL
+  participant Rabbit as RabbitMQ
+  participant Worker as Worker
+  participant External as External API
+
+  User->>Backend: Start or complete a process task
+  Backend->>DB: Persist process state and variables
+  Backend->>Rabbit: Publish service.task.request
+  Rabbit->>Worker: Deliver request to an available worker
+  Worker->>External: Execute API/service call
+  External-->>Worker: Return response
+  Worker->>Rabbit: Publish service.task.completed
+  Rabbit->>Backend: Deliver completion event
+  Backend->>DB: Lock instance, save outputs, advance process
+```
+
+In this model, RabbitMQ does not execute business logic. It stores and routes messages. The worker performs the external work, and the backend remains responsible for process state, variables, and deciding the next node.
+
 ## Main Capabilities
 
 - Process deployment, versioning, starting, execution, stopping, and manual node movement.
