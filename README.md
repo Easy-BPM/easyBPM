@@ -130,3 +130,47 @@ Useful local URLs:
 | RabbitMQ management | `http://localhost:15672` |
 | Modeler | `http://localhost:3000` |
 | Admin UI | `http://localhost:3001` |
+
+## Worker Throughput Benchmark
+
+The repository includes a benchmark script for the async worker path:
+
+```text
+Start -> API Task -> End
+```
+
+The script deploys a synthetic process, starts process instances, serves a mock external API with configurable latency, waits for completion, and reports throughput and latency.
+
+Run the stack with Docker:
+
+```bash
+docker compose up -d postgres rabbitmq backend worker
+```
+
+Run a benchmark from the repository root:
+
+```bash
+node scripts/benchmark-worker-throughput.mjs \
+  --backend-url http://localhost:8080 \
+  --instances 100 \
+  --concurrency 20 \
+  --mock-delay-ms 250 \
+  --external-url http://host.docker.internal:19090/mock-api
+```
+
+Use `host.docker.internal` when the worker runs in Docker and needs to call the mock API running on the host. Use `http://localhost:19090/mock-api` when the worker runs directly on the same machine as the script.
+
+Example local Docker results:
+
+| Setup | Mock API latency | Instances | Completed | Throughput |
+| --- | ---: | ---: | ---: | ---: |
+| 1 worker | 250 ms | 50 | 50 | ~3.57 API tasks/sec |
+| 1 worker | 1000 ms | 30 | 30 | ~0.97 API tasks/sec |
+| 3 workers | 1000 ms | 60 | 60 | ~2.86 API tasks/sec |
+| 3 workers | 250 ms | 100 | 100 | ~10.72 API tasks/sec |
+
+These numbers are local benchmark samples, not product limits. In this setup, throughput scaled close to:
+
+```text
+worker throughput ~= worker count / external API latency
+```
