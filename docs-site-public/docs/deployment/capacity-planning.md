@@ -73,17 +73,17 @@ Then:
 database writes per second = process instances per second * database writes per process
 ```
 
-## Benchmark worker throughput
+## Benchmark example
 
-The repository includes a benchmark script that deploys a synthetic process:
+Easy BPM provides a worker throughput benchmark that runs a synthetic process:
 
 ```text
 Start -> API Task -> End
 ```
 
-The API task calls a local mock HTTP endpoint with configurable latency. The script starts process instances, waits for completion, and reports throughput and latency.
+The API task calls a mock external service with configurable latency. The benchmark starts process instances, waits for completion, and reports throughput and latency.
 
-Run it from the repository root:
+Example execution:
 
 ```bash
 node scripts/benchmark-worker-throughput.mjs \
@@ -94,17 +94,18 @@ node scripts/benchmark-worker-throughput.mjs \
   --external-url http://host.docker.internal:19090/mock-api
 ```
 
-Use `host.docker.internal` when the worker runs in Docker and needs to call the mock API running on the host machine. Use `http://localhost:19090/mock-api` when the worker runs directly on the same machine as the script.
+Example local Docker results:
 
-The output includes:
+| Setup | Mock API latency | Instances | Completed | Throughput |
+| --- | ---: | ---: | ---: | ---: |
+| 1 worker | 250 ms | 50 | 50 | ~3.57 API tasks/sec |
+| 1 worker | 1000 ms | 30 | 30 | ~0.97 API tasks/sec |
+| 3 workers | 1000 ms | 60 | 60 | ~2.86 API tasks/sec |
+| 3 workers | 250 ms | 100 | 100 | ~10.72 API tasks/sec |
 
-- completed process instances
-- failed or unfinished process instances
-- API task throughput
-- process completion latency percentiles
-- mock API request count
+![Example worker throughput benchmark results](/img/benchmarks/worker-throughput-example.svg)
 
-Use the result as an environment-specific benchmark, not as a universal product limit. Real capacity depends on workflow design, database sizing, broker sizing, worker concurrency, external API latency, and retry behavior.
+These values are sample results from a local Docker environment. They are useful for understanding the relationship between worker count, external API latency, and throughput, but they are not product limits or production sizing guarantees.
 
 ## Scaling notes
 
