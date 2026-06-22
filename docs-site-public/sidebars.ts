@@ -59,6 +59,7 @@ const sidebars: SidebarsConfig = {
       items: [
         'deployment/docker',
         'deployment/kubernetes',
+        'deployment/capacity-planning',
         'deployment/observability',
       ],
     },
