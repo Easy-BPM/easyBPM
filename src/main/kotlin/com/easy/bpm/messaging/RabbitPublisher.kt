@@ -53,7 +53,7 @@ class RabbitPublisher(
             "timeoutSeconds" to timeoutSeconds
         )
 
-        rabbitTemplate.convertAndSend(AmqpConfig.EXCHANGE, AmqpConfig.REQUEST_ROUTING_KEY, payload)
+        rabbitTemplate.convertAndSend(AmqpConfig.EXCHANGE, AmqpConfig.MESSAGE_EXPECTED_ROUTING_KEY, payload)
     }
 
     fun publishMessageReceived(

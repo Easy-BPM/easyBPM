@@ -17,15 +17,17 @@ class WorkerRequestTimeoutService(
 
     companion object {
         private const val TIMEOUT_MINUTES = 2L
+        private const val TIMEOUT_BATCH_SIZE = 100
     }
 
     @Scheduled(fixedDelay = 30000, initialDelay = 60000)
     @Transactional
     fun failTimedOutApiTasks() {
         val cutoff = LocalDateTime.now().minusMinutes(TIMEOUT_MINUTES)
-        val timedOut = workerRequestRepository.findTimedOutRequests(
-            listOf(WorkerRequestStatus.IN_PROGRESS, WorkerRequestStatus.PENDING),
-            cutoff
+        val timedOut = workerRequestRepository.claimTimedOutRequests(
+            listOf(WorkerRequestStatus.IN_PROGRESS.name, WorkerRequestStatus.PENDING.name),
+            cutoff,
+            TIMEOUT_BATCH_SIZE
         )
 
         timedOut.forEach { request ->

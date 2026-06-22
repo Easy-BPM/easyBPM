@@ -29,6 +29,15 @@ flowchart LR
   Worker --> Rabbit
 ```
 
+Cluster-oriented runtime behavior:
+
+- Backend replicas are horizontally scalable behind a load balancer; PostgreSQL remains the execution source of truth.
+- Process resumes from task completion, service-task completion, message correlation, and timer callbacks lock the target process instance row before advancing execution.
+- RabbitMQ separates service-task requests, service-task retries, service-task completions, DLQ events, message-received events, and message-expected observability events.
+- Worker retries use the RabbitMQ retry queue with per-message TTL and dead-letter routing back to the request queue, so retries survive worker pod restarts.
+- Scheduled timeout scanners use database row claiming patterns for clustered execution so multiple backend pods can run schedulers without processing the same timeout work.
+- High-volume lookup paths for tasks, process variables, and worker requests have supporting PostgreSQL indexes.
+
 The main runtime flow is:
 
 1. A process is modeled in `easy-bpm-modeler/`.
