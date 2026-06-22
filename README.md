@@ -158,16 +158,18 @@ node scripts/benchmark-worker-throughput.mjs \
   --external-url http://host.docker.internal:19090/mock-api
 ```
 
+For longer runs, use `--duration-seconds`. To save the raw result payload, use `--output-file benchmark-result.json`.
+
 Use `host.docker.internal` when the worker runs in Docker and needs to call the mock API running on the host. Use `http://localhost:19090/mock-api` when the worker runs directly on the same machine as the script.
 
-Example local Docker results:
+Example local Docker results from higher-volume runs:
 
-| Setup | Mock API latency | Instances | Completed | Throughput |
-| --- | ---: | ---: | ---: | ---: |
-| 1 worker | 250 ms | 50 | 50 | ~3.57 API tasks/sec |
-| 1 worker | 1000 ms | 30 | 30 | ~0.97 API tasks/sec |
-| 3 workers | 1000 ms | 60 | 60 | ~2.86 API tasks/sec |
-| 3 workers | 250 ms | 100 | 100 | ~10.72 API tasks/sec |
+| Setup | Mock API latency | Submitted | Completed | Throughput | p95 latency |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 1 worker | 250 ms | 200 | 200 | ~3.75 API tasks/sec | ~10.87 s |
+| 3 workers | 250 ms | 300 | 300 | ~10.88 API tasks/sec | ~5.81 s |
+| 1 worker | 1000 ms | 120 | 120 | ~0.98 API tasks/sec | ~30.77 s |
+| 3 workers | 1000 ms | 180 | 180 | ~2.93 API tasks/sec | ~20.66 s |
 
 These numbers are local benchmark samples, not product limits. In this setup, throughput scaled close to:
 
