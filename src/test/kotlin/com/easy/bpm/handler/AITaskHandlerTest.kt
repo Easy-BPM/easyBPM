@@ -5,6 +5,7 @@ import com.easy.bpm.ai.factory.AIProviderFactory
 import com.easy.bpm.ai.provider.AIProvider
 import com.easy.bpm.ai.service.CredentialVault
 import com.easy.bpm.repository.variable.ProcessVariableRepository
+import com.easy.bpm.service.IncidentService
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.mockk.every
 import io.mockk.mockk
@@ -20,6 +21,7 @@ class AITaskHandlerTest {
     private lateinit var aiProviderFactory: AIProviderFactory
     private lateinit var credentialVault: CredentialVault
     private lateinit var processVariableRepository: ProcessVariableRepository
+    private lateinit var incidentService: IncidentService
     private lateinit var objectMapper: ObjectMapper
     private lateinit var handler: AITaskHandler
 
@@ -28,11 +30,13 @@ class AITaskHandlerTest {
         aiProviderFactory = mockk()
         credentialVault = mockk(relaxed = true)
         processVariableRepository = mockk(relaxed = true)
+        incidentService = mockk(relaxed = true)
         objectMapper = ObjectMapper()
         handler = AITaskHandler(
             aiProviderFactory = aiProviderFactory,
             credentialVault = credentialVault,
             processVariableRepository = processVariableRepository,
+            incidentService = incidentService,
             objectMapper = objectMapper
         )
     }
