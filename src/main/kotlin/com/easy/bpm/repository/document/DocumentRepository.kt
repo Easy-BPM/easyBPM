@@ -9,4 +9,6 @@ interface DocumentRepository : JpaRepository<Document, UUID> {
     fun findByProcessInstanceId(processInstanceId: Long): List<Document>
     fun findByTaskIdAndFormFieldKey(taskId: Long, formFieldKey: String): List<Document>
     fun deleteByTaskIdAndFormFieldKey(taskId: Long, formFieldKey: String)
+    fun deleteByTaskId(taskId: Long)
+    fun deleteByProcessInstanceId(processInstanceId: Long)
 }

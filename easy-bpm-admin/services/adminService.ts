@@ -6,12 +6,21 @@ import {
   AuthSession,
   BpmTask,
   CallActivityMapping,
+  Incident,
+  IncidentEvent,
+  IncidentResolutionAction,
+  IncidentSource,
+  IncidentSummary,
+  IncidentStatus,
   MoveNodePayload,
   Page,
   ProcessDefinition,
+  ProcessInstanceEvent,
   ProcessInstance,
   ProcessVariable,
   TaskStatus,
+  MaintenanceCleanupSummary,
+  PurgeCompletedInstancesPayload,
   VariableAssignmentPayload
 } from '../types';
 
@@ -245,6 +254,12 @@ export const adminService = {
     return res.json();
   },
 
+  getProcessTimeline: async (instanceId: number): Promise<ProcessInstanceEvent[]> => {
+    const res = await fetchWithAuth(`${API_BASE_URL}/processes/instances/${instanceId}/timeline`);
+    if (!res.ok) throw new Error(`Failed to fetch timeline: ${res.statusText}`);
+    return res.json();
+  },
+
   assignProcessVariables: async (instanceId: number, payload: VariableAssignmentPayload): Promise<void> => {
     if (USE_MOCK) {
       await delay(350);
@@ -351,6 +366,102 @@ export const adminService = {
     const res = await fetchWithAuth(`${API_BASE_URL}/processes/instances/${parentInstanceId}/children/${childInstanceId}/mapping`);
     if (res.status === 404) return null;
     if (!res.ok) throw new Error(`Failed to fetch call activity mapping: ${res.statusText}`);
+    return res.json();
+  },
+
+  getIncidents: async (filters: {
+    status?: IncidentStatus | '';
+    source?: IncidentSource | '';
+    processInstanceId?: number | null;
+    page?: number;
+    size?: number;
+  } = {}): Promise<Page<Incident>> => {
+    const params = new URLSearchParams({
+      page: String(filters.page ?? 0),
+      size: String(filters.size ?? 20),
+      sort: 'createdAt,desc'
+    });
+    if (filters.status) params.set('status', filters.status);
+    if (filters.source) params.set('source', filters.source);
+    if (filters.processInstanceId) params.set('processInstanceId', String(filters.processInstanceId));
+
+    const res = await fetchWithAuth(`${API_BASE_URL}/incidents?${params.toString()}`);
+    if (!res.ok) throw new Error(`Failed to fetch incidents: ${res.statusText}`);
+    return res.json();
+  },
+
+  acknowledgeIncident: async (incidentId: number, acknowledgedBy?: string): Promise<Incident> => {
+    const res = await fetchWithAuth(`${API_BASE_URL}/incidents/${incidentId}/acknowledge`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ acknowledgedBy })
+    });
+    if (!res.ok) throw new Error(`Failed to acknowledge incident: ${res.statusText}`);
+    return res.json();
+  },
+
+  resolveIncident: async (
+    incidentId: number,
+    resolvedBy?: string,
+    resolutionNote?: string,
+    resolutionAction?: IncidentResolutionAction | ''
+  ): Promise<Incident> => {
+    const res = await fetchWithAuth(`${API_BASE_URL}/incidents/${incidentId}/resolve`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ resolvedBy, resolutionNote, resolutionAction: resolutionAction || null })
+    });
+    if (!res.ok) throw new Error(`Failed to resolve incident: ${res.statusText}`);
+    return res.json();
+  },
+
+  reopenIncident: async (incidentId: number): Promise<Incident> => {
+    const res = await fetchWithAuth(`${API_BASE_URL}/incidents/${incidentId}/reopen`, {
+      method: 'POST'
+    });
+    if (!res.ok) throw new Error(`Failed to reopen incident: ${res.statusText}`);
+    return res.json();
+  },
+
+  retryIncident: async (incidentId: number, requestedBy?: string): Promise<Incident> => {
+    const res = await fetchWithAuth(`${API_BASE_URL}/incidents/${incidentId}/retry`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ requestedBy })
+    });
+    if (!res.ok) throw new Error(`Failed to retry incident: ${res.statusText}`);
+    return res.json();
+  },
+
+  getIncidentSummary: async (): Promise<IncidentSummary> => {
+    const res = await fetchWithAuth(`${API_BASE_URL}/incidents/summary`);
+    if (!res.ok) throw new Error(`Failed to fetch incident summary: ${res.statusText}`);
+    return res.json();
+  },
+
+  getIncidentEvents: async (incidentId: number): Promise<IncidentEvent[]> => {
+    const res = await fetchWithAuth(`${API_BASE_URL}/incidents/${incidentId}/events`);
+    if (!res.ok) throw new Error(`Failed to fetch incident events: ${res.statusText}`);
+    return res.json();
+  },
+
+  purgeCompletedInstances: async (payload: PurgeCompletedInstancesPayload): Promise<MaintenanceCleanupSummary> => {
+    const res = await fetchWithAuth(`${API_BASE_URL}/admin/maintenance/purge-completed-instances`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) throw new Error(`Failed to purge completed instances: ${res.statusText}`);
+    return res.json();
+  },
+
+  deleteProcessDefinitionCascade: async (definitionId: number, dryRun: boolean): Promise<MaintenanceCleanupSummary> => {
+    const params = new URLSearchParams({ dryRun: String(dryRun) });
+    const res = await fetchWithAuth(`${API_BASE_URL}/admin/maintenance/process-definitions/${definitionId}?${params.toString()}`, {
+      method: 'DELETE'
+    });
+    if (res.status === 404) throw new Error('Process definition not found');
+    if (!res.ok) throw new Error(`Failed to delete process definition: ${res.statusText}`);
     return res.json();
   },
 

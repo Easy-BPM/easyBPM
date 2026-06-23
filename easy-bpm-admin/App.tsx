@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import {
-  AlertCircle,
   ArrowRightLeft,
   CheckCircle2,
   Clock,
@@ -20,10 +19,12 @@ import { Sidebar } from './components/Sidebar';
 import { WorkflowCanvas } from './components/WorkflowCanvas';
 import { CodeTaskExecutionListPage } from './components/CodeTaskExecutionListPage';
 import { DashboardView } from './components/DashboardView';
+import { IncidentListPage } from './components/IncidentListPage';
+import { MaintenancePage } from './components/MaintenancePage';
 import { SecurityAdminView } from './components/SecurityAdminView';
 import { ThemeMode, ThemeToggle } from './components/ThemeToggle';
 import { adminService } from './services/adminService';
-import { ProcessDefinition, ProcessInstance, ProcessVariable, WorkflowDefinition } from './types';
+import { ProcessDefinition, ProcessInstance, ProcessInstanceEvent, ProcessVariable, WorkflowDefinition } from './types';
 
 const App: React.FC = () => {
   const [theme, setTheme] = useState<ThemeMode>(() => {
@@ -34,6 +35,7 @@ const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<string | null>(null);
   const [permissions, setPermissions] = useState<string[]>([]);
   const [currentView, setCurrentView] = useState('dashboard');
+  const [selectedInstanceId, setSelectedInstanceId] = useState<number | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
 
   useEffect(() => {
@@ -111,11 +113,23 @@ const App: React.FC = () => {
       case 'dashboard':
         return <DashboardView onNavigate={setCurrentView} />;
       case 'instances':
-        return <InstanceExplorerView />;
+        return <InstanceExplorerView initialInstanceId={selectedInstanceId} />;
+      case 'incidents':
+        return (
+          <IncidentListPage
+            currentUser={currentUser}
+            onOpenInstance={(instanceId) => {
+              setSelectedInstanceId(instanceId);
+              setCurrentView('instances');
+            }}
+          />
+        );
       case 'workflows':
         return <WorkflowCatalogView />;
       case 'code-tasks':
         return <CodeTaskExecutionListPage />;
+      case 'maintenance':
+        return <MaintenancePage />;
       case 'security-admin':
         return <SecurityAdminView />;
       default:
@@ -222,8 +236,8 @@ const LoginView: React.FC<{ onLogin: (username: string, perms: string[]) => void
   );
 };
 
-const InstanceExplorerView: React.FC = () => {
-  const [instanceIdInput, setInstanceIdInput] = useState('');
+const InstanceExplorerView: React.FC<{ initialInstanceId?: number | null }> = ({ initialInstanceId }) => {
+  const [instanceIdInput, setInstanceIdInput] = useState(initialInstanceId ? String(initialInstanceId) : '');
   const [loading, setLoading] = useState(false);
   const [instance, setInstance] = useState<ProcessInstance | null>(null);
   const [variables, setVariables] = useState<ProcessVariable[]>([]);
@@ -237,6 +251,7 @@ const InstanceExplorerView: React.FC = () => {
   const [workflowError, setWorkflowError] = useState<string | null>(null);
   const [parentInstance, setParentInstance] = useState<ProcessInstance | null>(null);
   const [childInstances, setChildInstances] = useState<ProcessInstance[]>([]);
+  const [timelineEvents, setTimelineEvents] = useState<ProcessInstanceEvent[]>([]);
   const [hierarchyLoading, setHierarchyLoading] = useState(false);
   const [selectedChildId, setSelectedChildId] = useState<number | null>(null);
   const [childMapping, setChildMapping] = useState<any>(null);
@@ -313,31 +328,50 @@ const InstanceExplorerView: React.FC = () => {
     return nodeId;
   };
 
-  const handleSearch = async () => {
-    const parsedId = Number(instanceIdInput);
-    if (!parsedId) return;
+  const loadInstanceById = async (targetId: number) => {
+    if (!targetId) return;
 
     setLoading(true);
     setActionMessage(null);
     try {
-      const found = await adminService.findInstanceById(parsedId);
+      const found = await adminService.findInstanceById(targetId);
       setInstance(found);
       if (found) {
         setVariables(await adminService.getProcessVariables(found.id));
+        setTimelineEvents(await adminService.getProcessTimeline(found.id));
         await loadDefinitionForInstance(found);
         await loadHierarchy(found);
       } else {
         setVariables([]);
+        setTimelineEvents([]);
         setWorkflowDefinition(null);
       }
     } catch (error) {
       console.error(error);
       setActionMessage('Failed to search process instance.');
       setWorkflowDefinition(null);
+      setTimelineEvents([]);
     } finally {
       setLoading(false);
     }
   };
+
+  const handleSearch = async () => {
+    const parsedId = Number(instanceIdInput);
+    if (!parsedId) return;
+
+    await loadInstanceById(parsedId);
+  };
+
+  useEffect(() => {
+    if (!initialInstanceId) return;
+    setInstanceIdInput(String(initialInstanceId));
+  }, [initialInstanceId]);
+
+  useEffect(() => {
+    if (!initialInstanceId) return;
+    loadInstanceById(initialInstanceId);
+  }, [initialInstanceId]);
 
   const handleAssignVariable = async () => {
     if (!instance || !newVarName.trim()) return;
@@ -632,6 +666,44 @@ const InstanceExplorerView: React.FC = () => {
           <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4">
             <div className="flex items-center justify-between gap-3">
               <h3 className="font-semibold text-slate-800 flex items-center gap-2">
+                <Clock size={18} className="text-blue-600" /> Process Timeline
+              </h3>
+              <span className="text-xs text-slate-500">{timelineEvents.length} events</span>
+            </div>
+            {timelineEvents.length === 0 ? (
+              <p className="text-sm text-slate-500">No runtime events have been recorded for this instance yet.</p>
+            ) : (
+              <div className="space-y-3 max-h-[520px] overflow-y-auto pr-1">
+                {timelineEvents.map((event) => (
+                  <div key={event.id} className="flex gap-3">
+                    <div className="flex flex-col items-center">
+                      <div className={`w-2.5 h-2.5 rounded-full mt-1.5 ${
+                        event.eventType.includes('FAILED') || event.eventType.includes('INCIDENT') ? 'bg-red-500' :
+                        event.eventType.includes('COMPLETED') || event.eventType.includes('RESOLVED') ? 'bg-emerald-500' :
+                        event.eventType.includes('TASK') ? 'bg-blue-500' :
+                        'bg-slate-400'
+                      }`} />
+                      <div className="w-px flex-1 bg-slate-200 mt-1" />
+                    </div>
+                    <div className="flex-1 pb-3">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-xs font-semibold text-slate-700">{event.eventType}</span>
+                        {event.nodeId && <span className="text-[11px] px-2 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200">{event.nodeId}</span>}
+                        {event.actor && <span className="text-[11px] text-slate-500">by {event.actor}</span>}
+                      </div>
+                      <p className="text-sm text-slate-700 mt-1">{event.message}</p>
+                      {event.details && <p className="text-xs text-slate-500 mt-1 bg-slate-50 border border-slate-200 rounded px-2 py-1">{event.details}</p>}
+                      <p className="text-[11px] text-slate-400 mt-1">{new Date(event.createdAt).toLocaleString()}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4">
+            <div className="flex items-center justify-between gap-3">
+              <h3 className="font-semibold text-slate-800 flex items-center gap-2">
                 <Workflow size={18} className="text-indigo-600" /> Workflow Path Visualizer
               </h3>
               {workflowLoading && <Loader2 className="animate-spin text-indigo-600" size={16} />}
@@ -826,7 +898,7 @@ const WorkflowCatalogView: React.FC = () => {
   );
 };
 
-const MetricCard: React.FC<{ icon: React.ReactNode; title: string; value: string; tone: 'blue' | 'emerald' | 'purple' }> = ({
+const MetricCard: React.FC<{ icon: React.ReactNode; title: string; value: string; tone: 'blue' | 'emerald' | 'purple' | 'red' }> = ({
   icon,
   title,
   value,
@@ -835,7 +907,8 @@ const MetricCard: React.FC<{ icon: React.ReactNode; title: string; value: string
   const toneStyles = {
     blue:    { icon: 'bg-blue-50 text-blue-600',    border: 'border-l-blue-500' },
     emerald: { icon: 'bg-emerald-50 text-emerald-600', border: 'border-l-emerald-500' },
-    purple:  { icon: 'bg-purple-50 text-purple-600',  border: 'border-l-purple-500' }
+    purple:  { icon: 'bg-purple-50 text-purple-600',  border: 'border-l-purple-500' },
+    red:     { icon: 'bg-red-50 text-red-600',        border: 'border-l-red-500' }
   }[tone];
 
   return (

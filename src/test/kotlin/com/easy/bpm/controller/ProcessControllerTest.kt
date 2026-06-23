@@ -6,6 +6,7 @@ import com.easy.bpm.model.message.MessageEventInbox
 import com.easy.bpm.enum.MessageEventInboxStatus
 import com.easy.bpm.service.ExternalMessageAcceptance
 import com.easy.bpm.service.MessageEventInboxService
+import com.easy.bpm.service.ProcessInstanceTimelineService
 import com.easy.bpm.service.ProcessService
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -23,9 +24,10 @@ class ProcessControllerTest : FunSpec() {
     init {
     val mockProcessService = mockk<ProcessService>()
     val mockMessageEventInboxService = mockk<MessageEventInboxService>()
+    val mockTimelineService = mockk<ProcessInstanceTimelineService>()
     val objectMapper = ObjectMapper()
 
-    val processController = ProcessController(mockProcessService, mockMessageEventInboxService, objectMapper)
+    val processController = ProcessController(mockProcessService, mockMessageEventInboxService, mockTimelineService, objectMapper)
 
     beforeEach {
         clearAllMocks()

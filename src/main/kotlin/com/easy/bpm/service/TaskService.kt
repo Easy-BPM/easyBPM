@@ -5,6 +5,7 @@ import com.easy.bpm.enum.NodeType
 import com.easy.bpm.enum.TaskStatus
 import com.easy.bpm.controller.data.TaskResponseDto
 import com.easy.bpm.model.process.ProcessInstance
+import com.easy.bpm.model.process.ProcessInstanceEventType
 import com.easy.bpm.model.task.Task
 import com.easy.bpm.model.variable.ProcessVariable
 import com.easy.bpm.model.variable.TaskVariable
@@ -39,7 +40,8 @@ class TaskService(
     private val rabbitPublisher: com.easy.bpm.messaging.RabbitPublisher,
     private val gatewayService: GatewayService,
     private val messageSubscriptionService: MessageSubscriptionService,
-    private val metricsService: MetricsService
+    private val metricsService: MetricsService,
+    private val timelineService: ProcessInstanceTimelineService
 ) {
 
     private val taskSortableFields = setOf(
@@ -91,6 +93,14 @@ class TaskService(
 
         // 4️⃣ Atualizar Task
         completeTaskEntity(task, assignee)
+        timelineService.record(
+            processInstanceId = task.processInstanceId,
+            nodeId = task.nodeId,
+            eventType = ProcessInstanceEventType.TASK_COMPLETED,
+            message = "Task '${task.title ?: task.nodeId}' completed.",
+            actor = assignee,
+            details = "taskId=${task.id}"
+        )
         metricsService.recordTaskCompleted()
         val duration = System.currentTimeMillis() - startTime
         metricsService.recordTaskExecution(duration)
@@ -211,6 +221,15 @@ class TaskService(
 
         if (task.assignee == null) {
             task.assignee = username
+            taskRepository.save(task)
+            timelineService.record(
+                processInstanceId = task.processInstanceId,
+                nodeId = task.nodeId,
+                eventType = ProcessInstanceEventType.TASK_CLAIMED,
+                message = "Task '${task.title ?: task.nodeId}' claimed.",
+                actor = username,
+                details = "taskId=${task.id}"
+            )
         } else if (task.assignee != username) {
             throw IllegalStateException("Task already claimed by another user")
         }
@@ -281,9 +300,15 @@ class TaskService(
             NodeType.MessageIntermediateCatchEvent -> handleMessageIntermediateCatchEvent(instance, node)
             NodeType.MessageIntermediateThrowEvent -> handleMessageIntermediateThrowEvent(instance, node, definition)
             NodeType.EndEvent -> finishProcess(instance)
-            NodeType.ExclusiveGateway, NodeType.ParallelGateway, NodeType.InclusiveGateway -> {
-                val nextNodes = getNextNodes(node, definition, instance)
-                advanceProcess(instance, nextNodes, definition)
+                NodeType.ExclusiveGateway, NodeType.ParallelGateway, NodeType.InclusiveGateway -> {
+                    val nextNodes = getNextNodes(node, definition, instance)
+                    timelineService.record(
+                        processInstanceId = instance.id,
+                        nodeId = node.get("id").asText(),
+                        eventType = ProcessInstanceEventType.GATEWAY_EVALUATED,
+                        message = "Gateway routed to ${nextNodes.joinToString(", ")}."
+                    )
+                    advanceProcess(instance, nextNodes, definition)
                 executeNextSteps(nextNodes, instance, definition)
             }
             else -> { /* no-op for other node types */ }
@@ -326,6 +351,13 @@ class TaskService(
                 candidateGroups = candidateGroups,
                 formId = form?.id
             )
+        )
+        timelineService.record(
+            processInstanceId = instance.id,
+            nodeId = task.nodeId,
+            eventType = ProcessInstanceEventType.TASK_CREATED,
+            message = "Task '${task.title ?: task.nodeId}' created.",
+            details = "taskId=${task.id}; assignee=${task.assignee ?: ""}"
         )
 
         // Publish TaskCreated event
@@ -414,6 +446,12 @@ class TaskService(
             val properties = config ?: objectMapper.createObjectNode()
             try {
                 rabbitPublisher.publishServiceTaskRequest(instance.id, node.get("id").asText(), properties)
+                timelineService.record(
+                    processInstanceId = instance.id,
+                    nodeId = node.get("id").asText(),
+                    eventType = ProcessInstanceEventType.WORKER_REQUESTED,
+                    message = "Service task request sent to worker."
+                )
             } catch (_: Exception) {
             }
 
@@ -447,6 +485,12 @@ class TaskService(
             messageName = messageName,
             correlationKey = correlationKey,
             timeoutAt = null
+        )
+        timelineService.record(
+            processInstanceId = instance.id,
+            nodeId = nodeId,
+            eventType = ProcessInstanceEventType.MESSAGE_WAITING,
+            message = "Waiting for message '$messageName' with correlation key '$correlationKey'."
         )
 
         // Publish message expected event
@@ -522,6 +566,12 @@ class TaskService(
                 correlationKey = correlationKey,
                 variables = payload
             )
+            timelineService.record(
+                processInstanceId = instance.id,
+                nodeId = nodeId,
+                eventType = ProcessInstanceEventType.MESSAGE_THROWN,
+                message = "Message '$messageName' thrown with correlation key '$correlationKey'."
+            )
         } catch (ex: Exception) {
             // Log exception but continue
         }
@@ -570,15 +620,33 @@ class TaskService(
 
         // Avoid consecutive duplicates when appending
         appendable.forEach { id ->
-            if (instance.nodeHistory.lastOrNull() != id) instance.nodeHistory = instance.nodeHistory + id
+            if (instance.nodeHistory.lastOrNull() != id) {
+                instance.nodeHistory = instance.nodeHistory + id
+                timelineService.record(
+                    processInstanceId = instance.id,
+                    nodeId = id,
+                    eventType = ProcessInstanceEventType.NODE_ENTERED,
+                    message = "Entered node '$id'."
+                )
+            }
         }
         instance.updatedAt = LocalDateTime.now()
 
         if (nextNodeIds.isEmpty() || nextNodeIds.all { isEndEvent(it, definition) }) {
             instance.status = ProcessStatus.COMPLETED
+            timelineService.record(
+                processInstanceId = instance.id,
+                eventType = ProcessInstanceEventType.PROCESS_COMPLETED,
+                message = "Process instance completed."
+            )
         }
 
         processInstanceRepository.save(instance)
+        timelineService.record(
+            processInstanceId = instance.id,
+            eventType = ProcessInstanceEventType.PROCESS_COMPLETED,
+            message = "Process instance completed."
+        )
     }
 
     private fun completeTaskEntity(task: Task, assignee: String) {

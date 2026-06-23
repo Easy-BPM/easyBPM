@@ -242,7 +242,7 @@ Use required fields in the form schema when the task must validate data before c
 
 ![API Task component](/img/screenshots/modeler/component-api-task.png)
 
-Use an API task to call an external HTTP endpoint through the worker. API task failure can be caught by an Error Boundary. If no boundary handles the failure, the instance is marked `FAILED` and BPM Admin shows the recorded error.
+Use an API task to call an external HTTP endpoint through the worker. API task failure can be caught by an Error Boundary. If no boundary handles the failure, the instance is marked `FAILED` and BPM Admin shows the recorded error. Worker requests that do not complete within 2 minutes follow the same failure path.
 
 | Property | Example | Notes |
 | --- | --- | --- |
@@ -621,7 +621,7 @@ Example recovery path:
 }
 ```
 
-When an API task fails and this boundary is attached, the instance follows the boundary path and is not marked `FAILED`. Without a boundary, the instance is marked `FAILED` and BPM Admin displays the error.
+When an API task fails and this boundary is attached, the instance follows the boundary path and is not marked `FAILED`. Without a boundary, the instance is marked `FAILED`, including worker timeouts after 2 minutes, and BPM Admin displays the error.
 
 ## Message Boundary
 

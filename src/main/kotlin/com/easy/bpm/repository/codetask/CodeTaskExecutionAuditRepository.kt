@@ -71,5 +71,7 @@ interface CodeTaskExecutionAuditRepository : JpaRepository<CodeTaskExecutionAudi
     status: String,
     pageable: Pageable
   ): Page<CodeTaskExecutionAudit>
+
+  fun deleteByInstanceId(instanceId: Long)
 }
 

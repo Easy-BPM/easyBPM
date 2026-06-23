@@ -39,7 +39,12 @@ class WorkerRequestTimeoutService(
             request.completedAt = LocalDateTime.now()
             workerRequestRepository.save(request)
 
-            processService.markServiceTaskTimedOut(request.processInstanceId, request.nodeId, message)
+            processService.markServiceTaskTimedOut(
+                processInstanceId = request.processInstanceId,
+                nodeId = request.nodeId,
+                errorMessage = message,
+                externalReferenceId = "worker_request:${request.id}"
+            )
         }
     }
 }

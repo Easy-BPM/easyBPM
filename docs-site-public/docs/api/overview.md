@@ -37,12 +37,14 @@ Authorization: Bearer <token>
 | Group | Operations | Page |
 | --- | ---: | --- |
 | Authentication | 2 | [Authentication API](./authentication) |
-| Processes | 15 | [Processes API](./processes) |
+| Processes | 16 | [Processes API](./processes) |
 | Tasks | 5 | [Tasks API](./tasks) |
 | Forms | 4 | [Forms API](./forms) |
 | Documents | 6 | [Documents API](./documents) |
 | Code Tasks | 4 | [Code Tasks API](./code-tasks) |
+| Incidents | 9 | [Incidents API](./incidents) |
 | Admin Security | 11 | [Admin Security API](./admin-security) |
+| Admin Maintenance | 2 | [Admin Maintenance API](./admin-maintenance) |
 | AI Credentials | 5 | [AI Credentials API](./ai-credentials) |
 
 ## Endpoint index
@@ -57,6 +59,7 @@ Authorization: Bearer <token>
 | `GET` | `/processes/definitions/{id}` | [Get process definition by ID](./processes) | - | [ProcessDefinition](./schemas) | [Processes API](./processes) |
 | `GET` | `/processes/instances` | [Get process instances](./processes) | - | [PageProcessInstance](./schemas) | [Processes API](./processes) |
 | `GET` | `/processes/instances/{id}` | [Get process instance by ID](./processes) | - | [ProcessInstance](./schemas) | [Processes API](./processes) |
+| `GET` | `/processes/instances/{id}/timeline` | [Get process instance timeline](./processes) | - | [ProcessInstanceEvent](./schemas)[] | [Processes API](./processes) |
 | `DELETE` | `/processes/instances/{id}` | [Delete process instance](./processes) | - | `No body` | [Processes API](./processes) |
 | `GET` | `/processes/instances/{id}/children` | [Get child process instances](./processes) | - | [ProcessInstance](./schemas)[] | [Processes API](./processes) |
 | `POST` | `/processes/instances/{id}/move-node` | [Move process token](./processes) | [MoveNodeRequest](./schemas) | [ProcessInstance](./schemas) | [Processes API](./processes) |
@@ -85,6 +88,17 @@ Authorization: Bearer <token>
 | `GET` | `/code-tasks/jar/{jarId}/classes` | [getJarClasses](./code-tasks) | - | [JarClassesResponse](./schemas) | [Code Tasks API](./code-tasks) |
 | `GET` | `/code-tasks/jar/{jarId}/classes/{className}/methods` | [getClassMethods](./code-tasks) | - | [ClassMetadataResponse](./schemas) | [Code Tasks API](./code-tasks) |
 | `POST` | `/code-tasks/upload` | [uploadJar](./code-tasks) | `object` | [CodeTaskJarUploadResponse](./schemas) | [Code Tasks API](./code-tasks) |
+| `GET` | `/incidents` | [List incidents](./incidents) | - | [PageIncident](./schemas) | [Incidents API](./incidents) |
+| `GET` | `/incidents/summary` | [Get incident summary](./incidents) | - | [IncidentSummaryResponse](./schemas) | [Incidents API](./incidents) |
+| `GET` | `/incidents/{id}` | [Get incident by ID](./incidents) | - | [Incident](./schemas) | [Incidents API](./incidents) |
+| `GET` | `/incidents/{id}/events` | [Get incident timeline](./incidents) | - | [IncidentEvent](./schemas)[] | [Incidents API](./incidents) |
+| `GET` | `/incidents/process-instances/{processInstanceId}` | [Get incidents for process instance](./incidents) | - | [Incident](./schemas)[] | [Incidents API](./incidents) |
+| `POST` | `/incidents/{id}/acknowledge` | [Acknowledge incident](./incidents) | [IncidentAcknowledgementRequest](./schemas) | [Incident](./schemas) | [Incidents API](./incidents) |
+| `POST` | `/incidents/{id}/resolve` | [Resolve incident](./incidents) | [IncidentResolutionRequest](./schemas) | [Incident](./schemas) | [Incidents API](./incidents) |
+| `POST` | `/incidents/{id}/reopen` | [Reopen incident](./incidents) | - | [Incident](./schemas) | [Incidents API](./incidents) |
+| `POST` | `/incidents/{id}/retry` | [Retry incident](./incidents) | [IncidentRetryRequest](./schemas) | [Incident](./schemas) | [Incidents API](./incidents) |
+| `POST` | `/admin/maintenance/purge-completed-instances` | [Purge completed instances](./admin-maintenance) | [PurgeCompletedInstancesRequest](./schemas) | [MaintenanceCleanupSummary](./schemas) | [Admin Maintenance API](./admin-maintenance) |
+| `DELETE` | `/admin/maintenance/process-definitions/{id}` | [Delete process definition](./admin-maintenance) | - | [MaintenanceCleanupSummary](./schemas) | [Admin Maintenance API](./admin-maintenance) |
 | `GET` | `/admin/groups` | [listGroups](./admin-security) | - | [GroupResponse](./schemas)[] | [Admin Security API](./admin-security) |
 | `POST` | `/admin/groups` | [createGroup](./admin-security) | [CreateGroupRequest](./schemas) | [GroupResponse](./schemas) | [Admin Security API](./admin-security) |
 | `PUT` | `/admin/groups/{id}` | [updateGroup](./admin-security) | [UpdateGroupRequest](./schemas) | [GroupResponse](./schemas) | [Admin Security API](./admin-security) |

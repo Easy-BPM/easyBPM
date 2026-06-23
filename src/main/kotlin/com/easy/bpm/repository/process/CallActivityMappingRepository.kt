@@ -47,6 +47,8 @@ interface CallActivityMappingRepository : JpaRepository<CallActivityMapping, Lon
      */
     fun deleteByChildInstanceId(childInstanceId: Long)
 
+    fun deleteByParentInstanceId(parentInstanceId: Long)
+
     /**
      * Check if there are active mappings for a parent instance.
      * Used to determine if parent is waiting for child completion.

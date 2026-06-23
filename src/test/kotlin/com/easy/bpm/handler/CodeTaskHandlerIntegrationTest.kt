@@ -7,6 +7,7 @@ import com.easy.bpm.repository.CodeTaskExecutionAuditRepository
 import com.easy.bpm.repository.CodeTaskJarRepository
 import com.easy.bpm.service.CodeClassDiscoveryService
 import com.easy.bpm.service.CodeExecutionService
+import com.easy.bpm.service.IncidentService
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -34,6 +35,7 @@ class CodeTaskHandlerIntegrationTest {
   private lateinit var codeClassDiscoveryService: CodeClassDiscoveryService
   private lateinit var codeExecutionService: CodeExecutionService
   private lateinit var auditRepository: CodeTaskExecutionAuditRepository
+  private lateinit var incidentService: IncidentService
   private val objectMapper = ObjectMapper()
 
   @BeforeEach
@@ -42,12 +44,14 @@ class CodeTaskHandlerIntegrationTest {
     codeClassDiscoveryService = mock(CodeClassDiscoveryService::class.java)
     codeExecutionService = mock(CodeExecutionService::class.java)
     auditRepository = mock(CodeTaskExecutionAuditRepository::class.java)
+    incidentService = mock(IncidentService::class.java)
 
     handler = CodeTaskHandler(
       codeTaskJarRepository = codeTaskJarRepository,
       codeClassDiscoveryService = codeClassDiscoveryService,
       codeExecutionService = codeExecutionService,
       codeTaskExecutionAuditRepository = auditRepository,
+      incidentService = incidentService,
       objectMapper = objectMapper
     )
   }

@@ -58,4 +58,6 @@ String values can reference process variables with `${variableName}`. Resolve se
 
 When an API task is reached, the backend publishes a worker request to RabbitMQ. The worker executes the call and returns the result so the process can continue.
 
+If the worker does not complete the request within 2 minutes and no Error Boundary handles the failure, Easy BPM marks the process instance as `FAILED` and records the failure on the instance as `errorMessage` and `errorNodeId`.
+
 Keep API tasks idempotent when possible. If a worker retries or an operator restarts a process path, the external system should be able to handle duplicate requests safely.
