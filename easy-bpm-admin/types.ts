@@ -68,6 +68,40 @@ export interface ProcessInstance {
   nestingLevel?: number;
 }
 
+export type ProcessInstanceEventType =
+  | 'PROCESS_STARTED'
+  | 'NODE_ENTERED'
+  | 'TASK_CREATED'
+  | 'TASK_CLAIMED'
+  | 'TASK_COMPLETED'
+  | 'WORKER_REQUESTED'
+  | 'WORKER_COMPLETED'
+  | 'WORKER_FAILED'
+  | 'MESSAGE_WAITING'
+  | 'MESSAGE_RECEIVED'
+  | 'MESSAGE_THROWN'
+  | 'TIMER_WAITING'
+  | 'TIMER_TRIGGERED'
+  | 'GATEWAY_EVALUATED'
+  | 'MANUAL_MOVE'
+  | 'INCIDENT_CREATED'
+  | 'INCIDENT_RETRY_REQUESTED'
+  | 'INCIDENT_RESOLVED'
+  | 'PROCESS_COMPLETED'
+  | 'PROCESS_FAILED'
+  | 'PROCESS_CANCELLED';
+
+export interface ProcessInstanceEvent {
+  id: number;
+  processInstanceId: number;
+  nodeId?: string | null;
+  eventType: ProcessInstanceEventType;
+  message: string;
+  actor?: string | null;
+  details?: string | null;
+  createdAt: string;
+}
+
 export interface ProcessVariable {
   name: string;
   value: unknown;
@@ -93,6 +127,50 @@ export interface BpmTask {
   variables: Record<string, unknown>;
 }
 
+export type IncidentStatus = 'OPEN' | 'ACKNOWLEDGED' | 'RESOLVED';
+export type IncidentSeverity = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+export type IncidentSource = 'PROCESS_ENGINE' | 'WORKER' | 'CODE_TASK' | 'AI_TASK' | 'MESSAGE';
+export type IncidentResolutionAction = 'RESOLVED_MANUALLY' | 'VARIABLE_FIXED' | 'RETRIED_SUCCESSFULLY' | 'IGNORED_KNOWN_ISSUE' | 'INSTANCE_CANCELLED';
+export type IncidentEventType = 'CREATED' | 'OCCURRED_AGAIN' | 'ACKNOWLEDGED' | 'RESOLVED' | 'REOPENED' | 'RETRY_REQUESTED';
+
+export interface Incident {
+  id: number;
+  processInstanceId: number;
+  nodeId?: string | null;
+  status: IncidentStatus;
+  severity: IncidentSeverity;
+  source: IncidentSource;
+  message: string;
+  technicalDetails?: string | null;
+  externalReferenceId?: string | null;
+  occurrenceCount: number;
+  lastOccurredAt: string;
+  createdAt: string;
+  updatedAt: string;
+  acknowledgedAt?: string | null;
+  acknowledgedBy?: string | null;
+  resolvedAt?: string | null;
+  resolvedBy?: string | null;
+  resolutionNote?: string | null;
+  resolutionAction?: IncidentResolutionAction | null;
+}
+
+export interface IncidentEvent {
+  id: number;
+  incidentId: number;
+  eventType: IncidentEventType;
+  message: string;
+  actor?: string | null;
+  createdAt: string;
+}
+
+export interface IncidentSummary {
+  openIncidents: number;
+  criticalIncidents: number;
+  acknowledgedIncidents: number;
+  incidentsCreatedToday: number;
+}
+
 export interface NodeHistoryItem {
   nodeId: string;
   timestamp?: string;
@@ -116,6 +194,31 @@ export interface MoveNodePayload {
 
 export interface VariableAssignmentPayload {
   variables: Record<string, unknown>;
+}
+
+export interface PurgeCompletedInstancesPayload {
+  completedBefore: string;
+  processDefinitionId?: number | null;
+  processKey?: string | null;
+  dryRun: boolean;
+}
+
+export interface MaintenanceCleanupSummary {
+  dryRun: boolean;
+  processDefinitionsDeleted: number;
+  processInstancesDeleted: number;
+  tasksDeleted: number;
+  processVariablesDeleted: number;
+  taskVariablesDeleted: number;
+  documentsDeleted: number;
+  messageSubscriptionsDeleted: number;
+  workerRequestsDeleted: number;
+  codeTaskExecutionsDeleted: number;
+  incidentsDeleted: number;
+  incidentEventsDeleted: number;
+  timelineEventsDeleted: number;
+  callActivityMappingsDeleted: number;
+  candidateInstanceIds: number[];
 }
 
 export interface AuthLoginResponse {

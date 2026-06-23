@@ -4,8 +4,10 @@ import com.easy.bpm.ai.dto.AIExecutionRequestDto
 import com.easy.bpm.ai.dto.AITuningParamsDto
 import com.easy.bpm.ai.factory.AIProviderFactory
 import com.easy.bpm.ai.service.CredentialVault
+import com.easy.bpm.model.incident.IncidentSource
 import com.easy.bpm.model.variable.ProcessVariable
 import com.easy.bpm.repository.variable.ProcessVariableRepository
+import com.easy.bpm.service.IncidentService
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.slf4j.LoggerFactory
@@ -40,6 +42,7 @@ class AITaskHandler(
     private val aiProviderFactory: AIProviderFactory,
     private val credentialVault: CredentialVault,
     private val processVariableRepository: ProcessVariableRepository,
+    private val incidentService: IncidentService,
     private val objectMapper: ObjectMapper
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
@@ -166,6 +169,14 @@ class AITaskHandler(
             return mapOf(outputVariable to responseText)
 
         } catch (ex: AITaskExecutionException) {
+            incidentService.createIncident(
+                processInstanceId = instanceId,
+                nodeId = nodeId,
+                source = IncidentSource.AI_TASK,
+                message = ex.message ?: "AI task execution failed",
+                technicalDetails = "AI task failed with error code ${ex.errorCode}",
+                externalReferenceId = "ai_task:${ex.errorCode}"
+            )
             logger.error(
                 "AI Task execution failed: instance=$instanceId, nodeId=$nodeId, errorCode={}",
                 ex.errorCode,
@@ -173,6 +184,14 @@ class AITaskHandler(
             )
             throw ex
         } catch (ex: Exception) {
+            incidentService.createIncident(
+                processInstanceId = instanceId,
+                nodeId = nodeId,
+                source = IncidentSource.AI_TASK,
+                message = "AI task execution failed: ${ex.message}",
+                technicalDetails = "Unexpected AI task failure",
+                externalReferenceId = "ai_task:UNKNOWN"
+            )
             logger.error(
                 "Unexpected error in AI Task execution: instance=$instanceId, nodeId=$nodeId",
                 ex

@@ -11,6 +11,7 @@ interface WorkerRequestRepository : JpaRepository<WorkerRequest, Long> {
     fun findByIdempotencyKey(idempotencyKey: String): WorkerRequest?
     
     fun findByProcessInstanceIdAndNodeId(processInstanceId: Long, nodeId: String): WorkerRequest?
+    fun findByProcessInstanceId(processInstanceId: Long): List<WorkerRequest>
     
     @Query("FROM WorkerRequest WHERE status = :status AND lastAttemptAt < :before")
     fun findRetryableFailed(

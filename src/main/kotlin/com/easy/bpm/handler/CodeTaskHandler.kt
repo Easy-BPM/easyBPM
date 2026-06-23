@@ -3,8 +3,10 @@ package com.easy.bpm.handler
 import com.easy.bpm.entity.CodeTaskExecutionAudit
 import com.easy.bpm.repository.CodeTaskExecutionAuditRepository
 import com.easy.bpm.repository.CodeTaskJarRepository
+import com.easy.bpm.model.incident.IncidentSource
 import com.easy.bpm.service.CodeClassDiscoveryService
 import com.easy.bpm.service.CodeExecutionService
+import com.easy.bpm.service.IncidentService
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -33,6 +35,7 @@ class CodeTaskHandler(
   private val codeClassDiscoveryService: CodeClassDiscoveryService,
   private val codeExecutionService: CodeExecutionService,
   private val codeTaskExecutionAuditRepository: CodeTaskExecutionAuditRepository,
+  private val incidentService: IncidentService,
   private val objectMapper: ObjectMapper
 ) {
   private val logger = LoggerFactory.getLogger(javaClass)
@@ -138,6 +141,15 @@ class CodeTaskHandler(
         errorMessage = ex.message
       )
 
+      incidentService.createIncident(
+        processInstanceId = instanceId,
+        nodeId = nodeId,
+        source = IncidentSource.CODE_TASK,
+        message = ex.message ?: "Code task execution failed",
+        technicalDetails = "Code task failed in $className.$methodName",
+        externalReferenceId = "code_task:$className.$methodName"
+      )
+
       logger.error("Code Task execution failed: instance={}", instanceId, ex)
       // Re-throw for process error handling
       throw ex
@@ -156,6 +168,15 @@ class CodeTaskHandler(
         executionTimeMs = executionTimeMs,
         status = CodeTaskExecutionAudit.STATUS_FAILED,
         errorMessage = "Unexpected error: ${ex.message}"
+      )
+
+      incidentService.createIncident(
+        processInstanceId = instanceId,
+        nodeId = nodeId,
+        source = IncidentSource.CODE_TASK,
+        message = "Code task execution failed: ${ex.message}",
+        technicalDetails = "Unexpected code task failure in $className.$methodName",
+        externalReferenceId = "code_task:$className.$methodName"
       )
 
       logger.error("Code Task failed with unexpected error: instance={}", instanceId, ex)

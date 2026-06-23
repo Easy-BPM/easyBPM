@@ -6,9 +6,11 @@ import com.easy.bpm.controller.data.DeployProcessRequest
 import com.easy.bpm.controller.data.MoveNodeRequest
 import com.easy.bpm.enum.MessageEventInboxStatus
 import com.easy.bpm.model.process.ProcessDefinition
+import com.easy.bpm.model.process.ProcessInstanceEvent
 import com.easy.bpm.model.process.ProcessInstance
 import com.easy.bpm.model.variable.ProcessVariable
 import com.easy.bpm.service.MessageEventInboxService
+import com.easy.bpm.service.ProcessInstanceTimelineService
 import com.easy.bpm.service.ProcessService
 import com.easy.bpm.util.ParseXMLToJsonFormat.convertXmlToInternalJson
 import com.fasterxml.jackson.databind.JsonNode
@@ -46,6 +48,7 @@ SELECT * FROM process_INSTANCE
 class ProcessController(
         private val processService: ProcessService,
         private val messageEventInboxService: MessageEventInboxService,
+        private val timelineService: ProcessInstanceTimelineService,
         private val objectMapper: ObjectMapper
 ) {
 
@@ -153,6 +156,14 @@ class ProcessController(
         } catch (ex: IllegalArgumentException) {
             ResponseEntity.notFound().build()
         }
+    }
+
+    @GetMapping("/instances/{id}/timeline")
+    @Operation(summary = "Get process instance timeline", description = "Retrieve chronological runtime events for a process instance")
+    fun getProcessInstanceTimeline(@PathVariable id: Long): ResponseEntity<List<ProcessInstanceEvent>> {
+        return processService.getProcessInstanceById(id)
+            ?.let { ResponseEntity.ok(timelineService.getTimeline(id)) }
+            ?: ResponseEntity.notFound().build()
     }
 
     @PutMapping("/instances/{id}/variables")

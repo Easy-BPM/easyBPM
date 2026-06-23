@@ -1,11 +1,13 @@
 package com.easy.bpm.repository.process
 
 import com.easy.bpm.model.process.ProcessInstance
+import com.easy.bpm.enum.ProcessStatus
 import jakarta.persistence.LockModeType
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Lock
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
+import java.time.LocalDateTime
 
 interface ProcessInstanceRepository : JpaRepository<ProcessInstance, Long> {
 
@@ -39,4 +41,23 @@ interface ProcessInstanceRepository : JpaRepository<ProcessInstance, Long> {
      */
     @Query("SELECT pi FROM ProcessInstance pi WHERE pi.nestingLevel = ?1 ORDER BY pi.id DESC")
     fun findByNestingLevel(level: Int): List<ProcessInstance>
+
+    @Query(
+        """
+        SELECT pi FROM ProcessInstance pi
+        WHERE pi.status = :status
+          AND pi.updatedAt < :before
+          AND (:processDefinitionId IS NULL OR pi.processDefinition.id = :processDefinitionId)
+          AND (:processKey IS NULL OR pi.processDefinition.key = :processKey)
+        ORDER BY pi.updatedAt ASC, pi.id ASC
+        """
+    )
+    fun findPurgeCandidates(
+        @Param("status") status: ProcessStatus,
+        @Param("before") before: LocalDateTime,
+        @Param("processDefinitionId") processDefinitionId: Long?,
+        @Param("processKey") processKey: String?
+    ): List<ProcessInstance>
+
+    fun findByProcessDefinitionId(processDefinitionId: Long): List<ProcessInstance>
 }

@@ -40,6 +40,7 @@ class TaskServiceTest : FunSpec() {
     val mockGatewayService = mockk<GatewayService>()
     val mockMessageSubscriptionService = mockk<MessageSubscriptionService>()
     val mockMetricsService = mockk<MetricsService>(relaxed = true)
+    val mockTimelineService = mockk<ProcessInstanceTimelineService>(relaxed = true)
 
     val taskService = TaskService(
         mockTaskRepository,
@@ -52,7 +53,8 @@ class TaskServiceTest : FunSpec() {
         mockRabbitPublisher,
         mockGatewayService,
         mockMessageSubscriptionService,
-        mockMetricsService
+        mockMetricsService,
+        mockTimelineService
     )
 
     val objectMapper = ObjectMapper()

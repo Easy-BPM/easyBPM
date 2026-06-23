@@ -3,7 +3,9 @@ package com.easy.bpm.service
 import com.easy.bpm.enum.ProcessStatus
 import com.easy.bpm.enum.NodeType
 import com.easy.bpm.enum.TaskStatus
+import com.easy.bpm.model.incident.IncidentSource
 import com.easy.bpm.model.process.ProcessDefinition
+import com.easy.bpm.model.process.ProcessInstanceEventType
 import com.easy.bpm.model.process.ProcessInstance
 import com.easy.bpm.model.task.Task
 import com.easy.bpm.model.variable.ProcessVariable
@@ -44,7 +46,9 @@ class ProcessService(
     private val workerRequestRepository: WorkerRequestRepository,
     private val callActivityHandler: CallActivityHandler,
     private val callActivityMappingRepository: CallActivityMappingRepository,
-    private val aiTaskHandler: com.easy.bpm.handler.AITaskHandler
+    private val aiTaskHandler: com.easy.bpm.handler.AITaskHandler,
+    private val incidentService: IncidentService,
+    private val timelineService: ProcessInstanceTimelineService
 ) {
 
     companion object {
@@ -135,6 +139,11 @@ class ProcessService(
         )
 
         metricsService.recordProcessStarted()
+        timelineService.record(
+            processInstanceId = instance.id,
+            eventType = ProcessInstanceEventType.PROCESS_STARTED,
+            message = "Process instance started."
+        )
 
         initializeProcessVariables(instance, json)
         
@@ -156,6 +165,14 @@ class ProcessService(
         instance.currentNode = startNodes
         instance.nodeHistory = startNodes
         processInstanceRepository.save(instance)
+        startNodes.forEach { nodeId ->
+            timelineService.record(
+                processInstanceId = instance.id,
+                nodeId = nodeId,
+                eventType = ProcessInstanceEventType.NODE_ENTERED,
+                message = "Entered node '$nodeId'."
+            )
+        }
 
         executeNodes(startNodes, instance, json)
 
@@ -245,7 +262,21 @@ class ProcessService(
         }
         instance.updatedAt = LocalDateTime.now()
 
-        return processInstanceRepository.save(instance)
+        val saved = processInstanceRepository.save(instance)
+        timelineService.record(
+            processInstanceId = processInstanceId,
+            nodeId = toNode,
+            eventType = ProcessInstanceEventType.MANUAL_MOVE,
+            message = "Token moved from '$fromNode' to '$toNode'.",
+            details = "fromNode=$fromNode; toNode=$toNode"
+        )
+        timelineService.record(
+            processInstanceId = processInstanceId,
+            nodeId = toNode,
+            eventType = ProcessInstanceEventType.NODE_ENTERED,
+            message = "Entered node '$toNode'."
+        )
+        return saved
     }
 
     private fun syncTasksForManualMove(
@@ -344,7 +375,13 @@ class ProcessService(
         instance.status = ProcessStatus.CANCELLED
         instance.currentNode = emptyList()
         instance.updatedAt = LocalDateTime.now()
-        return processInstanceRepository.save(instance)
+        val saved = processInstanceRepository.save(instance)
+        timelineService.record(
+            processInstanceId = id,
+            eventType = ProcessInstanceEventType.PROCESS_CANCELLED,
+            message = "Process instance cancelled."
+        )
+        return saved
     }
 
     @Transactional
@@ -408,6 +445,12 @@ class ProcessService(
                 NodeType.EndEvent -> finishProcess(instance)
                 NodeType.ExclusiveGateway, NodeType.ParallelGateway, NodeType.InclusiveGateway -> {
                     val nextNodes = getNextNodes(node, definition, instance)
+                    timelineService.record(
+                        processInstanceId = instance.id,
+                        nodeId = node.get("id").asText(),
+                        eventType = ProcessInstanceEventType.GATEWAY_EVALUATED,
+                        message = "Gateway routed to ${nextNodes.joinToString(", ")}."
+                    )
                     advanceProcess(instance, nextNodes, definition)
                     executeNodes(nextNodes, instance, definition)
                 }
@@ -443,7 +486,13 @@ class ProcessService(
                 val nodeId = node.get("id").asText()
                 val errorMessage = ex.message ?: ex.javaClass.simpleName
                 logger.error("Unhandled process node failure: instance=${instance.id}, nodeId=$nodeId", ex)
-                failInstance(instance, nodeId, errorMessage)
+                failInstance(
+                    instance = instance,
+                    nodeId = nodeId,
+                    errorMessage = errorMessage,
+                    incidentSource = incidentSourceForNode(nodeType),
+                    createIncident = nodeType != NodeType.CodeTask && nodeType != NodeType.AiTask
+                )
                 val duration = System.currentTimeMillis() - startTime
                 metricsService.recordNodeExecution(duration, nodeType.toString())
                 return true
@@ -482,6 +531,13 @@ class ProcessService(
         )
 
         metricsService.recordTaskCreated(task.nodeId)
+        timelineService.record(
+            processInstanceId = instance.id,
+            nodeId = task.nodeId,
+            eventType = ProcessInstanceEventType.TASK_CREATED,
+            message = "Task '${task.title ?: task.nodeId}' created.",
+            details = "taskId=${task.id}"
+        )
 
         // Publish TaskCreated event
         try {
@@ -518,6 +574,12 @@ class ProcessService(
 
         // Publish a service task request to RabbitMQ; worker will send a completion event.
         rabbitPublisher.publishServiceTaskRequest(instance.id, node.get("id").asText(), config)
+        timelineService.record(
+            processInstanceId = instance.id,
+            nodeId = node.get("id").asText(),
+            eventType = ProcessInstanceEventType.WORKER_REQUESTED,
+            message = "API task request sent to worker."
+        )
 
         // Persist instance updated timestamp; instance remains on this node until completion.
         instance.updatedAt = LocalDateTime.now()
@@ -640,6 +702,12 @@ class ProcessService(
             val properties = config ?: objectMapper.createObjectNode()
             try {
                 rabbitPublisher.publishServiceTaskRequest(instance.id, node.get("id").asText(), properties)
+                timelineService.record(
+                    processInstanceId = instance.id,
+                    nodeId = node.get("id").asText(),
+                    eventType = ProcessInstanceEventType.WORKER_REQUESTED,
+                    message = "Service task request sent to worker."
+                )
             } catch (_: Exception) {
             }
 
@@ -680,6 +748,12 @@ class ProcessService(
             messageName = messageName,
             correlationKey = correlationKey,
             timeoutAt = timeoutAt
+        )
+        timelineService.record(
+            processInstanceId = instance.id,
+            nodeId = nodeId,
+            eventType = ProcessInstanceEventType.MESSAGE_WAITING,
+            message = "Waiting for message '$messageName' with correlation key '$correlationKey'."
         )
 
         // Publish message expected event
@@ -864,6 +938,13 @@ class ProcessService(
 
         val definition = parseDefinition(instance.processDefinition.definitionJson)
         val node = findNode(definition, nodeId)
+        timelineService.record(
+            processInstanceId = processInstanceId,
+            nodeId = nodeId,
+            eventType = ProcessInstanceEventType.WORKER_COMPLETED,
+            message = "Service task completed by worker.",
+            details = outputs.takeIf { it.isNotEmpty() }?.toString()
+        )
 
         // Extract the response JSON from outputs
         val responseJson = if (outputs.containsKey("__response")) {
@@ -946,13 +1027,27 @@ class ProcessService(
     }
 
     @Transactional
-    fun handleServiceTaskFailed(processInstanceId: Long, nodeId: String, errorMessage: String? = null) {
+    fun handleServiceTaskFailed(
+        processInstanceId: Long,
+        nodeId: String,
+        errorMessage: String? = null,
+        incidentSource: IncidentSource = IncidentSource.WORKER,
+        externalReferenceId: String? = null
+        ,
+        createIncident: Boolean = true
+    ) {
         val startTime = System.currentTimeMillis()
 
         val instance = processInstanceRepository.findByIdForUpdate(processInstanceId)
             ?: throw IllegalArgumentException("Process instance not found")
 
         logger.info("handleServiceTaskFailed: instanceId=$processInstanceId, nodeId=$nodeId, errorMessage=$errorMessage")
+        timelineService.record(
+            processInstanceId = processInstanceId,
+            nodeId = nodeId,
+            eventType = ProcessInstanceEventType.WORKER_FAILED,
+            message = errorMessage ?: "Service task failed."
+        )
 
         val definition = parseDefinition(instance.processDefinition.definitionJson)
         val node = findNode(definition, nodeId)
@@ -971,25 +1066,77 @@ class ProcessService(
 
         // No boundary to recover from this failure; mark instance as failed.
         logger.info("No error boundary found for node $nodeId, marking instance $processInstanceId as FAILED")
-        failInstance(instance, nodeId, errorMessage ?: "Service task failed")
+        failInstance(
+            instance = instance,
+            nodeId = nodeId,
+            errorMessage = errorMessage ?: "Service task failed",
+            incidentSource = incidentSource,
+            externalReferenceId = externalReferenceId
+        )
         logger.info("Instance $processInstanceId status set to FAILED")
 
         val duration = System.currentTimeMillis() - startTime
         metricsService.recordServiceTaskExecution(duration, success = false)
     }
 
-    fun markServiceTaskTimedOut(processInstanceId: Long, nodeId: String, errorMessage: String) {
-        handleServiceTaskFailed(processInstanceId, nodeId, errorMessage)
+    fun markServiceTaskTimedOut(
+        processInstanceId: Long,
+        nodeId: String,
+        errorMessage: String,
+        externalReferenceId: String? = null
+    ) {
+        handleServiceTaskFailed(
+            processInstanceId = processInstanceId,
+            nodeId = nodeId,
+            errorMessage = errorMessage,
+            incidentSource = IncidentSource.WORKER,
+            externalReferenceId = externalReferenceId
+        )
     }
 
-    private fun failInstance(instance: ProcessInstance, nodeId: String, errorMessage: String) {
+    private fun failInstance(
+        instance: ProcessInstance,
+        nodeId: String,
+        errorMessage: String,
+        incidentSource: IncidentSource = IncidentSource.PROCESS_ENGINE,
+        externalReferenceId: String? = null,
+        createIncident: Boolean = true
+    ) {
         instance.status = ProcessStatus.FAILED
         instance.currentNode = emptyList()
         instance.errorNodeId = nodeId
         instance.errorMessage = errorMessage.take(4000)
         instance.updatedAt = LocalDateTime.now()
         processInstanceRepository.save(instance)
+
+        if (createIncident) {
+            incidentService.createIncident(
+                processInstanceId = instance.id,
+                nodeId = nodeId,
+                source = incidentSource,
+                message = errorMessage,
+                technicalDetails = "Process instance ${instance.id} failed at node '$nodeId'",
+                externalReferenceId = externalReferenceId
+            )
+        }
+        timelineService.record(
+            processInstanceId = instance.id,
+            nodeId = nodeId,
+            eventType = ProcessInstanceEventType.PROCESS_FAILED,
+            message = "Process instance failed at node '$nodeId'.",
+            details = errorMessage
+        )
     }
+
+    private fun incidentSourceForNode(nodeType: NodeType): IncidentSource =
+        when (nodeType) {
+            NodeType.CodeTask -> IncidentSource.CODE_TASK
+            NodeType.AiTask -> IncidentSource.AI_TASK
+            NodeType.MessageEvent,
+            NodeType.MessageIntermediateCatchEvent,
+            NodeType.MessageIntermediateThrowEvent -> IncidentSource.MESSAGE
+            else -> IncidentSource.PROCESS_ENGINE
+        }
 
     @Transactional
     fun handleMessageReceived(
@@ -1030,6 +1177,12 @@ class ProcessService(
 
         // Clean up subscription after message received
         messageSubscriptionService.deleteSubscription(subscription.id)
+        timelineService.record(
+            processInstanceId = instance.id,
+            nodeId = subscription.nodeId,
+            eventType = ProcessInstanceEventType.MESSAGE_RECEIVED,
+            message = "Message '$messageName' received with correlation key '$correlationKey'."
+        )
 
         val definition = parseDefinition(instance.processDefinition.definitionJson)
         val node = findNode(definition, subscription.nodeId)
@@ -1088,6 +1241,11 @@ class ProcessService(
         processInstanceRepository.save(instance)
         
         metricsService.recordProcessCompleted()
+        timelineService.record(
+            processInstanceId = instance.id,
+            eventType = ProcessInstanceEventType.PROCESS_COMPLETED,
+            message = "Process instance completed."
+        )
     }
 
     private fun advanceProcess(
@@ -1124,7 +1282,15 @@ class ProcessService(
 
         // Avoid consecutive duplicates when appending
         appendable.forEach { id ->
-            if (instance.nodeHistory.lastOrNull() != id) instance.nodeHistory = instance.nodeHistory + id
+            if (instance.nodeHistory.lastOrNull() != id) {
+                instance.nodeHistory = instance.nodeHistory + id
+                timelineService.record(
+                    processInstanceId = instance.id,
+                    nodeId = id,
+                    eventType = ProcessInstanceEventType.NODE_ENTERED,
+                    message = "Entered node '$id'."
+                )
+            }
         }
         instance.updatedAt = LocalDateTime.now()
 
@@ -1139,6 +1305,11 @@ class ProcessService(
         if (isCompleted) {
             instance.status = ProcessStatus.COMPLETED
             instance.currentNode = emptyList()
+            timelineService.record(
+                processInstanceId = instance.id,
+                eventType = ProcessInstanceEventType.PROCESS_COMPLETED,
+                message = "Process instance completed."
+            )
         }
 
         processInstanceRepository.save(instance)

@@ -270,6 +270,125 @@ Example:
 }
 ```
 
+## Incident
+
+| Property | Type | Required | Description |
+| --- | --- | --- | --- |
+| `id` | integer(int64) | No | Incident id. |
+| `processInstanceId` | integer(int64) | No | Related process instance. |
+| `nodeId` | string | No | Related process node, when available. |
+| `status` | string | No | `OPEN`, `ACKNOWLEDGED`, or `RESOLVED`. |
+| `severity` | string | No | `LOW`, `MEDIUM`, `HIGH`, or `CRITICAL`. |
+| `source` | string | No | `PROCESS_ENGINE`, `WORKER`, `CODE_TASK`, `AI_TASK`, or `MESSAGE`. |
+| `message` | string | No | Operator-facing incident message. |
+| `technicalDetails` | string | No | Additional technical context. |
+| `externalReferenceId` | string | No | Related worker request, code task, or other reference. |
+| `occurrenceCount` | integer(int32) | No | Number of repeated occurrences deduplicated into this incident. |
+| `lastOccurredAt` | string(date-time) | No | Last time this incident occurred. |
+| `createdAt` | string(date-time) | No | Creation time. |
+| `updatedAt` | string(date-time) | No | Last update time. |
+| `acknowledgedAt` | string(date-time) | No | Acknowledgement time. |
+| `acknowledgedBy` | string | No | Operator that acknowledged the incident. |
+| `resolvedAt` | string(date-time) | No | Resolution time. |
+| `resolvedBy` | string | No | Operator that resolved the incident. |
+| `resolutionNote` | string | No | Resolution notes. |
+| `resolutionAction` | string | No | Structured resolution action. |
+
+Example:
+
+```json
+{
+  "id": 25,
+  "processInstanceId": 456,
+  "nodeId": "sync-crm",
+  "status": "OPEN",
+  "severity": "HIGH",
+  "source": "WORKER",
+  "message": "API task timed out",
+  "technicalDetails": "Process instance 456 failed at node 'sync-crm'",
+  "externalReferenceId": "worker_request:91",
+  "occurrenceCount": 1,
+  "lastOccurredAt": "2026-06-23T10:15:00",
+  "createdAt": "2026-06-23T10:15:00",
+  "updatedAt": "2026-06-23T10:15:00",
+  "acknowledgedAt": null,
+  "acknowledgedBy": null,
+  "resolvedAt": null,
+  "resolvedBy": null,
+  "resolutionNote": null,
+  "resolutionAction": null
+}
+```
+
+## IncidentAcknowledgementRequest
+
+| Property | Type | Required | Description |
+| --- | --- | --- | --- |
+| `acknowledgedBy` | string | No | Operator name. |
+
+## IncidentResolutionRequest
+
+| Property | Type | Required | Description |
+| --- | --- | --- | --- |
+| `resolvedBy` | string | No | Operator name. |
+| `resolutionNote` | string | No | Resolution note. |
+| `resolutionAction` | string | No | `RESOLVED_MANUALLY`, `VARIABLE_FIXED`, `RETRIED_SUCCESSFULLY`, `IGNORED_KNOWN_ISSUE`, or `INSTANCE_CANCELLED`. |
+
+## IncidentRetryRequest
+
+| Property | Type | Required | Description |
+| --- | --- | --- | --- |
+| `requestedBy` | string | No | Operator requesting retry. |
+
+## IncidentEvent
+
+| Property | Type | Required | Description |
+| --- | --- | --- | --- |
+| `id` | integer(int64) | No | Event id. |
+| `incidentId` | integer(int64) | No | Related incident id. |
+| `eventType` | string | No | `CREATED`, `OCCURRED_AGAIN`, `ACKNOWLEDGED`, `RESOLVED`, `REOPENED`, or `RETRY_REQUESTED`. |
+| `message` | string | No | Event message. |
+| `actor` | string | No | Operator actor, when available. |
+| `createdAt` | string(date-time) | No | Event time. |
+
+## IncidentSummaryResponse
+
+| Property | Type | Required | Description |
+| --- | --- | --- | --- |
+| `openIncidents` | integer(int64) | No | Open incident count. |
+| `criticalIncidents` | integer(int64) | No | Unresolved critical incident count. |
+| `acknowledgedIncidents` | integer(int64) | No | Acknowledged incident count. |
+| `incidentsCreatedToday` | integer(int64) | No | Incidents created since local start of day. |
+
+## MaintenanceCleanupSummary
+
+| Property | Type | Required | Description |
+| --- | --- | --- | --- |
+| `dryRun` | boolean | No | Whether the operation was a preview. |
+| `processDefinitionsDeleted` | integer(int32) | No | Process definitions affected. |
+| `processInstancesDeleted` | integer(int32) | No | Process instances affected. |
+| `tasksDeleted` | integer(int32) | No | Tasks affected. |
+| `processVariablesDeleted` | integer(int32) | No | Process variables affected. |
+| `taskVariablesDeleted` | integer(int32) | No | Task variables affected. |
+| `documentsDeleted` | integer(int32) | No | Documents affected. |
+| `messageSubscriptionsDeleted` | integer(int32) | No | Message subscriptions affected. |
+| `workerRequestsDeleted` | integer(int32) | No | Worker requests affected. |
+| `codeTaskExecutionsDeleted` | integer(int32) | No | Code task execution audits affected. |
+| `incidentsDeleted` | integer(int32) | No | Incidents affected. |
+| `incidentEventsDeleted` | integer(int32) | No | Incident timeline events affected. |
+| `timelineEventsDeleted` | integer(int32) | No | Process timeline events affected. |
+| `callActivityMappingsDeleted` | integer(int32) | No | Call activity mappings affected. |
+| `candidateInstanceIds` | integer[] | No | Candidate process instance ids. |
+
+## PurgeCompletedInstancesRequest
+
+| Property | Type | Required | Description |
+| --- | --- | --- | --- |
+| `completedBefore` | string(date-time) | Yes | Completed instances updated before this timestamp are candidates. |
+| `processDefinitionId` | integer(int64) | No | Optional process definition id filter. |
+| `processKey` | string | No | Optional process key filter. |
+| `dryRun` | boolean | No | `true` previews, `false` executes deletion. |
+
 ## DeployFormRequest
 
 | Property | Type | Required | Description |
@@ -838,6 +957,8 @@ Example:
 | `callActivityNodeId` | string | No |  |
 | `nestingLevel` | integer(int32) | No |  |
 | `completionNodeId` | string | No |  |
+| `errorMessage` | string | No | Failure reason recorded when the instance ends in `FAILED`. |
+| `errorNodeId` | string | No | Node id that caused the recorded failure. |
 
 Example:
 
@@ -852,20 +973,49 @@ Example:
     "version": 3,
     "definitionJson": "{\"processId\":\"expense-approval\",\"nodes\":[{\"id\":\"start\",\"type\":\"StartEvent\"},{\"id\":\"manager-review\",\"type\":\"HumanTask\"},{\"id\":\"end\",\"type\":\"EndEvent\"}],\"flows\":[{\"source\":\"start\",\"target\":\"manager-review\"},{\"source\":\"manager-review\",\"target\":\"end\"}]}"
   },
-  "status": "ACTIVE",
-  "currentNode": [
-    "manager-review"
-  ],
+  "status": "FAILED",
+  "currentNode": [],
   "nodeHistory": [
     "start",
-    "manager-review"
+    "manager-review",
+    "create-ticket"
   ],
   "createdAt": "2026-06-17T10:00:00",
-  "updatedAt": "2026-06-17T10:00:01",
+  "updatedAt": "2026-06-17T10:02:31",
   "parentInstanceId": null,
   "callActivityNodeId": null,
   "nestingLevel": 0,
-  "completionNodeId": null
+  "completionNodeId": null,
+  "errorMessage": "API task 'create-ticket' timed out after 2 minutes without completion",
+  "errorNodeId": "create-ticket"
+}
+```
+
+## ProcessInstanceEvent
+
+| Property | Type | Required | Description |
+| --- | --- | --- | --- |
+| `id` | integer(int64) | No | Timeline event id. |
+| `processInstanceId` | integer(int64) | No | Related process instance. |
+| `nodeId` | string | No | Related node, when available. |
+| `eventType` | string | No | Runtime event type. |
+| `message` | string | No | Operator-facing event message. |
+| `actor` | string | No | User or operator actor, when available. |
+| `details` | string | No | Additional event details. |
+| `createdAt` | string(date-time) | No | Event time. |
+
+Example:
+
+```json
+{
+  "id": 1,
+  "processInstanceId": 456,
+  "nodeId": "manager-review",
+  "eventType": "TASK_CREATED",
+  "message": "Task 'Manager Review' created.",
+  "actor": null,
+  "details": "taskId=123",
+  "createdAt": "2026-06-23T10:00:01"
 }
 ```
 

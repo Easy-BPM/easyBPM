@@ -362,6 +362,69 @@ ALTER TABLE process_variable
 ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
 
 -- ============================================================================
+-- V30: Incident Management
+-- ============================================================================
+
+CREATE TABLE incident (
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    process_instance_id BIGINT NOT NULL,
+    node_id VARCHAR(255),
+    status VARCHAR(50) NOT NULL DEFAULT 'OPEN',
+    severity VARCHAR(50) NOT NULL DEFAULT 'HIGH',
+    source VARCHAR(50) NOT NULL DEFAULT 'PROCESS_ENGINE',
+    message CLOB NOT NULL,
+    technical_details CLOB,
+    external_reference_id VARCHAR(255),
+    occurrence_count INT NOT NULL DEFAULT 1,
+    last_occurred_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    acknowledged_at TIMESTAMP,
+    acknowledged_by VARCHAR(255),
+    resolved_at TIMESTAMP,
+    resolved_by VARCHAR(255),
+    resolution_note CLOB,
+    resolution_action VARCHAR(50)
+);
+
+CREATE INDEX idx_incident_status ON incident(status);
+CREATE INDEX idx_incident_source ON incident(source);
+CREATE INDEX idx_incident_process_instance ON incident(process_instance_id);
+CREATE INDEX idx_incident_created_at ON incident(created_at);
+
+CREATE TABLE incident_event (
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    incident_id BIGINT NOT NULL,
+    event_type VARCHAR(50) NOT NULL,
+    message CLOB NOT NULL,
+    actor VARCHAR(255),
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_incident_event_incident ON incident_event(incident_id);
+CREATE INDEX idx_incident_event_created_at ON incident_event(created_at);
+
+-- ============================================================================
+-- V31: Process Instance Timeline Events
+-- ============================================================================
+
+CREATE TABLE process_instance_event (
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    process_instance_id BIGINT NOT NULL,
+    node_id VARCHAR(255),
+    event_type VARCHAR(80) NOT NULL,
+    message CLOB NOT NULL,
+    actor VARCHAR(255),
+    details CLOB,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_process_instance_event_instance ON process_instance_event(process_instance_id);
+CREATE INDEX idx_process_instance_event_node ON process_instance_event(node_id);
+CREATE INDEX idx_process_instance_event_type ON process_instance_event(event_type);
+CREATE INDEX idx_process_instance_event_created_at ON process_instance_event(created_at);
+
+-- ============================================================================
 -- END OF SCHEMA
 -- ============================================================================
 -- Total Tables: 13

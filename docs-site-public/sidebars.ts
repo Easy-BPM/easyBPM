@@ -34,6 +34,7 @@ const sidebars: SidebarsConfig = {
         'platform/modeler',
         'platform/task-portal',
         'platform/admin',
+        'platform/operations',
       ],
     },
     {
@@ -48,7 +49,9 @@ const sidebars: SidebarsConfig = {
         'api/forms',
         'api/documents',
         'api/code-tasks',
+        'api/incidents',
         'api/admin-security',
+        'api/admin-maintenance',
         'api/ai-credentials',
         'api/schemas',
       ],

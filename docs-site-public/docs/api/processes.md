@@ -16,6 +16,7 @@ Use the Processes API to deploy definitions, start instances, manage variables, 
 | `GET` | `/processes/definitions/{id}` | Get process definition by ID |
 | `GET` | `/processes/instances` | Get process instances |
 | `GET` | `/processes/instances/{id}` | Get process instance by ID |
+| `GET` | `/processes/instances/{id}/timeline` | Get process instance timeline |
 | `DELETE` | `/processes/instances/{id}` | Delete process instance |
 | `GET` | `/processes/instances/{id}/children` | Get child process instances |
 | `POST` | `/processes/instances/{id}/move-node` | Move process token |
@@ -283,6 +284,8 @@ curl -X POST "http://localhost:8080/processes/expense-approval/start" \
 | --- | --- | --- |
 | `200` | OK | [ProcessInstance](./schemas) |
 
+When an instance reaches `FAILED`, the response includes `errorMessage` and `errorNodeId`. Easy BPM also records this state when an API task has no attached error boundary and the worker does not complete it within 2 minutes.
+
 ### Example response
 
 Status: `200 OK`
@@ -298,20 +301,21 @@ Status: `200 OK`
     "version": 3,
     "definitionJson": "{\"processId\":\"expense-approval\",\"nodes\":[{\"id\":\"start\",\"type\":\"StartEvent\"},{\"id\":\"manager-review\",\"type\":\"HumanTask\"},{\"id\":\"end\",\"type\":\"EndEvent\"}],\"flows\":[{\"source\":\"start\",\"target\":\"manager-review\"},{\"source\":\"manager-review\",\"target\":\"end\"}]}"
   },
-  "status": "ACTIVE",
-  "currentNode": [
-    "manager-review"
-  ],
+  "status": "FAILED",
+  "currentNode": [],
   "nodeHistory": [
     "start",
-    "manager-review"
+    "manager-review",
+    "create-ticket"
   ],
   "createdAt": "2026-06-17T10:00:00",
-  "updatedAt": "2026-06-17T10:00:01",
+  "updatedAt": "2026-06-17T10:02:31",
   "parentInstanceId": null,
   "callActivityNodeId": null,
   "nestingLevel": 0,
-  "completionNodeId": null
+  "completionNodeId": null,
+  "errorMessage": "API task 'create-ticket' timed out after 2 minutes without completion",
+  "errorNodeId": "create-ticket"
 }
 ```
 
@@ -517,6 +521,55 @@ Status: `200 OK`
   "nestingLevel": 0,
   "completionNodeId": null
 }
+```
+
+<a id="get-processes-instances-id-timeline"></a>
+## GET /processes/instances/\{id\}/timeline
+
+**Get process instance timeline**
+
+Retrieve chronological runtime events for a process instance.
+
+| Property | Value |
+| --- | --- |
+| Operation ID | `getProcessInstanceTimeline` |
+| Auth | Bearer token required unless security is disabled. |
+| Response DTO | [ProcessInstanceEvent](./schemas)[] |
+
+### Example request
+
+```bash
+curl -X GET "http://localhost:8080/processes/instances/456/timeline" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+### Example response
+
+Status: `200 OK`
+
+```json
+[
+  {
+    "id": 1,
+    "processInstanceId": 456,
+    "nodeId": null,
+    "eventType": "PROCESS_STARTED",
+    "message": "Process instance started.",
+    "actor": null,
+    "details": null,
+    "createdAt": "2026-06-23T10:00:00"
+  },
+  {
+    "id": 2,
+    "processInstanceId": 456,
+    "nodeId": "manager-review",
+    "eventType": "TASK_CREATED",
+    "message": "Task 'Manager Review' created.",
+    "actor": null,
+    "details": "taskId=123",
+    "createdAt": "2026-06-23T10:00:01"
+  }
+]
 ```
 
 <a id="delete-processes-instances-id"></a>
