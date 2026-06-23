@@ -9,6 +9,7 @@ export default defineConfig(({ mode }) => {
       port: 3001,
       host: '0.0.0.0'
     },
+    envPrefix: 'EASY_BPM_',
     plugins: [react()],
     define: {
       'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),

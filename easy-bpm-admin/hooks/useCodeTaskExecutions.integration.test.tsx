@@ -7,7 +7,7 @@ import { useCodeTaskExecutions } from './useCodeTaskExecutions';
  * These tests validate the hook's interaction with the backend API.
  * They can run against:
  * 1. Mock API server (uses jest-mock-fetch or msw)
- * 2. Real backend (set VITE_API_BASE_URL to backend server URL)
+ * 2. Real backend (set EASY_BPM_ADMIN_API_BASE_URL to backend server URL)
  * 3. Docker Compose environment (backend running on localhost:8080)
  *
  * SETUP:
@@ -17,7 +17,7 @@ import { useCodeTaskExecutions } from './useCodeTaskExecutions';
  */
 
 // Configuration for integration tests
-const API_BASE_URL = process.env.VITE_API_BASE_URL || 'http://localhost:8080';
+const API_BASE_URL = process.env.EASY_BPM_ADMIN_API_BASE_URL || 'http://localhost:8080';
 const INTEGRATION_TIMEOUT = 10000; // 10 seconds for real API calls
 
 // Mock API server (optional - for unit+integration hybrid tests)

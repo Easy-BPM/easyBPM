@@ -2,19 +2,23 @@ spring:
   application:
     name: bpm-worker
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/easybpm}
-    username: ${SPRING_DATASOURCE_USERNAME:meu_usuario}
-    password: ${SPRING_DATASOURCE_PASSWORD:minha_senha}
+    url: ${EASY_BPM_WORKER_DATASOURCE_URL:jdbc:postgresql://localhost:5432/easybpm}
+    username: ${EASY_BPM_WORKER_DATASOURCE_USERNAME:meu_usuario}
+    password: ${EASY_BPM_WORKER_DATASOURCE_PASSWORD:minha_senha}
     driver-class-name: org.postgresql.Driver
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
   flyway:
     enabled: false
   rabbitmq:
-    host: localhost
-    port: 5672
-    username: easybpm
-    password: easybpm
+    host: ${EASY_BPM_WORKER_RABBITMQ_HOST:localhost}
+    port: ${EASY_BPM_WORKER_RABBITMQ_PORT:5672}
+    username: ${EASY_BPM_WORKER_RABBITMQ_USERNAME:easybpm}
+    password: ${EASY_BPM_WORKER_RABBITMQ_PASSWORD:easybpm}
 
 server:
-  port: 0
+  port: ${EASY_BPM_WORKER_PORT:0}
+
+logging:
+  level:
+    com.easy.bpm: ${EASY_BPM_WORKER_LOGGING_LEVEL_APP:INFO}

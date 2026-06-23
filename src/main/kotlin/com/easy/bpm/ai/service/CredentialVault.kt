@@ -27,9 +27,9 @@ class CredentialVault(
 ) {
     
     // Use base64-encoded AES encryption for credentials
-    // In production, encryption key should come from environment variable (e.g., ENCRYPTION_KEY)
+    // In production, encryption key should come from EASY_BPM_SERVER_AI_ENCRYPTION_KEY.
     private val encryptionKey: SecretKey by lazy {
-        val keyStr = System.getenv("AI_ENCRYPTION_KEY") ?: "default-dev-key-change-in-prod-1234"
+        val keyStr = System.getenv("EASY_BPM_SERVER_AI_ENCRYPTION_KEY") ?: "default-dev-key-change-in-prod-1234"
         val keyBytes = keyStr
             .take(32)
             .padEnd(32, 'x')

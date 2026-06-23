@@ -22,7 +22,7 @@ spec:
           image: {{ include "easybpm.image" (merge (dict "image" .Values.worker.image) .) }}
           imagePullPolicy: {{ .Values.global.imagePullPolicy }}
           env:
-            - name: LOGGING_LEVEL_COM_EASY_BPM
+            - name: EASY_BPM_WORKER_LOGGING_LEVEL_APP
               value: {{ .Values.config.loggingLevelComEasyBpm | quote }}
           envFrom:
             - secretRef:

@@ -1,6 +1,6 @@
 import { fetchWithAuth } from './processService';
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? 'http://localhost:8080';
+const API_BASE_URL = (import.meta.env.EASY_BPM_MODELER_API_BASE_URL as string | undefined) ?? 'http://localhost:8080';
 
 export const formService = {
   deploy: async (payload: unknown): Promise<void> => {

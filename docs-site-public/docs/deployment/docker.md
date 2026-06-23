@@ -41,10 +41,10 @@ POSTGRES_PASSWORD=change-me-postgres
 RABBITMQ_DEFAULT_USER=easybpm
 RABBITMQ_DEFAULT_PASS=change-me-rabbitmq
 
-EASYBPM_ADMIN_USERNAME=admin
-EASYBPM_ADMIN_PASSWORD=change-me-admin
-EASYBPM_JWT_SECRET_BASE64=replace-with-32-byte-minimum-base64-secret
-AI_ENCRYPTION_KEY=replace-with-strong-ai-credential-key
+EASY_BPM_SERVER_SECURITY_BOOTSTRAP_ADMIN_USERNAME=admin
+EASY_BPM_SERVER_SECURITY_BOOTSTRAP_ADMIN_PASSWORD=change-me-admin
+EASY_BPM_SERVER_SECURITY_JWT_SECRET=replace-with-32-byte-minimum-base64-secret
+EASY_BPM_SERVER_AI_ENCRYPTION_KEY=replace-with-strong-ai-credential-key
 ```
 
 Start the stack:

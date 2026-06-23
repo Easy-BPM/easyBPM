@@ -15,7 +15,7 @@ Task-first portal for Easy BPM process instances.
 1. Install dependencies:
    `npm install`
 2. Optional API override (default is `http://localhost:8080`):
-   set `VITE_API_BASE_URL`
+   set `EASY_BPM_TASK_PORTAL_API_BASE_URL`
 3. Start dev server:
    `npm run dev`
 

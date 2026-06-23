@@ -25,6 +25,6 @@ This modeler is integrated with Easy BPM backend deploy API.
 
 - Deploy endpoint: `POST /processes`
 - Default API base URL: `http://localhost:8080`
-- Optional override: set `VITE_API_BASE_URL` in your environment
+- Optional override: set `EASY_BPM_MODELER_API_BASE_URL` in your environment
 
 Use the `Deploy Process` button in the toolbar to deploy the current model directly.

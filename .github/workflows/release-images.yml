@@ -39,21 +39,21 @@ jobs:
             context: .
             build-args: |
               APP_DIR=easy-bpm-admin
-              VITE_API_BASE_URL=
+              EASY_BPM_ADMIN_API_BASE_URL=
           - image: easybpm-modeler
             component: modeler
             dockerfile: deploy/docker/Dockerfile.frontend
             context: .
             build-args: |
               APP_DIR=easy-bpm-modeler
-              VITE_API_BASE_URL=
+              EASY_BPM_MODELER_API_BASE_URL=
           - image: easybpm-task-portal
             component: task-portal
             dockerfile: deploy/docker/Dockerfile.frontend
             context: .
             build-args: |
               APP_DIR=easy-bpm-task-portal
-              VITE_API_BASE_URL=
+              EASY_BPM_TASK_PORTAL_API_BASE_URL=
 
     steps:
       - name: Checkout repository
