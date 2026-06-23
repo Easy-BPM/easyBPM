@@ -22,6 +22,7 @@ import { DashboardView } from './components/DashboardView';
 import { IncidentListPage } from './components/IncidentListPage';
 import { MaintenancePage } from './components/MaintenancePage';
 import { SecurityAdminView } from './components/SecurityAdminView';
+import { TaskResourcesView } from './components/TaskResourcesView';
 import { ThemeMode, ThemeToggle } from './components/ThemeToggle';
 import { adminService } from './services/adminService';
 import { ProcessDefinition, ProcessInstance, ProcessInstanceEvent, ProcessVariable, WorkflowDefinition } from './types';
@@ -132,6 +133,8 @@ const App: React.FC = () => {
         return <MaintenancePage />;
       case 'security-admin':
         return <SecurityAdminView />;
+      case 'task-resources':
+        return <TaskResourcesView />;
       default:
         return <DashboardView onNavigate={setCurrentView} />;
     }
