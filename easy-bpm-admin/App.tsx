@@ -14,14 +14,13 @@ import {
   StopCircle,
   Trash2,
   User,
-  UserRoundCheck,
   Workflow
 } from 'lucide-react';
 import { Sidebar } from './components/Sidebar';
 import { WorkflowCanvas } from './components/WorkflowCanvas';
 import { CodeTaskExecutionListPage } from './components/CodeTaskExecutionListPage';
+import { DashboardView } from './components/DashboardView';
 import { SecurityAdminView } from './components/SecurityAdminView';
-import { TaskResourcesView } from './components/TaskResourcesView';
 import { ThemeMode, ThemeToggle } from './components/ThemeToggle';
 import { adminService } from './services/adminService';
 import { ProcessDefinition, ProcessInstance, ProcessVariable, WorkflowDefinition } from './types';
@@ -113,8 +112,6 @@ const App: React.FC = () => {
         return <DashboardView onNavigate={setCurrentView} />;
       case 'instances':
         return <InstanceExplorerView />;
-      case 'task-resources':
-        return <TaskResourcesView />;
       case 'workflows':
         return <WorkflowCatalogView />;
       case 'code-tasks':
@@ -138,7 +135,7 @@ const App: React.FC = () => {
         onToggleTheme={toggleTheme}
       />
       <main className="flex-1 px-8 py-8 overflow-y-auto h-screen">
-        <div className="max-w-5xl mx-auto">{renderView()}</div>
+        <div className={`${currentView === 'dashboard' ? 'max-w-7xl' : 'max-w-5xl'} mx-auto`}>{renderView()}</div>
       </main>
     </div>
   );
@@ -220,86 +217,6 @@ const LoginView: React.FC<{ onLogin: (username: string, perms: string[]) => void
         </form>
         </div>
         <p className="text-center text-[11px] text-slate-600 mt-4">Easy BPM · Process Operations Console</p>
-      </div>
-    </div>
-  );
-};
-
-const DashboardView: React.FC<{ onNavigate: (view: string) => void }> = ({ onNavigate }) => {
-  const quickActions = [
-    {
-      id: 'instances',
-      icon: Search,
-      label: 'Instance Explorer',
-      description: 'Search and inspect live process instances by ID. Manage variables, move nodes, and control lifecycle.',
-      accent: 'blue' as const,
-      badge: 'Live'
-    },
-    {
-      id: 'task-resources',
-      icon: UserRoundCheck,
-      label: 'Task Resources',
-      description: 'Inspect pending user tasks, update ownership, and return work to shared candidate pools.',
-      accent: 'amber' as const,
-      badge: 'Assignments'
-    },
-    {
-      id: 'workflows',
-      icon: Workflow,
-      label: 'Workflow Catalog',
-      description: 'Browse all deployed process definitions across versions.',
-      accent: 'emerald' as const,
-      badge: 'Catalog'
-    },
-    {
-      id: 'code-tasks',
-      icon: Settings2,
-      label: 'Code Task Executions',
-      description: 'Monitor JAR-based code task execution history, results, and error analysis.',
-      accent: 'purple' as const,
-      badge: 'Executions'
-    }
-  ];
-
-  const accentMap = {
-    blue:    { bg: 'bg-blue-50',    icon: 'bg-blue-100 text-blue-600',    hover: 'group-hover:bg-blue-600 group-hover:text-white', border: 'border-blue-100',   badge: 'bg-blue-50 text-blue-600 border-blue-200'   },
-    amber:   { bg: 'bg-amber-50',   icon: 'bg-amber-100 text-amber-600',   hover: 'group-hover:bg-amber-600 group-hover:text-white', border: 'border-amber-100',  badge: 'bg-amber-50 text-amber-600 border-amber-200' },
-    emerald: { bg: 'bg-emerald-50', icon: 'bg-emerald-100 text-emerald-600', hover: 'group-hover:bg-emerald-600 group-hover:text-white', border: 'border-emerald-100', badge: 'bg-emerald-50 text-emerald-600 border-emerald-200' },
-    purple:  { bg: 'bg-purple-50',  icon: 'bg-purple-100 text-purple-600',  hover: 'group-hover:bg-purple-600 group-hover:text-white', border: 'border-purple-100',  badge: 'bg-purple-50 text-purple-600 border-purple-200'  }
-  };
-
-  return (
-    <div className="space-y-8">
-      <header>
-        <div className="flex items-center gap-2 mb-1">
-          <h2 className="text-2xl font-bold text-slate-800">Operations Overview</h2>
-        </div>
-        <p className="text-slate-500 text-sm">Monitor and control BPM process instances from a central console.</p>
-      </header>
-
-      <div className="grid grid-cols-1 gap-4">
-        {quickActions.map(({ id, icon: Icon, label, description, accent, badge }) => {
-          const colors = accentMap[accent];
-          return (
-            <div
-              key={id}
-              onClick={() => onNavigate(id)}
-              className="bg-white p-5 rounded-xl border border-slate-200 cursor-pointer hover:border-slate-300 hover:shadow-md transition-all group flex items-start gap-4"
-            >
-              <div className={`p-3 rounded-xl flex-shrink-0 transition-colors ${colors.icon} ${colors.hover}`}>
-                <Icon size={20} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <h3 className="font-semibold text-slate-800 text-sm">{label}</h3>
-                  <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${colors.badge}`}>{badge}</span>
-                </div>
-                <p className="text-xs text-slate-500 leading-relaxed">{description}</p>
-              </div>
-              <ArrowRightLeft size={14} className="text-slate-300 group-hover:text-slate-500 transition-colors flex-shrink-0 mt-1 rotate-90" />
-            </div>
-          );
-        })}
       </div>
     </div>
   );
