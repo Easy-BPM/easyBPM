@@ -25,11 +25,11 @@ spec:
             - name: http
               containerPort: 8080
           env:
-            - name: SERVER_PORT
+            - name: EASY_BPM_SERVER_PORT
               value: "8080"
-            - name: LOGGING_LEVEL_COM_EASY_BPM
+            - name: EASY_BPM_SERVER_LOGGING_LEVEL_APP
               value: {{ .Values.config.loggingLevelComEasyBpm | quote }}
-            - name: MANAGEMENT_ENDPOINT_HEALTH_SHOW_DETAILS
+            - name: EASY_BPM_SERVER_MANAGEMENT_HEALTH_SHOW_DETAILS
               value: {{ .Values.config.managementHealthShowDetails | quote }}
           envFrom:
             - secretRef:

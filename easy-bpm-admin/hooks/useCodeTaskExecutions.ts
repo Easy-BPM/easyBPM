@@ -33,7 +33,7 @@ interface ExecutionResponse {
   currentPage: number;
 }
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? 'http://localhost:8080';
+const API_BASE_URL = (import.meta.env.EASY_BPM_ADMIN_API_BASE_URL as string | undefined) ?? 'http://localhost:8080';
 const AUTH_STORAGE_KEY = 'easybpm_admin_auth';
 
 const getAuthToken = (): string | null => {

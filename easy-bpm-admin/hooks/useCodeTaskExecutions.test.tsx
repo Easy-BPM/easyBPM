@@ -437,9 +437,9 @@ describe('useCodeTaskExecutions - Unit Tests', () => {
   });
 
   describe('Environment Variables', () => {
-    it('should use VITE_API_BASE_URL if provided', async () => {
-      const originalEnv = process.env.VITE_API_BASE_URL;
-      process.env.VITE_API_BASE_URL = 'http://custom-api.example.com';
+    it('should use EASY_BPM_ADMIN_API_BASE_URL if provided', async () => {
+      const originalEnv = process.env.EASY_BPM_ADMIN_API_BASE_URL;
+      process.env.EASY_BPM_ADMIN_API_BASE_URL = 'http://custom-api.example.com';
 
       renderHook(() =>
         useCodeTaskExecutions({
@@ -458,12 +458,12 @@ describe('useCodeTaskExecutions - Unit Tests', () => {
       const url = mockFetch.mock.calls[0][0];
       expect(url).toContain('http://custom-api.example.com');
 
-      process.env.VITE_API_BASE_URL = originalEnv;
+      process.env.EASY_BPM_ADMIN_API_BASE_URL = originalEnv;
     });
 
     it('should use default API URL if environment variable not set', async () => {
-      const originalEnv = process.env.VITE_API_BASE_URL;
-      delete process.env.VITE_API_BASE_URL;
+      const originalEnv = process.env.EASY_BPM_ADMIN_API_BASE_URL;
+      delete process.env.EASY_BPM_ADMIN_API_BASE_URL;
 
       renderHook(() =>
         useCodeTaskExecutions({
@@ -482,7 +482,7 @@ describe('useCodeTaskExecutions - Unit Tests', () => {
       const url = mockFetch.mock.calls[0][0];
       expect(url).toContain('http://localhost:8080');
 
-      process.env.VITE_API_BASE_URL = originalEnv;
+      process.env.EASY_BPM_ADMIN_API_BASE_URL = originalEnv;
     });
   });
 });

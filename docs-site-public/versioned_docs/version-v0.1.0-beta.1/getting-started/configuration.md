@@ -4,39 +4,43 @@ title: Configuration
 
 # Configuration
 
-Easy BPM is configured with Spring Boot environment variables for the backend and worker, and Vite environment variables for the web applications.
+Easy BPM is configured with environment variables that follow the `EASY_BPM_<APP>_<VARIABLE>` standard. Third-party container variables, such as `POSTGRES_DB`, keep the names required by those images.
 
 ## Required backend settings
 
 | Variable | Default | Description |
 | --- | --- | --- |
-| `SERVER_PORT` | `8080` | Backend HTTP port. |
-| `SPRING_DATASOURCE_URL` | `jdbc:postgresql://localhost:5432/easybpm` | PostgreSQL JDBC URL. |
-| `SPRING_DATASOURCE_USERNAME` | `meu_usuario` | PostgreSQL username. |
-| `SPRING_DATASOURCE_PASSWORD` | `minha_senha` | PostgreSQL password. |
-| `SPRING_RABBITMQ_HOST` | `localhost` | RabbitMQ host. |
-| `SPRING_RABBITMQ_PORT` | `5672` | RabbitMQ AMQP port. |
-| `SPRING_RABBITMQ_USERNAME` | `easybpm` | RabbitMQ username. |
-| `SPRING_RABBITMQ_PASSWORD` | `easybpm` | RabbitMQ password. |
+| `EASY_BPM_SERVER_PORT` | `8080` | Backend HTTP port. |
+| `EASY_BPM_SERVER_DATASOURCE_URL` | `jdbc:postgresql://localhost:5432/easybpm` | PostgreSQL JDBC URL. |
+| `EASY_BPM_SERVER_DATASOURCE_USERNAME` | `meu_usuario` | PostgreSQL username. |
+| `EASY_BPM_SERVER_DATASOURCE_PASSWORD` | `minha_senha` | PostgreSQL password. |
+| `EASY_BPM_SERVER_RABBITMQ_HOST` | `localhost` | RabbitMQ host. |
+| `EASY_BPM_SERVER_RABBITMQ_PORT` | `5672` | RabbitMQ AMQP port. |
+| `EASY_BPM_SERVER_RABBITMQ_USERNAME` | `easybpm` | RabbitMQ username. |
+| `EASY_BPM_SERVER_RABBITMQ_PASSWORD` | `easybpm` | RabbitMQ password. |
 
 ## Security settings
 
 | Variable | Default | Description |
 | --- | --- | --- |
-| `easybpm.security.enabled` | `true` | Enables JWT/RBAC enforcement. |
-| `easybpm.security.bootstrap.admin-username` | `admin` | First administrator username. |
-| `easybpm.security.bootstrap.admin-password` | `admin` | First administrator password. |
-| `easybpm.security.bootstrap.admin-group-code` | `ADMIN` | Bootstrap administrator group code. |
-| `easybpm.security.bootstrap.admin-group-name` | `Administrators` | Bootstrap administrator group display name. |
+| `EASY_BPM_SERVER_SECURITY_ENABLED` | `true` | Enables JWT/RBAC enforcement. |
+| `EASY_BPM_SERVER_SECURITY_JWT_SECRET` | development-only default | Base64 JWT signing secret. |
+| `EASY_BPM_SERVER_SECURITY_JWT_EXPIRATION_MS` | `3600000` | JWT lifetime in milliseconds. |
+| `EASY_BPM_SERVER_SECURITY_BOOTSTRAP_ADMIN_USERNAME` | `admin` | First administrator username. |
+| `EASY_BPM_SERVER_SECURITY_BOOTSTRAP_ADMIN_PASSWORD` | `admin` | First administrator password. |
+| `EASY_BPM_SERVER_SECURITY_BOOTSTRAP_ADMIN_GROUP_CODE` | `ADMIN` | Bootstrap administrator group code. |
+| `EASY_BPM_SERVER_SECURITY_BOOTSTRAP_ADMIN_GROUP_NAME` | `Administrators` | Bootstrap administrator group display name. |
 
 The default administrator credentials are for local startup only. Override them for any shared environment.
 
 ## Web app API URL
 
-Each web application reads the backend URL from:
+Each web application reads the backend URL from an app-specific variable:
 
 ```bash
-VITE_API_BASE_URL=http://localhost:8080
+EASY_BPM_ADMIN_API_BASE_URL=http://localhost:8080
+EASY_BPM_MODELER_API_BASE_URL=http://localhost:8080
+EASY_BPM_TASK_PORTAL_API_BASE_URL=http://localhost:8080
 ```
 
 Set this to the public backend URL for deployed customer environments.
@@ -55,4 +59,4 @@ The backend exposes:
 | `/actuator/metrics` | Runtime metrics index. |
 | `/actuator/prometheus` | Prometheus scrape endpoint. |
 
-Control exposure with `MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE`.
+Control exposure with `EASY_BPM_SERVER_MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE`.

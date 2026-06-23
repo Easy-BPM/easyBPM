@@ -24,7 +24,7 @@ import {
   VariableAssignmentPayload
 } from '../types';
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? 'http://localhost:8080';
+const API_BASE_URL = (import.meta.env.EASY_BPM_ADMIN_API_BASE_URL as string | undefined) ?? 'http://localhost:8080';
 const USE_MOCK = false;
 const AUTH_STORAGE_KEY = 'easybpm_admin_auth';
 

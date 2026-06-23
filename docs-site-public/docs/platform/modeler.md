@@ -783,7 +783,7 @@ Before exporting or deploying, resolve these common issues:
 Set the backend URL for the modeler with:
 
 ```bash
-VITE_API_BASE_URL=http://localhost:8080
+EASY_BPM_MODELER_API_BASE_URL=http://localhost:8080
 ```
 
-For deployed environments, point `VITE_API_BASE_URL` at the customer backend URL.
+For deployed environments, point `EASY_BPM_MODELER_API_BASE_URL` at the customer backend URL.

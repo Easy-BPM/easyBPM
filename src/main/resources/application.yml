@@ -1,8 +1,8 @@
 spring:
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/easybpm}
-    username: ${SPRING_DATASOURCE_USERNAME:meu_usuario}
-    password: ${SPRING_DATASOURCE_PASSWORD:minha_senha}
+    url: ${EASY_BPM_SERVER_DATASOURCE_URL:jdbc:postgresql://localhost:5432/easybpm}
+    username: ${EASY_BPM_SERVER_DATASOURCE_USERNAME:meu_usuario}
+    password: ${EASY_BPM_SERVER_DATASOURCE_PASSWORD:minha_senha}
     driver-class-name: org.postgresql.Driver
 
   flyway:
@@ -17,22 +17,22 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
 
   rabbitmq:
-    host: ${SPRING_RABBITMQ_HOST:localhost}
-    port: ${SPRING_RABBITMQ_PORT:5672}
-    username: ${SPRING_RABBITMQ_USERNAME:easybpm}
-    password: ${SPRING_RABBITMQ_PASSWORD:easybpm}
+    host: ${EASY_BPM_SERVER_RABBITMQ_HOST:localhost}
+    port: ${EASY_BPM_SERVER_RABBITMQ_PORT:5672}
+    username: ${EASY_BPM_SERVER_RABBITMQ_USERNAME:easybpm}
+    password: ${EASY_BPM_SERVER_RABBITMQ_PASSWORD:easybpm}
 
 server:
-  port: ${SERVER_PORT:8080}
+  port: ${EASY_BPM_SERVER_PORT:8080}
 
 management:
   endpoints:
     web:
       exposure:
-        include: ${MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE:health,metrics,prometheus}
+        include: ${EASY_BPM_SERVER_MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE:health,metrics,prometheus}
   endpoint:
     health:
-      show-details: ${MANAGEMENT_ENDPOINT_HEALTH_SHOW_DETAILS:always}
+      show-details: ${EASY_BPM_SERVER_MANAGEMENT_HEALTH_SHOW_DETAILS:always}
   metrics:
     export:
       prometheus:
@@ -46,9 +46,9 @@ management:
 
 logging:
   level:
-    root: ${LOGGING_LEVEL_ROOT:INFO}
-    com.easy.bpm: ${LOGGING_LEVEL_COM_EASY_BPM:DEBUG}
-    org.hibernate: ${LOGGING_LEVEL_ORG_HIBERNATE:WARN}
+    root: ${EASY_BPM_SERVER_LOGGING_LEVEL_ROOT:INFO}
+    com.easy.bpm: ${EASY_BPM_SERVER_LOGGING_LEVEL_APP:DEBUG}
+    org.hibernate: ${EASY_BPM_SERVER_LOGGING_LEVEL_HIBERNATE:WARN}
     org.hibernate.SQL: WARN
     org.hibernate.type.descriptor.sql.BasicBinder: WARN
   pattern:
@@ -66,3 +66,14 @@ springdoc:
     enabled: true
     operations-sorter: method
     tags-sorter: alpha
+
+easybpm:
+  security:
+    enabled: ${EASY_BPM_SERVER_SECURITY_ENABLED:true}
+    jwt-secret: ${EASY_BPM_SERVER_SECURITY_JWT_SECRET:ZWFzeWJwbS1kZWZhdWx0LXNlY3JldC1tdXN0LWJlLWNoYW5nZWQ=}
+    jwt-expiration-ms: ${EASY_BPM_SERVER_SECURITY_JWT_EXPIRATION_MS:3600000}
+    bootstrap:
+      admin-group-code: ${EASY_BPM_SERVER_SECURITY_BOOTSTRAP_ADMIN_GROUP_CODE:ADMIN}
+      admin-group-name: ${EASY_BPM_SERVER_SECURITY_BOOTSTRAP_ADMIN_GROUP_NAME:Administrators}
+      admin-username: ${EASY_BPM_SERVER_SECURITY_BOOTSTRAP_ADMIN_USERNAME:admin}
+      admin-password: ${EASY_BPM_SERVER_SECURITY_BOOTSTRAP_ADMIN_PASSWORD:admin}
