@@ -24,6 +24,9 @@ Use the `EASY_BPM_<APP>_<VARIABLE>` naming standard for customer-facing configur
 | `EASY_BPM_SERVER_LOGGING_LEVEL_APP` | `DEBUG` |
 | `EASY_BPM_SERVER_LOGGING_LEVEL_HIBERNATE` | `WARN` |
 | `EASY_BPM_SERVER_AI_ENCRYPTION_KEY` | `default-dev-key-change-in-prod-1234` |
+| `EASY_BPM_SERVER_TEST_DATA_ENABLED` | `false` |
+
+`EASY_BPM_SERVER_TEST_DATA_ENABLED=true` seeds demo/test process definitions, instances, tasks, and variables at backend startup. Keep it disabled in production.
 
 ## Worker
 

@@ -68,6 +68,8 @@ springdoc:
     tags-sorter: alpha
 
 easybpm:
+  test-data:
+    enabled: ${EASY_BPM_SERVER_TEST_DATA_ENABLED:false}
   security:
     enabled: ${EASY_BPM_SERVER_SECURITY_ENABLED:true}
     jwt-secret: ${EASY_BPM_SERVER_SECURITY_JWT_SECRET:ZWFzeWJwbS1kZWZhdWx0LXNlY3JldC1tdXN0LWJlLWNoYW5nZWQ=}

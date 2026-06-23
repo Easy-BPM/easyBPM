@@ -31,6 +31,8 @@ spec:
               value: {{ .Values.config.loggingLevelComEasyBpm | quote }}
             - name: EASY_BPM_SERVER_MANAGEMENT_HEALTH_SHOW_DETAILS
               value: {{ .Values.config.managementHealthShowDetails | quote }}
+            - name: EASY_BPM_SERVER_TEST_DATA_ENABLED
+              value: {{ .Values.config.testDataEnabled | quote }}
           envFrom:
             - secretRef:
                 name: {{ include "easybpm.secretName" . }}

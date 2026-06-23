@@ -41,6 +41,7 @@ ingress:
 config:
   loggingLevelComEasyBpm: INFO
   managementHealthShowDetails: when_authorized
+  testDataEnabled: "false"
 
 secrets:
   create: true
