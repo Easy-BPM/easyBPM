@@ -47,6 +47,7 @@ class ProcessService(
     private val callActivityHandler: CallActivityHandler,
     private val callActivityMappingRepository: CallActivityMappingRepository,
     private val aiTaskHandler: com.easy.bpm.handler.AITaskHandler,
+    private val agentProcessCallHandler: com.easy.bpm.handler.AgentProcessCallHandler,
     private val incidentService: IncidentService,
     private val timelineService: ProcessInstanceTimelineService
 ) {
@@ -434,6 +435,7 @@ class ProcessService(
                 NodeType.UserTask -> handleUserTask(instance, node)
                 NodeType.APITask -> handleAPITask(instance, node)
                 NodeType.AiTask -> handleAITask(instance, node)
+                NodeType.AgentProcessCall -> handleAgentProcessCall(instance, node, definition)
                 NodeType.ServiceTask -> handleServiceTaskNode(instance, node, definition)
                 NodeType.TimerEvent -> handleTimerEvent(instance, node)
                 NodeType.MessageEvent -> handleMessageEvent(instance, node)
@@ -622,6 +624,34 @@ class ProcessService(
             logger.error("AI Task execution failed: instance=${instance.id}, nodeId=$nodeId, errorCode=${ex.errorCode}", ex)
             throw ex
         }
+    }
+
+    private fun handleAgentProcessCall(
+        instance: ProcessInstance,
+        node: JsonNode,
+        definition: JsonNode
+    ) {
+        val nodeId = node.get("id").asText()
+        timelineService.record(
+            processInstanceId = instance.id,
+            nodeId = nodeId,
+            eventType = ProcessInstanceEventType.AGENT_PROCESS_STARTED,
+            message = "Agent process call started."
+        )
+
+        val execution = agentProcessCallHandler.execute(instance, node)
+
+        timelineService.record(
+            processInstanceId = instance.id,
+            nodeId = nodeId,
+            eventType = ProcessInstanceEventType.AGENT_PROCESS_COMPLETED,
+            message = "Agent process call completed.",
+            details = "agentExecutionId=${execution.id}; status=${execution.status}"
+        )
+
+        val nextNodes = getNextNodes(node, definition, instance)
+        advanceProcess(instance, nextNodes, definition)
+        executeNodes(nextNodes, instance, definition)
     }
 
     private fun handleServiceTaskNode(
@@ -1290,6 +1320,7 @@ class ProcessService(
                 }
                 NodeType.UserTask,
                 NodeType.ServiceTask,
+                NodeType.AgentProcessCall,
                 NodeType.APITask,
                 NodeType.MessageEvent,
                 NodeType.MessageIntermediateCatchEvent,
@@ -1717,6 +1748,25 @@ class ProcessService(
                             throw IllegalArgumentException("APITask $id auth.key cannot be blank")
                         }
                     }
+                }
+            }
+
+            if (nodeType == NodeType.AgentProcessCall) {
+                val config = node.get("config")
+                    ?: throw IllegalArgumentException("AgentProcessCall $id missing 'config'")
+                val agentProcessKey = config.get("agentProcessKey")?.asText()?.trim()
+                    ?: config.get("processKey")?.asText()?.trim()
+                    ?: throw IllegalArgumentException("AgentProcessCall $id missing 'agentProcessKey'")
+                if (agentProcessKey.isEmpty()) {
+                    throw IllegalArgumentException("AgentProcessCall $id has empty 'agentProcessKey'")
+                }
+                val inputs = config.get("inputs")
+                if (inputs != null && !inputs.isArray) {
+                    throw IllegalArgumentException("AgentProcessCall $id 'inputs' must be an array")
+                }
+                val outputs = config.get("outputs")
+                if (outputs != null && !outputs.isArray) {
+                    throw IllegalArgumentException("AgentProcessCall $id 'outputs' must be an array")
                 }
             }
 

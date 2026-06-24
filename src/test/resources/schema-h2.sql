@@ -425,6 +425,42 @@ CREATE INDEX idx_process_instance_event_type ON process_instance_event(event_typ
 CREATE INDEX idx_process_instance_event_created_at ON process_instance_event(created_at);
 
 -- ============================================================================
+-- V34: Agentic Orchestration Tables
+-- ============================================================================
+
+CREATE TABLE agent_process_definition (
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    process_key VARCHAR(255) NOT NULL,
+    process_name VARCHAR(255),
+    description CLOB,
+    definition_json CLOB NOT NULL,
+    version INT NOT NULL DEFAULT 1,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uk_agent_process_definition_key_version UNIQUE (process_key, version)
+);
+
+CREATE INDEX idx_agent_process_definition_key ON agent_process_definition(process_key);
+CREATE INDEX idx_agent_process_definition_key_version ON agent_process_definition(process_key, version);
+
+CREATE TABLE agent_process_execution (
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    agent_process_definition_id BIGINT NOT NULL REFERENCES agent_process_definition(id),
+    process_instance_id BIGINT NOT NULL REFERENCES process_instance(id) ON DELETE CASCADE,
+    node_id VARCHAR(255) NOT NULL,
+    status VARCHAR(50) NOT NULL,
+    input_payload CLOB,
+    decision_trace CLOB,
+    output_payload CLOB,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    completed_at TIMESTAMP
+);
+
+CREATE INDEX idx_agent_process_execution_definition ON agent_process_execution(agent_process_definition_id);
+CREATE INDEX idx_agent_process_execution_instance ON agent_process_execution(process_instance_id);
+CREATE INDEX idx_agent_process_execution_node ON agent_process_execution(node_id);
+CREATE INDEX idx_agent_process_execution_status ON agent_process_execution(status);
+
+-- ============================================================================
 -- END OF SCHEMA
 -- ============================================================================
 -- Total Tables: 13
