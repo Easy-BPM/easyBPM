@@ -24,6 +24,9 @@ web:
     enabled: true
     image: easybpm-modeler
     host: modeler.easybpm.local
+    apiBaseUrl: ""
+    agenticOrchestration:
+      enabled: false
   taskPortal:
     enabled: true
     image: easybpm-task-portal
@@ -60,5 +63,6 @@ secrets:
     jwtSecretBase64: replace-with-32-byte-minimum-base64-secret
   ai:
     encryptionKey: replace-with-strong-ai-credential-key
+    openaiApiKey: ""
 
 existingSecretName: ""

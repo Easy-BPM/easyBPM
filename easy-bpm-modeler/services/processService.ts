@@ -1,4 +1,6 @@
-const API_BASE_URL = (import.meta.env.EASY_BPM_MODELER_API_BASE_URL as string | undefined) ?? 'http://localhost:8080';
+import { getModelerApiBaseUrl } from '../config/runtimeConfig';
+
+const API_BASE_URL = getModelerApiBaseUrl();
 const AUTH_STORAGE_KEY = 'easybpm_modeler_auth';
 
 export class AuthRequiredError extends Error {

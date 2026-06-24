@@ -1,0 +1,15 @@
+{{- if .Values.web.modeler.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "easybpm.fullname" . }}-modeler-runtime-config
+  labels:
+    {{- include "easybpm.labels" . | nindent 4 }}
+    app.kubernetes.io/component: modeler
+data:
+  easybpm-config.js: |
+    window.__EASY_BPM_CONFIG__ = {
+      EASY_BPM_MODELER_API_BASE_URL: {{ .Values.web.modeler.apiBaseUrl | quote }},
+      EASY_BPM_MODELER_AGENTIC_ORCHESTRATION: {{ .Values.web.modeler.agenticOrchestration.enabled | quote }}
+    };
+{{- end }}

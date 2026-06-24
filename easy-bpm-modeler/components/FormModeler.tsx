@@ -31,8 +31,9 @@ import { CSS } from '@dnd-kit/utilities';
 import { FormDefinition, FormField, FormTab } from '../types';
 import { fetchWithAuth } from '../services/processService';
 import { generateJsonSchema } from '../utils/formUtils';
+import { getModelerApiBaseUrl } from '../config/runtimeConfig';
 
-const API_BASE_URL = (import.meta.env.EASY_BPM_MODELER_API_BASE_URL as string | undefined) ?? 'http://localhost:8080';
+const API_BASE_URL = getModelerApiBaseUrl();
 const FORM_KEY_PATTERN = /^[A-Za-z][A-Za-z0-9_-]*$/;
 
 const FIELD_TYPES = [
