@@ -14,6 +14,7 @@ import { Toolbar } from './components/Toolbar';
 import { FormModeler } from './components/FormModeler';
 import { FormLibrary } from './components/FormLibrary';
 import { WelcomeScreen } from './components/WelcomeScreen';
+import { AgentBoardModeler } from './components/AgentBoardModeler';
 import { ModelerNavbar } from './components/ModelerNavbar';
 import { ThemeMode } from './components/ThemeToggle';
 import { BpmnNode, BpmnEdge, ProcessVariable, NodeType, AppView, ValidationIssue, ValidationSummary, FormDefinition, Position } from './types';
@@ -23,12 +24,13 @@ import { Toaster, toast } from 'sonner';
 import { isAuthRequiredError, processService, fetchWithAuth } from './services/processService';
 import { formService } from './services/formService';
 import { downloadForm, importForm, generateJsonSchema } from './utils/formUtils';
+import { featureFlags } from './config/featureFlags';
 
 const API_BASE_URL = (import.meta.env.EASY_BPM_MODELER_API_BASE_URL as string | undefined) ?? 'http://localhost:8080';
 const BOUNDARY_TYPES: NodeType[] = ['error-boundary', 'message-boundary', 'timer-boundary'];
 const START_TYPES: NodeType[] = ['start', 'message-start'];
 const END_TYPES: NodeType[] = ['end'];
-const TASK_TYPES: NodeType[] = ['user-task', 'service-task', 'api-task', 'code-task', 'ai-task'];
+const TASK_TYPES: NodeType[] = ['user-task', 'service-task', 'api-task', 'code-task', 'ai-task', 'agent-process-call'];
 const CONTAINER_TYPES: NodeType[] = ['pool'];
 const FORM_KEY_PATTERN = /^[A-Za-z][A-Za-z0-9_-]*$/;
 
@@ -40,7 +42,7 @@ const safeString = (value: any): string => {
   return String(value);
 };
 
-type EditorMode = 'welcome' | 'process-editor' | 'form-editor';
+type EditorMode = 'welcome' | 'process-editor' | 'form-editor' | 'agent-process-editor';
 
 const App: React.FC = () => {
    const [theme, setTheme] = useState<ThemeMode>(() => {
@@ -196,7 +198,7 @@ const App: React.FC = () => {
        }
      });
 
-    const nodesByUid = new Map(nodes.map(node => [node.uid, node]));
+    const nodesByUid = new Map<string, BpmnNode>(nodes.map(node => [node.uid, node]));
     const incomingByUid = new Map<string, number>();
     const outgoingByUid = new Map<string, number>();
     const adjacency = new Map<string, string[]>();
@@ -442,7 +444,7 @@ const App: React.FC = () => {
 
     if (type === 'error-boundary' || type === 'message-boundary' || type === 'timer-boundary') {
       const parent = nodes.find(n => 
-        (n.type === 'user-task' || n.type === 'service-task' || n.type === 'api-task') &&
+        (n.type === 'user-task' || n.type === 'service-task' || n.type === 'api-task' || n.type === 'code-task' || n.type === 'ai-task' || n.type === 'agent-process-call' || n.type === 'call-activity') &&
         x > n.position.x && x < n.position.x + n.width &&
         y > n.position.y && y < n.position.y + n.height
       );
@@ -482,6 +484,7 @@ const App: React.FC = () => {
       'service-task': 'ServiceTask',
       'api-task': 'APITask',
       'ai-task': 'AiTask',
+      'agent-process-call': 'AgentProcessCall',
       'code-task': 'CodeTask',
       'call-activity': 'CallActivity',
       'gateway': 'ExclusiveGateway', 
@@ -607,6 +610,27 @@ const App: React.FC = () => {
          base.config = {
            processKey: node.data.callActivityProcessKey || '',
            propagateAllVariables: node.data.propagateAllVariables || false,
+           inputs: (node.data.inputVariables || []).map(v => ({
+              targetName: String(v.name || ''),
+              type: v.type,
+              source: v.mappingType,
+              value: v.value
+           })),
+           outputs: (node.data.outputVariables || []).map(v => ({
+              source: v.mappingType,
+              sourceValue: String(v.name || ''),
+              type: v.type,
+              targetVariable: v.value
+           }))
+         };
+       }
+
+       if (node.type === 'agent-process-call') {
+         base.config = {
+           agentProcessKey: node.data.agentProcessKey || '',
+           goalOverride: node.data.agentGoalOverride || '',
+           waitForCompletion: node.data.agentWaitForCompletion !== false,
+           timeoutDays: node.data.agentTimeoutDays ?? null,
            inputs: (node.data.inputVariables || []).map(v => ({
               targetName: String(v.name || ''),
               type: v.type,
@@ -793,6 +817,10 @@ const App: React.FC = () => {
     setEditorMode('form-editor');
   };
 
+  const handleCreateAgentProcess = () => {
+    setEditorMode('agent-process-editor');
+  };
+
   const handleBackToWelcome = () => {
     setEditorMode('welcome');
     setCurrentEditingForm(null);
@@ -808,6 +836,7 @@ const App: React.FC = () => {
       'UserTask': 'user-task',
       'ServiceTask': 'service-task',
       'APITask': 'api-task',
+      'AgentProcessCall': 'agent-process-call',
       'ExclusiveGateway': 'gateway',
       'ParallelGateway': 'parallel-gateway',
       'TimerEvent': 'timer-event',
@@ -913,6 +942,31 @@ const App: React.FC = () => {
       }
 
        if (type === 'service-task' && node.config) {
+         if (node.config.inputs) {
+           newNode.data.inputVariables = (node.config.inputs || []).map((i: any) => ({
+             id: Math.random().toString(36).substr(2, 9),
+             name: String(i.targetName || ''),
+             type: i.type,
+             mappingType: i.source,
+             value: i.value
+           }));
+         }
+         if (node.config.outputs) {
+           newNode.data.outputVariables = (node.config.outputs || []).map((o: any) => ({
+             id: Math.random().toString(36).substr(2, 9),
+             name: String(o.sourceValue || o.sourceName || ''),
+             type: o.type,
+             mappingType: 'variable',
+             value: o.targetVariable || o.value
+           }));
+         }
+       }
+
+       if (type === 'agent-process-call' && node.config) {
+         newNode.data.agentProcessKey = node.config.agentProcessKey || node.config.processKey || '';
+         newNode.data.agentGoalOverride = node.config.goalOverride || '';
+         newNode.data.agentWaitForCompletion = node.config.waitForCompletion !== false;
+         newNode.data.agentTimeoutDays = node.config.timeoutDays ?? null;
          if (node.config.inputs) {
            newNode.data.inputVariables = (node.config.inputs || []).map((i: any) => ({
              id: Math.random().toString(36).substr(2, 9),
@@ -1166,6 +1220,8 @@ const App: React.FC = () => {
         <WelcomeScreen
           onCreateProcess={handleCreateProcess}
           onCreateForm={handleCreateForm}
+          onCreateAgentProcess={handleCreateAgentProcess}
+          isAgenticOrchestrationEnabled={featureFlags.agenticOrchestration}
           currentUser={currentUser}
           onLogout={handleLogout}
           theme={theme}
@@ -1210,7 +1266,10 @@ const App: React.FC = () => {
 
         {/* Canvas */}
         <div className="flex flex-1 overflow-hidden">
-          <Palette onDragStart={(e, type) => e.dataTransfer.setData('application/reactflow', type)} />
+          <Palette
+            onDragStart={(e, type) => e.dataTransfer.setData('application/reactflow', type)}
+            isAgenticOrchestrationEnabled={featureFlags.agenticOrchestration}
+          />
           <div className="flex-1 relative flex flex-col">
             <button
               type="button"
@@ -1294,6 +1353,18 @@ const App: React.FC = () => {
     );
   }
 
+  if (editorMode === 'agent-process-editor' && featureFlags.agenticOrchestration) {
+    return (
+      <AgentBoardModeler
+        currentUser={currentUser}
+        onBack={handleBackToWelcome}
+        onLogout={handleLogout}
+        theme={theme}
+        onToggleTheme={toggleTheme}
+      />
+    );
+  }
+
   // Default: welcome screen
   return (
     <div className="h-screen overflow-hidden">
@@ -1301,6 +1372,8 @@ const App: React.FC = () => {
       <WelcomeScreen
         onCreateProcess={handleCreateProcess}
         onCreateForm={handleCreateForm}
+        onCreateAgentProcess={handleCreateAgentProcess}
+        isAgenticOrchestrationEnabled={featureFlags.agenticOrchestration}
         theme={theme}
         onToggleTheme={toggleTheme}
       />

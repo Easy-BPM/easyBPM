@@ -1,10 +1,12 @@
 import React from 'react';
-import { Layout, FileText, Plus, Zap, Shield, User, LogOut } from 'lucide-react';
+import { Bot, Layout, FileText, Zap, Shield, User, LogOut } from 'lucide-react';
 import { ThemeMode, ThemeToggle } from './ThemeToggle';
 
 interface WelcomeScreenProps {
   onCreateProcess: () => void;
   onCreateForm: () => void;
+  onCreateAgentProcess?: () => void;
+  isAgenticOrchestrationEnabled?: boolean;
   onOpenRecent?: () => void;
   currentUser?: string | null;
   onLogout?: () => void;
@@ -15,6 +17,8 @@ interface WelcomeScreenProps {
 export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
   onCreateProcess,
   onCreateForm,
+  onCreateAgentProcess,
+  isAgenticOrchestrationEnabled = false,
   onOpenRecent,
   currentUser,
   onLogout,
@@ -85,7 +89,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
         </div>
 
         {/* Main Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+        <div className={`grid grid-cols-1 ${isAgenticOrchestrationEnabled ? 'md:grid-cols-3' : 'md:grid-cols-2'} gap-8 mb-12`}>
           {/* Process Card */}
           <button
             onClick={onCreateProcess}
@@ -111,6 +115,33 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
               </div>
             </div>
           </button>
+
+          {isAgenticOrchestrationEnabled && onCreateAgentProcess && (
+            <button
+              onClick={onCreateAgentProcess}
+              className="group relative"
+            >
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-cyan-600 to-blue-500 rounded-2xl blur opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200"></div>
+              <div className="relative bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8 hover:bg-white/10 transition-all cursor-pointer h-full">
+                <div className="flex flex-col items-center text-center space-y-4">
+                  <div className="bg-cyan-500/20 p-4 rounded-xl ring-4 ring-cyan-500/20">
+                    <Bot className="text-cyan-300" size={40} />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold text-white mb-2">Agent Process</h2>
+                    <p className="text-slate-400 text-sm">
+                      Define goals, agent instructions, constraints, tools, and dynamic task boards
+                    </p>
+                  </div>
+                  <div className="flex gap-2 text-xs text-slate-500 flex-wrap justify-center pt-4">
+                    <span className="px-2 py-1 bg-slate-700/50 rounded">Goals</span>
+                    <span className="px-2 py-1 bg-slate-700/50 rounded">Agents</span>
+                    <span className="px-2 py-1 bg-slate-700/50 rounded">Board</span>
+                  </div>
+                </div>
+              </div>
+            </button>
+          )}
 
           {/* Form Card */}
           <button

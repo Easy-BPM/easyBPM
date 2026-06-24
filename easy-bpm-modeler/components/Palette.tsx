@@ -1,12 +1,13 @@
 import React from 'react';
 import { NodeType } from '../types';
-import { Circle, User, Settings, GitFork, Plus, Mail, Zap, Clock3, Layers, Code, Brain, Rows3 } from 'lucide-react';
+import { Bot, Circle, User, Settings, GitFork, Plus, Mail, Zap, Clock3, Layers, Code, Brain, Rows3 } from 'lucide-react';
 
 interface PaletteProps {
   onDragStart: (event: React.DragEvent, type: NodeType) => void;
+  isAgenticOrchestrationEnabled?: boolean;
 }
 
-export const Palette: React.FC<PaletteProps> = ({ onDragStart }) => {
+export const Palette: React.FC<PaletteProps> = ({ onDragStart, isAgenticOrchestrationEnabled = false }) => {
   const groups: { title: string; items: { type: NodeType; label: string; icon: React.ReactNode; color: string }[] }[] = [
     {
       title: 'Participants',
@@ -42,6 +43,9 @@ export const Palette: React.FC<PaletteProps> = ({ onDragStart }) => {
         { type: 'code-task', label: 'Code Task', icon: <Code className="w-5 h-5" />, color: 'text-indigo-600' },
         { type: 'ai-task', label: 'Ask AI (BETA)', icon: <Brain className="w-5 h-5" />, color: 'text-pink-600' },
         { type: 'call-activity', label: 'Call Activity', icon: <Layers className="w-5 h-5" />, color: 'text-cyan-600' },
+        ...(isAgenticOrchestrationEnabled
+          ? [{ type: 'agent-process-call' as NodeType, label: 'Agent Process', icon: <Bot className="w-5 h-5" />, color: 'text-cyan-400' }]
+          : []),
       ]
     },
     {
