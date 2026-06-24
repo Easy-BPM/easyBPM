@@ -1,7 +1,7 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { BpmnNode, BpmnEdge, NodeType, Position } from '../types';
 import { getEdgePath, getEdgeRoutePoints, generateId, snapToGrid } from '../utils/geometry';
-import { User, Settings, GitFork, Plus, Mail, Zap, Clock3, Layers, Code, Brain, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
+import { Bot, User, Settings, GitFork, Plus, Mail, Zap, Clock3, Layers, Code, Brain, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 
 interface CanvasProps {
   nodes: BpmnNode[];
@@ -283,7 +283,7 @@ export const Canvas: React.FC<CanvasProps> = ({
             if ((node.type === 'error-boundary' || node.type === 'message-boundary' || node.type === 'timer-boundary') && initialNodePositions.has(node.uid)) {
                 // Try to snap to a task
                 const parent = nodes.find(n => 
-                    (n.type === 'user-task' || n.type === 'service-task' || n.type === 'api-task' || n.type === 'code-task') &&
+                    (n.type === 'user-task' || n.type === 'service-task' || n.type === 'api-task' || n.type === 'code-task' || n.type === 'agent-process-call') &&
                     node.position.x > n.position.x - 20 &&
                     node.position.x < n.position.x + n.width + 20 &&
                     node.position.y > n.position.y - 20 &&
@@ -584,7 +584,7 @@ export const Canvas: React.FC<CanvasProps> = ({
         )}
 
         {nodes.filter(node => node.type !== 'pool').map((node) => {
-          const isTask = node.type === 'user-task' || node.type === 'service-task' || node.type === 'api-task' || node.type === 'code-task' || node.type === 'ai-task' || node.type === 'call-activity';
+          const isTask = node.type === 'user-task' || node.type === 'service-task' || node.type === 'api-task' || node.type === 'code-task' || node.type === 'ai-task' || node.type === 'agent-process-call' || node.type === 'call-activity';
           const isBoxMessageCatch = node.type === 'message-intermediate-catch';
           const isMessageEvent = ['message-start', 'message-intermediate-catch', 'message-intermediate-throw'].includes(node.type);
           const isSelected = selectedNodeUids.includes(node.uid);
@@ -649,12 +649,13 @@ export const Canvas: React.FC<CanvasProps> = ({
             )}
             {node.type === 'end' && <circle r="20" filter="url(#shadow)" className="fill-[#111a21] stroke-red-500 stroke-[4px]" />}
             {['gateway', 'parallel-gateway'].includes(node.type) && <rect width="28" height="28" transform="rotate(45)" x="-14" y="-14" filter="url(#shadow)" className="fill-[#111a21] stroke-orange-500 stroke-[2px]" />}
-            {isTask && <rect x={-node.width/2} y={-node.height/2} width={node.width} height={node.height} rx="6" filter="url(#shadow)" className={`fill-[#111a21] stroke-[2px] ${node.type === 'user-task' ? 'stroke-blue-500' : (node.type === 'api-task' ? 'stroke-purple-500' : (node.type === 'code-task' ? 'stroke-indigo-500' : (node.type === 'ai-task' ? 'stroke-pink-500' : (node.type === 'call-activity' ? 'stroke-cyan-500' : 'stroke-amber-500'))))}`} />}
+            {isTask && <rect x={-node.width/2} y={-node.height/2} width={node.width} height={node.height} rx="6" filter="url(#shadow)" className={`fill-[#111a21] stroke-[2px] ${node.type === 'user-task' ? 'stroke-blue-500' : (node.type === 'api-task' ? 'stroke-purple-500' : (node.type === 'code-task' ? 'stroke-indigo-500' : (node.type === 'ai-task' ? 'stroke-pink-500' : (node.type === 'agent-process-call' ? 'stroke-cyan-400' : (node.type === 'call-activity' ? 'stroke-cyan-500' : 'stroke-amber-500')))))}`} />}
             {node.type === 'user-task' && <User x={-node.width/2+8} y={-node.height/2+8} className="w-4 h-4 text-blue-600 pointer-events-none opacity-80" />}
             {node.type === 'api-task' && <Settings x={-node.width/2+8} y={-node.height/2+8} className="w-4 h-4 text-purple-600 pointer-events-none opacity-80" />}
             {node.type === 'service-task' && <Zap x={-node.width/2+8} y={-node.height/2+8} className="w-4 h-4 text-amber-600 pointer-events-none opacity-80" />}
             {node.type === 'code-task' && <Code x={-node.width/2+8} y={-node.height/2+8} className="w-4 h-4 text-indigo-600 pointer-events-none opacity-80" />}
             {node.type === 'ai-task' && <Brain x={-node.width/2+8} y={-node.height/2+8} className="w-4 h-4 text-pink-600 pointer-events-none opacity-80" />}
+            {node.type === 'agent-process-call' && <Bot x={-node.width/2+8} y={-node.height/2+8} className="w-4 h-4 text-cyan-400 pointer-events-none opacity-80" />}
             {node.type === 'call-activity' && <Layers x={-node.width/2+8} y={-node.height/2+8} className="w-4 h-4 text-cyan-600 pointer-events-none opacity-80" />}
             {node.type === 'gateway' && <GitFork x="-8" y="-8" className="w-4 h-4 text-orange-600 pointer-events-none opacity-80" />}
             {node.type === 'parallel-gateway' && <Plus x="-8" y="-8" className="w-4 h-4 text-orange-600 pointer-events-none opacity-80" />}

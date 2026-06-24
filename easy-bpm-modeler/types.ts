@@ -1,4 +1,4 @@
-export type NodeType = 'start' | 'end' | 'user-task' | 'service-task' | 'api-task' | 'code-task' | 'ai-task' | 'call-activity' | 'gateway' | 'parallel-gateway' | 'timer-event' | 'message-start' | 'message-intermediate-catch' | 'message-intermediate-throw' | 'error-boundary' | 'message-boundary' | 'timer-boundary' | 'pool';
+export type NodeType = 'start' | 'end' | 'user-task' | 'service-task' | 'api-task' | 'code-task' | 'ai-task' | 'agent-process-call' | 'call-activity' | 'gateway' | 'parallel-gateway' | 'timer-event' | 'message-start' | 'message-intermediate-catch' | 'message-intermediate-throw' | 'error-boundary' | 'message-boundary' | 'timer-boundary' | 'pool';
 
 export interface Position {
   x: number;
@@ -58,6 +58,11 @@ export interface NodeData {
     backoffMultiplier?: number;          // Exponential backoff
     initialDelayMs?: number;             // Initial retry delay
   };
+  // Agent process invocation specific (feature flagged)
+  agentProcessKey?: string;
+  agentGoalOverride?: string;
+  agentWaitForCompletion?: boolean;
+  agentTimeoutDays?: number | null;
   // Gateway specific
   condition?: string;
   // Message Event specific

@@ -57,4 +57,5 @@ Use the `EASY_BPM_<APP>_<VARIABLE>` naming standard for customer-facing configur
 | --- | --- |
 | `EASY_BPM_ADMIN_API_BASE_URL` | Backend API URL used by the Admin Console. |
 | `EASY_BPM_MODELER_API_BASE_URL` | Backend API URL used by the Modeler. |
+| `EASY_BPM_MODELER_AGENTIC_ORCHESTRATION` | Enables the feature-flagged Agent Process / Agent Board resource in the Modeler when set to `true`, `1`, `yes`, `on`, or `enabled`. Defaults to disabled. |
 | `EASY_BPM_TASK_PORTAL_API_BASE_URL` | Backend API URL used by the Task Portal. |
