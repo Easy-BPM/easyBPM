@@ -129,7 +129,7 @@ export const AgentBoardModeler: React.FC<AgentBoardModelerProps> = ({
   const [memoryPolicy, setMemoryPolicy] = useState('Persist conversations, decisions, tool outputs, artifacts, and final rationale for audit and replanning.');
   const [providerId, setProviderId] = useState('openai');
   const [modelName, setModelName] = useState('gpt-4o-mini');
-  const [credentialRef, setCredentialRef] = useState('OPENAI_API_KEY');
+  const [credentialRef, setCredentialRef] = useState('$OPENAI_API_KEY');
   const [systemPrompt, setSystemPrompt] = useState('You are an Easy BPM orchestration agent. Return concise, auditable decisions as JSON when possible.');
   const [promptTemplate, setPromptTemplate] = useState('Goal: {{goal}}\nInstructions: {{instructions}}\nConstraints: {{constraints}}\nInputs: {{inputs}}\n\nDecide the next orchestration outcome and explain the reason.');
   const [allowDynamicTasks, setAllowDynamicTasks] = useState(true);
@@ -370,7 +370,7 @@ export const AgentBoardModeler: React.FC<AgentBoardModelerProps> = ({
             </div>
             <div className="space-y-2">
               <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Credential Ref</label>
-              <input value={credentialRef} onChange={event => setCredentialRef(event.target.value)} className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-mono outline-none focus:border-blue-500" placeholder="OPENAI_API_KEY" />
+              <input value={credentialRef} onChange={event => setCredentialRef(event.target.value)} className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-mono outline-none focus:border-blue-500" placeholder="$OPENAI_API_KEY" />
             </div>
             <div className="space-y-2">
               <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">System Prompt</label>

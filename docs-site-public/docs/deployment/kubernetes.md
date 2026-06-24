@@ -40,3 +40,28 @@ Deploy one image per runtime:
 | Task Portal | `easybpm-task-portal` |
 
 Use the same immutable tag across all Easy BPM images in one release.
+
+## Agentic orchestration values
+
+Enable the Agent Board and Agent Process BPM node in the Modeler with Helm values:
+
+```yaml
+web:
+  modeler:
+    apiBaseUrl: "https://api.easybpm.example.com"
+    agenticOrchestration:
+      enabled: true
+```
+
+The chart renders those values into `easybpm-config.js` and mounts it into the Modeler container, so the feature flag can be changed per deployment without rebuilding the frontend image.
+
+To run provider-backed Agent Processes with the example OpenAI configuration, provide the backend token as a Kubernetes secret value:
+
+```yaml
+secrets:
+  ai:
+    encryptionKey: "replace-with-strong-ai-credential-key"
+    openaiApiKey: "sk-..."
+```
+
+Agent Process definitions that use `"credentialRef": "$OPENAI_API_KEY"` resolve that value from the backend pod environment. For production, prefer a sealed secret, external secret operator, or `existingSecretName`.

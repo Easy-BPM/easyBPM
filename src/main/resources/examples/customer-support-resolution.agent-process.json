@@ -1,0 +1,88 @@
+{
+  "resourceType": "AgentProcess",
+  "processKey": "customer-support-resolution",
+  "processName": "Customer Support Resolution",
+  "description": "Agentic orchestration for investigating a customer complaint and proposing an auditable resolution.",
+  "goal": "Resolve the customer complaint while respecting refund policy and keeping the customer informed.",
+  "instructions": "Investigate the complaint, inspect available context, identify the likely root cause, decide whether a refund, replacement, escalation, or clarification is required, and return an auditable recommendation.",
+  "constraints": [
+    "Refunds above 500 require manager approval.",
+    "Never promise a refund without policy evidence.",
+    "Always explain the reason for the decision.",
+    "Ask for human input when evidence is incomplete."
+  ],
+  "availableTools": [
+    "CRM",
+    "Email",
+    "Knowledge Base",
+    "BPMN Process: approve-refund"
+  ],
+  "participants": [
+    "Planner Agent",
+    "Research Agent",
+    "Decision Agent",
+    "Supervisor Agent"
+  ],
+  "memoryPolicy": "Persist customer context, decision rationale, tool outputs, approval requests, and final resolution notes.",
+  "provider": {
+    "providerId": "openai",
+    "modelName": "gpt-4o-mini",
+    "credentialRef": "$OPENAI_API_KEY",
+    "systemPrompt": "You are an Easy BPM orchestration agent. Return concise, auditable decisions. Prefer JSON with decision, reason, requiresApproval, nextTasks, variables, and customerMessage.",
+    "promptTemplate": "Goal: {{goal}}\nInstructions: {{instructions}}\nConstraints:\n{{constraints}}\nAvailable tools:\n{{tools}}\nParticipants:\n{{participants}}\nInputs:\n{{inputs}}\n\nReturn a JSON decision with: decision, reason, requiresApproval, nextTasks, variables, customerMessage.",
+    "tuningParams": {
+      "temperature": 0.2,
+      "topP": 1.0,
+      "maxTokens": 1200,
+      "retryCount": 0
+    }
+  },
+  "allowDynamicTasks": true,
+  "timeoutDays": 7,
+  "boardColumns": [
+    "backlog",
+    "ready",
+    "in-progress",
+    "waiting-human",
+    "waiting-system",
+    "completed",
+    "failed"
+  ],
+  "steps": [
+    {
+      "id": "step_collect_context",
+      "title": "Collect customer context",
+      "description": "Review complaint, customer account, previous tickets, order data, and attachments.",
+      "reasoning": "The agent needs enough evidence before recommending a resolution.",
+      "status": "ready",
+      "owner": "Research Agent",
+      "priority": "high",
+      "dependencies": ""
+    },
+    {
+      "id": "step_decide_resolution",
+      "title": "Decide resolution",
+      "description": "Recommend refund, replacement, escalation, clarification, or rejection with reason.",
+      "reasoning": "A structured decision lets BPM gateways and human reviewers inspect the outcome.",
+      "status": "backlog",
+      "owner": "Decision Agent",
+      "priority": "high",
+      "dependencies": "step_collect_context"
+    },
+    {
+      "id": "step_request_approval",
+      "title": "Request approval when needed",
+      "description": "Create a human approval when refund policy requires manager review.",
+      "reasoning": "Human-in-the-loop approval is mandatory for high-value refunds.",
+      "status": "backlog",
+      "owner": "Supervisor Agent",
+      "priority": "high",
+      "dependencies": "step_decide_resolution"
+    }
+  ],
+  "audit": {
+    "decisionTraceRequired": true,
+    "createdFrom": "easy-bpm-example",
+    "exportedAt": "2026-06-24T00:00:00.000Z"
+  }
+}

@@ -1,3 +1,5 @@
+import { getRuntimeConfigValue } from './runtimeConfig';
+
 const truthyValues = new Set(['1', 'true', 'yes', 'on', 'enabled']);
 
 const isEnabled = (value: unknown): boolean => {
@@ -6,5 +8,8 @@ const isEnabled = (value: unknown): boolean => {
 };
 
 export const featureFlags = {
-  agenticOrchestration: isEnabled(import.meta.env.EASY_BPM_MODELER_AGENTIC_ORCHESTRATION)
+  agenticOrchestration: isEnabled(
+    getRuntimeConfigValue('EASY_BPM_MODELER_AGENTIC_ORCHESTRATION') ??
+      import.meta.env.EASY_BPM_MODELER_AGENTIC_ORCHESTRATION
+  )
 };

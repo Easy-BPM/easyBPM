@@ -29,6 +29,35 @@ Forms are deployed to `POST /forms` and referenced from HumanTask nodes via `con
 
 ---
 
+## Agentic Orchestration Example
+
+Files:
+
+| File | Purpose |
+|------|---------|
+| `../../main/resources/examples/customer-support-resolution.agent-process.json` | Agent Process definition with provider/model/credentialRef and dynamic steps |
+| `../../main/resources/examples/customer-support-agent-process.json` | BPM process that invokes `AgentProcessCall` and sends the decision to human review |
+
+Deploy the agent definition first:
+
+```bash
+curl -X POST http://localhost:8080/agent-processes \
+  -H "Content-Type: application/json" \
+  -d @src/main/resources/examples/customer-support-resolution.agent-process.json
+```
+
+Then deploy the BPM process that calls it:
+
+```bash
+curl -X POST http://localhost:8080/processes \
+  -H "Content-Type: application/json" \
+  -d @src/main/resources/examples/customer-support-agent-process.json
+```
+
+The example Agent Process uses `credentialRef: "$OPENAI_API_KEY"`. Set `OPENAI_API_KEY` in the backend environment or replace the value with a stored credential ID before starting the process if you want provider-backed execution.
+
+---
+
 ## Message Event Examples (original content)
 
 ## Files

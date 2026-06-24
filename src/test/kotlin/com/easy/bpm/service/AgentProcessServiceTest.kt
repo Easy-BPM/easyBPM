@@ -26,7 +26,7 @@ class AgentProcessServiceTest : FunSpec({
               "provider": {
                 "providerId": "openai",
                 "modelName": "gpt-4o-mini",
-                "credentialRef": "OPENAI_API_KEY"
+                "credentialRef": "${'$'}OPENAI_API_KEY"
               },
               "steps": []
             }

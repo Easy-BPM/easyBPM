@@ -52,6 +52,15 @@
       "usedBy": ["qa_user_task_forms"]
     }
   ],
+  "agentProcesses": [
+    {
+      "id": "customer-support-resolution",
+      "file": "agent-processes/customer-support-resolution.agent-process.json",
+      "coverage": ["agent-process", "provider-config", "planner-prompt", "dynamic-steps"],
+      "backendDeployCandidate": true,
+      "usedBy": ["qa_agent_process_call"]
+    }
+  ],
   "processes": [
     {
       "id": "qa_user_task_forms",
@@ -89,6 +98,14 @@
       "modelerImportable": "partial",
       "backendDeployCandidate": false,
       "backendNote": "Upload jars/test-service.jar and bind class TestService method processOrder. Current modeler importer does not hydrate CodeTask config and ProcessService does not execute CodeTask nodes yet."
+    },
+    {
+      "id": "qa_agent_process_call",
+      "file": "processes/qa-agent-process-call.json",
+      "coverage": ["agent-process-call", "agent-input-mapping", "agent-output-mapping", "human-review"],
+      "modelerImportable": true,
+      "backendDeployCandidate": true,
+      "backendNote": "Deploy agent-processes/customer-support-resolution.agent-process.json before starting this process. Provider execution requires OPENAI_API_KEY or an equivalent backend credential reference."
     }
   ]
 }

@@ -405,6 +405,102 @@ Example:
 }
 ```
 
+## Agent Process (Feature Flag)
+
+Agent Process is the feature-flagged resource for agentic orchestration. Use it when a BPM process needs to call an AI-driven agent that can evaluate context, produce a structured decision, and write outputs back to process variables.
+
+Enable it in the modeler before running or building the frontend:
+
+```powershell
+$env:EASY_BPM_MODELER_AGENTIC_ORCHESTRATION="true"
+npm run dev
+```
+
+When enabled, the modeler shows the Agent Board resource and an `Agent Process` BPM node. The Agent Board deploys reusable agent definitions to `POST /agent-processes`. A BPM process then calls one of those deployed agents with an `AgentProcessCall` node.
+
+Agent Process provider configuration:
+
+| Property | Example | Notes |
+| --- | --- | --- |
+| `Provider` | `openai` | Provider ID used by the backend provider factory. |
+| `Model` | `gpt-4o-mini` | Model name sent to the provider. |
+| `Credential Ref` | `$OPENAI_API_KEY` | Environment variable references must start with `$`. Stored credential IDs do not use `$`. |
+| `Goal` | `Resolve customer complaint` | Main objective for the agent. |
+| `Instructions` | `Investigate, classify, decide next action` | Operational instructions included in the prompt context. |
+| `Constraints` | `Refunds over 500 require approval` | Guardrails and business policy reminders. |
+
+Agent Process definition example:
+
+```json
+{
+  "resourceType": "AgentProcess",
+  "processKey": "customer-support-resolution",
+  "processName": "Customer Support Resolution",
+  "goal": "Resolve customer complaint and ensure customer satisfaction.",
+  "provider": {
+    "providerId": "openai",
+    "modelName": "gpt-4o-mini",
+    "credentialRef": "$OPENAI_API_KEY"
+  },
+  "steps": []
+}
+```
+
+Configure the token in the backend runtime environment, not in the frontend:
+
+```powershell
+$env:OPENAI_API_KEY="sk-..."
+```
+
+BPM invocation properties:
+
+| Property | Example | Notes |
+| --- | --- | --- |
+| `Agent Process Key` | `customer-support-resolution` | Must match the deployed Agent Process `processKey`. |
+| `Goal Override` | `Resolve this complaint` | Optional runtime goal for this call. |
+| `Wait for Completion` | enabled | The process waits for the agent decision before continuing. |
+| `Timeout Seconds` | `120` | Optional timeout metadata for the call. |
+| Input mappings | `complaintText <- complaintText` | Sends BPM variables into the agent context. |
+| Output mappings | `decision -> agentDecision` | Writes agent output fields back to BPM variables. |
+
+Agent Process call example:
+
+```json
+{
+  "id": "resolve_with_agent",
+  "type": "AgentProcessCall",
+  "config": {
+    "agentProcessKey": "customer-support-resolution",
+    "goal": "Resolve the customer complaint from the current process variables.",
+    "waitForCompletion": true,
+    "timeoutSeconds": 120,
+    "inputs": [
+      {
+        "targetName": "complaintText",
+        "type": "string",
+        "source": "variable",
+        "value": "complaintText"
+      }
+    ],
+    "outputs": [
+      {
+        "source": "variable",
+        "sourceValue": "decision",
+        "type": "string",
+        "targetVariable": "agentDecision"
+      }
+    ]
+  }
+}
+```
+
+Deploy order:
+
+1. Enable `EASY_BPM_MODELER_AGENTIC_ORCHESTRATION=true` and open the modeler.
+2. Create and deploy the Agent Process from the Agent Board.
+3. Add an `Agent Process` node to the BPM process and set `Agent Process Key` to the deployed agent key.
+4. Deploy the BPM process, start an instance, and inspect the process variables for the agent decision/output.
+
 ## Call Activity
 
 ![Call Activity component](/img/screenshots/modeler/component-call-activity.png)
@@ -773,6 +869,7 @@ Before exporting or deploying, resolve these common issues:
 | API Task | Publishes a worker request. Completion maps response JSON paths to process variables. Failure follows an error boundary when present, otherwise the instance becomes `FAILED`. |
 | Service Task | Applies configured variable mappings and continues automatically. |
 | Code Task | Uses backend/admin code task configuration and modeler variable mappings. |
+| Agent Process | Calls a deployed Agent Process, records the execution, and maps the agent decision/output back to process variables. |
 | Call Activity | Starts a child process and maps variables between parent and child. |
 | Message Catch/Boundary | Waits for a correlated message. Timeout can route to boundary behavior or fail when unhandled. |
 | Timer Event/Boundary | Uses scheduled timeout processing. |
@@ -784,6 +881,12 @@ Set the backend URL for the modeler with:
 
 ```bash
 EASY_BPM_MODELER_API_BASE_URL=http://localhost:8080
+```
+
+Enable the Agent Board and Agent Process BPM node with:
+
+```bash
+EASY_BPM_MODELER_AGENTIC_ORCHESTRATION=true
 ```
 
 For deployed environments, point `EASY_BPM_MODELER_API_BASE_URL` at the customer backend URL.
