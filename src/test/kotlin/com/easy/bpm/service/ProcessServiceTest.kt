@@ -3,6 +3,7 @@ package com.easy.bpm.service
 import com.easy.bpm.enum.NodeType
 import com.easy.bpm.enum.ProcessStatus
 import com.easy.bpm.handler.AITaskHandler
+import com.easy.bpm.handler.AgentProcessCallHandler
 import com.easy.bpm.model.form.Form
 import com.easy.bpm.model.process.ProcessDefinition
 import com.easy.bpm.model.process.ProcessInstance
@@ -52,6 +53,7 @@ class ProcessServiceTest : FunSpec() {
     val mockCallActivityHandler = mockk<CallActivityHandler>()
     val mockCallActivityMappingRepository = mockk<CallActivityMappingRepository>()
     val mockAITaskHandler = mockk<AITaskHandler>()
+    val mockAgentProcessCallHandler = mockk<AgentProcessCallHandler>()
     val mockIncidentService = mockk<IncidentService>(relaxed = true)
     val mockTimelineService = mockk<ProcessInstanceTimelineService>(relaxed = true)
 
@@ -72,6 +74,7 @@ class ProcessServiceTest : FunSpec() {
         mockCallActivityHandler,
         mockCallActivityMappingRepository,
         mockAITaskHandler,
+        mockAgentProcessCallHandler,
         mockIncidentService,
         mockTimelineService
     )
@@ -371,6 +374,7 @@ class ProcessServiceTest : FunSpec() {
             )
 
             every { mockProcessInstanceRepository.findById(processInstanceId) } returns Optional.of(instance)
+            every { mockProcessInstanceRepository.findByIdForUpdate(processInstanceId) } returns instance
             every { mockObjectMapper.readTree(definitionJson) } returns objectMapper.readTree(definitionJson)
 
             every {
@@ -451,6 +455,7 @@ class ProcessServiceTest : FunSpec() {
             )
 
             every { mockProcessInstanceRepository.findById(processInstanceId) } returns Optional.of(instance)
+            every { mockProcessInstanceRepository.findByIdForUpdate(processInstanceId) } returns instance
             every { mockObjectMapper.readTree(definitionJson) } returns objectMapper.readTree(definitionJson)
             every { mockProcessInstanceRepository.save(any<ProcessInstance>()) } answers { firstArg<ProcessInstance>() }
 

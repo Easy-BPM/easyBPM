@@ -4,11 +4,13 @@ import com.easy.bpm.enum.ProcessStatus
 import com.easy.bpm.enum.MessageSubscriptionStatus
 import com.easy.bpm.enum.TaskStatus
 import com.easy.bpm.repository.message.MessageSubscriptionRepository
+import com.easy.bpm.repository.agent.AgentProcessExecutionRepository
 import com.easy.bpm.repository.process.ProcessInstanceRepository
 import com.easy.bpm.repository.task.TaskRepository
 import com.easy.bpm.repository.variable.ProcessVariableRepository
 import com.easy.bpm.repository.variable.TaskVariableRepository
 import com.easy.bpm.service.IntegrationService
+import com.easy.bpm.service.AgentProcessService
 import com.easy.bpm.service.ProcessService
 import com.easy.bpm.service.TaskService
 import com.easy.bpm.messaging.RabbitPublisher
@@ -35,11 +37,13 @@ import org.springframework.transaction.annotation.Transactional
 
 class ProcessIntegrationTest(
     @Autowired private val processService: ProcessService,
+    @Autowired private val agentProcessService: AgentProcessService,
     @Autowired private val taskService: TaskService,
     @Autowired private val processInstanceRepository: ProcessInstanceRepository,
     @Autowired private val taskRepository: TaskRepository,
     @Autowired private val processVariableRepository: ProcessVariableRepository,
     @Autowired private val messageSubscriptionRepository: MessageSubscriptionRepository,
+    @Autowired private val agentProcessExecutionRepository: AgentProcessExecutionRepository,
     @Autowired private val taskVariableRepository: TaskVariableRepository,
     @Autowired private val objectMapper: ObjectMapper,
     @Autowired private val mockMvc: MockMvc
@@ -423,6 +427,85 @@ class ProcessIntegrationTest(
         val mappedCustomerName = childVars.find { it.name == "subCustomerName" }
         assertThat(mappedCustomerName).isNotNull
         assertThat(mappedCustomerName?.value?.asText()).contains("John Doe")
+    }
+
+    @Test
+    fun `agent process call should record execution set decision variables and complete process`() {
+        val agentDefinitionJson = objectMapper.readTree(
+            """
+            {
+              "resourceType": "AgentProcess",
+              "processKey": "customer-support-resolution",
+              "processName": "Customer Support Resolution",
+              "goal": "Resolve customer complaint and ensure customer satisfaction.",
+              "instructions": "Investigate the issue and propose a resolution.",
+              "constraints": ["Refunds above 500 require approval"],
+              "availableTools": ["CRM", "Email"],
+              "participants": ["Planner Agent", "Decision Agent"],
+              "steps": []
+            }
+            """.trimIndent()
+        )
+        agentProcessService.deploy(agentDefinitionJson)
+
+        val processDefinitionJson = objectMapper.readTree(
+            """
+            {
+              "processId": "bpm-calls-agent-process",
+              "variables": [
+                { "name": "customerId", "type": "string", "initialValue": "C-100" }
+              ],
+              "nodes": [
+                { "id": "start", "type": "StartEvent", "next": ["invoke-agent"] },
+                {
+                  "id": "invoke-agent",
+                  "type": "AgentProcessCall",
+                  "name": "Resolve with Agent",
+                  "next": ["end"],
+                  "config": {
+                    "agentProcessKey": "customer-support-resolution",
+                    "goalOverride": "Resolve complaint for customer C-100",
+                    "waitForCompletion": true,
+                    "timeoutDays": 7,
+                    "inputs": [
+                      { "targetName": "customerId", "type": "string", "source": "variable", "value": "customerId" }
+                    ],
+                    "outputs": [
+                      { "source": "variable", "sourceValue": "decision", "type": "string", "targetVariable": "agentDecision" },
+                      { "source": "variable", "sourceValue": "executionId", "type": "number", "targetVariable": "agentExecutionId" }
+                    ]
+                  }
+                },
+                { "id": "end", "type": "EndEvent" }
+              ],
+              "flows": [
+                { "from": "start", "to": "invoke-agent", "condition": null },
+                { "from": "invoke-agent", "to": "end", "condition": null }
+              ]
+            }
+            """.trimIndent()
+        )
+
+        val processDefinition = processService.deployProcess(processDefinitionJson)
+        val processInstance = processService.startProcessInstance(processDefinition.id)
+
+        val completedInstance = processInstanceRepository.findById(processInstance.id).orElseThrow()
+        assertThat(completedInstance.status).isEqualTo(ProcessStatus.COMPLETED)
+        assertThat(completedInstance.currentNode).isEmpty()
+        assertThat(completedInstance.nodeHistory).contains("invoke-agent", "end")
+
+        val executions = agentProcessExecutionRepository.findByProcessInstanceIdOrderByCreatedAtAscIdAsc(processInstance.id)
+        assertThat(executions).hasSize(1)
+        assertThat(executions.first().nodeId).isEqualTo("invoke-agent")
+        assertThat(executions.first().outputPayload).contains("AGENT_PROCESS_PLANNED")
+
+        val agentDecision = processVariableRepository.findByProcessInstanceIdAndName(processInstance.id, "agentDecision")
+        assertThat(agentDecision).isNotNull
+        assertThat(agentDecision?.value?.asText()).isEqualTo("AGENT_PROCESS_PLANNED")
+
+        val defaultDecision = processVariableRepository.findByProcessInstanceIdAndName(processInstance.id, "invoke-agent_agentDecision")
+        assertThat(defaultDecision).isNotNull
+        assertThat(defaultDecision?.value?.asText()).isEqualTo("AGENT_PROCESS_PLANNED")
     }
 
     @Test

@@ -12,6 +12,7 @@ enum class NodeType(val typeName: String) {
     ServiceTask("ServiceTask"),
     ScriptTask("ScriptTask"),
     AiTask("AiTask"),
+    AgentProcessCall("AgentProcessCall"),
     CodeTask("CodeTask"),
     TimerEvent("TimerEvent"),
     MessageEvent("MessageEvent"),
