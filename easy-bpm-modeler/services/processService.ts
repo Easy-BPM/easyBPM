@@ -125,5 +125,29 @@ export const processService = {
       const body = await response.text();
       throw new Error(`Deploy failed (${response.status}): ${body || response.statusText}`);
     }
+  },
+
+  deployAgentProcess: async (payload: unknown): Promise<void> => {
+    const session = getSession();
+    if (!session?.token) {
+      throw new AuthRequiredError('No saved Modeler session was found. Please sign in again before deploying.');
+    }
+
+    const response = await fetchWithAuth(`${API_BASE_URL}/agent-processes`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (response.status === 401) {
+      throw new AuthRequiredError('Session expired. Please sign in again before deploying.');
+    }
+
+    if (!response.ok) {
+      const body = await response.text();
+      throw new Error(`Agent process deploy failed (${response.status}): ${body || response.statusText}`);
+    }
   }
 };
