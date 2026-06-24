@@ -10,14 +10,18 @@ import {
   FileText,
   GitBranch,
   History,
+  Loader2,
   Plus,
   ShieldCheck,
   Sparkles,
   Trash2,
+  UploadCloud,
   UserCheck,
   Wrench
 } from 'lucide-react';
 import { ThemeMode, ThemeToggle } from './ThemeToggle';
+import { isAuthRequiredError, processService } from '../services/processService';
+import { toast } from 'sonner';
 
 type AgentStepStatus = 'backlog' | 'ready' | 'in-progress' | 'waiting-human' | 'waiting-system' | 'completed' | 'failed';
 
@@ -123,9 +127,15 @@ export const AgentBoardModeler: React.FC<AgentBoardModelerProps> = ({
   const [tools, setTools] = useState(defaultTools.join('\n'));
   const [agents, setAgents] = useState(defaultAgents.join('\n'));
   const [memoryPolicy, setMemoryPolicy] = useState('Persist conversations, decisions, tool outputs, artifacts, and final rationale for audit and replanning.');
+  const [providerId, setProviderId] = useState('openai');
+  const [modelName, setModelName] = useState('gpt-4o-mini');
+  const [credentialRef, setCredentialRef] = useState('OPENAI_API_KEY');
+  const [systemPrompt, setSystemPrompt] = useState('You are an Easy BPM orchestration agent. Return concise, auditable decisions as JSON when possible.');
+  const [promptTemplate, setPromptTemplate] = useState('Goal: {{goal}}\nInstructions: {{instructions}}\nConstraints: {{constraints}}\nInputs: {{inputs}}\n\nDecide the next orchestration outcome and explain the reason.');
   const [allowDynamicTasks, setAllowDynamicTasks] = useState(true);
   const [timeoutDays, setTimeoutDays] = useState(7);
   const [steps, setSteps] = useState<AgentStep[]>(initialSteps);
+  const [isDeploying, setIsDeploying] = useState(false);
 
   const boardCounts = useMemo(() => {
     return columns.reduce<Record<AgentStepStatus, number>>((acc, column) => {
@@ -138,9 +148,9 @@ export const AgentBoardModeler: React.FC<AgentBoardModelerProps> = ({
     setSteps(current => current.map(step => step.id === id ? { ...step, ...updates } : step));
   };
 
-  const exportDefinition = () => {
-    const definition = {
+  const buildDefinition = () => ({
       resourceType: 'AgentProcess',
+      processKey: processName.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'agent-process',
       processName,
       goal,
       instructions,
@@ -148,6 +158,19 @@ export const AgentBoardModeler: React.FC<AgentBoardModelerProps> = ({
       availableTools: splitLines(tools),
       participants: splitLines(agents),
       memoryPolicy,
+      provider: {
+        providerId,
+        modelName,
+        credentialRef,
+        systemPrompt,
+        promptTemplate,
+        tuningParams: {
+          temperature: 0.2,
+          topP: 1.0,
+          maxTokens: 1200,
+          retryCount: 0
+        }
+      },
       allowDynamicTasks,
       timeoutDays,
       boardColumns: columns.map(column => column.id),
@@ -155,15 +178,38 @@ export const AgentBoardModeler: React.FC<AgentBoardModelerProps> = ({
       audit: {
         decisionTraceRequired: true,
         createdFrom: 'easy-bpm-modeler-agent-board',
-        exportedAt: new Date().toISOString()
-      }
-    };
+          exportedAt: new Date().toISOString()
+        }
+    });
 
+  const exportDefinition = () => {
+    const definition = buildDefinition();
     const dataStr = `data:text/json;charset=utf-8,${encodeURIComponent(JSON.stringify(definition, null, 2))}`;
     const link = document.createElement('a');
     link.href = dataStr;
-    link.download = `${processName.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'agent-process'}.agent-process.json`;
+    link.download = `${definition.processKey}.agent-process.json`;
     link.click();
+  };
+
+  const deployDefinition = async () => {
+    if (!goal.trim()) {
+      toast.error('Agent Process goal is required.');
+      return;
+    }
+
+    setIsDeploying(true);
+    try {
+      await processService.deployAgentProcess(buildDefinition());
+      toast.success('Agent Process deployed successfully.');
+    } catch (error) {
+      if (isAuthRequiredError(error)) {
+        toast.error(error.message);
+      } else {
+        toast.error(error instanceof Error ? error.message : 'Unexpected Agent Process deploy error');
+      }
+    } finally {
+      setIsDeploying(false);
+    }
   };
 
   return (
@@ -192,10 +238,19 @@ export const AgentBoardModeler: React.FC<AgentBoardModelerProps> = ({
           <button
             type="button"
             onClick={exportDefinition}
-            className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-3 py-2 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-blue-500"
+            className="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm transition-colors hover:bg-slate-50"
           >
             <Download className="h-4 w-4" />
             Export
+          </button>
+          <button
+            type="button"
+            onClick={deployDefinition}
+            disabled={isDeploying}
+            className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-3 py-2 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-70"
+          >
+            {isDeploying ? <Loader2 className="h-4 w-4 animate-spin" /> : <UploadCloud className="h-4 w-4" />}
+            Deploy
           </button>
           <button
             type="button"
@@ -297,6 +352,36 @@ export const AgentBoardModeler: React.FC<AgentBoardModelerProps> = ({
             </div>
           </section>
 
+          <section className="grid gap-4 border-b border-slate-200 bg-white px-6 py-5 lg:grid-cols-4">
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Provider</label>
+              <select value={providerId} onChange={event => setProviderId(event.target.value)} className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500">
+                <option value="openai">OpenAI</option>
+                <option value="anthropic">Anthropic</option>
+                <option value="gemini">Gemini</option>
+                <option value="azure-openai">Azure OpenAI</option>
+                <option value="ollama">Ollama</option>
+                <option value="custom-rest">Custom REST</option>
+              </select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Model</label>
+              <input value={modelName} onChange={event => setModelName(event.target.value)} className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500" />
+            </div>
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Credential Ref</label>
+              <input value={credentialRef} onChange={event => setCredentialRef(event.target.value)} className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-mono outline-none focus:border-blue-500" placeholder="OPENAI_API_KEY" />
+            </div>
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">System Prompt</label>
+              <textarea value={systemPrompt} onChange={event => setSystemPrompt(event.target.value)} className="h-20 w-full resize-none rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500" />
+            </div>
+            <div className="space-y-2 lg:col-span-4">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Planner Prompt Template</label>
+              <textarea value={promptTemplate} onChange={event => setPromptTemplate(event.target.value)} className="h-24 w-full resize-none rounded-md border border-slate-300 px-3 py-2 text-sm font-mono outline-none focus:border-blue-500" />
+            </div>
+          </section>
+
           <section className="px-6 py-5">
             <div className="mb-4 flex items-center justify-between gap-3">
               <div>
@@ -366,7 +451,7 @@ export const AgentBoardModeler: React.FC<AgentBoardModelerProps> = ({
           <section className="border-t border-slate-200 bg-white px-6 py-5">
             <div className="flex items-start gap-3 rounded-md border border-blue-100 bg-blue-50 p-4 text-sm text-blue-900">
               <FileText className="mt-0.5 h-4 w-4 shrink-0" />
-              <p>This feature-flagged modeler resource exports an agent-process draft. Runtime deployment, tool invocation, and persisted decision trace are intentionally left for the backend orchestration slice.</p>
+              <p>This feature-flagged modeler resource deploys an Agent Process definition. Provider tokens stay outside the modeler: use a credential reference resolved by the backend.</p>
             </div>
           </section>
         </main>

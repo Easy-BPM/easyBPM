@@ -57,6 +57,14 @@ class AgentProcessService(
         if (tools != null) {
             require(tools.isArray) { "'availableTools' must be an array" }
         }
+        val provider = definitionJson.get("provider")
+        if (provider != null) {
+            require(provider.isObject) { "'provider' must be an object" }
+            val providerId = provider.get("providerId")?.asText()?.trim()
+            require(!providerId.isNullOrEmpty()) { "provider.providerId is required when provider is configured" }
+            val modelName = provider.get("modelName")?.asText()?.trim()
+            require(!modelName.isNullOrEmpty()) { "provider.modelName is required when provider is configured" }
+        }
         return definitionJson
     }
 

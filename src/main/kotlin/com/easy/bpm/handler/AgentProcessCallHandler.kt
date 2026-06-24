@@ -1,7 +1,12 @@
 package com.easy.bpm.handler
 
+import com.easy.bpm.ai.dto.AIExecutionRequestDto
+import com.easy.bpm.ai.dto.AIProviderConfigDto
+import com.easy.bpm.ai.dto.AITuningParamsDto
+import com.easy.bpm.ai.factory.AIProviderFactory
 import com.easy.bpm.model.agent.AgentProcessExecution
 import com.easy.bpm.model.agent.AgentProcessExecutionStatus
+import com.easy.bpm.model.agent.AgentProcessDefinition
 import com.easy.bpm.model.process.ProcessInstance
 import com.easy.bpm.model.variable.ProcessVariable
 import com.easy.bpm.repository.agent.AgentProcessDefinitionRepository
@@ -19,7 +24,8 @@ class AgentProcessCallHandler(
     private val definitionRepository: AgentProcessDefinitionRepository,
     private val executionRepository: AgentProcessExecutionRepository,
     private val processVariableRepository: ProcessVariableRepository,
-    private val objectMapper: ObjectMapper
+    private val objectMapper: ObjectMapper,
+    private val aiProviderFactory: AIProviderFactory
 ) {
     @Transactional
     fun execute(instance: ProcessInstance, node: JsonNode): AgentProcessExecution {
@@ -44,7 +50,8 @@ class AgentProcessCallHandler(
             )
         )
 
-        val outputPayload = buildOutputPayload(execution.id, definition.key, config, inputPayload)
+        val agentDefinitionJson = objectMapper.readTree(definition.definitionJson)
+        val outputPayload = executeAgentOrPlan(execution.id, definition, agentDefinitionJson, config, inputPayload)
         val decisionTrace = buildDecisionTrace(nodeId, definition, config, inputPayload, outputPayload)
 
         execution.status = AgentProcessExecutionStatus.COMPLETED
@@ -85,7 +92,83 @@ class AgentProcessCallHandler(
         return payload
     }
 
-    private fun buildOutputPayload(
+    private fun executeAgentOrPlan(
+        executionId: Long,
+        definition: AgentProcessDefinition,
+        agentDefinitionJson: JsonNode,
+        config: JsonNode,
+        inputPayload: JsonNode
+    ): ObjectNode {
+        val providerConfigNode = agentDefinitionJson.get("provider")
+        return if (providerConfigNode != null && providerConfigNode.isObject) {
+            executeProviderBackedAgent(executionId, definition.key, agentDefinitionJson, providerConfigNode, config, inputPayload)
+        } else {
+            buildPlannedOutputPayload(executionId, definition.key, config, inputPayload)
+        }
+    }
+
+    private fun executeProviderBackedAgent(
+        executionId: Long,
+        agentProcessKey: String,
+        agentDefinitionJson: JsonNode,
+        providerConfigNode: JsonNode,
+        invocationConfig: JsonNode,
+        inputPayload: JsonNode
+    ): ObjectNode {
+        val providerId = providerConfigNode.get("providerId")?.asText()?.trim()?.takeIf { it.isNotEmpty() }
+            ?: throw IllegalArgumentException("Agent process '$agentProcessKey' provider missing providerId")
+        val modelName = providerConfigNode.get("modelName")?.asText()?.trim()?.takeIf { it.isNotEmpty() }
+            ?: throw IllegalArgumentException("Agent process '$agentProcessKey' provider missing modelName")
+        val credentialId = providerConfigNode.get("credentialId")?.asText()?.trim()?.takeIf { it.isNotEmpty() }
+        val credentialRef = providerConfigNode.get("credentialRef")?.asText()?.trim()?.takeIf { it.isNotEmpty() }
+        val endpoint = providerConfigNode.get("endpoint")?.asText()?.trim()?.takeIf { it.isNotEmpty() }
+        val systemPrompt = providerConfigNode.get("systemPrompt")?.asText()
+        val promptTemplate = providerConfigNode.get("promptTemplate")?.asText()?.takeIf { it.isNotBlank() }
+            ?: defaultPromptTemplate()
+
+        val variables = buildAgentVariables(agentDefinitionJson, invocationConfig, inputPayload)
+        val renderedPrompt = substituteTemplate(promptTemplate, variables)
+        val providerConfig = AIProviderConfigDto(
+            providerId = providerId,
+            modelName = modelName,
+            endpoint = endpoint,
+            credentialId = credentialId,
+            credentialRefName = credentialRef
+        )
+        val provider = aiProviderFactory.createProvider(providerId, providerConfig, "agent-process-runtime")
+        val response = provider.execute(
+            AIExecutionRequestDto(
+                promptTemplate = promptTemplate,
+                userPrompt = renderedPrompt,
+                systemPrompt = systemPrompt,
+                variables = variables,
+                tuningParams = extractTuningParams(providerConfigNode.get("tuningParams")),
+                providerConfig = providerConfig
+            )
+        )
+
+        if (!response.success) {
+            throw IllegalStateException("Agent process provider execution failed: ${response.errorMessage ?: response.errorCode ?: "unknown error"}")
+        }
+
+        val output = objectMapper.createObjectNode()
+        output.put("executionId", executionId)
+        output.put("agentProcessKey", agentProcessKey)
+        output.put("status", "COMPLETED")
+        output.put("decision", "AGENT_PROCESS_DECIDED")
+        output.put("reason", "Agent provider '$providerId' produced an orchestration decision.")
+        output.put("providerId", providerId)
+        output.put("modelName", modelName)
+        output.put("responseText", response.responseText)
+        output.put("tokensUsed", response.tokensUsed)
+        output.set<JsonNode>("inputs", inputPayload)
+        invocationConfig.get("goalOverride")?.asText()?.takeIf { it.isNotBlank() }?.let {
+            output.put("goalOverride", it)
+        }
+        return output
+    }
+
+    private fun buildPlannedOutputPayload(
         executionId: Long,
         agentProcessKey: String,
         config: JsonNode,
@@ -110,6 +193,65 @@ class AgentProcessCallHandler(
         }
         return output
     }
+
+    private fun buildAgentVariables(
+        agentDefinitionJson: JsonNode,
+        invocationConfig: JsonNode,
+        inputPayload: JsonNode
+    ): Map<String, Any> {
+        val variables = linkedMapOf<String, Any>()
+        variables["goal"] = invocationConfig.get("goalOverride")?.asText()?.takeIf { it.isNotBlank() }
+            ?: agentDefinitionJson.get("goal")?.asText().orEmpty()
+        variables["instructions"] = agentDefinitionJson.get("instructions")?.asText().orEmpty()
+        variables["constraints"] = stringifyForPrompt(agentDefinitionJson.get("constraints"))
+        variables["tools"] = stringifyForPrompt(agentDefinitionJson.get("availableTools"))
+        variables["participants"] = stringifyForPrompt(agentDefinitionJson.get("participants"))
+        variables["inputs"] = inputPayload.toString()
+        return variables
+    }
+
+    private fun stringifyForPrompt(node: JsonNode?): String {
+        if (node == null || node.isNull) return ""
+        if (node.isTextual) return node.asText()
+        if (node.isArray) return node.joinToString("\n") { "- ${if (it.isTextual) it.asText() else it.toString()}" }
+        return node.toString()
+    }
+
+    private fun substituteTemplate(template: String, variables: Map<String, Any>): String {
+        var rendered = template
+        variables.forEach { (name, value) ->
+            rendered = rendered.replace("{{$name}}", value.toString())
+        }
+        return rendered
+    }
+
+    private fun extractTuningParams(tuningParamsJson: JsonNode?): AITuningParamsDto {
+        if (tuningParamsJson == null || !tuningParamsJson.isObject) return AITuningParamsDto()
+        return AITuningParamsDto(
+            temperature = tuningParamsJson.get("temperature")?.asDouble() ?: 0.7,
+            topP = tuningParamsJson.get("topP")?.asDouble() ?: 1.0,
+            maxTokens = tuningParamsJson.get("maxTokens")?.asInt() ?: 2000,
+            frequencyPenalty = tuningParamsJson.get("frequencyPenalty")?.asDouble() ?: 0.0,
+            presencePenalty = tuningParamsJson.get("presencePenalty")?.asDouble() ?: 0.0,
+            retryCount = tuningParamsJson.get("retryCount")?.asInt() ?: 0,
+            backoffMultiplier = tuningParamsJson.get("backoffMultiplier")?.asDouble() ?: 2.0,
+            initialDelayMs = tuningParamsJson.get("initialDelayMs")?.asLong() ?: 1000
+        )
+    }
+
+    private fun defaultPromptTemplate(): String =
+        """
+        Goal: {{goal}}
+        Instructions: {{instructions}}
+        Constraints:
+        {{constraints}}
+        Available tools:
+        {{tools}}
+        Inputs:
+        {{inputs}}
+
+        Return an auditable orchestration decision.
+        """.trimIndent()
 
     private fun buildDecisionTrace(
         nodeId: String,
