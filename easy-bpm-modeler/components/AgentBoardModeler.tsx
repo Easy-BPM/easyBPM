@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 import { ThemeMode, ThemeToggle } from './ThemeToggle';
 import { isAuthRequiredError, processService } from '../services/processService';
-import { toast } from 'sonner';
+import { Toaster, toast } from 'sonner';
 
 type AgentStepStatus = 'backlog' | 'ready' | 'in-progress' | 'waiting-human' | 'waiting-system' | 'completed' | 'failed';
 
@@ -214,7 +214,8 @@ export const AgentBoardModeler: React.FC<AgentBoardModelerProps> = ({
 
   return (
     <div className="process-modeler flex h-screen flex-col bg-slate-100 text-slate-900" data-theme={theme}>
-      <div className="modeler-navbar border-b px-5 py-3 flex items-center justify-between gap-4">
+      <Toaster position="top-right" richColors />
+      <div className="modeler-navbar border-b px-5 py-3 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
           <button
             type="button"
@@ -233,7 +234,7 @@ export const AgentBoardModeler: React.FC<AgentBoardModelerProps> = ({
             <p className="modeler-muted text-xs">Agentic orchestration draft</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
           <ThemeToggle theme={theme} onToggle={onToggleTheme} />
           <button
             type="button"
@@ -250,7 +251,7 @@ export const AgentBoardModeler: React.FC<AgentBoardModelerProps> = ({
             className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-3 py-2 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-70"
           >
             {isDeploying ? <Loader2 className="h-4 w-4 animate-spin" /> : <UploadCloud className="h-4 w-4" />}
-            Deploy
+            Deploy Agent
           </button>
           <button
             type="button"
@@ -280,6 +281,15 @@ export const AgentBoardModeler: React.FC<AgentBoardModelerProps> = ({
             </div>
             <div className="space-y-2">
               <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Controls</p>
+              <button
+                type="button"
+                onClick={deployDefinition}
+                disabled={isDeploying}
+                className="flex w-full items-center justify-center gap-2 rounded-md bg-blue-600 px-3 py-2 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {isDeploying ? <Loader2 className="h-4 w-4 animate-spin" /> : <UploadCloud className="h-4 w-4" />}
+                Deploy Agent
+              </button>
               <label className="flex items-center justify-between rounded-md border border-white/[0.07] bg-white/[0.04] px-3 py-2 text-xs">
                 <span>Allow dynamic tasks</span>
                 <input
@@ -449,9 +459,20 @@ export const AgentBoardModeler: React.FC<AgentBoardModelerProps> = ({
           </section>
 
           <section className="border-t border-slate-200 bg-white px-6 py-5">
-            <div className="flex items-start gap-3 rounded-md border border-blue-100 bg-blue-50 p-4 text-sm text-blue-900">
-              <FileText className="mt-0.5 h-4 w-4 shrink-0" />
-              <p>This feature-flagged modeler resource deploys an Agent Process definition. Provider tokens stay outside the modeler: use a credential reference resolved by the backend.</p>
+            <div className="flex flex-col gap-3 rounded-md border border-blue-100 bg-blue-50 p-4 text-sm text-blue-900 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-start gap-3">
+                <FileText className="mt-0.5 h-4 w-4 shrink-0" />
+                <p>This feature-flagged modeler resource deploys an Agent Process definition. Provider tokens stay outside the modeler: use a credential reference resolved by the backend.</p>
+              </div>
+              <button
+                type="button"
+                onClick={deployDefinition}
+                disabled={isDeploying}
+                className="inline-flex shrink-0 items-center justify-center gap-2 rounded-md bg-blue-600 px-3 py-2 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {isDeploying ? <Loader2 className="h-4 w-4 animate-spin" /> : <UploadCloud className="h-4 w-4" />}
+                Deploy Agent
+              </button>
             </div>
           </section>
         </main>
