@@ -37,7 +37,8 @@ services:
       EASY_BPM_SERVER_RABBITMQ_HOST: rabbitmq
       EASY_BPM_SERVER_SECURITY_JWT_EXPIRATION_MS: "86400000"
       EASY_BPM_SERVER_TEST_DATA_ENABLED: "false"
-      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     command: sh -c "java -jar /app/app.jar --server.port=8080"
     ports:
       - "8080:8080"
@@ -102,9 +103,9 @@ services:
         APP_DIR: easy-bpm-modeler
         EASY_BPM_MODELER_API_BASE_URL: http://localhost:8080
         EASY_BPM_MODELER_AGENTIC_ORCHESTRATION: "true"
-        EASY_BPM_MODELER_DEFAULT_AI_PROVIDER: gemini
-        EASY_BPM_MODELER_DEFAULT_AI_MODEL: gemini-3.5-flash
-        EASY_BPM_MODELER_DEFAULT_AI_CREDENTIAL_REF: $$GEMINI_API_KEY
+        EASY_BPM_MODELER_DEFAULT_AI_PROVIDER: ollama
+        EASY_BPM_MODELER_DEFAULT_AI_MODEL: llama3.2
+        EASY_BPM_MODELER_DEFAULT_AI_CREDENTIAL_REF: ""
     container_name: Easy_BPM_Modeler
     ports:
       - "3000:8080"

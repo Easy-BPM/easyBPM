@@ -429,6 +429,8 @@ Agent Process provider configuration:
 | `Instructions` | `Investigate, classify, decide next action` | Operational instructions included in the prompt context. |
 | `Constraints` | `Refunds over 500 require approval` | Guardrails and business policy reminders. |
 
+For local AI testing, `providerId: "ollama"` works without a credential reference and defaults to `http://localhost:11434/api/generate` with model `llama3.2` when the endpoint is not overridden.
+
 Agent Process definition example:
 
 ```json
