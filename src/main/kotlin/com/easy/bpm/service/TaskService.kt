@@ -4,6 +4,7 @@ import com.easy.bpm.enum.ProcessStatus
 import com.easy.bpm.enum.NodeType
 import com.easy.bpm.enum.TaskStatus
 import com.easy.bpm.controller.data.TaskResponseDto
+import com.easy.bpm.handler.AgentProcessCallHandler
 import com.easy.bpm.model.process.ProcessInstance
 import com.easy.bpm.model.process.ProcessInstanceEventType
 import com.easy.bpm.model.task.Task
@@ -41,6 +42,7 @@ class TaskService(
     private val gatewayService: GatewayService,
     private val messageSubscriptionService: MessageSubscriptionService,
     private val metricsService: MetricsService,
+    private val agentProcessCallHandler: AgentProcessCallHandler,
     private val timelineService: ProcessInstanceTimelineService
 ) {
 
@@ -297,6 +299,7 @@ class TaskService(
             NodeType.UserTask -> handleUserTask(instance, node)
             NodeType.APITask -> handleAPITask(instance, node, definition)
             NodeType.ServiceTask -> handleServiceTaskNode(instance, node, definition)
+            NodeType.AgentProcessCall -> handleAgentProcessCall(instance, node, definition)
             NodeType.MessageIntermediateCatchEvent -> handleMessageIntermediateCatchEvent(instance, node)
             NodeType.MessageIntermediateThrowEvent -> handleMessageIntermediateThrowEvent(instance, node, definition)
             NodeType.EndEvent -> finishProcess(instance)
@@ -376,6 +379,34 @@ class TaskService(
         }
 
         applyTaskInputs(task, node, instance)
+    }
+
+    private fun handleAgentProcessCall(
+        instance: ProcessInstance,
+        node: JsonNode,
+        definition: JsonNode
+    ) {
+        val nodeId = node.get("id").asText()
+        timelineService.record(
+            processInstanceId = instance.id,
+            nodeId = nodeId,
+            eventType = ProcessInstanceEventType.AGENT_PROCESS_STARTED,
+            message = "Agent process call started."
+        )
+
+        val execution = agentProcessCallHandler.execute(instance, node)
+
+        timelineService.record(
+            processInstanceId = instance.id,
+            nodeId = nodeId,
+            eventType = ProcessInstanceEventType.AGENT_PROCESS_COMPLETED,
+            message = "Agent process call completed.",
+            details = "agentExecutionId=${execution.id}; status=${execution.status}"
+        )
+
+        val nextNodeIds = getNextNodes(node, definition, instance)
+        advanceProcess(instance, nextNodeIds, definition)
+        executeNextSteps(nextNodeIds, instance, definition)
     }
 
     private fun handleAPITask(
@@ -606,6 +637,7 @@ class TaskService(
                 }
                 NodeType.UserTask,
                 NodeType.ServiceTask,
+                NodeType.AgentProcessCall,
                 NodeType.APITask,
                 NodeType.MessageEvent,
                 NodeType.MessageIntermediateCatchEvent,
@@ -642,11 +674,6 @@ class TaskService(
         }
 
         processInstanceRepository.save(instance)
-        timelineService.record(
-            processInstanceId = instance.id,
-            eventType = ProcessInstanceEventType.PROCESS_COMPLETED,
-            message = "Process instance completed."
-        )
     }
 
     private fun completeTaskEntity(task: Task, assignee: String) {

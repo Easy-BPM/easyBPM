@@ -586,6 +586,107 @@ class ProcessIntegrationTest(
     }
 
     @Test
+    fun `agent process call should execute after completing previous user task`() {
+        val agentDefinitionJson = objectMapper.readTree(
+            """
+            {
+              "resourceType": "AgentProcess",
+              "processKey": "customer-support-resolution-after-task",
+              "processName": "Customer Support Resolution After Task",
+              "goal": "Resolve customer complaint.",
+              "steps": []
+            }
+            """.trimIndent()
+        )
+        agentProcessService.deploy(agentDefinitionJson)
+
+        val processDefinitionJson = objectMapper.readTree(
+            """
+            {
+              "processId": "bpm-user-task-calls-agent-process",
+              "variables": [
+                { "name": "complaintText", "type": "string", "initialValue": "Damaged replacement product." },
+                { "name": "agentDecision", "type": "string", "initialValue": "" }
+              ],
+              "nodes": [
+                { "id": "start", "type": "StartEvent", "next": ["capture-complaint"] },
+                {
+                  "id": "capture-complaint",
+                  "type": "HumanTask",
+                  "name": "Capture Complaint",
+                  "next": ["invoke-resolution-agent"],
+                  "config": {
+                    "assignee": "support.agent",
+                    "outputs": [
+                      { "target": "variable", "sourceName": "complaintText", "type": "string", "value": "complaintText" }
+                    ]
+                  }
+                },
+                {
+                  "id": "invoke-resolution-agent",
+                  "type": "AgentProcessCall",
+                  "name": "Invoke Resolution Agent",
+                  "next": ["review-agent-decision"],
+                  "config": {
+                    "agentProcessKey": "customer-support-resolution-after-task",
+                    "inputs": [
+                      { "targetName": "complaintText", "type": "string", "source": "variable", "value": "complaintText" }
+                    ],
+                    "outputs": [
+                      { "source": "variable", "sourceValue": "decision", "type": "string", "targetVariable": "agentDecision" }
+                    ]
+                  }
+                },
+                {
+                  "id": "review-agent-decision",
+                  "type": "HumanTask",
+                  "name": "Review Agent Decision",
+                  "next": ["end"],
+                  "config": {
+                    "assignee": "support.manager",
+                    "inputs": [
+                      { "targetName": "agentDecision", "type": "string", "source": "variable", "value": "agentDecision" }
+                    ],
+                    "outputs": []
+                  }
+                },
+                { "id": "end", "type": "EndEvent" }
+              ],
+              "flows": [
+                { "from": "start", "to": "capture-complaint", "condition": null },
+                { "from": "capture-complaint", "to": "invoke-resolution-agent", "condition": null },
+                { "from": "invoke-resolution-agent", "to": "review-agent-decision", "condition": null },
+                { "from": "review-agent-decision", "to": "end", "condition": null }
+              ]
+            }
+            """.trimIndent()
+        )
+
+        val processDefinition = processService.deployProcess(processDefinitionJson)
+        val processInstance = processService.startProcessInstance(processDefinition.id)
+
+        val captureTask = taskRepository.findByProcessInstanceId(processInstance.id)
+            .single { it.nodeId == "capture-complaint" }
+        taskService.completeTask(captureTask.id, "support.agent", mapOf("complaintText" to "Damaged replacement product."))
+
+        val updatedInstance = processInstanceRepository.findById(processInstance.id).orElseThrow()
+        assertThat(updatedInstance.status).isEqualTo(ProcessStatus.ACTIVE)
+        assertThat(updatedInstance.currentNode).containsExactly("review-agent-decision")
+        assertThat(updatedInstance.nodeHistory).contains("capture-complaint", "invoke-resolution-agent", "review-agent-decision")
+
+        val executions = agentProcessExecutionRepository.findByProcessInstanceIdOrderByCreatedAtAscIdAsc(processInstance.id)
+        assertThat(executions).hasSize(1)
+        assertThat(executions.first().nodeId).isEqualTo("invoke-resolution-agent")
+
+        val agentDecision = processVariableRepository.findByProcessInstanceIdAndName(processInstance.id, "agentDecision")
+        assertThat(agentDecision?.value?.asText()).isEqualTo("AGENT_PROCESS_PLANNED")
+
+        val reviewTask = taskRepository.findByProcessInstanceId(processInstance.id)
+            .single { it.nodeId == "review-agent-decision" }
+        assertThat(reviewTask.status).isEqualTo(TaskStatus.PENDING)
+    }
+
+    @Test
     fun `move node endpoint should remove old pending task and create new pending task in tasks api`() {
         val processDefinitionJson = objectMapper.readTree(
             """
