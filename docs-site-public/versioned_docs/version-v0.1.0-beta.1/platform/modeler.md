@@ -416,15 +416,15 @@ $env:EASY_BPM_MODELER_AGENTIC_ORCHESTRATION="true"
 npm run dev
 ```
 
-When enabled, the modeler shows the Agent Board resource and an `Agent Process` BPM node. The Agent Board deploys reusable agent definitions to `POST /agent-processes`. A BPM process then calls one of those deployed agents with an `AgentProcessCall` node.
+When enabled, the modeler shows the Agent Board resource and an `Agent Process` BPM node. The Agent Board can import/export Agent Process JSON drafts and deploy reusable agent definitions to `POST /agent-processes`. A BPM process then calls one of those deployed agents with an `AgentProcessCall` node.
 
 Agent Process provider configuration:
 
 | Property | Example | Notes |
 | --- | --- | --- |
-| `Provider` | `openai` | Provider ID used by the backend provider factory. |
-| `Model` | `gpt-4o-mini` | Model name sent to the provider. |
-| `Credential Ref` | `$OPENAI_API_KEY` | Environment variable references must start with `$`. Stored credential IDs do not use `$`. |
+| `Provider` | `gemini` | Provider ID used by the backend provider factory. |
+| `Model` | `gemini-3.5-flash` | Model name sent to the provider. |
+| `Credential Ref` | `$GEMINI_API_KEY` | Environment variable references must start with `$`. Stored credential IDs do not use `$`. |
 | `Goal` | `Resolve customer complaint` | Main objective for the agent. |
 | `Instructions` | `Investigate, classify, decide next action` | Operational instructions included in the prompt context. |
 | `Constraints` | `Refunds over 500 require approval` | Guardrails and business policy reminders. |
@@ -438,9 +438,9 @@ Agent Process definition example:
   "processName": "Customer Support Resolution",
   "goal": "Resolve customer complaint and ensure customer satisfaction.",
   "provider": {
-    "providerId": "openai",
-    "modelName": "gpt-4o-mini",
-    "credentialRef": "$OPENAI_API_KEY"
+    "providerId": "gemini",
+    "modelName": "gemini-3.5-flash",
+    "credentialRef": "$GEMINI_API_KEY"
   },
   "steps": []
 }
@@ -449,8 +449,10 @@ Agent Process definition example:
 Configure the token in the backend runtime environment, not in the frontend:
 
 ```powershell
-$env:OPENAI_API_KEY="sk-..."
+$env:GEMINI_API_KEY="AIza..."
 ```
+
+The deploy API requires a non-empty `goal`. If you include `provider`, it must include non-empty `providerId` and `modelName`. When `processKey` is omitted, the backend falls back to `key`, then to a slugified `processName`.
 
 BPM invocation properties:
 

@@ -37,6 +37,7 @@ Authorization: Bearer <token>
 | Group | Operations | Page |
 | --- | ---: | --- |
 | Authentication | 2 | [Authentication API](./authentication) |
+| Agent Processes | 4 | [Agent Processes API](./agent-processes) |
 | Processes | 15 | [Processes API](./processes) |
 | Tasks | 5 | [Tasks API](./tasks) |
 | Forms | 4 | [Forms API](./forms) |
@@ -51,6 +52,10 @@ Authorization: Bearer <token>
 | --- | --- | --- | --- | --- | --- |
 | `POST` | `/auth/login` | [login](./authentication) | [LoginRequest](./schemas) | [LoginResponse](./schemas) | [Authentication API](./authentication) |
 | `GET` | `/auth/me` | [me](./authentication) | - | [CurrentUserResponse](./schemas) | [Authentication API](./authentication) |
+| `GET` | `/agent-processes` | [Get latest agent process definitions](./agent-processes) | - | `AgentProcessDefinition[]` | [Agent Processes API](./agent-processes) |
+| `POST` | `/agent-processes` | [Deploy an agent process definition](./agent-processes) | `Agent Process JSON` | `AgentProcessDefinition` | [Agent Processes API](./agent-processes) |
+| `GET` | `/agent-processes/{key}` | [Get latest agent process definition by key](./agent-processes) | - | `AgentProcessDefinition` | [Agent Processes API](./agent-processes) |
+| `GET` | `/agent-processes/{key}/versions` | [Get all versions for an agent process key](./agent-processes) | - | `AgentProcessDefinition[]` | [Agent Processes API](./agent-processes) |
 | `GET` | `/processes` | [Get latest process definitions](./processes) | - | [PageProcessDefinition](./schemas) | [Processes API](./processes) |
 | `POST` | `/processes` | [Deploy a process definition](./processes) | `Easy BPM process JSON` | [ProcessDefinition](./schemas) | [Processes API](./processes) |
 | `POST` | `/processes/{processId}/start` | [Start a process instance](./processes) | - | [ProcessInstance](./schemas) | [Processes API](./processes) |

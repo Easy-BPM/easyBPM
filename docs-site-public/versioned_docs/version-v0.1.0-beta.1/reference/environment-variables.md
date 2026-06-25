@@ -24,6 +24,9 @@ Use the `EASY_BPM_<APP>_<VARIABLE>` naming standard for customer-facing configur
 | `EASY_BPM_SERVER_LOGGING_LEVEL_APP` | `DEBUG` |
 | `EASY_BPM_SERVER_LOGGING_LEVEL_HIBERNATE` | `WARN` |
 | `EASY_BPM_SERVER_AI_ENCRYPTION_KEY` | `default-dev-key-change-in-prod-1234` |
+| `EASY_BPM_SERVER_TEST_DATA_ENABLED` | `false` |
+
+`EASY_BPM_SERVER_TEST_DATA_ENABLED=true` seeds demo/test process definitions, instances, tasks, and variables at backend startup. Keep it disabled in production.
 
 ## Agentic orchestration and AI providers
 
@@ -32,26 +35,29 @@ Agent Process execution can use a credential stored in the Easy BPM credential v
 ```json
 {
   "provider": {
-    "providerId": "openai",
-    "modelName": "gpt-4o-mini",
-    "credentialRef": "$OPENAI_API_KEY"
+    "providerId": "gemini",
+    "modelName": "gemini-3.5-flash",
+    "credentialRef": "$GEMINI_API_KEY"
   }
 }
 ```
 
-In that example, the backend process must have `OPENAI_API_KEY` configured in its runtime environment. When `credentialRef` does not start with `$`, the backend treats it as a stored credential ID.
+In that example, the backend process must have `GEMINI_API_KEY` configured in its runtime environment. When `credentialRef` does not start with `$`, the backend treats it as a stored credential ID.
 
 | Variable | Purpose |
 | --- | --- |
 | `OPENAI_API_KEY` | OpenAI API key used when an Agent Process or AI task references `"$OPENAI_API_KEY"`. |
+| `GEMINI_API_KEY` | Google Gemini API key used when an Agent Process or AI task references `"$GEMINI_API_KEY"`. |
 | `EASY_BPM_SERVER_AI_ENCRYPTION_KEY` | Key used to encrypt credentials stored in the Easy BPM credential vault. Use a unique production value. |
 
 PowerShell local example:
 
 ```powershell
-$env:OPENAI_API_KEY="sk-..."
+$env:GEMINI_API_KEY="AIza..."
 $env:EASY_BPM_SERVER_AI_ENCRYPTION_KEY="replace-with-a-production-secret"
 ```
+
+Docker Compose reads `GEMINI_API_KEY` from the root `.env` file for local agentic orchestration testing. Keep that file untracked and use `.env.example` as the checked-in template.
 
 ## Worker
 
@@ -86,6 +92,9 @@ $env:EASY_BPM_SERVER_AI_ENCRYPTION_KEY="replace-with-a-production-secret"
 | `EASY_BPM_ADMIN_API_BASE_URL` | Backend API URL used by the Admin Console. |
 | `EASY_BPM_MODELER_API_BASE_URL` | Backend API URL used by the Modeler. |
 | `EASY_BPM_MODELER_AGENTIC_ORCHESTRATION` | Enables the feature-flagged Agent Process / Agent Board resource in the Modeler when set to `true`, `1`, `yes`, `on`, or `enabled`. Defaults to disabled. |
+| `EASY_BPM_MODELER_DEFAULT_AI_PROVIDER` | Default provider selected by the Agent Board. Local Docker defaults to `gemini`. |
+| `EASY_BPM_MODELER_DEFAULT_AI_MODEL` | Default model selected by the Agent Board. Local Docker defaults to `gemini-3.5-flash`. |
+| `EASY_BPM_MODELER_DEFAULT_AI_CREDENTIAL_REF` | Default credential reference selected by the Agent Board. Local Docker defaults to `"$GEMINI_API_KEY"`. |
 | `EASY_BPM_TASK_PORTAL_API_BASE_URL` | Backend API URL used by the Task Portal. |
 
 Run the feature-flagged modeler locally with:
