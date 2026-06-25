@@ -44,6 +44,7 @@ const sidebars: SidebarsConfig = {
         'api/overview',
         'api/swagger',
         'api/authentication',
+        'api/agent-processes',
         'api/processes',
         'api/tasks',
         'api/forms',
