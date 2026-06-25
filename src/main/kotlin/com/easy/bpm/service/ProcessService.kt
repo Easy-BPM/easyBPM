@@ -125,7 +125,11 @@ class ProcessService(
     }
 
     @Transactional
-    private fun startWithDefinition(definition: ProcessDefinition, initialVariables: Map<String, Any> = emptyMap()): ProcessInstance {
+    private fun startWithDefinition(
+        definition: ProcessDefinition,
+        initialVariables: Map<String, Any> = emptyMap(),
+        startNodeId: String? = null
+    ): ProcessInstance {
         val startTime = System.currentTimeMillis()
 
         val json = parseDefinition(definition.definitionJson)
@@ -150,17 +154,11 @@ class ProcessService(
         // Add initial variables if provided
         if (initialVariables.isNotEmpty()) {
             initialVariables.forEach { (name, value) ->
-                processVariableRepository.save(
-                    ProcessVariable(
-                        processInstanceId = instance.id,
-                        name = name,
-                        value = objectMapper.valueToTree(value)
-                    )
-                )
+                upsertProcessVariable(instance.id, name, objectMapper.valueToTree(value))
             }
         }
 
-        val startNodes = getStartNodes(instance, json)
+        val startNodes = getStartNodes(instance, json, startNodeId)
 
         instance.currentNode = startNodes
         instance.nodeHistory = startNodes
@@ -439,6 +437,11 @@ class ProcessService(
                 NodeType.ServiceTask -> handleServiceTaskNode(instance, node, definition)
                 NodeType.TimerEvent -> handleTimerEvent(instance, node)
                 NodeType.MessageEvent -> handleMessageEvent(instance, node)
+                NodeType.MessageStartEvent -> {
+                    val nextNodes = getNextNodes(node, definition, instance)
+                    advanceProcess(instance, nextNodes, definition)
+                    executeNodes(nextNodes, instance, definition)
+                }
                 NodeType.MessageIntermediateCatchEvent -> handleMessageIntermediateCatchEvent(instance, node)
                 NodeType.MessageIntermediateThrowEvent -> handleMessageIntermediateThrowEvent(instance, node, definition)
                 NodeType.CallActivity -> handleCallActivity(instance, node, definition)
@@ -1133,6 +1136,7 @@ class ProcessService(
             NodeType.CodeTask -> IncidentSource.CODE_TASK
             NodeType.AiTask -> IncidentSource.AI_TASK
             NodeType.MessageEvent,
+            NodeType.MessageStartEvent,
             NodeType.MessageIntermediateCatchEvent,
             NodeType.MessageIntermediateThrowEvent -> IncidentSource.MESSAGE
             else -> IncidentSource.PROCESS_ENGINE
@@ -1151,29 +1155,19 @@ class ProcessService(
             messageName,
             correlationKey,
             variables
-        ) ?: throw IllegalArgumentException("No waiting subscription for message '$messageName' with correlationKey '$correlationKey'")
+        )
+
+        if (subscription == null) {
+            val startedInstance = startProcessInstanceFromMessageStart(messageName, correlationKey, variables)
+                ?: throw IllegalArgumentException("No waiting subscription or message start event for message '$messageName' with correlationKey '$correlationKey'")
+            logger.info("Started process instance ${startedInstance.id} from message '$messageName'")
+            return
+        }
 
         val instance = processInstanceRepository.findByIdForUpdate(subscription.processInstanceId)
             ?: throw IllegalArgumentException("Process instance ${subscription.processInstanceId} not found")
 
-        // Save received message variables as process variables
-        variables?.forEach { (k, v) ->
-            val value = objectMapper.convertValue(v, com.fasterxml.jackson.databind.JsonNode::class.java)
-            val existing = processVariableRepository.findByProcessInstanceIdAndName(instance.id, k)
-            
-            if (existing != null) {
-                existing.value = value
-                processVariableRepository.save(existing)
-            } else {
-                processVariableRepository.save(
-                    ProcessVariable(
-                        processInstanceId = instance.id,
-                        name = k,
-                        value = value
-                    )
-                )
-            }
-        }
+        saveMessageVariables(instance, variables)
 
         // Clean up subscription after message received
         messageSubscriptionService.deleteSubscription(subscription.id)
@@ -1192,6 +1186,35 @@ class ProcessService(
         advanceProcess(instance, nextNodes, definition)
 
         executeNodes(nextNodes, instance, definition)
+    }
+
+    private fun startProcessInstanceFromMessageStart(
+        messageName: String,
+        correlationKey: String,
+        variables: Map<String, Any>?
+    ): ProcessInstance? {
+        val match = processDefinitionRepository.findLatestVersionProcessDefinitions()
+            .asSequence()
+            .mapNotNull { definition ->
+                val json = parseDefinition(definition.definitionJson)
+                val startNode = findMatchingMessageStartNode(json, messageName, correlationKey, variables)
+                if (startNode == null) null else definition to startNode
+            }
+            .firstOrNull()
+            ?: return null
+
+        val (definition, messageStartNode) = match
+        val startVariables = buildMessageStartVariables(messageStartNode, correlationKey, variables)
+        val instance = startWithDefinition(definition, startVariables, messageStartNode.get("id").asText())
+
+        timelineService.record(
+            processInstanceId = instance.id,
+            nodeId = messageStartNode.get("id").asText(),
+            eventType = ProcessInstanceEventType.MESSAGE_RECEIVED,
+            message = "Message '$messageName' started process with correlation key '$correlationKey'."
+        )
+
+        return instance
     }
 
     /**
@@ -1390,15 +1413,106 @@ class ProcessService(
         return gatewayService.getNextNodes(node, definition, instance)
     }
 
-    private fun getStartNodes(instance: ProcessInstance, definition: JsonNode): List<String> {
-        val start = definition.get("nodes")
-            .find { NodeType.fromString(it.get("type").asText()) == NodeType.StartEvent }
-            ?: throw IllegalArgumentException("StartEvent not found")
+    private fun getStartNodes(instance: ProcessInstance, definition: JsonNode, startNodeId: String? = null): List<String> {
+        val start = if (startNodeId != null) {
+            findNode(definition, startNodeId).also {
+                if (NodeType.fromString(it.get("type").asText()) !in setOf(NodeType.StartEvent, NodeType.MessageStartEvent)) {
+                    throw IllegalArgumentException("Node '$startNodeId' is not a start event")
+                }
+            }
+        } else {
+            definition.get("nodes")
+                .find { NodeType.fromString(it.get("type").asText()) == NodeType.StartEvent }
+                ?: throw IllegalArgumentException("StartEvent not found")
+        }
 
         return getNextNodes(start, definition, instance).also {
             if (it.isEmpty()) {
-                throw IllegalArgumentException("StartEvent has no outgoing flow")
+                throw IllegalArgumentException("${NodeType.fromString(start.get("type").asText()).typeName} has no outgoing flow")
             }
+        }
+    }
+
+    private fun findMatchingMessageStartNode(
+        definition: JsonNode,
+        messageName: String,
+        correlationKey: String,
+        variables: Map<String, Any>?
+    ): JsonNode? =
+        definition.get("nodes")
+            .find { node ->
+                NodeType.fromString(node.get("type").asText()) == NodeType.MessageStartEvent &&
+                    node.get("message")?.get("name")?.asText() == messageName &&
+                    matchesMessageStartCorrelation(node.get("message"), correlationKey, variables)
+            }
+
+    private fun matchesMessageStartCorrelation(
+        message: JsonNode?,
+        correlationKey: String,
+        variables: Map<String, Any>?
+    ): Boolean {
+        val correlationKeys = message?.get("correlationKeys")
+        if (correlationKeys == null || !correlationKeys.isArray || correlationKeys.size() == 0) {
+            return true
+        }
+
+        return correlationKeys.any { keyNode ->
+            val key = keyNode.asText()
+            key == correlationKey || variables?.get(key)?.toString() == correlationKey
+        }
+    }
+
+    private fun buildMessageStartVariables(
+        messageStartNode: JsonNode,
+        correlationKey: String,
+        variables: Map<String, Any>?
+    ): Map<String, Any> {
+        val result = variables?.toMutableMap() ?: mutableMapOf()
+        result.putIfAbsent("correlationKey", correlationKey)
+
+        val payload = messageStartNode.get("message")?.get("payload")
+        if (payload != null && payload.isArray) {
+            payload.forEach { mapping ->
+                val targetVariable = mapping.get("targetVariable")?.asText()
+                    ?: mapping.get("targetName")?.asText()
+                    ?: mapping.get("value")?.asText()
+                    ?: return@forEach
+
+                val sourceName = mapping.get("sourceValue")?.asText()
+                    ?: mapping.get("sourceName")?.asText()
+                    ?: mapping.get("value")?.asText()
+                    ?: targetVariable
+
+                if (variables?.containsKey(sourceName) == true) {
+                    result[targetVariable] = variables.getValue(sourceName)
+                }
+            }
+        }
+
+        return result
+    }
+
+    private fun saveMessageVariables(instance: ProcessInstance, variables: Map<String, Any>?) {
+        variables?.forEach { (name, rawValue) ->
+            val value = objectMapper.convertValue(rawValue, com.fasterxml.jackson.databind.JsonNode::class.java)
+            upsertProcessVariable(instance.id, name, value)
+        }
+    }
+
+    private fun upsertProcessVariable(processInstanceId: Long, name: String, value: JsonNode) {
+        val existing = processVariableRepository.findByProcessInstanceIdAndName(processInstanceId, name)
+
+        if (existing != null) {
+            existing.value = value
+            processVariableRepository.save(existing)
+        } else {
+            processVariableRepository.save(
+                ProcessVariable(
+                    processInstanceId = processInstanceId,
+                    name = name,
+                    value = value
+                )
+            )
         }
     }
 
@@ -1497,28 +1611,38 @@ class ProcessService(
                     ?: throw IllegalArgumentException("MessageEvent $id missing 'correlationKey' in properties")
             }
 
-            // Validate MessageIntermediateCatchEvent properties
-            if (nodeType == NodeType.MessageIntermediateCatchEvent) {
+            // Validate MessageStartEvent and MessageIntermediateCatchEvent properties
+            if (nodeType == NodeType.MessageStartEvent || nodeType == NodeType.MessageIntermediateCatchEvent) {
                 val message = node.get("message")
-                    ?: throw IllegalArgumentException("MessageIntermediateCatchEvent $id missing 'message' object")
+                    ?: throw IllegalArgumentException("${nodeType.typeName} $id missing 'message' object")
 
                 message.get("name")?.asText()
-                    ?: throw IllegalArgumentException("MessageIntermediateCatchEvent $id missing 'message.name'")
+                    ?: throw IllegalArgumentException("${nodeType.typeName} $id missing 'message.name'")
 
                 val correlationKeys = message.get("correlationKeys")
-                if (correlationKeys == null || !correlationKeys.isArray || correlationKeys.size() == 0) {
+                if (nodeType == NodeType.MessageIntermediateCatchEvent && (correlationKeys == null || !correlationKeys.isArray || correlationKeys.size() == 0)) {
                     throw IllegalArgumentException("MessageIntermediateCatchEvent $id missing or empty 'message.correlationKeys'")
+                }
+                if (correlationKeys != null && !correlationKeys.isArray) {
+                    throw IllegalArgumentException("${nodeType.typeName} $id has invalid 'message.correlationKeys'")
                 }
 
                 val payload = message.get("payload")
                 if (payload != null && payload.isArray) {
                     payload.forEach { mapping ->
-                        mapping.get("sourceName")?.asText()
-                            ?: throw IllegalArgumentException("MessageIntermediateCatchEvent $id payload missing 'sourceName'")
-                        mapping.get("target")?.asText()
-                            ?: throw IllegalArgumentException("MessageIntermediateCatchEvent $id payload missing 'target'")
-                        mapping.get("value")?.asText()
-                            ?: throw IllegalArgumentException("MessageIntermediateCatchEvent $id payload missing 'value'")
+                        if (nodeType == NodeType.MessageIntermediateCatchEvent) {
+                            mapping.get("sourceName")?.asText()
+                                ?: throw IllegalArgumentException("MessageIntermediateCatchEvent $id payload missing 'sourceName'")
+                            mapping.get("target")?.asText()
+                                ?: throw IllegalArgumentException("MessageIntermediateCatchEvent $id payload missing 'target'")
+                            mapping.get("value")?.asText()
+                                ?: throw IllegalArgumentException("MessageIntermediateCatchEvent $id payload missing 'value'")
+                        } else {
+                            mapping.get("targetVariable")?.asText()
+                                ?: mapping.get("targetName")?.asText()
+                                ?: mapping.get("value")?.asText()
+                                ?: throw IllegalArgumentException("MessageStartEvent $id payload missing 'targetVariable'")
+                        }
                     }
                 }
             }

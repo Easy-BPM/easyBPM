@@ -18,5 +18,16 @@ interface ProcessDefinitionRepository : JpaRepository<ProcessDefinition, Long> {
         )
     """)
     fun findLatestVersionProcesses(pageable: Pageable): Page<ProcessDefinition>
+
+    @Query("""
+        SELECT pd FROM ProcessDefinition pd
+        WHERE pd.version = (
+            SELECT MAX(pd2.version)
+            FROM ProcessDefinition pd2
+            WHERE pd2.key = pd.key
+        )
+        ORDER BY pd.id ASC
+    """)
+    fun findLatestVersionProcessDefinitions(): List<ProcessDefinition>
 }
 

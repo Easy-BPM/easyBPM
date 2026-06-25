@@ -333,7 +333,7 @@ class ProcessController(
                 MessageEventInboxStatus.RECEIVED -> "received"
             },
             "message" to when (inboxMessage.status) {
-                MessageEventInboxStatus.PROCESSED -> "Message received and process resumed"
+                MessageEventInboxStatus.PROCESSED -> "Message received and processed"
                 MessageEventInboxStatus.UNMATCHED -> "Message received but no process was waiting for this correlation"
                 MessageEventInboxStatus.FAILED -> "Message received but processing failed"
                 MessageEventInboxStatus.RECEIVED -> "Message received"

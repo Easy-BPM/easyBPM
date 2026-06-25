@@ -15,6 +15,7 @@ enum class NodeType(val typeName: String) {
     CodeTask("CodeTask"),
     TimerEvent("TimerEvent"),
     MessageEvent("MessageEvent"),
+    MessageStartEvent("MessageStartEvent"),
     MessageIntermediateCatchEvent("MessageIntermediateCatchEvent"),
     MessageIntermediateThrowEvent("MessageIntermediateThrowEvent"),
     ErrorBoundaryEvent("ErrorBoundaryEvent"),

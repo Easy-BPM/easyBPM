@@ -333,6 +333,83 @@ class ProcessIntegrationTest(
     }
 
     @Test
+    fun `message start process should start when matching message is received`() {
+        val processDefinitionJson = objectMapper.readTree(
+            """
+            {
+              "processId": "message-start-order",
+              "variables": [
+                { "name": "orderId", "type": "string", "initialValue": "" },
+                { "name": "eventPayload", "type": "json", "initialValue": "{}" }
+              ],
+              "nodes": [
+                {
+                  "id": "start_msg",
+                  "name": "Message Start",
+                  "type": "MessageStartEvent",
+                  "next": ["review_order"],
+                  "message": {
+                    "name": "order.started",
+                    "correlationKeys": ["orderId"],
+                    "payload": [
+                      {
+                        "source": "variable",
+                        "sourceValue": "payload",
+                        "type": "json",
+                        "targetVariable": "eventPayload"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "id": "review_order",
+                  "name": "Review Order",
+                  "type": "HumanTask",
+                  "next": ["end"]
+                },
+                {
+                  "id": "end",
+                  "name": "End",
+                  "type": "EndEvent",
+                  "next": []
+                }
+              ],
+              "flows": [
+                { "from": "start_msg", "to": "review_order", "condition": null },
+                { "from": "review_order", "to": "end", "condition": null }
+              ]
+            }
+            """.trimIndent()
+        )
+
+        val processDefinition = processService.deployProcess(processDefinitionJson)
+
+        processService.handleMessageReceived(
+            "order.started",
+            "ORD-1001",
+            mapOf(
+                "orderId" to "ORD-1001",
+                "payload" to mapOf("source" to "api")
+            )
+        )
+
+        val instance = processInstanceRepository.findAll()
+            .single { it.processDefinition.id == processDefinition.id }
+
+        assertThat(instance.status).isEqualTo(ProcessStatus.ACTIVE)
+        assertThat(instance.currentNode).containsExactly("review_order")
+        assertThat(instance.nodeHistory).contains("review_order")
+
+        val orderId = processVariableRepository.findByProcessInstanceIdAndName(instance.id, "orderId")
+        val eventPayload = processVariableRepository.findByProcessInstanceIdAndName(instance.id, "eventPayload")
+        val correlationKey = processVariableRepository.findByProcessInstanceIdAndName(instance.id, "correlationKey")
+
+        assertThat(orderId?.value?.asText()).isEqualTo("ORD-1001")
+        assertThat(eventPayload?.value?.get("source")?.asText()).isEqualTo("api")
+        assertThat(correlationKey?.value?.asText()).isEqualTo("ORD-1001")
+    }
+
+    @Test
     fun `timer event json process should create subscription and continue after timeout`() {
         val processDefinitionJson = objectMapper.readTree(ClassPathResource("process-timer-event.json").inputStream)
 
