@@ -64,5 +64,6 @@ secrets:
   ai:
     encryptionKey: replace-with-strong-ai-credential-key
     openaiApiKey: ""
+    geminiApiKey: ""
 
 existingSecretName: ""

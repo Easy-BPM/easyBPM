@@ -55,13 +55,14 @@ web:
 
 The chart renders those values into `easybpm-config.js` and mounts it into the Modeler container, so the feature flag can be changed per deployment without rebuilding the frontend image.
 
-To run provider-backed Agent Processes with the example OpenAI configuration, provide the backend token as a Kubernetes secret value:
+To run provider-backed Agent Processes, provide the backend provider token as a Kubernetes secret value:
 
 ```yaml
 secrets:
   ai:
     encryptionKey: "replace-with-strong-ai-credential-key"
     openaiApiKey: "sk-..."
+    geminiApiKey: "AIza..."
 ```
 
-Agent Process definitions that use `"credentialRef": "$OPENAI_API_KEY"` resolve that value from the backend pod environment. For production, prefer a sealed secret, external secret operator, or `existingSecretName`.
+Use only the keys you need. Agent Process definitions that use `"credentialRef": "$OPENAI_API_KEY"` or `"credentialRef": "$GEMINI_API_KEY"` resolve those values from the backend pod environment. For production, prefer a sealed secret, external secret operator, or `existingSecretName`.
