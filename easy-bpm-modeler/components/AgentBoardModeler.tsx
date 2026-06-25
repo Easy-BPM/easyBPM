@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import {
   ArrowLeft,
   Bot,
@@ -7,6 +7,7 @@ import {
   CircleDashed,
   Clock3,
   Download,
+  FilePlus2,
   FileText,
   GitBranch,
   History,
@@ -15,12 +16,14 @@ import {
   ShieldCheck,
   Sparkles,
   Trash2,
+  Upload,
   UploadCloud,
   UserCheck,
   Wrench
 } from 'lucide-react';
 import { ThemeMode, ThemeToggle } from './ThemeToggle';
 import { isAuthRequiredError, processService } from '../services/processService';
+import { getRuntimeConfigValue } from '../config/runtimeConfig';
 import { Toaster, toast } from 'sonner';
 
 type AgentStepStatus = 'backlog' | 'ready' | 'in-progress' | 'waiting-human' | 'waiting-system' | 'completed' | 'failed';
@@ -44,6 +47,24 @@ interface AgentBoardModelerProps {
   onToggleTheme: () => void;
 }
 
+interface AgentBoardState {
+  processName: string;
+  goal: string;
+  instructions: string;
+  constraints: string;
+  tools: string;
+  agents: string;
+  memoryPolicy: string;
+  providerId: string;
+  modelName: string;
+  credentialRef: string;
+  systemPrompt: string;
+  promptTemplate: string;
+  allowDynamicTasks: boolean;
+  timeoutDays: number;
+  steps: AgentStep[];
+}
+
 const columns: { id: AgentStepStatus; label: string; icon: React.ReactNode }[] = [
   { id: 'backlog', label: 'Backlog', icon: <CircleDashed className="h-4 w-4" /> },
   { id: 'ready', label: 'Ready', icon: <Sparkles className="h-4 w-4" /> },
@@ -53,52 +74,6 @@ const columns: { id: AgentStepStatus; label: string; icon: React.ReactNode }[] =
   { id: 'completed', label: 'Completed', icon: <CheckCircle2 className="h-4 w-4" /> },
   { id: 'failed', label: 'Failed', icon: <ShieldCheck className="h-4 w-4" /> }
 ];
-
-const initialSteps: AgentStep[] = [
-  {
-    id: 'step_customer_context',
-    title: 'Investigate customer context',
-    description: 'Review complaint details, account history, prior support interactions, and attachments.',
-    reasoning: 'The planner needs enough context before it can decide whether refund, replacement, escalation, or more information is appropriate.',
-    status: 'ready',
-    owner: 'Research Agent',
-    priority: 'high',
-    dependencies: ''
-  },
-  {
-    id: 'step_ask_customer',
-    title: 'Ask customer for clarification',
-    description: 'Request missing details when the root cause cannot be determined from available records.',
-    reasoning: 'Human-in-the-loop input keeps the agent from guessing when evidence is incomplete.',
-    status: 'waiting-human',
-    owner: 'Support Specialist',
-    priority: 'medium',
-    dependencies: 'step_customer_context'
-  },
-  {
-    id: 'step_resolution_plan',
-    title: 'Generate resolution proposal',
-    description: 'Produce a recommended resolution with evidence, policy references, and customer-facing wording.',
-    reasoning: 'A decision step creates an auditable recommendation before execution.',
-    status: 'backlog',
-    owner: 'Decision Agent',
-    priority: 'high',
-    dependencies: 'step_customer_context'
-  },
-  {
-    id: 'step_manager_approval',
-    title: 'Request manager approval',
-    description: 'Ask a manager to approve resolutions involving refunds above the configured threshold.',
-    reasoning: 'The policy constraint requires human approval before high-value refunds can be executed.',
-    status: 'backlog',
-    owner: 'Supervisor Agent',
-    priority: 'high',
-    dependencies: 'step_resolution_plan'
-  }
-];
-
-const defaultTools = ['CRM', 'Email', 'Knowledge Base', 'ERP', 'BPMN Process: Approve Refund'];
-const defaultAgents = ['Planner Agent', 'Research Agent', 'Decision Agent', 'Execution Agent', 'Supervisor Agent'];
 
 const createStep = (index: number): AgentStep => ({
   id: `step_${Date.now()}_${index}`,
@@ -113,6 +88,94 @@ const createStep = (index: number): AgentStep => ({
 
 const splitLines = (value: string) => value.split('\n').map(line => line.trim()).filter(Boolean);
 
+const getRuntimeDefault = (key: string, fallback: string) =>
+  getRuntimeConfigValue(key) ?? (import.meta.env[key] as string | undefined) ?? fallback;
+
+const defaultSystemPrompt = 'You are an Easy BPM orchestration agent. Return concise, auditable decisions as JSON when possible.';
+const defaultPromptTemplate = 'Goal: {{goal}}\nInstructions: {{instructions}}\nConstraints: {{constraints}}\nInputs: {{inputs}}\n\nDecide the next orchestration outcome and explain the reason.';
+
+const createBlankAgentState = (): AgentBoardState => ({
+  processName: '',
+  goal: '',
+  instructions: '',
+  constraints: '',
+  tools: '',
+  agents: '',
+  memoryPolicy: '',
+  providerId: getRuntimeDefault('EASY_BPM_MODELER_DEFAULT_AI_PROVIDER', 'gemini'),
+  modelName: getRuntimeDefault('EASY_BPM_MODELER_DEFAULT_AI_MODEL', 'gemini-3.5-flash'),
+  credentialRef: getRuntimeDefault('EASY_BPM_MODELER_DEFAULT_AI_CREDENTIAL_REF', '$GEMINI_API_KEY'),
+  systemPrompt: defaultSystemPrompt,
+  promptTemplate: defaultPromptTemplate,
+  allowDynamicTasks: true,
+  timeoutDays: 7,
+  steps: []
+});
+
+const toMultiline = (value: unknown): string => {
+  if (Array.isArray(value)) return value.map(String).join('\n');
+  return typeof value === 'string' ? value : '';
+};
+
+const validStepStatuses = new Set<AgentStepStatus>(columns.map(column => column.id));
+const validPriorities = new Set<AgentStep['priority']>(['low', 'medium', 'high']);
+
+const normalizeImportedSteps = (value: unknown): AgentStep[] => {
+  if (!Array.isArray(value)) return [];
+  return value.map((item, index) => {
+    const step = item && typeof item === 'object' ? item as Record<string, unknown> : {};
+    const status = typeof step.status === 'string' && validStepStatuses.has(step.status as AgentStepStatus)
+      ? step.status as AgentStepStatus
+      : 'backlog';
+    const priority = typeof step.priority === 'string' && validPriorities.has(step.priority as AgentStep['priority'])
+      ? step.priority as AgentStep['priority']
+      : 'medium';
+
+    return {
+      id: typeof step.id === 'string' && step.id.trim() ? step.id : `step_imported_${index + 1}`,
+      title: typeof step.title === 'string' ? step.title : 'Imported task',
+      description: typeof step.description === 'string' ? step.description : '',
+      reasoning: typeof step.reasoning === 'string' ? step.reasoning : '',
+      status,
+      owner: typeof step.owner === 'string' ? step.owner : '',
+      priority,
+      dependencies: typeof step.dependencies === 'string' ? step.dependencies : ''
+    };
+  });
+};
+
+const normalizeImportedAgent = (data: unknown): AgentBoardState => {
+  if (!data || typeof data !== 'object') {
+    throw new Error('The selected file is not a valid Agent Process JSON object.');
+  }
+
+  const imported = data as Record<string, any>;
+  if (imported.resourceType && imported.resourceType !== 'AgentProcess') {
+    throw new Error(`Unsupported resourceType: ${imported.resourceType}`);
+  }
+
+  const blank = createBlankAgentState();
+  const provider = imported.provider && typeof imported.provider === 'object' ? imported.provider : {};
+
+  return {
+    processName: typeof imported.processName === 'string' ? imported.processName : '',
+    goal: typeof imported.goal === 'string' ? imported.goal : '',
+    instructions: typeof imported.instructions === 'string' ? imported.instructions : '',
+    constraints: toMultiline(imported.constraints),
+    tools: toMultiline(imported.availableTools),
+    agents: toMultiline(imported.participants),
+    memoryPolicy: typeof imported.memoryPolicy === 'string' ? imported.memoryPolicy : '',
+    providerId: typeof provider.providerId === 'string' ? provider.providerId : blank.providerId,
+    modelName: typeof provider.modelName === 'string' ? provider.modelName : blank.modelName,
+    credentialRef: typeof provider.credentialRef === 'string' ? provider.credentialRef : blank.credentialRef,
+    systemPrompt: typeof provider.systemPrompt === 'string' ? provider.systemPrompt : blank.systemPrompt,
+    promptTemplate: typeof provider.promptTemplate === 'string' ? provider.promptTemplate : blank.promptTemplate,
+    allowDynamicTasks: typeof imported.allowDynamicTasks === 'boolean' ? imported.allowDynamicTasks : true,
+    timeoutDays: typeof imported.timeoutDays === 'number' && imported.timeoutDays > 0 ? imported.timeoutDays : 7,
+    steps: normalizeImportedSteps(imported.steps)
+  };
+};
+
 export const AgentBoardModeler: React.FC<AgentBoardModelerProps> = ({
   currentUser,
   onBack,
@@ -120,22 +183,30 @@ export const AgentBoardModeler: React.FC<AgentBoardModelerProps> = ({
   theme,
   onToggleTheme
 }) => {
-  const [processName, setProcessName] = useState('Customer Support Resolution');
-  const [goal, setGoal] = useState('Resolve customer complaint and ensure customer satisfaction.');
-  const [instructions, setInstructions] = useState('Investigate the issue, determine root cause, and provide an appropriate resolution.');
-  const [constraints, setConstraints] = useState('Refunds above $500 require approval\nAlways contact the customer\nFollow company policies');
-  const [tools, setTools] = useState(defaultTools.join('\n'));
-  const [agents, setAgents] = useState(defaultAgents.join('\n'));
-  const [memoryPolicy, setMemoryPolicy] = useState('Persist conversations, decisions, tool outputs, artifacts, and final rationale for audit and replanning.');
-  const [providerId, setProviderId] = useState('openai');
-  const [modelName, setModelName] = useState('gpt-4o-mini');
-  const [credentialRef, setCredentialRef] = useState('$OPENAI_API_KEY');
-  const [systemPrompt, setSystemPrompt] = useState('You are an Easy BPM orchestration agent. Return concise, auditable decisions as JSON when possible.');
-  const [promptTemplate, setPromptTemplate] = useState('Goal: {{goal}}\nInstructions: {{instructions}}\nConstraints: {{constraints}}\nInputs: {{inputs}}\n\nDecide the next orchestration outcome and explain the reason.');
-  const [allowDynamicTasks, setAllowDynamicTasks] = useState(true);
-  const [timeoutDays, setTimeoutDays] = useState(7);
-  const [steps, setSteps] = useState<AgentStep[]>(initialSteps);
+  const [agentState, setAgentState] = useState<AgentBoardState>(() => createBlankAgentState());
   const [isDeploying, setIsDeploying] = useState(false);
+  const importInputRef = useRef<HTMLInputElement>(null);
+  const {
+    processName,
+    goal,
+    instructions,
+    constraints,
+    tools,
+    agents,
+    memoryPolicy,
+    providerId,
+    modelName,
+    credentialRef,
+    systemPrompt,
+    promptTemplate,
+    allowDynamicTasks,
+    timeoutDays,
+    steps
+  } = agentState;
+
+  const updateAgentState = (updates: Partial<AgentBoardState>) => {
+    setAgentState(current => ({ ...current, ...updates }));
+  };
 
   const boardCounts = useMemo(() => {
     return columns.reduce<Record<AgentStepStatus, number>>((acc, column) => {
@@ -145,7 +216,7 @@ export const AgentBoardModeler: React.FC<AgentBoardModelerProps> = ({
   }, [steps]);
 
   const updateStep = (id: string, updates: Partial<AgentStep>) => {
-    setSteps(current => current.map(step => step.id === id ? { ...step, ...updates } : step));
+    updateAgentState({ steps: steps.map(step => step.id === id ? { ...step, ...updates } : step) });
   };
 
   const buildDefinition = () => ({
@@ -189,6 +260,26 @@ export const AgentBoardModeler: React.FC<AgentBoardModelerProps> = ({
     link.href = dataStr;
     link.download = `${definition.processKey}.agent-process.json`;
     link.click();
+  };
+
+  const resetAgent = () => {
+    setAgentState(createBlankAgentState());
+    toast.success('New Agent Process started.');
+  };
+
+  const importDefinition = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      const json = JSON.parse(text);
+      setAgentState(normalizeImportedAgent(json));
+      toast.success('Agent Process imported.');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Import failed.');
+    }
   };
 
   const deployDefinition = async () => {
@@ -236,6 +327,29 @@ export const AgentBoardModeler: React.FC<AgentBoardModelerProps> = ({
         </div>
         <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
           <ThemeToggle theme={theme} onToggle={onToggleTheme} />
+          <button
+            type="button"
+            onClick={resetAgent}
+            className="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm transition-colors hover:bg-slate-50"
+          >
+            <FilePlus2 className="h-4 w-4" />
+            New
+          </button>
+          <button
+            type="button"
+            onClick={() => importInputRef.current?.click()}
+            className="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm transition-colors hover:bg-slate-50"
+          >
+            <Upload className="h-4 w-4" />
+            Import
+          </button>
+          <input
+            ref={importInputRef}
+            type="file"
+            accept=".json,application/json"
+            onChange={importDefinition}
+            className="hidden"
+          />
           <button
             type="button"
             onClick={exportDefinition}
@@ -295,7 +409,7 @@ export const AgentBoardModeler: React.FC<AgentBoardModelerProps> = ({
                 <input
                   type="checkbox"
                   checked={allowDynamicTasks}
-                  onChange={event => setAllowDynamicTasks(event.target.checked)}
+                  onChange={event => updateAgentState({ allowDynamicTasks: event.target.checked })}
                   className="h-4 w-4 rounded border-slate-500 text-blue-600"
                 />
               </label>
@@ -304,7 +418,7 @@ export const AgentBoardModeler: React.FC<AgentBoardModelerProps> = ({
                 type="number"
                 min={1}
                 value={timeoutDays}
-                onChange={event => setTimeoutDays(Number(event.target.value) || 1)}
+                onChange={event => updateAgentState({ timeoutDays: Number(event.target.value) || 1 })}
                 className="w-full rounded-md border border-white/[0.08] bg-white/[0.06] px-3 py-2 text-xs text-slate-100 outline-none focus:border-blue-500"
               />
             </div>
@@ -318,13 +432,13 @@ export const AgentBoardModeler: React.FC<AgentBoardModelerProps> = ({
                 <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Name</label>
                 <input
                   value={processName}
-                  onChange={event => setProcessName(event.target.value)}
+                  onChange={event => updateAgentState({ processName: event.target.value })}
                   className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                 />
                 <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Goal</label>
                 <textarea
                   value={goal}
-                  onChange={event => setGoal(event.target.value)}
+                  onChange={event => updateAgentState({ goal: event.target.value })}
                   className="h-24 w-full resize-none rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                 />
               </div>
@@ -332,7 +446,7 @@ export const AgentBoardModeler: React.FC<AgentBoardModelerProps> = ({
                 <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Instructions</label>
                 <textarea
                   value={instructions}
-                  onChange={event => setInstructions(event.target.value)}
+                  onChange={event => updateAgentState({ instructions: event.target.value })}
                   className="h-36 w-full resize-none rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                 />
               </div>
@@ -340,7 +454,7 @@ export const AgentBoardModeler: React.FC<AgentBoardModelerProps> = ({
                 <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Constraints</label>
                 <textarea
                   value={constraints}
-                  onChange={event => setConstraints(event.target.value)}
+                  onChange={event => updateAgentState({ constraints: event.target.value })}
                   className="h-36 w-full resize-none rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                 />
               </div>
@@ -350,22 +464,22 @@ export const AgentBoardModeler: React.FC<AgentBoardModelerProps> = ({
           <section className="grid gap-4 border-b border-slate-200 bg-slate-50 px-6 py-5 lg:grid-cols-3">
             <div className="space-y-2">
               <label className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-500"><Wrench className="h-3.5 w-3.5" />Available Tools</label>
-              <textarea value={tools} onChange={event => setTools(event.target.value)} className="h-28 w-full resize-none rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500" />
+              <textarea value={tools} onChange={event => updateAgentState({ tools: event.target.value })} className="h-28 w-full resize-none rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500" />
             </div>
             <div className="space-y-2">
               <label className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-500"><Brain className="h-3.5 w-3.5" />Agents</label>
-              <textarea value={agents} onChange={event => setAgents(event.target.value)} className="h-28 w-full resize-none rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500" />
+              <textarea value={agents} onChange={event => updateAgentState({ agents: event.target.value })} className="h-28 w-full resize-none rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500" />
             </div>
             <div className="space-y-2">
               <label className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-500"><History className="h-3.5 w-3.5" />Memory and Audit</label>
-              <textarea value={memoryPolicy} onChange={event => setMemoryPolicy(event.target.value)} className="h-28 w-full resize-none rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500" />
+              <textarea value={memoryPolicy} onChange={event => updateAgentState({ memoryPolicy: event.target.value })} className="h-28 w-full resize-none rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500" />
             </div>
           </section>
 
           <section className="grid gap-4 border-b border-slate-200 bg-white px-6 py-5 lg:grid-cols-4">
             <div className="space-y-2">
               <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Provider</label>
-              <select value={providerId} onChange={event => setProviderId(event.target.value)} className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500">
+              <select value={providerId} onChange={event => updateAgentState({ providerId: event.target.value })} className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500">
                 <option value="openai">OpenAI</option>
                 <option value="anthropic">Anthropic</option>
                 <option value="gemini">Gemini</option>
@@ -376,19 +490,19 @@ export const AgentBoardModeler: React.FC<AgentBoardModelerProps> = ({
             </div>
             <div className="space-y-2">
               <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Model</label>
-              <input value={modelName} onChange={event => setModelName(event.target.value)} className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500" />
+              <input value={modelName} onChange={event => updateAgentState({ modelName: event.target.value })} className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500" />
             </div>
             <div className="space-y-2">
               <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Credential Ref</label>
-              <input value={credentialRef} onChange={event => setCredentialRef(event.target.value)} className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-mono outline-none focus:border-blue-500" placeholder="$OPENAI_API_KEY" />
+              <input value={credentialRef} onChange={event => updateAgentState({ credentialRef: event.target.value })} className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-mono outline-none focus:border-blue-500" placeholder="$GEMINI_API_KEY" />
             </div>
             <div className="space-y-2">
               <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">System Prompt</label>
-              <textarea value={systemPrompt} onChange={event => setSystemPrompt(event.target.value)} className="h-20 w-full resize-none rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500" />
+              <textarea value={systemPrompt} onChange={event => updateAgentState({ systemPrompt: event.target.value })} className="h-20 w-full resize-none rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500" />
             </div>
             <div className="space-y-2 lg:col-span-4">
               <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Planner Prompt Template</label>
-              <textarea value={promptTemplate} onChange={event => setPromptTemplate(event.target.value)} className="h-24 w-full resize-none rounded-md border border-slate-300 px-3 py-2 text-sm font-mono outline-none focus:border-blue-500" />
+              <textarea value={promptTemplate} onChange={event => updateAgentState({ promptTemplate: event.target.value })} className="h-24 w-full resize-none rounded-md border border-slate-300 px-3 py-2 text-sm font-mono outline-none focus:border-blue-500" />
             </div>
           </section>
 
@@ -400,7 +514,7 @@ export const AgentBoardModeler: React.FC<AgentBoardModelerProps> = ({
               </div>
               <button
                 type="button"
-                onClick={() => setSteps(current => [...current, createStep(current.length + 1)])}
+                onClick={() => updateAgentState({ steps: [...steps, createStep(steps.length + 1)] })}
                 className="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50"
               >
                 <Plus className="h-4 w-4" />
@@ -446,7 +560,7 @@ export const AgentBoardModeler: React.FC<AgentBoardModelerProps> = ({
                         </div>
                         <div className="flex items-center justify-between pt-1">
                           <span className="flex items-center gap-1 text-[10px] font-mono text-slate-400"><GitBranch className="h-3 w-3" />{step.id}</span>
-                          <button type="button" onClick={() => setSteps(current => current.filter(item => item.id !== step.id))} className="text-slate-400 transition-colors hover:text-red-500" title="Delete step" aria-label="Delete step">
+                          <button type="button" onClick={() => updateAgentState({ steps: steps.filter(item => item.id !== step.id) })} className="text-slate-400 transition-colors hover:text-red-500" title="Delete step" aria-label="Delete step">
                             <Trash2 className="h-3.5 w-3.5" />
                           </button>
                         </div>

@@ -1,6 +1,7 @@
 package com.easy.bpm.service
 
 import com.easy.bpm.enum.TaskStatus
+import com.easy.bpm.handler.AgentProcessCallHandler
 import com.easy.bpm.model.process.ProcessDefinition
 import com.easy.bpm.model.process.ProcessInstance
 import com.easy.bpm.model.task.Task
@@ -40,6 +41,7 @@ class TaskServiceTest : FunSpec() {
     val mockGatewayService = mockk<GatewayService>()
     val mockMessageSubscriptionService = mockk<MessageSubscriptionService>()
     val mockMetricsService = mockk<MetricsService>(relaxed = true)
+    val mockAgentProcessCallHandler = mockk<AgentProcessCallHandler>()
     val mockTimelineService = mockk<ProcessInstanceTimelineService>(relaxed = true)
 
     val taskService = TaskService(
@@ -54,6 +56,7 @@ class TaskServiceTest : FunSpec() {
         mockGatewayService,
         mockMessageSubscriptionService,
         mockMetricsService,
+        mockAgentProcessCallHandler,
         mockTimelineService
     )
 

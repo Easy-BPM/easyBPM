@@ -105,8 +105,11 @@ class AIProviderFactory(
                 throw NotImplementedError("Anthropic provider not yet implemented (Phase 9.6.1)")
             }
             "gemini" -> {
-                // Phase 9.6.2: Implement GeminiProvider
-                throw NotImplementedError("Gemini provider not yet implemented (Phase 9.6.2)")
+                com.easy.bpm.ai.provider.gemini.GeminiProvider(
+                    config = config,
+                    credentialVault = credentialVault,
+                    userId = userId
+                )
             }
             "azure-openai" -> {
                 // Phase 9.6.3: Implement AzureOpenAIProvider
@@ -135,7 +138,7 @@ class AIProviderFactory(
         return when (normalizedId) {
             "openai" -> com.easy.bpm.ai.provider.openai.OpenAIProvider.getStaticMetadata()
             "anthropic" -> null  // Not implemented yet
-            "gemini" -> null     // Not implemented yet
+            "gemini" -> com.easy.bpm.ai.provider.gemini.GeminiProvider.getStaticMetadata()
             "azure-openai" -> null // Not implemented yet
             "custom-rest" -> null  // Not implemented yet
             "ollama" -> null       // Not implemented yet
@@ -171,6 +174,7 @@ class AIProviderFactory(
     ): com.easy.bpm.ai.dto.ValidationResultDto {
         return when (providerId.lowercase()) {
             "openai" -> com.easy.bpm.ai.provider.openai.OpenAIProvider.validateConfig(config)
+            "gemini" -> com.easy.bpm.ai.provider.gemini.GeminiProvider.validateConfig(config)
             else -> {
                 com.easy.bpm.ai.dto.ValidationResultDto(
                     valid = false,

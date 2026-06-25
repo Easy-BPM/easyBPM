@@ -54,7 +54,7 @@ curl -X POST http://localhost:8080/processes \
   -d @src/main/resources/examples/customer-support-agent-process.json
 ```
 
-The example Agent Process uses `credentialRef: "$OPENAI_API_KEY"`. Set `OPENAI_API_KEY` in the backend environment or replace the value with a stored credential ID before starting the process if you want provider-backed execution.
+The example Agent Process uses `credentialRef: "$GEMINI_API_KEY"`. Set `GEMINI_API_KEY` in the backend environment or replace the value with a stored credential ID before starting the process if you want provider-backed execution.
 
 ---
 

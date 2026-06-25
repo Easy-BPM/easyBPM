@@ -105,7 +105,7 @@
       "coverage": ["agent-process-call", "agent-input-mapping", "agent-output-mapping", "human-review"],
       "modelerImportable": true,
       "backendDeployCandidate": true,
-      "backendNote": "Deploy agent-processes/customer-support-resolution.agent-process.json before starting this process. Provider execution requires OPENAI_API_KEY or an equivalent backend credential reference."
+      "backendNote": "Deploy agent-processes/customer-support-resolution.agent-process.json before starting this process. Provider execution requires GEMINI_API_KEY or an equivalent backend credential reference."
     }
   ]
 }
