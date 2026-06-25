@@ -57,6 +57,7 @@ interface AgentBoardState {
   memoryPolicy: string;
   providerId: string;
   modelName: string;
+  endpoint: string;
   credentialRef: string;
   systemPrompt: string;
   promptTemplate: string;
@@ -93,8 +94,12 @@ const getRuntimeDefault = (key: string, fallback: string) =>
 
 const defaultSystemPrompt = 'You are an Easy BPM orchestration agent. Return concise, auditable decisions as JSON when possible.';
 const defaultPromptTemplate = 'Goal: {{goal}}\nInstructions: {{instructions}}\nConstraints: {{constraints}}\nInputs: {{inputs}}\n\nDecide the next orchestration outcome and explain the reason.';
+const defaultProviderEndpoint = (providerId: string) =>
+  providerId === 'ollama' ? 'http://host.docker.internal:11434' : '';
 
-const createBlankAgentState = (): AgentBoardState => ({
+const createBlankAgentState = (): AgentBoardState => {
+  const defaultProviderId = getRuntimeDefault('EASY_BPM_MODELER_DEFAULT_AI_PROVIDER', 'gemini');
+  return {
   processName: '',
   goal: '',
   instructions: '',
@@ -102,15 +107,17 @@ const createBlankAgentState = (): AgentBoardState => ({
   tools: '',
   agents: '',
   memoryPolicy: '',
-  providerId: getRuntimeDefault('EASY_BPM_MODELER_DEFAULT_AI_PROVIDER', 'gemini'),
+  providerId: defaultProviderId,
   modelName: getRuntimeDefault('EASY_BPM_MODELER_DEFAULT_AI_MODEL', 'gemini-3.5-flash'),
+  endpoint: defaultProviderEndpoint(defaultProviderId),
   credentialRef: getRuntimeDefault('EASY_BPM_MODELER_DEFAULT_AI_CREDENTIAL_REF', '$GEMINI_API_KEY'),
   systemPrompt: defaultSystemPrompt,
   promptTemplate: defaultPromptTemplate,
   allowDynamicTasks: true,
   timeoutDays: 7,
   steps: []
-});
+  };
+};
 
 const toMultiline = (value: unknown): string => {
   if (Array.isArray(value)) return value.map(String).join('\n');
@@ -167,6 +174,9 @@ const normalizeImportedAgent = (data: unknown): AgentBoardState => {
     memoryPolicy: typeof imported.memoryPolicy === 'string' ? imported.memoryPolicy : '',
     providerId: typeof provider.providerId === 'string' ? provider.providerId : blank.providerId,
     modelName: typeof provider.modelName === 'string' ? provider.modelName : blank.modelName,
+    endpoint: typeof provider.endpoint === 'string'
+      ? provider.endpoint
+      : defaultProviderEndpoint(typeof provider.providerId === 'string' ? provider.providerId : blank.providerId),
     credentialRef: typeof provider.credentialRef === 'string' ? provider.credentialRef : blank.credentialRef,
     systemPrompt: typeof provider.systemPrompt === 'string' ? provider.systemPrompt : blank.systemPrompt,
     promptTemplate: typeof provider.promptTemplate === 'string' ? provider.promptTemplate : blank.promptTemplate,
@@ -196,6 +206,7 @@ export const AgentBoardModeler: React.FC<AgentBoardModelerProps> = ({
     memoryPolicy,
     providerId,
     modelName,
+    endpoint,
     credentialRef,
     systemPrompt,
     promptTemplate,
@@ -206,6 +217,13 @@ export const AgentBoardModeler: React.FC<AgentBoardModelerProps> = ({
 
   const updateAgentState = (updates: Partial<AgentBoardState>) => {
     setAgentState(current => ({ ...current, ...updates }));
+  };
+
+  const handleProviderChange = (nextProviderId: string) => {
+    updateAgentState({
+      providerId: nextProviderId,
+      endpoint: defaultProviderEndpoint(nextProviderId)
+    });
   };
 
   const boardCounts = useMemo(() => {
@@ -232,6 +250,7 @@ export const AgentBoardModeler: React.FC<AgentBoardModelerProps> = ({
       provider: {
         providerId,
         modelName,
+        endpoint: endpoint.trim() || undefined,
         credentialRef,
         systemPrompt,
         promptTemplate,
@@ -479,7 +498,7 @@ export const AgentBoardModeler: React.FC<AgentBoardModelerProps> = ({
           <section className="grid gap-4 border-b border-slate-200 bg-white px-6 py-5 lg:grid-cols-4">
             <div className="space-y-2">
               <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Provider</label>
-              <select value={providerId} onChange={event => updateAgentState({ providerId: event.target.value })} className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500">
+              <select value={providerId} onChange={event => handleProviderChange(event.target.value)} className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500">
                 <option value="openai">OpenAI</option>
                 <option value="anthropic">Anthropic</option>
                 <option value="gemini">Gemini</option>
@@ -491,6 +510,10 @@ export const AgentBoardModeler: React.FC<AgentBoardModelerProps> = ({
             <div className="space-y-2">
               <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Model</label>
               <input value={modelName} onChange={event => updateAgentState({ modelName: event.target.value })} className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500" />
+            </div>
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Endpoint</label>
+              <input value={endpoint} onChange={event => updateAgentState({ endpoint: event.target.value })} className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500" placeholder={providerId === 'ollama' ? 'http://host.docker.internal:11434' : 'Optional provider endpoint'} />
             </div>
             <div className="space-y-2">
               <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Credential Ref</label>
