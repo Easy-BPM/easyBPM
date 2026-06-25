@@ -52,6 +52,12 @@ export const AIProviderConfigForm: React.FC<AIProviderConfigFormProps> = ({
       defaultModel: 'gemini-3.5-flash',
       supportsCustomEndpoint: false,
     },
+    ollama: {
+      label: 'Ollama (Local)',
+      models: ['llama3.2', 'llama3.1', 'mistral', 'qwen2.5', 'phi3'],
+      defaultModel: 'llama3.2',
+      supportsCustomEndpoint: true,
+    },
     'azure-openai': {
       label: 'Azure OpenAI',
       models: ['gpt-4', 'gpt-35-turbo'],
@@ -147,7 +153,7 @@ export const AIProviderConfigForm: React.FC<AIProviderConfigFormProps> = ({
         <p className="text-xs text-gray-600 mt-1">API key or token for authentication</p>
       </div>
 
-      {/* Custom Endpoint (for OpenAI/Azure) */}
+      {/* Custom Endpoint (for OpenAI/Azure/Ollama) */}
       {currentProvider.supportsCustomEndpoint && (
         <div>
           <label className="block text-sm font-semibold text-gray-700 mb-1.5">Custom Endpoint (Optional)</label>
@@ -155,10 +161,10 @@ export const AIProviderConfigForm: React.FC<AIProviderConfigFormProps> = ({
             type="text"
             value={endpoint}
             onChange={e => onEndpointChange(e.target.value)}
-            placeholder="https://api.openai.com/v1/chat/completions"
+            placeholder={providerId === 'ollama' ? 'http://localhost:11434' : 'https://api.openai.com/v1/chat/completions'}
             className="w-full px-3 py-2 border border-pink-300 rounded-lg bg-white text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
           />
-          <p className="text-xs text-gray-600 mt-1">For Azure or proxy endpoints. Leave blank for default.</p>
+          <p className="text-xs text-gray-600 mt-1">{providerId === 'ollama' ? 'Leave blank to use the local default http://localhost:11434.' : 'For Azure or proxy endpoints. Leave blank for default.'}</p>
         </div>
       )}
 

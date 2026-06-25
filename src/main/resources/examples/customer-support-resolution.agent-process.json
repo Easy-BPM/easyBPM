@@ -25,9 +25,9 @@
   ],
   "memoryPolicy": "Persist customer context, decision rationale, tool outputs, approval requests, and final resolution notes.",
   "provider": {
-    "providerId": "gemini",
-    "modelName": "gemini-3.5-flash",
-    "credentialRef": "$GEMINI_API_KEY",
+    "providerId": "ollama",
+    "modelName": "llama3.2",
+    "endpoint": "http://host.docker.internal:11434",
     "systemPrompt": "You are an Easy BPM orchestration agent. Return concise, auditable decisions. Prefer JSON with decision, reason, requiresApproval, nextTasks, variables, and customerMessage.",
     "promptTemplate": "Goal: {{goal}}\nInstructions: {{instructions}}\nConstraints:\n{{constraints}}\nAvailable tools:\n{{tools}}\nParticipants:\n{{participants}}\nInputs:\n{{inputs}}\n\nReturn a JSON decision with: decision, reason, requiresApproval, nextTasks, variables, customerMessage.",
     "tuningParams": {

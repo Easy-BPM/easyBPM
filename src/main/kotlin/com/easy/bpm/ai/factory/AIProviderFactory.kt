@@ -111,11 +111,18 @@ class AIProviderFactory(
                     userId = userId
                 )
             }
+            "ollama" -> {
+                com.easy.bpm.ai.provider.ollama.OllamaProvider(
+                    config = config,
+                    credentialVault = credentialVault,
+                    userId = userId
+                )
+            }
             "azure-openai" -> {
                 // Phase 9.6.3: Implement AzureOpenAIProvider
                 throw NotImplementedError("Azure OpenAI provider not yet implemented (Phase 9.6.3)")
             }
-            "custom-rest", "ollama" -> {
+            "custom-rest" -> {
                 // Phase 9.6.4: Implement CustomRESTProvider
                 throw NotImplementedError("Custom REST provider not yet implemented (Phase 9.6.4)")
             }
@@ -139,9 +146,9 @@ class AIProviderFactory(
             "openai" -> com.easy.bpm.ai.provider.openai.OpenAIProvider.getStaticMetadata()
             "anthropic" -> null  // Not implemented yet
             "gemini" -> com.easy.bpm.ai.provider.gemini.GeminiProvider.getStaticMetadata()
+            "ollama" -> com.easy.bpm.ai.provider.ollama.OllamaProvider.getStaticMetadata()
             "azure-openai" -> null // Not implemented yet
             "custom-rest" -> null  // Not implemented yet
-            "ollama" -> null       // Not implemented yet
             else -> null
         }
     }
@@ -175,6 +182,7 @@ class AIProviderFactory(
         return when (providerId.lowercase()) {
             "openai" -> com.easy.bpm.ai.provider.openai.OpenAIProvider.validateConfig(config)
             "gemini" -> com.easy.bpm.ai.provider.gemini.GeminiProvider.validateConfig(config)
+            "ollama" -> com.easy.bpm.ai.provider.ollama.OllamaProvider.validateConfig(config)
             else -> {
                 com.easy.bpm.ai.dto.ValidationResultDto(
                     valid = false,

@@ -50,6 +50,8 @@ In that example, the backend process must have `GEMINI_API_KEY` configured in it
 | `GEMINI_API_KEY` | Google Gemini API key used when an Agent Process or AI task references `"$GEMINI_API_KEY"`. |
 | `EASY_BPM_SERVER_AI_ENCRYPTION_KEY` | Key used to encrypt credentials stored in the Easy BPM credential vault. Use a unique production value. |
 
+Local Ollama testing does not require a credential by default. Use `providerId: "ollama"` with model `llama3.2`. When no endpoint is supplied, the backend uses `http://localhost:11434/api/generate`.
+
 PowerShell local example:
 
 ```powershell

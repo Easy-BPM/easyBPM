@@ -2,6 +2,7 @@ package com.easy.bpm.ai.factory
 
 import com.easy.bpm.ai.dto.AIProviderConfigDto
 import com.easy.bpm.ai.provider.gemini.GeminiProvider
+import com.easy.bpm.ai.provider.ollama.OllamaProvider
 import com.easy.bpm.ai.provider.openai.OpenAIProvider
 import com.easy.bpm.ai.service.CredentialVault
 import org.junit.jupiter.api.BeforeEach
@@ -68,6 +69,18 @@ class AIProviderFactoryTest {
         assertTrue(provider is GeminiProvider)
         assertTrue(provider.getProviderId() == "gemini")
     }
+
+    @Test
+    fun `test create Ollama provider`() {
+        val config = AIProviderConfigDto(
+            providerId = "ollama",
+            modelName = "llama3.2"
+        )
+
+        val provider = factory.createProvider("ollama", config, "user123")
+        assertTrue(provider is OllamaProvider)
+        assertTrue(provider.getProviderId() == "ollama")
+    }
     
     @Test
     fun `test create provider with invalid provider ID throws exception`() {
@@ -96,6 +109,14 @@ class AIProviderFactoryTest {
         assertTrue(metadata != null)
         assertTrue(metadata!!.providerId == "gemini")
         assertTrue(metadata.supportedModels.contains("gemini-3.5-flash"))
+    }
+
+    @Test
+    fun `test get provider metadata for Ollama`() {
+        val metadata = factory.getProviderMetadata("ollama")
+        assertTrue(metadata != null)
+        assertTrue(metadata!!.providerId == "ollama")
+        assertTrue(metadata.supportedModels.contains("llama3.2"))
     }
     
     @Test
@@ -133,6 +154,19 @@ class AIProviderFactoryTest {
         assertTrue(result.valid)
         assertTrue(result.errors.isEmpty())
     }
+
+    @Test
+    fun `test validate Ollama config with valid model`() {
+        val config = AIProviderConfigDto(
+            providerId = "ollama",
+            modelName = "llama3.2",
+            endpoint = "http://localhost:11434"
+        )
+
+        val result = factory.validateConfig("ollama", config)
+        assertTrue(result.valid)
+        assertTrue(result.errors.isEmpty())
+    }
     
     @Test
     fun `test validate config with invalid endpoint`() {
@@ -151,6 +185,7 @@ class AIProviderFactoryTest {
         val availableProviders = factory.getAvailableProviders()
         assertTrue(availableProviders.containsKey("openai"))
         assertTrue(availableProviders.containsKey("gemini"))
+        assertTrue(availableProviders.containsKey("ollama"))
         assertTrue(availableProviders["openai"]?.supportedModels?.isNotEmpty() == true)
     }
 }

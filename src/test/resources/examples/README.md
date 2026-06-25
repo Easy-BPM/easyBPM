@@ -54,7 +54,7 @@ curl -X POST http://localhost:8080/processes \
   -d @src/main/resources/examples/customer-support-agent-process.json
 ```
 
-The example Agent Process uses `credentialRef: "$GEMINI_API_KEY"`. Set `GEMINI_API_KEY` in the backend environment or replace the value with a stored credential ID before starting the process if you want provider-backed execution.
+The example Agent Process uses `providerId: "ollama"` with endpoint `http://host.docker.internal:11434` and model `llama3.2` for Docker Compose-based local testing. If you run the backend outside containers, you can switch that endpoint to `http://localhost:11434`.
 
 ---
 
