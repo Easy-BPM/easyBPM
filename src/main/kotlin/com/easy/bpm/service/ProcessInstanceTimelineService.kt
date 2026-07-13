@@ -6,13 +6,14 @@ import com.easy.bpm.repository.process.ProcessInstanceEventRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Propagation
 import org.springframework.transaction.annotation.Transactional
+import com.easy.bpm.tenant.TenantContext
 
 @Service
 class ProcessInstanceTimelineService(
     private val eventRepository: ProcessInstanceEventRepository
 ) {
     fun getTimeline(processInstanceId: Long): List<ProcessInstanceEvent> =
-        eventRepository.findByProcessInstanceIdOrderByCreatedAtAscIdAsc(processInstanceId)
+        eventRepository.findByTenantIdAndProcessInstanceIdOrderByCreatedAtAscIdAsc(TenantContext.getTenant(), processInstanceId)
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     fun record(
@@ -25,6 +26,7 @@ class ProcessInstanceTimelineService(
     ): ProcessInstanceEvent =
         eventRepository.save(
             ProcessInstanceEvent(
+                tenantId = TenantContext.getTenant(),
                 processInstanceId = processInstanceId,
                 nodeId = nodeId,
                 eventType = eventType,

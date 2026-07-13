@@ -1,5 +1,6 @@
 package com.easy.bpm.security
 
+import com.easy.bpm.tenant.TenantContext
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
@@ -20,23 +21,29 @@ class JwtAuthenticationFilter(
         response: HttpServletResponse,
         filterChain: FilterChain
     ) {
-        val authHeader = request.getHeader("Authorization")
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+        try {
+            val authHeader = request.getHeader("Authorization")
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                TenantContext.setTenant(request.getHeader(TenantContext.TENANT_HEADER))
+                filterChain.doFilter(request, response)
+                return
+            }
+
+            val jwt = authHeader.substring(7)
+            val username = jwtService.extractUsername(jwt)
+            val tenantFromToken = jwtService.extractTenant(jwt)
+            TenantContext.setTenant(tenantFromToken ?: request.getHeader(TenantContext.TENANT_HEADER))
+
+            if (username != null && SecurityContextHolder.getContext().authentication == null && jwtService.isTokenValid(jwt)) {
+                val userDetails = userDetailsService.loadUserByUsername(username)
+                val authToken = UsernamePasswordAuthenticationToken(userDetails, null, userDetails.authorities)
+                authToken.details = WebAuthenticationDetailsSource().buildDetails(request)
+                SecurityContextHolder.getContext().authentication = authToken
+            }
+
             filterChain.doFilter(request, response)
-            return
+        } finally {
+            TenantContext.clear()
         }
-
-        val jwt = authHeader.substring(7)
-        val username = jwtService.extractUsername(jwt)
-
-        if (username != null && SecurityContextHolder.getContext().authentication == null && jwtService.isTokenValid(jwt)) {
-            val userDetails = userDetailsService.loadUserByUsername(username)
-            val authToken = UsernamePasswordAuthenticationToken(userDetails, null, userDetails.authorities)
-            authToken.details = WebAuthenticationDetailsSource().buildDetails(request)
-            SecurityContextHolder.getContext().authentication = authToken
-        }
-
-        filterChain.doFilter(request, response)
     }
 }
-

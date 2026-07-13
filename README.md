@@ -176,3 +176,11 @@ These numbers are local benchmark samples, not product limits. In this setup, th
 ```text
 worker throughput ~= worker count / external API latency
 ```
+
+## Multi-tenancy foundation
+
+The backend supports a tenant-aware security foundation. Each authenticated request is resolved to a tenant using the tenant claim in the JWT; unauthenticated login requests may pass `tenantId` in the JSON body, and non-authenticated requests can provide `X-Tenant-Id`. If no tenant is provided, the backend uses the `default` tenant for backward compatibility.
+
+Security users and groups are tenant-scoped, so the same username or group code can exist in different tenants. The bootstrap process creates the `default` tenant and places the configured administrator account and admin group into that tenant.
+
+Tenant isolation now covers runtime data tables as well as security data. Process definitions, process instances, process variables, tasks, task variables, forms, documents, incidents, message subscriptions/inbox rows, worker requests, call-activity mappings, and process timeline events all include `tenant_id` columns. Tenant-aware service paths use the active `TenantContext` when querying or creating the most user-facing process, form, task, variable, document, and timeline records.

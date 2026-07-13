@@ -10,6 +10,7 @@ import org.springframework.security.authentication.BadCredentialsException
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Service
+import com.easy.bpm.tenant.TenantContext
 
 @Service
 class AuthService(
@@ -18,6 +19,7 @@ class AuthService(
 ) {
 
     fun login(request: LoginRequest): LoginResponse {
+        TenantContext.setTenant(request.tenantId)
         val authentication = try {
             authenticationManager.authenticate(
                 UsernamePasswordAuthenticationToken(request.username, request.password)
@@ -32,6 +34,7 @@ class AuthService(
         return LoginResponse(
             token = token,
             username = principal.username,
+            tenantId = principal.tenantId,
             groups = principal.groups,
             permissions = principal.permissionCodes
         )
@@ -43,6 +46,7 @@ class AuthService(
 
         return CurrentUserResponse(
             username = principal.username,
+            tenantId = principal.tenantId,
             groups = principal.groups,
             permissions = principal.permissionCodes
         )

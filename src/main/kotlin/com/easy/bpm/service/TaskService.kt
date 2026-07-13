@@ -26,6 +26,7 @@ import org.springframework.data.domain.Sort
 import org.springframework.security.access.AccessDeniedException
 import java.time.LocalDateTime
 import javax.script.ScriptEngineManager
+import com.easy.bpm.tenant.TenantContext
 
 @Service
 class TaskService(
@@ -132,7 +133,7 @@ class TaskService(
 
     fun getTasks(pageable: Pageable): Page<Task> {
         val startTime = System.currentTimeMillis()
-        val result = taskRepository.findAll(sanitizeTaskPageable(pageable))
+        val result = taskRepository.findByTenantId(TenantContext.getTenant(), sanitizeTaskPageable(pageable))
         val duration = System.currentTimeMillis() - startTime
         metricsService.recordTaskQueryDuration(duration)
         return result
@@ -140,7 +141,7 @@ class TaskService(
 
     fun getTaskById(id: Long): Task? {
         val startTime = System.currentTimeMillis()
-        val result = taskRepository.findById(id).orElse(null)
+        val result = taskRepository.findById(id).orElse(null)?.takeIf { it.tenantId == TenantContext.getTenant() }
         val duration = System.currentTimeMillis() - startTime
         metricsService.recordTaskQueryDuration(duration)
         return result
@@ -151,15 +152,15 @@ class TaskService(
         val sanitizedPageable = sanitizeTaskPageable(pageable)
         val result = when {
             assignee != null && status != null ->
-                taskRepository.findByAssigneeAndStatus(assignee, status, sanitizedPageable)
+                taskRepository.findByTenantIdAndAssigneeAndStatus(TenantContext.getTenant(), assignee, status, sanitizedPageable)
 
             assignee != null ->
-                taskRepository.findByAssignee(assignee, sanitizedPageable)
+                taskRepository.findByTenantIdAndAssignee(TenantContext.getTenant(), assignee, sanitizedPageable)
 
             status != null ->
-                taskRepository.findByStatus(status, sanitizedPageable)
+                taskRepository.findByTenantIdAndStatus(TenantContext.getTenant(), status, sanitizedPageable)
 
-            else -> taskRepository.findAll(sanitizedPageable)
+            else -> taskRepository.findByTenantId(TenantContext.getTenant(), sanitizedPageable)
         }
         val duration = System.currentTimeMillis() - startTime
         metricsService.recordTaskQueryDuration(duration)
@@ -343,6 +344,7 @@ class TaskService(
 
         val task = taskRepository.save(
             Task(
+                tenantId = instance.tenantId,
                 processInstanceId = instance.id,
                 title = node.get("name").asText(),
                 nodeId = node.get("id").asText(),
@@ -415,20 +417,21 @@ class TaskService(
                     "variable" -> {
                         val sourceVarName = varConfig.get("value")?.asText()
                             ?: throw IllegalArgumentException("ServiceTask variable missing 'value' field for variable source")
-                        val sourceVar = processVariableRepository.findByProcessInstanceIdAndName(instance.id, sourceVarName)
+                        val sourceVar = processVariableRepository.findByTenantIdAndProcessInstanceIdAndName(TenantContext.getTenant(), instance.id, sourceVarName)
                         sourceVar?.value ?: throw IllegalArgumentException("Source process variable '$sourceVarName' not found")
                     }
                     else -> throw IllegalArgumentException("Invalid variable source: '$source'")
                 }
 
                 // Save or update process variable
-                val existing = processVariableRepository.findByProcessInstanceIdAndName(instance.id, varName)
+                val existing = processVariableRepository.findByTenantIdAndProcessInstanceIdAndName(TenantContext.getTenant(), instance.id, varName)
                 if (existing != null) {
                     existing.value = value
                     processVariableRepository.save(existing)
                 } else {
                     processVariableRepository.save(
                         ProcessVariable(
+                            tenantId = TenantContext.getTenant(),
                             processInstanceId = instance.id,
                             name = varName,
                             value = value
@@ -547,7 +550,7 @@ class TaskService(
                 // Map from process variable or static value
                 val mappedValue = when (source) {
                     "variable" -> {
-                        processVariableRepository.findByProcessInstanceIdAndName(instance.id, value)
+                        processVariableRepository.findByTenantIdAndProcessInstanceIdAndName(TenantContext.getTenant(), instance.id, value)
                             ?.value?.asText() ?: value
                     }
 
@@ -657,7 +660,7 @@ class TaskService(
     }
 
     private fun toResponseDto(task: Task): TaskResponseDto {
-        val variables = taskVariableRepository.findByTaskId(task.id)
+        val variables = taskVariableRepository.findByTenantIdAndTaskId(TenantContext.getTenant(), task.id)
             .associate { it.name to objectMapper.convertValue(it.value, Any::class.java) }
         val formId = task.formId?.let { formService.getById(it)?.formId }
 
@@ -701,7 +704,7 @@ class TaskService(
     private fun persistTaskVariables(task: Task, variables: Map<String, Any?>) {
         variables.forEach { (key, value) ->
             val valueNode = objectMapper.valueToTree<JsonNode>(value)
-            val existingVariables = taskVariableRepository.findAllByTaskIdAndNameOrderByIdDesc(task.id, key)
+            val existingVariables = taskVariableRepository.findAllByTenantIdAndTaskIdAndNameOrderByIdDesc(TenantContext.getTenant(), task.id, key)
             val latest = existingVariables.firstOrNull()
 
             if (latest != null) {
@@ -711,6 +714,7 @@ class TaskService(
             } else {
                 taskVariableRepository.save(
                     TaskVariable(
+                        tenantId = TenantContext.getTenant(),
                         taskId = task.id,
                         name = key,
                         value = valueNode
@@ -740,7 +744,7 @@ class TaskService(
 
             val finalValue: JsonNode = if (!sourceName.isNullOrBlank()) {
                 val taskVar = taskVariableRepository
-                    .findAllByTaskIdAndNameOrderByIdDesc(task.id, sourceName)
+                    .findAllByTenantIdAndTaskIdAndNameOrderByIdDesc(TenantContext.getTenant(), task.id, sourceName)
                     .firstOrNull()
                 taskVar?.value ?: NullNode.instance
             } else {
@@ -748,7 +752,7 @@ class TaskService(
             }
 
             val existingVar =
-                processVariableRepository.findByProcessInstanceIdAndName(instance.id, processVarName)
+                processVariableRepository.findByTenantIdAndProcessInstanceIdAndName(TenantContext.getTenant(), instance.id, processVarName)
 
             if (existingVar != null) {
                 existingVar.value = finalValue
@@ -756,6 +760,7 @@ class TaskService(
             } else {
                 processVariableRepository.save(
                     ProcessVariable(
+                        tenantId = TenantContext.getTenant(),
                         processInstanceId = instance.id,
                         name = processVarName,
                         value = finalValue
@@ -781,7 +786,7 @@ class TaskService(
                 "variable" -> {
                     val varName = valueNode.asText()
                     val processVar =
-                        processVariableRepository.findByProcessInstanceIdAndName(instance.id, varName)
+                        processVariableRepository.findByTenantIdAndProcessInstanceIdAndName(TenantContext.getTenant(), instance.id, varName)
                             ?: throw IllegalArgumentException("Process variable '$varName' not found")
                     processVar.value
                 }
@@ -793,6 +798,7 @@ class TaskService(
 
             taskVariableRepository.save(
                 TaskVariable(
+                    tenantId = TenantContext.getTenant(),
                     taskId = task.id,
                     name = targetName,
                     value = value
@@ -806,7 +812,7 @@ class TaskService(
      ========================= */
 
     private fun getActiveTask(taskId: Long): Task {
-        val task = taskRepository.findById(taskId)
+        val task = taskRepository.findByTenantIdAndIdForUpdate(TenantContext.getTenant(), taskId)
             .orElseThrow { IllegalArgumentException("Task not found") }
 
         if (task.status == TaskStatus.COMPLETED) {
@@ -817,7 +823,7 @@ class TaskService(
     }
 
     private fun getActiveTaskForUpdate(taskId: Long): Task {
-        val task = taskRepository.findByIdForUpdate(taskId)
+        val task = taskRepository.findByTenantIdAndIdForUpdate(TenantContext.getTenant(), taskId)
             .orElseThrow { IllegalArgumentException("Task not found") }
 
         if (task.status == TaskStatus.COMPLETED) {
@@ -841,7 +847,7 @@ class TaskService(
     }
 
     private fun getProcessInstance(instanceId: Long): ProcessInstance =
-        processInstanceRepository.findByIdForUpdate(instanceId)
+        processInstanceRepository.findByTenantIdAndIdForUpdate(TenantContext.getTenant(), instanceId)
             ?: throw IllegalArgumentException("Process instance not found")
 
     private fun parseDefinition(definitionJson: String): JsonNode =

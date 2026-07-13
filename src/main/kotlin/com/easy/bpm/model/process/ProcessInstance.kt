@@ -13,6 +13,9 @@ data class ProcessInstance(
         @GeneratedValue(strategy = GenerationType.IDENTITY)
         val id: Long = 0,
 
+        @Column(name = "tenant_id", nullable = false, length = 100)
+        val tenantId: String = "default",
+
         @ManyToOne
         @JoinColumn(name = "process_definition_id")
         val processDefinition: ProcessDefinition,

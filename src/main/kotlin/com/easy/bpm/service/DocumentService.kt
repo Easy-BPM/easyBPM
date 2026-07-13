@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.multipart.MultipartFile
 import java.util.UUID
+import com.easy.bpm.tenant.TenantContext
 
 /**
  * DocumentService — handles upload, retrieval, streaming, and deletion of form documents.
@@ -64,7 +65,7 @@ class DocumentService(
 
         // If a file already exists for this task + form field, remove the old one first (replace semantics)
         if (taskId != null && !formFieldKey.isNullOrBlank()) {
-            val existing = documentRepository.findByTaskIdAndFormFieldKey(taskId, formFieldKey)
+            val existing = documentRepository.findByTenantIdAndTaskIdAndFormFieldKey(TenantContext.getTenant(), taskId, formFieldKey)
             if (existing.isNotEmpty()) {
                 documentRepository.deleteAll(existing)
                 logger.info("Replaced {} existing document(s) for task={} field={}", existing.size, taskId, formFieldKey)
@@ -72,6 +73,7 @@ class DocumentService(
         }
 
         val document = Document(
+            tenantId = TenantContext.getTenant(),
             fileName = sanitizedName,
             contentType = contentType,
             fileSize = file.size,
@@ -108,17 +110,15 @@ class DocumentService(
      */
     @Transactional(readOnly = true)
     fun listByTask(taskId: Long): List<DocumentResponseDto> =
-        documentRepository.findByTaskId(taskId).map { toDto(it) }
+        documentRepository.findByTenantIdAndTaskId(TenantContext.getTenant(), taskId).map { toDto(it) }
 
     /**
      * Delete a document by ID.
      */
     @Transactional
     fun delete(id: UUID) {
-        if (!documentRepository.existsById(id)) {
-            throw IllegalArgumentException("Document not found: $id")
-        }
-        documentRepository.deleteById(id)
+        val doc = findOrThrow(id)
+        documentRepository.delete(doc)
         logger.info("Document deleted id={}", id)
     }
 
@@ -161,6 +161,8 @@ class DocumentService(
     private fun findOrThrow(id: UUID): Document =
         documentRepository.findById(id)
             .orElseThrow { IllegalArgumentException("Document not found: $id") }
+            .takeIf { it.tenantId == TenantContext.getTenant() }
+            ?: throw IllegalArgumentException("Document not found: $id")
 
     private fun toDto(doc: Document) = DocumentResponseDto(
         id = doc.id!!,

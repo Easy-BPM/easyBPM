@@ -9,6 +9,7 @@ import com.easy.bpm.repository.security.UserGroupRepository
 import jakarta.transaction.Transactional
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
+import com.easy.bpm.tenant.TenantContext
 import java.time.LocalDateTime
 
 @Service
@@ -19,11 +20,12 @@ class AdminSecurityService(
     private val passwordEncoder: PasswordEncoder
 ) {
 
-    fun listUsers(): List<UserResponse> = appUserRepository.findAll().map(::toUserResponse)
+    fun listUsers(): List<UserResponse> = appUserRepository.findAllByTenantId(TenantContext.getTenant()).map(::toUserResponse)
 
     @Transactional
     fun createUser(request: CreateUserRequest, actor: String): UserResponse {
-        if (appUserRepository.existsByUsername(request.username)) {
+        val tenantId = TenantContext.getTenant()
+        if (appUserRepository.existsByTenantIdAndUsername(tenantId, request.username)) {
             throw IllegalArgumentException("Username already exists")
         }
 
@@ -33,6 +35,7 @@ class AdminSecurityService(
         val user = appUserRepository.save(
             AppUser(
                 username = request.username,
+                tenantId = tenantId,
                 passwordHash = passwordEncoder.encode(request.password),
                 enabled = request.enabled,
                 groups = groups.toMutableSet(),
@@ -69,7 +72,7 @@ class AdminSecurityService(
         appUserRepository.deleteById(userId)
     }
 
-    fun listGroups(): List<GroupResponse> = userGroupRepository.findAll().map(::toGroupResponse)
+    fun listGroups(): List<GroupResponse> = userGroupRepository.findAllByTenantId(TenantContext.getTenant()).map(::toGroupResponse)
 
     @Transactional
     fun createGroup(request: CreateGroupRequest): GroupResponse {
@@ -77,6 +80,7 @@ class AdminSecurityService(
         val group = userGroupRepository.save(
             UserGroup(
                 code = request.code,
+                tenantId = TenantContext.getTenant(),
                 name = request.name,
                 permissions = permissions
             )
@@ -99,7 +103,7 @@ class AdminSecurityService(
 
     fun getGroupUsers(groupId: Long): List<UserResponse> {
         userGroupRepository.findById(groupId).orElseThrow { IllegalArgumentException("Group not found") }
-        return appUserRepository.findAllByGroups_Id(groupId).map(::toUserResponse)
+        return appUserRepository.findAllByTenantIdAndGroups_Id(TenantContext.getTenant(), groupId).map(::toUserResponse)
     }
 
     @Transactional
@@ -108,7 +112,7 @@ class AdminSecurityService(
         val targetUsers = appUserRepository.findAllById(userIds).associateBy { it.id }
 
         // Remove users currently in group but not selected
-        val currentlyInGroup = appUserRepository.findAllByGroups_Id(groupId)
+        val currentlyInGroup = appUserRepository.findAllByTenantIdAndGroups_Id(TenantContext.getTenant(), groupId)
         currentlyInGroup
             .filter { !userIds.contains(it.id) }
             .forEach { user ->
@@ -128,12 +132,13 @@ class AdminSecurityService(
             }
         }
 
-        return appUserRepository.findAllByGroups_Id(groupId).map(::toUserResponse)
+        return appUserRepository.findAllByTenantIdAndGroups_Id(TenantContext.getTenant(), groupId).map(::toUserResponse)
     }
 
     private fun toUserResponse(user: AppUser) = UserResponse(
         id = user.id,
         username = user.username,
+        tenantId = user.tenantId,
         enabled = user.enabled,
         groups = user.groups.map { it.code }.toSet(),
         permissions = user.permissions.map { it.code }.toSet()
@@ -142,6 +147,7 @@ class AdminSecurityService(
     private fun toGroupResponse(group: UserGroup) = GroupResponse(
         id = group.id,
         code = group.code,
+        tenantId = group.tenantId,
         name = group.name,
         permissions = group.permissions.map { it.code }.toSet()
     )

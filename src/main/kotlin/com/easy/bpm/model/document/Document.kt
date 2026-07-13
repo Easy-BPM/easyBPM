@@ -21,6 +21,9 @@ data class Document(
     @GeneratedValue(strategy = GenerationType.UUID)
     val id: UUID? = null,
 
+    @Column(name = "tenant_id", nullable = false, length = 100)
+    val tenantId: String = "default",
+
     @Column(name = "file_name", nullable = false, length = 255)
     val fileName: String,
 

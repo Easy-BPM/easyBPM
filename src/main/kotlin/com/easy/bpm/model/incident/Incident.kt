@@ -26,6 +26,9 @@ data class Incident(
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long = 0,
 
+    @Column(name = "tenant_id", nullable = false, length = 100)
+    val tenantId: String = "default",
+
     @Column(name = "process_instance_id", nullable = false)
     val processInstanceId: Long,
 

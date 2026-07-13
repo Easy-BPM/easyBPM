@@ -2,6 +2,7 @@ package com.easy.bpm.service
 
 import com.easy.bpm.model.form.Form
 import com.easy.bpm.repository.form.FormDefinitionRepository
+import com.easy.bpm.tenant.TenantContext
 import com.fasterxml.jackson.databind.JsonNode
 import org.springframework.stereotype.Service
 
@@ -12,15 +13,13 @@ class FormService(
 
     private val formIdPattern = Regex("^[A-Za-z][A-Za-z0-9_-]*$")
 
-    // Corrigir o Form ID - to use Form Name
-    // Bind Variables into the form
-    // 
-
     fun deploy(formId: String, name: String, schema: JsonNode): Form {
+        val tenantId = TenantContext.getTenant()
         val normalizedFormId = normalizeFormId(formId)
         val normalizedName = normalizeName(name)
-        val latestVersion = formRepository.findTopByFormIdOrderByVersionDesc(normalizedFormId)?.version ?: 0
+        val latestVersion = formRepository.findTopByTenantIdAndFormIdOrderByVersionDesc(tenantId, normalizedFormId)?.version ?: 0
         val newForm = Form(
+            tenantId = tenantId,
             formId = normalizedFormId,
             name = normalizedName,
             schema = schema,
@@ -30,23 +29,23 @@ class FormService(
     }
 
     fun getLatestVersionByFormId(formId: String): Form? {
-        return formRepository.findTopByFormIdOrderByVersionDesc(formId.trim())
+        return formRepository.findTopByTenantIdAndFormIdOrderByVersionDesc(TenantContext.getTenant(), formId.trim())
     }
 
     fun getLatestVersionByName(name: String): Form? {
-        return formRepository.findTopByNameOrderByVersionDesc(name.trim())
+        return formRepository.findTopByTenantIdAndNameOrderByVersionDesc(TenantContext.getTenant(), name.trim())
     }
 
     fun getById(id: Long): Form? {
-        return formRepository.findById(id).orElse(null)
+        return formRepository.findById(id).orElse(null)?.takeIf { it.tenantId == TenantContext.getTenant() }
     }
 
     fun getAllVersionsByFormId(formId: String): List<Form> {
-        return formRepository.findByFormIdOrderByVersionAsc(formId.trim())
+        return formRepository.findByTenantIdAndFormIdOrderByVersionAsc(TenantContext.getTenant(), formId.trim())
     }
 
     fun getAllVersionsByName(name: String): List<Form> {
-        return formRepository.findByName(name.trim())
+        return formRepository.findByTenantIdAndName(TenantContext.getTenant(), name.trim())
     }
 
     private fun normalizeFormId(formId: String): String {
@@ -64,4 +63,3 @@ class FormService(
         return normalizedName
     }
 }
-

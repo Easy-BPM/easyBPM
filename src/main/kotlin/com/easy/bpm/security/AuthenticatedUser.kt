@@ -6,6 +6,7 @@ import org.springframework.security.core.userdetails.UserDetails
 
 data class AuthenticatedUser(
     val userId: Long,
+    val tenantId: String,
     private val usernameValue: String,
     private val passwordValue: String,
     private val enabledValue: Boolean,

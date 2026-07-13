@@ -1,6 +1,7 @@
 package com.easy.bpm.security
 
 import com.easy.bpm.repository.security.AppUserRepository
+import com.easy.bpm.tenant.TenantContext
 import org.springframework.security.core.userdetails.UserDetails
 import org.springframework.security.core.userdetails.UserDetailsService
 import org.springframework.security.core.userdetails.UsernameNotFoundException
@@ -12,8 +13,9 @@ class AppUserDetailsService(
 ) : UserDetailsService {
 
     override fun loadUserByUsername(username: String): UserDetails {
-        val user = appUserRepository.findByUsername(username)
-            ?: throw UsernameNotFoundException("User '$username' not found")
+        val tenantId = TenantContext.getTenant()
+        val user = appUserRepository.findByTenantIdAndUsername(tenantId, username)
+            ?: throw UsernameNotFoundException("User '$username' not found in tenant '$tenantId'")
 
         val groupCodes = user.groups.map { it.code }.toSet()
         val permissionsFromGroups = user.groups.flatMap { group -> group.permissions.map { it.code } }.toSet()
@@ -21,6 +23,7 @@ class AppUserDetailsService(
 
         return AuthenticatedUser(
             userId = user.id,
+            tenantId = user.tenantId,
             usernameValue = user.username,
             passwordValue = user.passwordHash,
             enabledValue = user.enabled,

@@ -11,6 +11,9 @@ data class ProcessVariable(
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long = 0,
 
+    @Column(name = "tenant_id", nullable = false, length = 100)
+    val tenantId: String = "default",
+
     val processInstanceId: Long,
 
     val name: String,

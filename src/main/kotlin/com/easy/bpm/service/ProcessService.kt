@@ -28,6 +28,7 @@ import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Sort
 import javax.script.ScriptEngineManager
 import java.time.LocalDateTime
+import com.easy.bpm.tenant.TenantContext
 
 @Service
 class ProcessService(
@@ -76,12 +77,13 @@ class ProcessService(
                 ?: json.get("metadata")?.get("description")?.asText()?.takeIf { it.isNotBlank() }
 
         val latestVersion =
-            processDefinitionRepository.findTopByKeyOrderByVersionDesc(processKey)
+            processDefinitionRepository.findTopByTenantIdAndKeyOrderByVersionDesc(TenantContext.getTenant(), processKey)
 
         val nextVersion = (latestVersion?.version ?: 0) + 1
 
         return processDefinitionRepository.save(
                 ProcessDefinition(
+                tenantId = TenantContext.getTenant(),
                 key = processKey,
                     processName = processName,
                 description = processDescription,
@@ -111,14 +113,14 @@ class ProcessService(
     }
 
     fun startProcessInstance(processId: String): ProcessInstance {
-        val definition = processDefinitionRepository.findTopByKeyOrderByVersionDesc(processId)
+        val definition = processDefinitionRepository.findTopByTenantIdAndKeyOrderByVersionDesc(TenantContext.getTenant(), processId)
             ?: throw IllegalArgumentException("Process definition not found for id: $processId")
 
         return startWithDefinition(definition)
     }
 
     fun startProcessInstance(processId: String, initialVariables: Map<String, Any>): ProcessInstance {
-        val definition = processDefinitionRepository.findTopByKeyOrderByVersionDesc(processId)
+        val definition = processDefinitionRepository.findTopByTenantIdAndKeyOrderByVersionDesc(TenantContext.getTenant(), processId)
             ?: throw IllegalArgumentException("Process definition not found for id: $processId")
 
         return startWithDefinition(definition, initialVariables)
@@ -136,6 +138,7 @@ class ProcessService(
 
         val instance = processInstanceRepository.save(
             ProcessInstance(
+                tenantId = TenantContext.getTenant(),
                 processDefinition = definition,
                 status = ProcessStatus.ACTIVE,
                 currentNode = emptyList()
@@ -181,16 +184,16 @@ class ProcessService(
     }
 
     fun getProcessInstances(pageable: Pageable): Page<ProcessInstance> =
-        processInstanceRepository.findAll(sanitizeProcessInstancePageable(pageable))
+        processInstanceRepository.findByTenantId(TenantContext.getTenant(), sanitizeProcessInstancePageable(pageable))
 
     fun getProcessInstanceById(id: Long): ProcessInstance? =
-        processInstanceRepository.findById(id).orElse(null)
+        processInstanceRepository.findByTenantIdAndId(TenantContext.getTenant(), id)
 
     fun getChildProcessInstances(parentInstanceId: Long): List<ProcessInstance> {
-        processInstanceRepository.findById(parentInstanceId)
-            .orElseThrow { IllegalArgumentException("Process instance not found") }
+        processInstanceRepository.findByTenantIdAndId(TenantContext.getTenant(), parentInstanceId)
+            ?: throw IllegalArgumentException("Process instance not found")
 
-        return processInstanceRepository.findByParentInstanceId(parentInstanceId)
+        return processInstanceRepository.findByTenantIdAndParentInstanceId(TenantContext.getTenant(), parentInstanceId)
     }
 
     fun getParentProcessInstance(childInstanceId: Long): ProcessInstance? {
@@ -203,20 +206,20 @@ class ProcessService(
         callActivityMappingRepository.findByParentInstanceIdAndChildInstanceId(parentInstanceId, childInstanceId)
 
     fun getProcessVariables(processInstanceId: Long): List<ProcessVariable> {
-        processInstanceRepository.findById(processInstanceId)
-            .orElseThrow { IllegalArgumentException("Process instance not found") }
+        processInstanceRepository.findByTenantIdAndId(TenantContext.getTenant(), processInstanceId)
+            ?: throw IllegalArgumentException("Process instance not found")
 
-        return processVariableRepository.findByProcessInstanceId(processInstanceId)
+        return processVariableRepository.findByTenantIdAndProcessInstanceId(TenantContext.getTenant(), processInstanceId)
     }
 
     @Transactional
     fun assignProcessVariables(processInstanceId: Long, variables: Map<String, Any?>): List<ProcessVariable> {
-        val instance = processInstanceRepository.findByIdForUpdate(processInstanceId)
+        val instance = processInstanceRepository.findByTenantIdAndIdForUpdate(TenantContext.getTenant(), processInstanceId)
             ?: throw IllegalArgumentException("Process instance not found")
 
         variables.forEach { (name, value) ->
             val jsonValue = if (value == null) objectMapper.nullNode() else objectMapper.valueToTree(value)
-            val existing = processVariableRepository.findByProcessInstanceIdAndName(processInstanceId, name)
+            val existing = processVariableRepository.findByTenantIdAndProcessInstanceIdAndName(TenantContext.getTenant(), processInstanceId, name)
 
             if (existing != null) {
                 existing.value = jsonValue
@@ -224,6 +227,7 @@ class ProcessService(
             } else {
                 processVariableRepository.save(
                     ProcessVariable(
+                        tenantId = TenantContext.getTenant(),
                         processInstanceId = processInstanceId,
                         name = name,
                         value = jsonValue
@@ -235,12 +239,12 @@ class ProcessService(
         instance.updatedAt = LocalDateTime.now()
         processInstanceRepository.save(instance)
 
-        return processVariableRepository.findByProcessInstanceId(processInstanceId)
+        return processVariableRepository.findByTenantIdAndProcessInstanceId(TenantContext.getTenant(), processInstanceId)
     }
 
     @Transactional
     fun moveProcessNode(processInstanceId: Long, fromNode: String, toNode: String): ProcessInstance {
-        val instance = processInstanceRepository.findByIdForUpdate(processInstanceId)
+        val instance = processInstanceRepository.findByTenantIdAndIdForUpdate(TenantContext.getTenant(), processInstanceId)
             ?: throw IllegalArgumentException("Process instance not found")
 
         val currentNodes = instance.currentNode ?: emptyList()
@@ -283,14 +287,15 @@ class ProcessService(
         toNode: String,
         toNodeDefinition: JsonNode
     ) {
-        val fromPendingTasks = taskRepository.findByProcessInstanceIdAndNodeIdAndStatus(
+        val fromPendingTasks = taskRepository.findByTenantIdAndProcessInstanceIdAndNodeIdAndStatus(
+            TenantContext.getTenant(),
             instance.id,
             fromNode,
             TaskStatus.PENDING
         )
 
         fromPendingTasks.forEach { task ->
-            taskVariableRepository.deleteByTaskId(task.id)
+            taskVariableRepository.deleteByTenantIdAndTaskId(TenantContext.getTenant(), task.id)
             taskRepository.delete(task)
         }
 
@@ -299,7 +304,8 @@ class ProcessService(
             return
         }
 
-        val existingTargetTasks = taskRepository.findByProcessInstanceIdAndNodeIdAndStatus(
+        val existingTargetTasks = taskRepository.findByTenantIdAndProcessInstanceIdAndNodeIdAndStatus(
+            TenantContext.getTenant(),
             instance.id,
             toNode,
             TaskStatus.PENDING
@@ -311,7 +317,7 @@ class ProcessService(
     }
 
     fun getLatestProcessDefinitions(pageable: Pageable): Page<ProcessDefinition> =
-        processDefinitionRepository.findLatestVersionProcesses(sanitizeProcessDefinitionPageable(pageable))
+        processDefinitionRepository.findLatestVersionProcesses(TenantContext.getTenant(), sanitizeProcessDefinitionPageable(pageable))
 
     fun getProcessDefinitionById(id: Long): ProcessDefinition? =
         processDefinitionRepository.findById(id).orElse(null)
@@ -361,10 +367,10 @@ class ProcessService(
             return instance
         }
 
-        val pendingTasks = taskRepository.findByProcessInstanceId(id)
+        val pendingTasks = taskRepository.findByTenantIdAndProcessInstanceId(TenantContext.getTenant(), id)
             .filter { it.status == TaskStatus.PENDING }
         pendingTasks.forEach { task ->
-            taskVariableRepository.deleteByTaskId(task.id)
+            taskVariableRepository.deleteByTenantIdAndTaskId(TenantContext.getTenant(), task.id)
             taskRepository.delete(task)
         }
 
@@ -387,13 +393,13 @@ class ProcessService(
         val instance = processInstanceRepository.findById(id)
             .orElseThrow { IllegalArgumentException("Process instance not found") }
 
-        val tasks = taskRepository.findByProcessInstanceId(id)
+        val tasks = taskRepository.findByTenantIdAndProcessInstanceId(TenantContext.getTenant(), id)
         tasks.forEach { task ->
-            taskVariableRepository.deleteByTaskId(task.id)
+            taskVariableRepository.deleteByTenantIdAndTaskId(TenantContext.getTenant(), task.id)
         }
 
-        taskRepository.deleteByProcessInstanceId(id)
-        processVariableRepository.deleteByProcessInstanceId(id)
+        taskRepository.deleteByTenantIdAndProcessInstanceId(TenantContext.getTenant(), id)
+        processVariableRepository.deleteByTenantIdAndProcessInstanceId(TenantContext.getTenant(), id)
         messageSubscriptionService.deleteSubscriptionsForInstance(id)
         workerRequestRepository.deleteByProcessInstanceId(id)
         processInstanceRepository.delete(instance)
@@ -526,6 +532,7 @@ class ProcessService(
         val form = resolveUserTaskForm(node)
         val task = taskRepository.save(
             Task(
+                tenantId = instance.tenantId,
                 processInstanceId = instance.id,
                 title = node.get("name").asText(),
                 nodeId = node.get("id").asText(),
@@ -597,7 +604,7 @@ class ProcessService(
         
         try {
             // Get current process variables as a map
-            val variables = processVariableRepository.findByProcessInstanceId(instance.id)
+            val variables = processVariableRepository.findByTenantIdAndProcessInstanceId(TenantContext.getTenant(), instance.id)
                 .associateBy({ it.name }, { it.value })
 
             // Execute AI task (synchronous - waits for provider response)
@@ -638,7 +645,7 @@ class ProcessService(
                 val valueNode = configObj.get(field)
                 if (valueNode.isTextual && valueNode.asText().startsWith("\${") && valueNode.asText().endsWith("}")) {
                     val varName = valueNode.asText().removePrefix("\${").removeSuffix("}")
-                    val variable = processVariableRepository.findByProcessInstanceIdAndName(instance.id, varName)
+                    val variable = processVariableRepository.findByTenantIdAndProcessInstanceIdAndName(TenantContext.getTenant(), instance.id, varName)
                     if (variable != null) {
                         configObj.replace(field, variable.value)
                     }
@@ -673,7 +680,7 @@ class ProcessService(
                     "variable" -> {
                         val sourceVarName = varConfig.get("value")?.asText()
                             ?: throw IllegalArgumentException("ServiceTask variable missing source variable name")
-                        val sourceVar = processVariableRepository.findByProcessInstanceIdAndName(instance.id, sourceVarName)
+                        val sourceVar = processVariableRepository.findByTenantIdAndProcessInstanceIdAndName(TenantContext.getTenant(), instance.id, sourceVarName)
                             ?: throw IllegalArgumentException("Source variable '$sourceVarName' not found")
                         sourceVar.value
                     }
@@ -681,13 +688,14 @@ class ProcessService(
                 }
 
                 // Save or update process variable
-                val existing = processVariableRepository.findByProcessInstanceIdAndName(instance.id, varName)
+                val existing = processVariableRepository.findByTenantIdAndProcessInstanceIdAndName(TenantContext.getTenant(), instance.id, varName)
                 if (existing != null) {
                     existing.value = value
                     processVariableRepository.save(existing)
                 } else {
                     processVariableRepository.save(
                         ProcessVariable(
+                            tenantId = TenantContext.getTenant(),
                             processInstanceId = instance.id,
                             name = varName,
                             value = value
@@ -885,7 +893,7 @@ class ProcessService(
                 // Map from process variable or static value
                 val mappedValue = when (source) {
                     "variable" -> {
-                        processVariableRepository.findByProcessInstanceIdAndName(instance.id, value)
+                        processVariableRepository.findByTenantIdAndProcessInstanceIdAndName(TenantContext.getTenant(), instance.id, value)
                             ?.value?.asText() ?: value
                     }
 
@@ -936,7 +944,7 @@ class ProcessService(
     fun handleServiceTaskCompleted(processInstanceId: Long, nodeId: String, outputs: Map<String, String>) {
         val startTime = System.currentTimeMillis()
         
-        val instance = processInstanceRepository.findByIdForUpdate(processInstanceId)
+        val instance = processInstanceRepository.findByTenantIdAndIdForUpdate(TenantContext.getTenant(), processInstanceId)
             ?: throw IllegalArgumentException("Process instance not found")
 
         val definition = parseDefinition(instance.processDefinition.definitionJson)
@@ -980,13 +988,14 @@ class ProcessService(
                             val value = extractValueByPath(responseJson, sourceName)
                             
                             // Save to process variable
-                            val existing = processVariableRepository.findByProcessInstanceIdAndName(instance.id, targetVarName)
+                            val existing = processVariableRepository.findByTenantIdAndProcessInstanceIdAndName(TenantContext.getTenant(), instance.id, targetVarName)
                             if (existing != null) {
                                 existing.value = value
                                 processVariableRepository.save(existing)
                             } else {
                                 processVariableRepository.save(
                                     ProcessVariable(
+                                        tenantId = TenantContext.getTenant(),
                                         processInstanceId = instance.id,
                                         name = targetVarName,
                                         value = value
@@ -1041,7 +1050,7 @@ class ProcessService(
     ) {
         val startTime = System.currentTimeMillis()
 
-        val instance = processInstanceRepository.findByIdForUpdate(processInstanceId)
+        val instance = processInstanceRepository.findByTenantIdAndIdForUpdate(TenantContext.getTenant(), processInstanceId)
             ?: throw IllegalArgumentException("Process instance not found")
 
         logger.info("handleServiceTaskFailed: instanceId=$processInstanceId, nodeId=$nodeId, errorMessage=$errorMessage")
@@ -1193,7 +1202,7 @@ class ProcessService(
         correlationKey: String,
         variables: Map<String, Any>?
     ): ProcessInstance? {
-        val match = processDefinitionRepository.findLatestVersionProcessDefinitions()
+        val match = processDefinitionRepository.findLatestVersionProcessDefinitions(TenantContext.getTenant())
             .asSequence()
             .mapNotNull { definition ->
                 val json = parseDefinition(definition.definitionJson)
@@ -1223,7 +1232,7 @@ class ProcessService(
      */
     @Transactional
     fun handleSubscriptionTimeout(processInstanceId: Long, nodeId: String): Boolean {
-        val instance = processInstanceRepository.findByIdForUpdate(processInstanceId) ?: return false
+        val instance = processInstanceRepository.findByTenantIdAndIdForUpdate(TenantContext.getTenant(), processInstanceId) ?: return false
         val definition = parseDefinition(instance.processDefinition.definitionJson)
         val node = findNode(definition, nodeId)
 
@@ -1243,7 +1252,7 @@ class ProcessService(
      */
     @Transactional
     fun handleTimerTimeout(processInstanceId: Long, nodeId: String): Boolean {
-        val instance = processInstanceRepository.findByIdForUpdate(processInstanceId) ?: return false
+        val instance = processInstanceRepository.findByTenantIdAndIdForUpdate(TenantContext.getTenant(), processInstanceId) ?: return false
         val definition = parseDefinition(instance.processDefinition.definitionJson)
         val node = findNode(definition, nodeId)
 
@@ -1350,6 +1359,7 @@ class ProcessService(
 
         val variables = variablesNode.map {
             ProcessVariable(
+                tenantId = instance.tenantId,
                 processInstanceId = instance.id,
                 name = it.get("name").asText(),
                 value = it.get("initialValue") ?: objectMapper.nullNode()
@@ -1377,7 +1387,7 @@ class ProcessService(
                 "variable" -> {
                     val varName = valueNode.asText()
                     val processVar =
-                        processVariableRepository.findByProcessInstanceIdAndName(instance.id, varName)
+                        processVariableRepository.findByTenantIdAndProcessInstanceIdAndName(TenantContext.getTenant(), instance.id, varName)
                             ?: throw IllegalArgumentException("Process variable '$varName' not found")
                     processVar.value
                 }
@@ -1389,6 +1399,7 @@ class ProcessService(
 
             taskVariableRepository.save(
                 TaskVariable(
+                    tenantId = TenantContext.getTenant(),
                     taskId = task.id,
                     name = targetName,
                     value = value
@@ -1500,7 +1511,7 @@ class ProcessService(
     }
 
     private fun upsertProcessVariable(processInstanceId: Long, name: String, value: JsonNode) {
-        val existing = processVariableRepository.findByProcessInstanceIdAndName(processInstanceId, name)
+        val existing = processVariableRepository.findByTenantIdAndProcessInstanceIdAndName(TenantContext.getTenant(), processInstanceId, name)
 
         if (existing != null) {
             existing.value = value
@@ -1508,6 +1519,7 @@ class ProcessService(
         } else {
             processVariableRepository.save(
                 ProcessVariable(
+                    tenantId = TenantContext.getTenant(),
                     processInstanceId = processInstanceId,
                     name = name,
                     value = value
@@ -1530,7 +1542,7 @@ class ProcessService(
 
         result = regex.replace(result) { match ->
             val varName = match.groupValues[1]
-            val processVar = processVariableRepository.findByProcessInstanceIdAndName(instance.id, varName)
+            val processVar = processVariableRepository.findByTenantIdAndProcessInstanceIdAndName(TenantContext.getTenant(), instance.id, varName)
             when {
                 processVar == null || processVar.value.isNull -> varName // Fallback to var name if not found
                 processVar.value.isTextual -> processVar.value.asText()

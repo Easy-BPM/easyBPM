@@ -31,6 +31,9 @@ data class CallActivityMapping(
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long = 0,
 
+    @Column(name = "tenant_id", nullable = false, length = 100)
+    val tenantId: String = "default",
+
     /**
      * Reference to the parent process instance.
      * When parent completes or is deleted, all its child mappings are cascaded deleted.

@@ -21,6 +21,7 @@ data class ResetPasswordRequest(
 data class UserResponse(
     val id: Long,
     val username: String,
+    val tenantId: String,
     val enabled: Boolean,
     val groups: Set<String>,
     val permissions: Set<String>
@@ -28,6 +29,7 @@ data class UserResponse(
 
 data class CreateGroupRequest(
     val code: String,
+    val tenantId: String,
     val name: String,
     val permissionCodes: Set<String> = emptySet()
 )
@@ -40,6 +42,7 @@ data class UpdateGroupRequest(
 data class GroupResponse(
     val id: Long,
     val code: String,
+    val tenantId: String,
     val name: String,
     val permissions: Set<String>
 )

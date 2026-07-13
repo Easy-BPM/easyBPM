@@ -98,7 +98,7 @@ class SecurityConfig(
             "http://127.0.0.1:*"
         )
         configuration.allowedMethods = listOf("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
-        configuration.allowedHeaders = listOf("Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With")
+        configuration.allowedHeaders = listOf("Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With", "X-Tenant-Id")
         configuration.exposedHeaders = listOf("Authorization")
         configuration.allowCredentials = true
 

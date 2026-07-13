@@ -10,8 +10,11 @@ data class UserGroup(
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long = 0,
 
-    @Column(nullable = false, unique = true, length = 100)
+    @Column(nullable = false, length = 100)
     var code: String,
+
+    @Column(name = "tenant_id", nullable = false, length = 100)
+    var tenantId: String = "default",
 
     @Column(nullable = false, length = 200)
     var name: String,

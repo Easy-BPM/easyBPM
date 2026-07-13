@@ -25,6 +25,7 @@ class JwtService(
         return Jwts.builder()
             .subject(user.username)
             .claim("uid", user.userId)
+            .claim("tenant", user.tenantId)
             .claim("groups", user.groups.toList())
             .claim("perms", user.permissionCodes.toList())
             .issuedAt(now)
@@ -34,6 +35,8 @@ class JwtService(
     }
 
     fun extractUsername(token: String): String? = extractAllClaims(token).subject
+
+    fun extractTenant(token: String): String? = extractAllClaims(token)["tenant"] as? String
 
     fun isTokenValid(token: String): Boolean = try {
         extractAllClaims(token)

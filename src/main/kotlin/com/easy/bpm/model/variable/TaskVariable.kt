@@ -10,6 +10,9 @@ data class TaskVariable(
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long = 0,
 
+    @Column(name = "tenant_id", nullable = false, length = 100)
+    val tenantId: String = "default",
+
     val taskId: Long,
 
     val name: String,
