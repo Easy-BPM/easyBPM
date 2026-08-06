@@ -36,7 +36,6 @@ class ProcessService(
     private val taskRepository: TaskRepository,
     private val objectMapper: ObjectMapper,
     private val rabbitPublisher: com.easy.bpm.messaging.RabbitPublisher,
-    private val gatewayService: GatewayService,
     private val messageSubscriptionService: MessageSubscriptionService,
     private val metricsService: MetricsService,
     private val workerRequestRepository: WorkerRequestRepository,
@@ -48,7 +47,10 @@ class ProcessService(
     private val pageableSanitizer: ProcessPageableSanitizer,
     private val processDefinitionValidator: ProcessDefinitionValidator,
     private val variableManager: ProcessVariableManager,
-    private val failureHandler: ProcessFailureHandler
+    private val failureHandler: ProcessFailureHandler,
+    private val navigator: ProcessNavigator,
+    private val messageNodeHandler: ProcessMessageNodeHandler,
+    private val serviceTaskOutputMapper: ServiceTaskOutputMapper
 ) {
 
     companion object {
@@ -155,7 +157,7 @@ class ProcessService(
             }
         }
 
-        val startNodes = getStartNodes(instance, json, startNodeId)
+        val startNodes = navigator.getStartNodes(instance, json, startNodeId)
 
         instance.currentNode = startNodes
         instance.nodeHistory = startNodes
@@ -372,33 +374,33 @@ class ProcessService(
                 NodeType.AiTask -> handleAITask(instance, node)
                 NodeType.AgentProcessCall -> handleAgentProcessCall(instance, node, definition)
                 NodeType.ServiceTask -> handleServiceTaskNode(instance, node, definition)
-                NodeType.TimerEvent -> handleTimerEvent(instance, node)
-                NodeType.MessageEvent -> handleMessageEvent(instance, node)
+                NodeType.TimerEvent -> messageNodeHandler.handleTimerEvent(instance, node, INTERNAL_TIMER_MESSAGE_NAME)
+                NodeType.MessageEvent -> messageNodeHandler.handleMessageEvent(instance, node)
                 NodeType.MessageStartEvent -> {
-                    val nextNodes = getNextNodes(node, definition, instance)
-                    advanceProcess(instance, nextNodes, definition)
+                    val nextNodes = navigator.getNextNodes(node, definition, instance)
+                    navigator.advanceProcess(instance, nextNodes, definition)
                     executeNodes(nextNodes, instance, definition)
                 }
-                NodeType.MessageIntermediateCatchEvent -> handleMessageIntermediateCatchEvent(instance, node)
+                NodeType.MessageIntermediateCatchEvent -> messageNodeHandler.handleMessageIntermediateCatchEvent(instance, node)
                 NodeType.MessageIntermediateThrowEvent -> handleMessageIntermediateThrowEvent(instance, node, definition)
                 NodeType.CallActivity -> handleCallActivity(instance, node, definition)
                 NodeType.EndEvent -> finishProcess(instance)
                 NodeType.ExclusiveGateway, NodeType.ParallelGateway, NodeType.InclusiveGateway -> {
-                    val nextNodes = getNextNodes(node, definition, instance)
+                    val nextNodes = navigator.getNextNodes(node, definition, instance)
                     timelineService.record(
                         processInstanceId = instance.id,
                         nodeId = node.get("id").asText(),
                         eventType = ProcessInstanceEventType.GATEWAY_EVALUATED,
                         message = "Gateway routed to ${nextNodes.joinToString(", ")}."
                     )
-                    advanceProcess(instance, nextNodes, definition)
+                    navigator.advanceProcess(instance, nextNodes, definition)
                     executeNodes(nextNodes, instance, definition)
                 }
                 else -> { /* no-op for other node types */ }
             }
         } catch (ex: Exception) {
             // Check for attached error boundary event
-            val errorBoundaryNode = findAttachedErrorBoundary(node, definition)
+            val errorBoundaryNode = navigator.findAttachedErrorBoundary(node, definition)
             if (errorBoundaryNode != null) {
                 // Capture error message and log for observability
                 val errorMessage = ex.message ?: ex.javaClass.simpleName
@@ -414,8 +416,8 @@ class ProcessService(
                 }
                 
                 // Route to error boundary's next node(s) (do NOT execute the ErrorBoundaryEvent node itself)
-                val nextNodes = getNextNodes(errorBoundaryNode, definition, instance)
-                advanceProcess(instance, nextNodes, definition)
+                val nextNodes = navigator.getNextNodes(errorBoundaryNode, definition, instance)
+                navigator.advanceProcess(instance, nextNodes, definition)
                 println("DEBUG: error boundary nextNodes = $nextNodes")
                 println("DEBUG: currentNode after advanceProcess = ${instance.currentNode}")
                 executeNodes(nextNodes, instance, definition)
@@ -442,18 +444,6 @@ class ProcessService(
         val duration = System.currentTimeMillis() - startTime
         metricsService.recordNodeExecution(duration, nodeType.toString())
         return false
-    }
-
-    /**
-     * Find an ErrorBoundaryEvent node attached to the given node, if any.
-     */
-    private fun findAttachedErrorBoundary(node: JsonNode, definition: JsonNode): JsonNode? {
-        val nodeId = node.get("id").asText()
-        val nodes = definition.get("nodes")
-        return nodes.firstOrNull {
-            NodeType.fromString(it.get("type").asText()) == NodeType.ErrorBoundaryEvent &&
-            it.has("attachedTo") && it.get("attachedTo").asText() == nodeId
-        }
     }
 
     private fun handleUserTask(
@@ -584,8 +574,8 @@ class ProcessService(
             details = "agentExecutionId=${execution.id}; status=${execution.status}"
         )
 
-        val nextNodes = getNextNodes(node, definition, instance)
-        advanceProcess(instance, nextNodes, definition)
+        val nextNodes = navigator.getNextNodes(node, definition, instance)
+        navigator.advanceProcess(instance, nextNodes, definition)
         executeNodes(nextNodes, instance, definition)
     }
 
@@ -649,8 +639,8 @@ class ProcessService(
             }
 
             // Continue execution for internal service task
-            val nextNodes = getNextNodes(node, definition, instance)
-            advanceProcess(instance, nextNodes, definition)
+            val nextNodes = navigator.getNextNodes(node, definition, instance)
+            navigator.advanceProcess(instance, nextNodes, definition)
             executeNodes(nextNodes, instance, definition)
         } else {
             // External service task: publish request and remain on this node until completion
@@ -671,198 +661,15 @@ class ProcessService(
         }
     }
 
-    private fun handleMessageEvent(
-        instance: ProcessInstance,
-        node: JsonNode
-    ) {
-        val nodeId = node.get("id").asText()
-        val properties = node.get("properties")
-            ?: throw IllegalArgumentException("MessageEvent $nodeId missing properties")
-
-        val messageName = properties.get("messageName")?.asText()
-            ?: throw IllegalArgumentException("MessageEvent $nodeId missing messageName")
-
-        val correlationKeyTemplate = properties.get("correlationKey")?.asText()
-            ?: throw IllegalArgumentException("MessageEvent $nodeId missing correlationKey")
-
-        // Evaluate correlation key with variable substitution
-        val correlationKey = variableManager.evaluateCorrelationKey(correlationKeyTemplate, instance)
-
-        val timeoutSeconds = properties.get("timeoutSeconds")?.asLong()
-
-        // Create message subscription
-        val timeoutAt = if (timeoutSeconds != null) {
-            LocalDateTime.now().plusSeconds(timeoutSeconds)
-        } else {
-            null
-        }
-
-        messageSubscriptionService.subscribeToMessage(
-            processInstanceId = instance.id,
-            nodeId = nodeId,
-            messageName = messageName,
-            correlationKey = correlationKey,
-            timeoutAt = timeoutAt
-        )
-        timelineService.record(
-            processInstanceId = instance.id,
-            nodeId = nodeId,
-            eventType = ProcessInstanceEventType.MESSAGE_WAITING,
-            message = "Waiting for message '$messageName' with correlation key '$correlationKey'."
-        )
-
-        // Publish message expected event
-        try {
-            rabbitPublisher.publishMessageExpected(
-                processInstanceId = instance.id,
-                nodeId = nodeId,
-                messageName = messageName,
-                correlationKey = correlationKey,
-                timeoutSeconds = timeoutSeconds
-            )
-        } catch (_: Exception) {
-        }
-
-        // Persist instance updated timestamp; instance remains on this node until message arrival
-        instance.updatedAt = LocalDateTime.now()
-        processInstanceRepository.save(instance)
-    }
-
-    private fun handleTimerEvent(
-        instance: ProcessInstance,
-        node: JsonNode
-    ) {
-        val nodeId = node.get("id").asText()
-        val properties = node.get("properties")
-            ?: throw IllegalArgumentException("TimerEvent $nodeId missing properties")
-
-        val timeoutSeconds = properties.get("timeoutSeconds")?.asLong()
-            ?: throw IllegalArgumentException("TimerEvent $nodeId missing timeoutSeconds")
-
-        require(timeoutSeconds > 0) { "TimerEvent $nodeId timeoutSeconds must be > 0" }
-
-        val timeoutAt = LocalDateTime.now().plusSeconds(timeoutSeconds)
-
-        messageSubscriptionService.subscribeToMessage(
-            processInstanceId = instance.id,
-            nodeId = nodeId,
-            messageName = INTERNAL_TIMER_MESSAGE_NAME,
-            correlationKey = "timer-${instance.id}-$nodeId",
-            timeoutAt = timeoutAt
-        )
-
-        // Instance remains on this node until timer timeout is processed by scheduler
-        instance.updatedAt = LocalDateTime.now()
-        processInstanceRepository.save(instance)
-    }
-
-    private fun handleMessageIntermediateCatchEvent(
-        instance: ProcessInstance,
-        node: JsonNode
-    ) {
-        val nodeId = node.get("id").asText()
-        val message = node.get("message")
-            ?: throw IllegalArgumentException("MessageIntermediateCatchEvent $nodeId missing 'message' object")
-
-        val messageName = message.get("name")?.asText()
-            ?: throw IllegalArgumentException("MessageIntermediateCatchEvent $nodeId missing 'message.name'")
-
-        val correlationKeys = message.get("correlationKeys")
-        if (correlationKeys == null || !correlationKeys.isArray || correlationKeys.size() == 0) {
-            throw IllegalArgumentException("MessageIntermediateCatchEvent $nodeId missing 'message.correlationKeys'")
-        }
-
-        val correlationKey = correlationKeys[0].asText()
-
-        // Create message subscription with payload mapping
-        messageSubscriptionService.subscribeToMessage(
-            processInstanceId = instance.id,
-            nodeId = nodeId,
-            messageName = messageName,
-            correlationKey = correlationKey,
-            timeoutAt = null
-        )
-
-        // Publish message expected event
-        try {
-            rabbitPublisher.publishMessageExpected(
-                processInstanceId = instance.id,
-                nodeId = nodeId,
-                messageName = messageName,
-                correlationKey = correlationKey,
-                timeoutSeconds = null
-            )
-        } catch (_: Exception) {
-        }
-
-        // Persist instance updated timestamp; instance remains on this node until message arrival
-        instance.updatedAt = LocalDateTime.now()
-        processInstanceRepository.save(instance)
-    }
-
     private fun handleMessageIntermediateThrowEvent(
         instance: ProcessInstance,
         node: JsonNode,
         definition: JsonNode
     ) {
-        val nodeId = node.get("id").asText()
-        val message = node.get("message")
-            ?: throw IllegalArgumentException("MessageIntermediateThrowEvent $nodeId missing 'message' object")
+        messageNodeHandler.publishMessageIntermediateThrowEvent(instance, node)
 
-        val messageName = message.get("name")?.asText()
-            ?: throw IllegalArgumentException("MessageIntermediateThrowEvent $nodeId missing 'message.name'")
-
-        val correlationKeys = message.get("correlationKeys")
-        if (correlationKeys == null || !correlationKeys.isArray || correlationKeys.size() == 0) {
-            throw IllegalArgumentException("MessageIntermediateThrowEvent $nodeId missing 'message.correlationKeys'")
-        }
-
-        val correlationKey = correlationKeys[0].asText()
-
-        // Build payload from node configuration
-        val payloadArray = message.get("payload")
-        val payload = mutableMapOf<String, Any>()
-
-        if (payloadArray != null && payloadArray.isArray) {
-            payloadArray.forEach { payloadMapping ->
-                val targetName = payloadMapping.get("targetName")?.asText()
-                    ?: throw IllegalArgumentException("MessageIntermediateThrowEvent payload missing 'targetName'")
-
-                val source = payloadMapping.get("source")?.asText()
-                    ?: throw IllegalArgumentException("MessageIntermediateThrowEvent payload missing 'source'")
-
-                val value = payloadMapping.get("value")?.asText()
-                    ?: throw IllegalArgumentException("MessageIntermediateThrowEvent payload missing 'value'")
-
-                // Map from process variable or static value
-                val mappedValue = when (source) {
-                    "variable" -> {
-                        processVariableRepository.findByProcessInstanceIdAndName(instance.id, value)
-                            ?.value?.asText() ?: value
-                    }
-
-                    "static" -> value
-                    else -> value
-                }
-
-                payload[targetName] = mappedValue
-            }
-        }
-
-        // Publish message to external system
-        try {
-            rabbitPublisher.publishMessageThrown(
-                messageName = messageName,
-                correlationKey = correlationKey,
-                variables = payload
-            )
-        } catch (ex: Exception) {
-            // Log exception but continue
-        }
-
-        // Advance to next node
-        val nextNodes = getNextNodes(node, definition, instance)
-        advanceProcess(instance, nextNodes, definition)
+        val nextNodes = navigator.getNextNodes(node, definition, instance)
+        navigator.advanceProcess(instance, nextNodes, definition)
         executeNodes(nextNodes, instance, definition)
     }
 
@@ -901,49 +708,11 @@ class ProcessService(
             details = outputs.takeIf { it.isNotEmpty() }?.toString()
         )
 
-        // Extract the response JSON from outputs
-        val responseJson = if (outputs.containsKey("__response")) {
-            try {
-                objectMapper.readTree(outputs["__response"])
-            } catch (e: Exception) {
-                logger.warn("Failed to parse response JSON: ${e.message}")
-                objectMapper.createObjectNode()
-            }
-        } else {
-            // Fallback for backwards compatibility with flat output format
-            objectMapper.valueToTree<JsonNode>(outputs)
-        }
+        serviceTaskOutputMapper.applyOutputMappings(instance, node, outputs)
 
-        // Apply output mappings from node configuration
-        val nodeConfig = node.get("properties") ?: node.get("config")
-        val outputMappings = nodeConfig?.get("outputs")
-        
-        if (outputMappings != null && outputMappings.isArray) {
-            // Process each output mapping
-            outputMappings.forEach { mapping ->
-                val target = mapping.get("target")?.asText()
-                if (target == "variable") {
-                    val sourceName = mapping.get("sourceName")?.asText()
-                    val targetVarName = mapping.get("value")?.asText()
-                    
-                    if (!sourceName.isNullOrBlank() && !targetVarName.isNullOrBlank()) {
-                        try {
-                            // Extract value from response using path notation (e.g., "data.status")
-                            val value = variableManager.extractValueByPath(responseJson, sourceName)
-                            
-                            variableManager.upsertProcessVariable(instance.id, targetVarName, value)
-                            logger.info("Applied output mapping: $sourceName -> $targetVarName")
-                        } catch (e: Exception) {
-                            logger.warn("Failed to apply output mapping for $sourceName: ${e.message}")
-                        }
-                    }
-                }
-            }
-        }
+        val nextNodes = navigator.getNextNodes(node, definition, instance)
 
-        val nextNodes = getNextNodes(node, definition, instance)
-
-        advanceProcess(instance, nextNodes, definition)
+        navigator.advanceProcess(instance, nextNodes, definition)
 
         executeNodes(nextNodes, instance, definition)
         
@@ -977,11 +746,11 @@ class ProcessService(
         val definition = parseDefinition(instance.processDefinition.definitionJson)
         val node = findNode(definition, nodeId)
 
-        val errorBoundaryNode = findAttachedErrorBoundary(node, definition)
+        val errorBoundaryNode = navigator.findAttachedErrorBoundary(node, definition)
         if (errorBoundaryNode != null) {
             logger.info("Found error boundary for node $nodeId, advancing to boundary node")
-            val nextNodes = getNextNodes(errorBoundaryNode, definition, instance)
-            advanceProcess(instance, nextNodes, definition)
+            val nextNodes = navigator.getNextNodes(errorBoundaryNode, definition, instance)
+            navigator.advanceProcess(instance, nextNodes, definition)
             executeNodes(nextNodes, instance, definition)
 
             val duration = System.currentTimeMillis() - startTime
@@ -1058,9 +827,9 @@ class ProcessService(
         val definition = parseDefinition(instance.processDefinition.definitionJson)
         val node = findNode(definition, subscription.nodeId)
 
-        val nextNodes = getNextNodes(node, definition, instance)
+        val nextNodes = navigator.getNextNodes(node, definition, instance)
 
-        advanceProcess(instance, nextNodes, definition)
+        navigator.advanceProcess(instance, nextNodes, definition)
 
         executeNodes(nextNodes, instance, definition)
     }
@@ -1104,10 +873,10 @@ class ProcessService(
         val definition = parseDefinition(instance.processDefinition.definitionJson)
         val node = findNode(definition, nodeId)
 
-        val errorBoundaryNode = findAttachedErrorBoundary(node, definition)
+        val errorBoundaryNode = navigator.findAttachedErrorBoundary(node, definition)
         if (errorBoundaryNode != null) {
-            val nextNodes = getNextNodes(errorBoundaryNode, definition, instance)
-            advanceProcess(instance, nextNodes, definition)
+            val nextNodes = navigator.getNextNodes(errorBoundaryNode, definition, instance)
+            navigator.advanceProcess(instance, nextNodes, definition)
             executeNodes(nextNodes, instance, definition)
             return true
         }
@@ -1128,8 +897,8 @@ class ProcessService(
             return false
         }
 
-        val nextNodes = getNextNodes(node, definition, instance)
-        advanceProcess(instance, nextNodes, definition)
+        val nextNodes = navigator.getNextNodes(node, definition, instance)
+        navigator.advanceProcess(instance, nextNodes, definition)
         executeNodes(nextNodes, instance, definition)
         return true
     }
@@ -1148,74 +917,6 @@ class ProcessService(
         )
     }
 
-    private fun advanceProcess(
-        instance: ProcessInstance,
-        nextNodes: List<String>,
-        definition: JsonNode
-    ) {
-        instance.currentNode = nextNodes
-
-        // Resolve and append meaningful nodes to history (skip gateways, but include their resolved targets)
-        val appendable = mutableListOf<String>()
-
-        fun resolveAndCollect(id: String) {
-            val node = definition.get("nodes").find { it.get("id").asText() == id } ?: return
-            when (NodeType.fromString(node.get("type").asText())) {
-                NodeType.ExclusiveGateway, NodeType.ParallelGateway, NodeType.InclusiveGateway -> {
-                    val targets = getNextNodes(node, definition, instance)
-                    targets.forEach { resolveAndCollect(it) }
-                }
-                NodeType.UserTask,
-                NodeType.ServiceTask,
-                NodeType.AgentProcessCall,
-                NodeType.APITask,
-                NodeType.MessageEvent,
-                NodeType.MessageIntermediateCatchEvent,
-                NodeType.MessageIntermediateThrowEvent,
-                NodeType.TimerEvent,
-                NodeType.ScriptTask,
-                NodeType.EndEvent -> appendable.add(id)
-                else -> { /* ignore other node types */ }
-            }
-        }
-
-        nextNodes.forEach { resolveAndCollect(it) }
-
-        // Avoid consecutive duplicates when appending
-        appendable.forEach { id ->
-            if (instance.nodeHistory.lastOrNull() != id) {
-                instance.nodeHistory = instance.nodeHistory + id
-                timelineService.record(
-                    processInstanceId = instance.id,
-                    nodeId = id,
-                    eventType = ProcessInstanceEventType.NODE_ENTERED,
-                    message = "Entered node '$id'."
-                )
-            }
-        }
-        instance.updatedAt = LocalDateTime.now()
-
-        // Process is complete if:
-        // 1. No more nodes to execute, OR
-        // 2. All next nodes are EndEvent nodes
-        val isCompleted = nextNodes.isEmpty() || nextNodes.all { nodeId ->
-            val node = definition.get("nodes").find { it.get("id").asText() == nodeId }
-            node != null && NodeType.fromString(node.get("type").asText()) == NodeType.EndEvent
-        }
-        
-        if (isCompleted) {
-            instance.status = ProcessStatus.COMPLETED
-            instance.currentNode = emptyList()
-            timelineService.record(
-                processInstanceId = instance.id,
-                eventType = ProcessInstanceEventType.PROCESS_COMPLETED,
-                message = "Process instance completed."
-            )
-        }
-
-        processInstanceRepository.save(instance)
-    }
-
     /* =========================
        JSON HELPERS
      ========================= */
@@ -1227,30 +928,6 @@ class ProcessService(
         definition.get("nodes")
             .find { it.get("id").asText() == nodeId }
             ?: throw IllegalArgumentException("Node '$nodeId' not found")
-
-    private fun getNextNodes(node: JsonNode, definition: JsonNode, instance: ProcessInstance): List<String> {
-        return gatewayService.getNextNodes(node, definition, instance)
-    }
-
-    private fun getStartNodes(instance: ProcessInstance, definition: JsonNode, startNodeId: String? = null): List<String> {
-        val start = if (startNodeId != null) {
-            findNode(definition, startNodeId).also {
-                if (NodeType.fromString(it.get("type").asText()) !in setOf(NodeType.StartEvent, NodeType.MessageStartEvent)) {
-                    throw IllegalArgumentException("Node '$startNodeId' is not a start event")
-                }
-            }
-        } else {
-            definition.get("nodes")
-                .find { NodeType.fromString(it.get("type").asText()) == NodeType.StartEvent }
-                ?: throw IllegalArgumentException("StartEvent not found")
-        }
-
-        return getNextNodes(start, definition, instance).also {
-            if (it.isEmpty()) {
-                throw IllegalArgumentException("${NodeType.fromString(start.get("type").asText()).typeName} has no outgoing flow")
-            }
-        }
-    }
 
     private fun findMatchingMessageStartNode(
         definition: JsonNode,
@@ -1311,7 +988,4 @@ class ProcessService(
         return result
     }
 
-    private fun evaluateCondition(condition: String, instance: ProcessInstance): Boolean {
-        return gatewayService.evaluateCondition(condition, instance)
-    }
 }
