@@ -133,33 +133,50 @@ class ProcessServiceTest : FunSpec() {
         navigator,
         mockTimelineService
     )
+    val lifecycleManager = ProcessInstanceLifecycleManager(
+        mockProcessInstanceRepository,
+        mockProcessVariableRepository,
+        mockTaskVariableRepository,
+        mockTaskRepository,
+        mockWorkerRequestRepository,
+        mockObjectMapper,
+        mockMessageSubscriptionService,
+        mockMetricsService,
+        mockTimelineService,
+        userTaskHandler
+    )
+    val executionEngine = ProcessExecutionEngine(
+        mockMetricsService,
+        failureHandler,
+        navigator,
+        messageNodeHandler,
+        variableManager,
+        userTaskHandler,
+        serviceTaskHandler,
+        processAiTaskHandler,
+        processAgentCallHandler,
+        mockCallActivityHandler,
+        mockTimelineService,
+        lifecycleManager
+    )
 
     val processService = ProcessService(
         mockProcessDefinitionRepository,
         mockProcessInstanceRepository,
         mockProcessVariableRepository,
-        mockTaskVariableRepository,
-        mockTaskRepository,
         mockObjectMapper,
-        mockMessageSubscriptionService,
         mockMetricsService,
-        mockWorkerRequestRepository,
-        mockCallActivityHandler,
         mockCallActivityMappingRepository,
         mockTimelineService,
         pageableSanitizer,
         processDefinitionValidator,
         variableManager,
-        failureHandler,
         navigator,
-        messageNodeHandler,
-        userTaskHandler,
-        serviceTaskHandler,
         workerCallbackHandler,
         messageReceivedHandler,
         messageStartResolver,
-        processAiTaskHandler,
-        processAgentCallHandler
+        lifecycleManager,
+        executionEngine
     )
 
     val objectMapper = ObjectMapper()
