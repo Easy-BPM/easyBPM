@@ -56,7 +56,6 @@ class ProcessServiceTest : FunSpec() {
     val mockIncidentService = mockk<IncidentService>(relaxed = true)
     val mockTimelineService = mockk<ProcessInstanceTimelineService>(relaxed = true)
     val pageableSanitizer = ProcessPageableSanitizer()
-    val processDefinitionValidator = ProcessDefinitionValidator()
     val variableManager = ProcessVariableManager(
         mockProcessInstanceRepository,
         mockProcessVariableRepository,
@@ -133,7 +132,7 @@ class ProcessServiceTest : FunSpec() {
         navigator,
         mockTimelineService
     )
-    val lifecycleManager = ProcessInstanceLifecycleManager(
+    val lifecycleManager: ProcessInstanceLifecycleManager = ProcessInstanceLifecycleManager(
         mockProcessInstanceRepository,
         mockProcessVariableRepository,
         mockTaskVariableRepository,
@@ -145,7 +144,7 @@ class ProcessServiceTest : FunSpec() {
         mockTimelineService,
         userTaskHandler
     )
-    val executionEngine = ProcessExecutionEngine(
+    val executionEngine: ProcessExecutionEngine = ProcessExecutionEngine(
         mockMetricsService,
         failureHandler,
         navigator,
@@ -159,24 +158,37 @@ class ProcessServiceTest : FunSpec() {
         mockTimelineService,
         lifecycleManager
     )
-
-    val processService = ProcessService(
-        mockProcessDefinitionRepository,
-        mockProcessInstanceRepository,
-        mockProcessVariableRepository,
-        mockObjectMapper,
+    val mockDeploymentService = mockk<ProcessDeploymentService>()
+    val mockInstanceStarter = mockk<ProcessInstanceStarter>()
+    val workerCallbackService: ProcessWorkerCallbackService = ProcessWorkerCallbackService(
         mockMetricsService,
-        mockCallActivityMappingRepository,
-        mockTimelineService,
-        pageableSanitizer,
-        processDefinitionValidator,
-        variableManager,
         navigator,
-        workerCallbackHandler,
+        executionEngine,
+        workerCallbackHandler
+    )
+    val messageRuntimeService: ProcessMessageRuntimeService = ProcessMessageRuntimeService(
+        mockProcessInstanceRepository,
+        mockObjectMapper,
+        navigator,
+        executionEngine,
         messageReceivedHandler,
         messageStartResolver,
-        lifecycleManager,
-        executionEngine
+        mockTimelineService,
+        mockInstanceStarter
+    )
+
+    val processService: ProcessService = ProcessService(
+        processDefinitionRepository = mockProcessDefinitionRepository,
+        processInstanceRepository = mockProcessInstanceRepository,
+        processVariableRepository = mockProcessVariableRepository,
+        callActivityMappingRepository = mockCallActivityMappingRepository,
+        pageableSanitizer = pageableSanitizer,
+        variableManager = variableManager,
+        lifecycleManager = lifecycleManager,
+        deploymentService = mockDeploymentService,
+        instanceStarter = mockInstanceStarter,
+        workerCallbackService = workerCallbackService,
+        messageRuntimeService = messageRuntimeService
     )
 
     val objectMapper = ObjectMapper()
@@ -197,14 +209,13 @@ class ProcessServiceTest : FunSpec() {
                 }
             """.trimIndent())
 
-            every { mockProcessDefinitionRepository.findTopByKeyOrderByVersionDesc("my-process") } returns null
             val expectedDefinition = ProcessDefinition(
                 id = 1,
                 processName = "my-process",
                 definitionJson = processJson.toString(),
                 version = 1
             )
-            every { mockProcessDefinitionRepository.save(any<ProcessDefinition>()) } returns expectedDefinition
+            every { mockDeploymentService.deployProcess(processJson) } returns expectedDefinition
 
             // Act
             val result = processService.deployProcess(processJson)
@@ -213,7 +224,7 @@ class ProcessServiceTest : FunSpec() {
             result shouldNotBe null
             result.processName shouldBe "my-process"
             result.version shouldBe 1
-            verify { mockProcessDefinitionRepository.save(any<ProcessDefinition>()) }
+            verify { mockDeploymentService.deployProcess(processJson) }
         }
 
         test("should increment version for existing process definition") {
@@ -227,27 +238,20 @@ class ProcessServiceTest : FunSpec() {
                 }
             """.trimIndent())
 
-            val existingDefinition = ProcessDefinition(
-                id = 1,
-                processName = "my-process",
-                definitionJson = "{}",
-                version = 1
-            )
-            every { mockProcessDefinitionRepository.findTopByKeyOrderByVersionDesc("my-process") } returns existingDefinition
-
             val expectedDefinition = ProcessDefinition(
                 id = 2,
                 processName = "my-process",
                 definitionJson = processJson.toString(),
                 version = 2
             )
-            every { mockProcessDefinitionRepository.save(any<ProcessDefinition>()) } returns expectedDefinition
+            every { mockDeploymentService.deployProcess(processJson) } returns expectedDefinition
 
             // Act
             val result = processService.deployProcess(processJson)
 
             // Assert
             result.version shouldBe 2
+            verify { mockDeploymentService.deployProcess(processJson) }
         }
 
         test("should throw exception for invalid process definition") {
@@ -257,6 +261,8 @@ class ProcessServiceTest : FunSpec() {
                     "version": 1
                 }
             """.trimIndent())
+
+            every { mockDeploymentService.deployProcess(invalidJson) } throws IllegalArgumentException("Invalid process definition")
 
             // Act & Assert
             shouldThrow<IllegalArgumentException> {
@@ -288,17 +294,31 @@ class ProcessServiceTest : FunSpec() {
             )
 
             every { mockProcessDefinitionRepository.findById(definitionId) } returns Optional.of(definition)
-            every { mockProcessInstanceRepository.save(any<ProcessInstance>()) } returns ProcessInstance(
+            val expectedInstance = ProcessInstance(
                 id = 100,
                 processDefinition = definition,
                 status = ProcessStatus.ACTIVE,
                 currentNode = emptyList()
             )
+            every {
+                mockInstanceStarter.startWithDefinition(
+                    definition = definition,
+                    initialVariables = emptyMap(),
+                    startNodeId = null
+                )
+            } returns expectedInstance
 
-            // Act & Assert - just verify it calls repository methods, full execution is integration test concern
-            shouldThrow<Exception> {
-                // Will throw because we're not mocking all the internal execution methods
-                processService.startProcessInstance(definitionId)
+            // Act
+            val result = processService.startProcessInstance(definitionId)
+
+            // Assert
+            result.status shouldBe ProcessStatus.ACTIVE
+            verify {
+                mockInstanceStarter.startWithDefinition(
+                    definition = definition,
+                    initialVariables = emptyMap(),
+                    startNodeId = null
+                )
             }
         }
     }
