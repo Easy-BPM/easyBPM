@@ -41,7 +41,6 @@ class ProcessServiceTest : FunSpec() {
     val mockProcessInstanceRepository = mockk<ProcessInstanceRepository>()
     val mockProcessVariableRepository = mockk<ProcessVariableRepository>()
     val mockTaskVariableRepository = mockk<TaskVariableRepository>()
-    val mockIntegrationService = mockk<IntegrationService>()
     val mockFormService = mockk<FormService>()
     val mockTaskRepository = mockk<TaskRepository>()
     val mockObjectMapper = mockk<ObjectMapper>()
@@ -86,17 +85,30 @@ class ProcessServiceTest : FunSpec() {
         mockObjectMapper,
         variableManager
     )
+    val userTaskHandler = ProcessUserTaskHandler(
+        mockFormService,
+        mockTaskRepository,
+        mockRabbitPublisher,
+        mockMetricsService,
+        variableManager,
+        mockTimelineService
+    )
+    val serviceTaskHandler = ProcessServiceTaskHandler(
+        mockProcessInstanceRepository,
+        mockProcessVariableRepository,
+        mockRabbitPublisher,
+        mockObjectMapper,
+        variableManager,
+        mockTimelineService
+    )
 
     val processService = ProcessService(
         mockProcessDefinitionRepository,
         mockProcessInstanceRepository,
         mockProcessVariableRepository,
         mockTaskVariableRepository,
-        mockIntegrationService,
-        mockFormService,
         mockTaskRepository,
         mockObjectMapper,
-        mockRabbitPublisher,
         mockMessageSubscriptionService,
         mockMetricsService,
         mockWorkerRequestRepository,
@@ -111,7 +123,9 @@ class ProcessServiceTest : FunSpec() {
         failureHandler,
         navigator,
         messageNodeHandler,
-        serviceTaskOutputMapper
+        serviceTaskOutputMapper,
+        userTaskHandler,
+        serviceTaskHandler
     )
 
     val objectMapper = ObjectMapper()

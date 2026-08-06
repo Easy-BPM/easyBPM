@@ -7,7 +7,6 @@ import com.easy.bpm.model.incident.IncidentSource
 import com.easy.bpm.model.process.ProcessDefinition
 import com.easy.bpm.model.process.ProcessInstanceEventType
 import com.easy.bpm.model.process.ProcessInstance
-import com.easy.bpm.model.task.Task
 import com.easy.bpm.model.variable.ProcessVariable
 import com.easy.bpm.repository.process.ProcessDefinitionRepository
 import com.easy.bpm.repository.process.ProcessInstanceRepository
@@ -31,11 +30,8 @@ class ProcessService(
     private val processInstanceRepository: ProcessInstanceRepository,
     private val processVariableRepository: ProcessVariableRepository,
     private val taskVariableRepository: TaskVariableRepository,
-    private val integrationService: IntegrationService,
-    private val formService: FormService,
     private val taskRepository: TaskRepository,
     private val objectMapper: ObjectMapper,
-    private val rabbitPublisher: com.easy.bpm.messaging.RabbitPublisher,
     private val messageSubscriptionService: MessageSubscriptionService,
     private val metricsService: MetricsService,
     private val workerRequestRepository: WorkerRequestRepository,
@@ -50,7 +46,9 @@ class ProcessService(
     private val failureHandler: ProcessFailureHandler,
     private val navigator: ProcessNavigator,
     private val messageNodeHandler: ProcessMessageNodeHandler,
-    private val serviceTaskOutputMapper: ServiceTaskOutputMapper
+    private val serviceTaskOutputMapper: ServiceTaskOutputMapper,
+    private val userTaskHandler: ProcessUserTaskHandler,
+    private val serviceTaskHandler: ProcessServiceTaskHandler
 ) {
 
     companion object {
@@ -279,9 +277,7 @@ class ProcessService(
             TaskStatus.PENDING
         )
 
-        if (existingTargetTasks.isEmpty()) {
-            handleUserTask(instance, toNodeDefinition)
-        }
+        if (existingTargetTasks.isEmpty()) userTaskHandler.handleUserTask(instance, toNodeDefinition)
     }
 
     fun getLatestProcessDefinitions(pageable: Pageable): Page<ProcessDefinition> =
@@ -369,8 +365,8 @@ class ProcessService(
 
         try {
             when (nodeType) {
-                NodeType.UserTask -> handleUserTask(instance, node)
-                NodeType.APITask -> handleAPITask(instance, node)
+                NodeType.UserTask -> userTaskHandler.handleUserTask(instance, node)
+                NodeType.APITask -> serviceTaskHandler.handleApiTask(instance, node)
                 NodeType.AiTask -> handleAITask(instance, node)
                 NodeType.AgentProcessCall -> handleAgentProcessCall(instance, node, definition)
                 NodeType.ServiceTask -> handleServiceTaskNode(instance, node, definition)
@@ -446,76 +442,6 @@ class ProcessService(
         return false
     }
 
-    private fun handleUserTask(
-        instance: ProcessInstance,
-        node: JsonNode
-    ) {
-        val form = resolveUserTaskForm(node)
-        val task = taskRepository.save(
-            Task(
-                processInstanceId = instance.id,
-                title = node.get("name").asText(),
-                nodeId = node.get("id").asText(),
-                formId = form?.id
-            )
-        )
-
-        metricsService.recordTaskCreated(task.nodeId)
-        timelineService.record(
-            processInstanceId = instance.id,
-            nodeId = task.nodeId,
-            eventType = ProcessInstanceEventType.TASK_CREATED,
-            message = "Task '${task.title ?: task.nodeId}' created.",
-            details = "taskId=${task.id}"
-        )
-
-        // Publish TaskCreated event
-        try {
-            rabbitPublisher.publishTaskCreated(
-                mapOf(
-                    "taskId" to task.id,
-                    "processInstanceId" to task.processInstanceId,
-                    "nodeId" to task.nodeId,
-                    "title" to task.title,
-                    "formDbId" to task.formId,
-                    "formId" to form?.formId
-                )
-            )
-        } catch (_: Exception) {
-        }
-
-        variableManager.applyTaskInputs(task, node, instance)
-    }
-
-    private fun resolveUserTaskForm(node: JsonNode) =
-        node.get("config")?.get("formId")?.asText()?.trim()?.takeIf { it.isNotEmpty() }?.let { configuredFormRef ->
-            formService.getLatestVersionByFormId(configuredFormRef)
-                ?: configuredFormRef.toLongOrNull()?.let(formService::getById)
-                ?: formService.getLatestVersionByName(configuredFormRef)
-        } ?: formService.getLatestVersionByName(node.get("id").asText())
-
-    private fun handleAPITask(
-        instance: ProcessInstance,
-        node: JsonNode
-    ) {
-        val config = node.get("properties")
-            ?: node.get("service")
-            ?: throw IllegalArgumentException("APITask ${node.get("id").asText()} missing properties/service")
-
-        // Publish a service task request to RabbitMQ; worker will send a completion event.
-        rabbitPublisher.publishServiceTaskRequest(instance.id, node.get("id").asText(), config)
-        timelineService.record(
-            processInstanceId = instance.id,
-            nodeId = node.get("id").asText(),
-            eventType = ProcessInstanceEventType.WORKER_REQUESTED,
-            message = "API task request sent to worker."
-        )
-
-        // Persist instance updated timestamp; instance remains on this node until completion.
-        instance.updatedAt = LocalDateTime.now()
-        processInstanceRepository.save(instance)
-    }
-
     private fun handleAITask(
         instance: ProcessInstance,
         node: JsonNode
@@ -584,80 +510,10 @@ class ProcessService(
         node: JsonNode,
         definition: JsonNode
     ) {
-        var config = node.get("config")
-
-        // Variable substitution for config fields
-        if (config != null && config.isObject) {
-            val configObj = (config.deepCopy() as com.fasterxml.jackson.databind.node.ObjectNode)
-            configObj.fieldNames().forEachRemaining { field ->
-                val valueNode = configObj.get(field)
-                if (valueNode.isTextual && valueNode.asText().startsWith("\${") && valueNode.asText().endsWith("}")) {
-                    val varName = valueNode.asText().removePrefix("\${").removeSuffix("}")
-                    val variable = processVariableRepository.findByProcessInstanceIdAndName(instance.id, varName)
-                    if (variable != null) {
-                        configObj.replace(field, variable.value)
-                    }
-                }
-            }
-            config = configObj
-        }
-
-        // Simulate failure for error boundary test
-        if (config != null && config.has("shouldFail")) {
-            val shouldFailNode = config.get("shouldFail")
-            val shouldFail = when {
-                shouldFailNode.isBoolean -> shouldFailNode.asBoolean(false)
-                shouldFailNode.isTextual -> shouldFailNode.asText().equals("true", ignoreCase = true)
-                else -> false
-            }
-            if (shouldFail) {
-                throw RuntimeException("Simulated service task failure for error boundary test")
-            }
-        }
-
-        // If service task declares "variables", treat as internal (auto-execute)
-        if (config != null && config.has("variables")) {
-            val variables = config.get("variables")
-            variables.forEach { varConfig ->
-                val varName = varConfig.get("name")?.asText()
-                    ?: throw IllegalArgumentException("ServiceTask variable missing 'name' field")
-
-                val source = varConfig.get("source")?.asText() ?: "static"
-                val value: JsonNode = when (source) {
-                    "static" -> variableManager.parseStaticValue(varConfig.get("value"))
-                    "variable" -> {
-                        val sourceVarName = varConfig.get("value")?.asText()
-                            ?: throw IllegalArgumentException("ServiceTask variable missing source variable name")
-                        val sourceVar = processVariableRepository.findByProcessInstanceIdAndName(instance.id, sourceVarName)
-                            ?: throw IllegalArgumentException("Source variable '$sourceVarName' not found")
-                        sourceVar.value
-                    }
-                    else -> throw IllegalArgumentException("Invalid variable source '$source'")
-                }
-
-                variableManager.upsertProcessVariable(instance.id, varName, value)
-            }
-
-            // Continue execution for internal service task
+        if (serviceTaskHandler.handleServiceTaskNode(instance, node) == ServiceTaskHandlingResult.CONTINUE) {
             val nextNodes = navigator.getNextNodes(node, definition, instance)
             navigator.advanceProcess(instance, nextNodes, definition)
             executeNodes(nextNodes, instance, definition)
-        } else {
-            // External service task: publish request and remain on this node until completion
-            val properties = config ?: objectMapper.createObjectNode()
-            try {
-                rabbitPublisher.publishServiceTaskRequest(instance.id, node.get("id").asText(), properties)
-                timelineService.record(
-                    processInstanceId = instance.id,
-                    nodeId = node.get("id").asText(),
-                    eventType = ProcessInstanceEventType.WORKER_REQUESTED,
-                    message = "Service task request sent to worker."
-                )
-            } catch (_: Exception) {
-            }
-
-            instance.updatedAt = LocalDateTime.now()
-            processInstanceRepository.save(instance)
         }
     }
 
