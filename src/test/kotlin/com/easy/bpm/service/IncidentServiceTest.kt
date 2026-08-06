@@ -1,6 +1,7 @@
 package com.easy.bpm.service
 
 import com.easy.bpm.model.incident.Incident
+import com.easy.bpm.model.incident.IncidentEvent
 import com.easy.bpm.model.incident.IncidentSource
 import com.easy.bpm.model.incident.IncidentStatus
 import com.easy.bpm.repository.process.ProcessInstanceRepository
@@ -34,6 +35,8 @@ class IncidentServiceTest : FunSpec({
         objectMapper,
         timelineService
     )
+
+    every { incidentEventRepository.save(any<IncidentEvent>()) } answers { firstArg<IncidentEvent>() }
 
     test("should create an open incident") {
         val incidentSlot = slot<Incident>()
