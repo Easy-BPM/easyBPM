@@ -1,5 +1,6 @@
 package com.easy.bpm.service.process
 
+import com.easy.bpm.enum.ProcessStatus
 import com.easy.bpm.model.incident.IncidentSource
 import com.easy.bpm.model.process.ProcessDefinition
 import com.easy.bpm.model.process.ProcessInstance
@@ -103,8 +104,16 @@ class ProcessService(
     }
 
     @Transactional
-    fun assignProcessVariables(processInstanceId: Long, variables: Map<String, Any?>): List<ProcessVariable> =
-        variableManager.assignProcessVariables(processInstanceId, variables)
+    fun assignProcessVariables(processInstanceId: Long, variables: Map<String, Any?>): List<ProcessVariable> {
+        val instance = processInstanceRepository.findById(processInstanceId)
+            .orElseThrow { IllegalArgumentException("Process instance not found") }
+
+        if (instance.status == ProcessStatus.COMPLETED) {
+            throw IllegalStateException("Cannot assign variables to a completed process instance")
+        }
+
+        return variableManager.assignProcessVariables(processInstanceId, variables)
+    }
 
     @Transactional
     fun moveProcessNode(processInstanceId: Long, fromNode: String, toNode: String): ProcessInstance =

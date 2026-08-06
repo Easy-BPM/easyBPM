@@ -203,6 +203,8 @@ class ProcessController(
     ): ResponseEntity<List<ProcessVariable>> {
         return try {
             ResponseEntity.ok(processService.assignProcessVariables(id, request.variables))
+        } catch (ex: IllegalStateException) {
+            ResponseEntity.status(409).build()
         } catch (ex: IllegalArgumentException) {
             ResponseEntity.badRequest().build()
         }
@@ -347,4 +349,3 @@ class ProcessController(
     }
 
 }
-
