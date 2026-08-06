@@ -9,7 +9,6 @@ import com.easy.bpm.model.process.ProcessInstanceEventType
 import com.easy.bpm.model.process.ProcessInstance
 import com.easy.bpm.model.task.Task
 import com.easy.bpm.model.variable.ProcessVariable
-import com.easy.bpm.model.variable.TaskVariable
 import com.easy.bpm.repository.process.ProcessDefinitionRepository
 import com.easy.bpm.repository.process.ProcessInstanceRepository
 import com.easy.bpm.repository.process.CallActivityMappingRepository
@@ -23,10 +22,7 @@ import jakarta.transaction.Transactional
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.data.domain.Page
-import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Pageable
-import org.springframework.data.domain.Sort
-import javax.script.ScriptEngineManager
 import java.time.LocalDateTime
 
 @Service
@@ -48,8 +44,11 @@ class ProcessService(
     private val callActivityMappingRepository: CallActivityMappingRepository,
     private val aiTaskHandler: com.easy.bpm.handler.AITaskHandler,
     private val agentProcessCallHandler: com.easy.bpm.handler.AgentProcessCallHandler,
-    private val incidentService: IncidentService,
-    private val timelineService: ProcessInstanceTimelineService
+    private val timelineService: ProcessInstanceTimelineService,
+    private val pageableSanitizer: ProcessPageableSanitizer,
+    private val processDefinitionValidator: ProcessDefinitionValidator,
+    private val variableManager: ProcessVariableManager,
+    private val failureHandler: ProcessFailureHandler
 ) {
 
     companion object {
@@ -57,16 +56,13 @@ class ProcessService(
         private val logger = LoggerFactory.getLogger(ProcessService::class.java)
     }
 
-    private val processDefinitionSortableFields = setOf("id", "key", "name", "description", "version")
-    private val processInstanceSortableFields = setOf("id", "status", "createdAt", "updatedAt")
-
     /* =========================
        DEPLOY
      ========================= */
 
     @Transactional
     fun deployProcess(definitionJson: JsonNode): ProcessDefinition {
-        val json = validateAndParseDefinition(definitionJson)
+        val json = processDefinitionValidator.validateAndParse(definitionJson)
 
         val processId = json.get("processId").asText()
         val processKey = json.get("key")?.asText()?.takeIf { it.isNotBlank() } ?: processId
@@ -150,12 +146,12 @@ class ProcessService(
             message = "Process instance started."
         )
 
-        initializeProcessVariables(instance, json)
+        variableManager.initializeProcessVariables(instance, json)
         
         // Add initial variables if provided
         if (initialVariables.isNotEmpty()) {
             initialVariables.forEach { (name, value) ->
-                upsertProcessVariable(instance.id, name, objectMapper.valueToTree(value))
+                variableManager.upsertProcessVariable(instance.id, name, objectMapper.valueToTree(value))
             }
         }
 
@@ -182,7 +178,7 @@ class ProcessService(
     }
 
     fun getProcessInstances(pageable: Pageable): Page<ProcessInstance> =
-        processInstanceRepository.findAll(sanitizeProcessInstancePageable(pageable))
+        processInstanceRepository.findAll(pageableSanitizer.sanitizeProcessInstances(pageable))
 
     fun getProcessInstanceById(id: Long): ProcessInstance? =
         processInstanceRepository.findById(id).orElse(null)
@@ -211,33 +207,8 @@ class ProcessService(
     }
 
     @Transactional
-    fun assignProcessVariables(processInstanceId: Long, variables: Map<String, Any?>): List<ProcessVariable> {
-        val instance = processInstanceRepository.findByIdForUpdate(processInstanceId)
-            ?: throw IllegalArgumentException("Process instance not found")
-
-        variables.forEach { (name, value) ->
-            val jsonValue = if (value == null) objectMapper.nullNode() else objectMapper.valueToTree(value)
-            val existing = processVariableRepository.findByProcessInstanceIdAndName(processInstanceId, name)
-
-            if (existing != null) {
-                existing.value = jsonValue
-                processVariableRepository.save(existing)
-            } else {
-                processVariableRepository.save(
-                    ProcessVariable(
-                        processInstanceId = processInstanceId,
-                        name = name,
-                        value = jsonValue
-                    )
-                )
-            }
-        }
-
-        instance.updatedAt = LocalDateTime.now()
-        processInstanceRepository.save(instance)
-
-        return processVariableRepository.findByProcessInstanceId(processInstanceId)
-    }
+    fun assignProcessVariables(processInstanceId: Long, variables: Map<String, Any?>): List<ProcessVariable> =
+        variableManager.assignProcessVariables(processInstanceId, variables)
 
     @Transactional
     fun moveProcessNode(processInstanceId: Long, fromNode: String, toNode: String): ProcessInstance {
@@ -312,46 +283,10 @@ class ProcessService(
     }
 
     fun getLatestProcessDefinitions(pageable: Pageable): Page<ProcessDefinition> =
-        processDefinitionRepository.findLatestVersionProcesses(sanitizeProcessDefinitionPageable(pageable))
+        processDefinitionRepository.findLatestVersionProcesses(pageableSanitizer.sanitizeProcessDefinitions(pageable))
 
     fun getProcessDefinitionById(id: Long): ProcessDefinition? =
         processDefinitionRepository.findById(id).orElse(null)
-
-    private fun sanitizeProcessDefinitionPageable(pageable: Pageable): Pageable {
-        val sanitizedOrders = pageable.sort
-            .filter { it.property in processDefinitionSortableFields }
-            .toList()
-
-        val effectiveSort = if (sanitizedOrders.isNotEmpty()) {
-            Sort.by(sanitizedOrders)
-        } else {
-            Sort.by(Sort.Order.asc("key"), Sort.Order.desc("version"))
-        }
-
-        return if (pageable.isPaged) {
-            PageRequest.of(pageable.pageNumber, pageable.pageSize, effectiveSort)
-        } else {
-            PageRequest.of(0, 100, effectiveSort)
-        }
-    }
-
-    private fun sanitizeProcessInstancePageable(pageable: Pageable): Pageable {
-        val sanitizedOrders = pageable.sort
-            .filter { it.property in processInstanceSortableFields }
-            .toList()
-
-        val effectiveSort = if (sanitizedOrders.isNotEmpty()) {
-            Sort.by(sanitizedOrders)
-        } else {
-            Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id"))
-        }
-
-        return if (pageable.isPaged) {
-            PageRequest.of(pageable.pageNumber, pageable.pageSize, effectiveSort)
-        } else {
-            PageRequest.of(0, 100, effectiveSort)
-        }
-    }
 
     @Transactional
     fun stopProcessInstance(id: Long): ProcessInstance {
@@ -491,11 +426,11 @@ class ProcessService(
                 val nodeId = node.get("id").asText()
                 val errorMessage = ex.message ?: ex.javaClass.simpleName
                 logger.error("Unhandled process node failure: instance=${instance.id}, nodeId=$nodeId", ex)
-                failInstance(
+                failureHandler.failInstance(
                     instance = instance,
                     nodeId = nodeId,
                     errorMessage = errorMessage,
-                    incidentSource = incidentSourceForNode(nodeType),
+                    incidentSource = failureHandler.incidentSourceForNode(nodeType),
                     createIncident = nodeType != NodeType.CodeTask && nodeType != NodeType.AiTask
                 )
                 val duration = System.currentTimeMillis() - startTime
@@ -559,7 +494,7 @@ class ProcessService(
         } catch (_: Exception) {
         }
 
-        applyTaskInputs(task, node, instance)
+        variableManager.applyTaskInputs(task, node, instance)
     }
 
     private fun resolveUserTaskForm(node: JsonNode) =
@@ -699,7 +634,7 @@ class ProcessService(
 
                 val source = varConfig.get("source")?.asText() ?: "static"
                 val value: JsonNode = when (source) {
-                    "static" -> parseStaticValue(varConfig.get("value"))
+                    "static" -> variableManager.parseStaticValue(varConfig.get("value"))
                     "variable" -> {
                         val sourceVarName = varConfig.get("value")?.asText()
                             ?: throw IllegalArgumentException("ServiceTask variable missing source variable name")
@@ -710,20 +645,7 @@ class ProcessService(
                     else -> throw IllegalArgumentException("Invalid variable source '$source'")
                 }
 
-                // Save or update process variable
-                val existing = processVariableRepository.findByProcessInstanceIdAndName(instance.id, varName)
-                if (existing != null) {
-                    existing.value = value
-                    processVariableRepository.save(existing)
-                } else {
-                    processVariableRepository.save(
-                        ProcessVariable(
-                            processInstanceId = instance.id,
-                            name = varName,
-                            value = value
-                        )
-                    )
-                }
+                variableManager.upsertProcessVariable(instance.id, varName, value)
             }
 
             // Continue execution for internal service task
@@ -764,7 +686,7 @@ class ProcessService(
             ?: throw IllegalArgumentException("MessageEvent $nodeId missing correlationKey")
 
         // Evaluate correlation key with variable substitution
-        val correlationKey = evaluateCorrelationKey(correlationKeyTemplate, instance)
+        val correlationKey = variableManager.evaluateCorrelationKey(correlationKeyTemplate, instance)
 
         val timeoutSeconds = properties.get("timeoutSeconds")?.asLong()
 
@@ -1007,22 +929,9 @@ class ProcessService(
                     if (!sourceName.isNullOrBlank() && !targetVarName.isNullOrBlank()) {
                         try {
                             // Extract value from response using path notation (e.g., "data.status")
-                            val value = extractValueByPath(responseJson, sourceName)
+                            val value = variableManager.extractValueByPath(responseJson, sourceName)
                             
-                            // Save to process variable
-                            val existing = processVariableRepository.findByProcessInstanceIdAndName(instance.id, targetVarName)
-                            if (existing != null) {
-                                existing.value = value
-                                processVariableRepository.save(existing)
-                            } else {
-                                processVariableRepository.save(
-                                    ProcessVariable(
-                                        processInstanceId = instance.id,
-                                        name = targetVarName,
-                                        value = value
-                                    )
-                                )
-                            }
+                            variableManager.upsertProcessVariable(instance.id, targetVarName, value)
                             logger.info("Applied output mapping: $sourceName -> $targetVarName")
                         } catch (e: Exception) {
                             logger.warn("Failed to apply output mapping for $sourceName: ${e.message}")
@@ -1040,23 +949,6 @@ class ProcessService(
         
         val duration = System.currentTimeMillis() - startTime
         metricsService.recordServiceTaskExecution(duration, success = true)
-    }
-
-    /**
-     * Extract value from JSON using dot notation path (e.g., "data.status")
-     */
-    private fun extractValueByPath(node: JsonNode, path: String): JsonNode {
-        if (path.isBlank()) return node
-        
-        val parts = path.split(".")
-        var current: JsonNode? = node
-        
-        for (part in parts) {
-            if (current == null) break
-            current = current.get(part)
-        }
-        
-        return current ?: objectMapper.nullNode()
     }
 
     @Transactional
@@ -1099,7 +991,7 @@ class ProcessService(
 
         // No boundary to recover from this failure; mark instance as failed.
         logger.info("No error boundary found for node $nodeId, marking instance $processInstanceId as FAILED")
-        failInstance(
+        failureHandler.failInstance(
             instance = instance,
             nodeId = nodeId,
             errorMessage = errorMessage ?: "Service task failed",
@@ -1127,51 +1019,6 @@ class ProcessService(
         )
     }
 
-    private fun failInstance(
-        instance: ProcessInstance,
-        nodeId: String,
-        errorMessage: String,
-        incidentSource: IncidentSource = IncidentSource.PROCESS_ENGINE,
-        externalReferenceId: String? = null,
-        createIncident: Boolean = true
-    ) {
-        instance.status = ProcessStatus.FAILED
-        instance.currentNode = emptyList()
-        instance.errorNodeId = nodeId
-        instance.errorMessage = errorMessage.take(4000)
-        instance.updatedAt = LocalDateTime.now()
-        processInstanceRepository.save(instance)
-
-        if (createIncident) {
-            incidentService.createIncident(
-                processInstanceId = instance.id,
-                nodeId = nodeId,
-                source = incidentSource,
-                message = errorMessage,
-                technicalDetails = "Process instance ${instance.id} failed at node '$nodeId'",
-                externalReferenceId = externalReferenceId
-            )
-        }
-        timelineService.record(
-            processInstanceId = instance.id,
-            nodeId = nodeId,
-            eventType = ProcessInstanceEventType.PROCESS_FAILED,
-            message = "Process instance failed at node '$nodeId'.",
-            details = errorMessage
-        )
-    }
-
-    private fun incidentSourceForNode(nodeType: NodeType): IncidentSource =
-        when (nodeType) {
-            NodeType.CodeTask -> IncidentSource.CODE_TASK
-            NodeType.AiTask -> IncidentSource.AI_TASK
-            NodeType.MessageEvent,
-            NodeType.MessageStartEvent,
-            NodeType.MessageIntermediateCatchEvent,
-            NodeType.MessageIntermediateThrowEvent -> IncidentSource.MESSAGE
-            else -> IncidentSource.PROCESS_ENGINE
-        }
-
     @Transactional
     fun handleMessageReceived(
         messageName: String,
@@ -1197,7 +1044,7 @@ class ProcessService(
         val instance = processInstanceRepository.findByIdForUpdate(subscription.processInstanceId)
             ?: throw IllegalArgumentException("Process instance ${subscription.processInstanceId} not found")
 
-        saveMessageVariables(instance, variables)
+        variableManager.saveMessageVariables(instance, variables)
 
         // Clean up subscription after message received
         messageSubscriptionService.deleteSubscription(subscription.id)
@@ -1370,65 +1217,6 @@ class ProcessService(
     }
 
     /* =========================
-       VARIABLE MANAGEMENT
-     ========================= */
-
-    private fun initializeProcessVariables(
-        instance: ProcessInstance,
-        definition: JsonNode
-    ) {
-        val variablesNode = definition.get("variables") ?: return
-
-        val variables = variablesNode.map {
-            ProcessVariable(
-                processInstanceId = instance.id,
-                name = it.get("name").asText(),
-                value = it.get("initialValue") ?: objectMapper.nullNode()
-            )
-        }
-
-        if (variables.isNotEmpty()) {
-            processVariableRepository.saveAll(variables)
-        }
-    }
-
-    private fun applyTaskInputs(
-        task: Task,
-        node: JsonNode,
-        instance: ProcessInstance
-    ) {
-        val inputs = node.get("config")?.get("inputs") ?: return
-
-        inputs.forEach { input ->
-            val targetName = input.get("targetName").asText()
-            val source = input.get("source").asText()
-            val valueNode = input.get("value")
-
-            val value: JsonNode = when (source) {
-                "variable" -> {
-                    val varName = valueNode.asText()
-                    val processVar =
-                        processVariableRepository.findByProcessInstanceIdAndName(instance.id, varName)
-                            ?: throw IllegalArgumentException("Process variable '$varName' not found")
-                    processVar.value
-                }
-
-                "static" -> parseStaticValue(valueNode)
-
-                else -> throw IllegalArgumentException("Invalid input source '$source'")
-            }
-
-            taskVariableRepository.save(
-                TaskVariable(
-                    taskId = task.id,
-                    name = targetName,
-                    value = value
-                )
-            )
-        }
-    }
-
-    /* =========================
        JSON HELPERS
      ========================= */
 
@@ -1523,259 +1311,7 @@ class ProcessService(
         return result
     }
 
-    private fun saveMessageVariables(instance: ProcessInstance, variables: Map<String, Any>?) {
-        variables?.forEach { (name, rawValue) ->
-            val value = objectMapper.convertValue(rawValue, com.fasterxml.jackson.databind.JsonNode::class.java)
-            upsertProcessVariable(instance.id, name, value)
-        }
-    }
-
-    private fun upsertProcessVariable(processInstanceId: Long, name: String, value: JsonNode) {
-        val existing = processVariableRepository.findByProcessInstanceIdAndName(processInstanceId, name)
-
-        if (existing != null) {
-            existing.value = value
-            processVariableRepository.save(existing)
-        } else {
-            processVariableRepository.save(
-                ProcessVariable(
-                    processInstanceId = processInstanceId,
-                    name = name,
-                    value = value
-                )
-            )
-        }
-    }
-
     private fun evaluateCondition(condition: String, instance: ProcessInstance): Boolean {
         return gatewayService.evaluateCondition(condition, instance)
     }
-
-    /**
-     * Evaluate correlation key template with variable substitution.
-     * Supports ${variableName} expressions like ${orderId}-${instanceNumber}
-     */
-    private fun evaluateCorrelationKey(template: String, instance: ProcessInstance): String {
-        var result = template
-        val regex = Regex("\\$\\{([^}]+)\\}")
-
-        result = regex.replace(result) { match ->
-            val varName = match.groupValues[1]
-            val processVar = processVariableRepository.findByProcessInstanceIdAndName(instance.id, varName)
-            when {
-                processVar == null || processVar.value.isNull -> varName // Fallback to var name if not found
-                processVar.value.isTextual -> processVar.value.asText()
-                processVar.value.isNumber -> processVar.value.toString()
-                else -> processVar.value.toString()
-            }
-        }
-
-        return result
-    }
-
-    private fun parseStaticValue(valueNode: JsonNode?): JsonNode {
-        if (valueNode == null || valueNode.isNull) return objectMapper.nullNode()
-
-        if (!valueNode.isTextual) return valueNode
-
-        val text = valueNode.asText()
-        val trimmed = text.trim()
-
-        // Try to parse textual content as JSON when it looks like JSON (object/array/literal/number).
-        // If parse fails or it doesn't look like JSON, return as a plain text node.
-        return try {
-            if (trimmed.startsWith("{") || trimmed.startsWith("[") ||
-                trimmed == "null" || trimmed == "true" || trimmed == "false" ||
-                trimmed.matches(Regex("-?\\d+(\\.\\d+)?"))
-            ) {
-                objectMapper.readTree(text)
-            } else {
-                objectMapper.nodeFactory.textNode(text)
-            }
-        } catch (ex: Exception) {
-            objectMapper.nodeFactory.textNode(text)
-        }
-    }
-
-    /* =========================
-       DEPLOY VALIDATION
-     ========================= */
-
-    private fun validateAndParseDefinition(definitionJson: JsonNode): JsonNode {
-        val json = definitionJson.takeIf { it.isObject }
-            ?: throw IllegalArgumentException("Root JSON must be an object")
-
-        json.get("processId") ?: throw IllegalArgumentException("Missing 'processId'")
-
-        val nodes = json.get("nodes")
-            ?: throw IllegalArgumentException("Missing 'nodes'")
-        require(nodes.isArray) { "'nodes' must be an array" }
-
-        val flows = json.get("flows")
-            ?: throw IllegalArgumentException("Missing 'flows'")
-        require(flows.isArray) { "'flows' must be an array" }
-
-        val nodeIds = mutableSetOf<String>()
-
-        nodes.forEach { node ->
-            val id = node.get("id")?.asText()
-                ?: throw IllegalArgumentException("Node missing 'id'")
-
-            val typeText = node.get("type")?.asText()
-                ?: throw IllegalArgumentException("Node $id missing 'type'")
-
-            val nodeType = try {
-                NodeType.fromString(typeText)
-            } catch (ex: IllegalArgumentException) {
-                throw IllegalArgumentException("Invalid node type '$typeText' at '$id'")
-            }
-
-            // Validate MessageEvent properties
-            if (nodeType == NodeType.MessageEvent) {
-                val properties = node.get("properties")
-                    ?: throw IllegalArgumentException("MessageEvent $id missing 'properties'")
-
-                properties.get("messageName")?.asText()
-                    ?: throw IllegalArgumentException("MessageEvent $id missing 'messageName' in properties")
-
-                properties.get("correlationKey")?.asText()
-                    ?: throw IllegalArgumentException("MessageEvent $id missing 'correlationKey' in properties")
-            }
-
-            // Validate MessageStartEvent and MessageIntermediateCatchEvent properties
-            if (nodeType == NodeType.MessageStartEvent || nodeType == NodeType.MessageIntermediateCatchEvent) {
-                val message = node.get("message")
-                    ?: throw IllegalArgumentException("${nodeType.typeName} $id missing 'message' object")
-
-                message.get("name")?.asText()
-                    ?: throw IllegalArgumentException("${nodeType.typeName} $id missing 'message.name'")
-
-                val correlationKeys = message.get("correlationKeys")
-                if (nodeType == NodeType.MessageIntermediateCatchEvent && (correlationKeys == null || !correlationKeys.isArray || correlationKeys.size() == 0)) {
-                    throw IllegalArgumentException("MessageIntermediateCatchEvent $id missing or empty 'message.correlationKeys'")
-                }
-                if (correlationKeys != null && !correlationKeys.isArray) {
-                    throw IllegalArgumentException("${nodeType.typeName} $id has invalid 'message.correlationKeys'")
-                }
-
-                val payload = message.get("payload")
-                if (payload != null && payload.isArray) {
-                    payload.forEach { mapping ->
-                        if (nodeType == NodeType.MessageIntermediateCatchEvent) {
-                            mapping.get("sourceName")?.asText()
-                                ?: throw IllegalArgumentException("MessageIntermediateCatchEvent $id payload missing 'sourceName'")
-                            mapping.get("target")?.asText()
-                                ?: throw IllegalArgumentException("MessageIntermediateCatchEvent $id payload missing 'target'")
-                            mapping.get("value")?.asText()
-                                ?: throw IllegalArgumentException("MessageIntermediateCatchEvent $id payload missing 'value'")
-                        } else {
-                            mapping.get("targetVariable")?.asText()
-                                ?: mapping.get("targetName")?.asText()
-                                ?: mapping.get("value")?.asText()
-                                ?: throw IllegalArgumentException("MessageStartEvent $id payload missing 'targetVariable'")
-                        }
-                    }
-                }
-            }
-
-            // Validate MessageIntermediateThrowEvent properties
-            if (nodeType == NodeType.MessageIntermediateThrowEvent) {
-                val message = node.get("message")
-                    ?: throw IllegalArgumentException("MessageIntermediateThrowEvent $id missing 'message' object")
-
-                message.get("name")?.asText()
-                    ?: throw IllegalArgumentException("MessageIntermediateThrowEvent $id missing 'message.name'")
-
-                val correlationKeys = message.get("correlationKeys")
-                if (correlationKeys == null || !correlationKeys.isArray || correlationKeys.size() == 0) {
-                    throw IllegalArgumentException("MessageIntermediateThrowEvent $id missing or empty 'message.correlationKeys'")
-                }
-
-                val payload = message.get("payload")
-                if (payload != null && payload.isArray) {
-                    payload.forEach { mapping ->
-                        mapping.get("targetName")?.asText()
-                            ?: throw IllegalArgumentException("MessageIntermediateThrowEvent $id payload missing 'targetName'")
-                        mapping.get("source")?.asText()
-                            ?: throw IllegalArgumentException("MessageIntermediateThrowEvent $id payload missing 'source'")
-                        mapping.get("value")?.asText()
-                            ?: throw IllegalArgumentException("MessageIntermediateThrowEvent $id payload missing 'value'")
-                    }
-                }
-            }
-
-            // Validate ServiceTask properties
-            if (nodeType == NodeType.APITask) {
-                val properties = node.get("properties") ?: node.get("service")
-                    ?: throw IllegalArgumentException("APITask $id missing 'properties' or legacy 'service'")
-
-                if (node.get("properties") == null && node.get("service") != null && node is com.fasterxml.jackson.databind.node.ObjectNode) {
-                    node.set<JsonNode>("properties", node.get("service"))
-                }
-
-                val url = properties.get("url")?.asText()?.trim()
-                    ?: throw IllegalArgumentException("APITask $id missing 'url' in properties")
-                if (url.isEmpty()) {
-                    throw IllegalArgumentException("APITask $id has empty 'url' in properties")
-                }
-
-                val auth = properties.get("auth")
-                if (auth != null && !auth.isNull) {
-                    if (!auth.isObject) {
-                        throw IllegalArgumentException("APITask $id has invalid 'auth' format")
-                    }
-
-                    val authType = auth.get("type")?.asText()?.trim()?.lowercase()
-                        ?: throw IllegalArgumentException("APITask $id auth missing 'type'")
-                    if (authType !in setOf("bearer", "basic", "apikey")) {
-                        throw IllegalArgumentException("APITask $id auth.type '$authType' is unsupported")
-                    }
-
-                    val authRef = auth.get("ref")?.asText()?.trim()
-                        ?: throw IllegalArgumentException("APITask $id auth missing 'ref'")
-                    if (authRef.isEmpty()) {
-                        throw IllegalArgumentException("APITask $id auth.ref cannot be blank")
-                    }
-
-                    if (authType == "apikey") {
-                        val target = auth.get("in")?.asText()?.trim()?.lowercase() ?: "header"
-                        if (target !in setOf("header", "query")) {
-                            throw IllegalArgumentException("APITask $id auth.in must be 'header' or 'query'")
-                        }
-
-                        val keyName = auth.get("key")?.asText()?.trim() ?: "X-API-Key"
-                        if (keyName.isEmpty()) {
-                            throw IllegalArgumentException("APITask $id auth.key cannot be blank")
-                        }
-                    }
-                }
-            }
-
-            if (nodeType == NodeType.AgentProcessCall) {
-                val config = node.get("config")
-                    ?: throw IllegalArgumentException("AgentProcessCall $id missing 'config'")
-                val agentProcessKey = config.get("agentProcessKey")?.asText()?.trim()
-                    ?: config.get("processKey")?.asText()?.trim()
-                    ?: throw IllegalArgumentException("AgentProcessCall $id missing 'agentProcessKey'")
-                if (agentProcessKey.isEmpty()) {
-                    throw IllegalArgumentException("AgentProcessCall $id has empty 'agentProcessKey'")
-                }
-                val inputs = config.get("inputs")
-                if (inputs != null && !inputs.isArray) {
-                    throw IllegalArgumentException("AgentProcessCall $id 'inputs' must be an array")
-                }
-                val outputs = config.get("outputs")
-                if (outputs != null && !outputs.isArray) {
-                    throw IllegalArgumentException("AgentProcessCall $id 'outputs' must be an array")
-                }
-            }
-
-            if (!nodeIds.add(id)) {
-                throw IllegalArgumentException("Duplicate node id '$id'")
-            }
-        }
-
-        return json
-    }
 }
-
