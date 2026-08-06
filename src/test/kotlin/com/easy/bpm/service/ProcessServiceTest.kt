@@ -56,6 +56,19 @@ class ProcessServiceTest : FunSpec() {
     val mockAgentProcessCallHandler = mockk<AgentProcessCallHandler>()
     val mockIncidentService = mockk<IncidentService>(relaxed = true)
     val mockTimelineService = mockk<ProcessInstanceTimelineService>(relaxed = true)
+    val pageableSanitizer = ProcessPageableSanitizer()
+    val processDefinitionValidator = ProcessDefinitionValidator()
+    val variableManager = ProcessVariableManager(
+        mockProcessInstanceRepository,
+        mockProcessVariableRepository,
+        mockTaskVariableRepository,
+        mockObjectMapper
+    )
+    val failureHandler = ProcessFailureHandler(
+        mockProcessInstanceRepository,
+        mockIncidentService,
+        mockTimelineService
+    )
 
     val processService = ProcessService(
         mockProcessDefinitionRepository,
@@ -75,8 +88,11 @@ class ProcessServiceTest : FunSpec() {
         mockCallActivityMappingRepository,
         mockAITaskHandler,
         mockAgentProcessCallHandler,
-        mockIncidentService,
-        mockTimelineService
+        mockTimelineService,
+        pageableSanitizer,
+        processDefinitionValidator,
+        variableManager,
+        failureHandler
     )
 
     val objectMapper = ObjectMapper()
