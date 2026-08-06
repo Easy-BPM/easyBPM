@@ -1,6 +1,6 @@
 package com.easy.bpm.messaging
 
-import com.easy.bpm.service.ProcessService
+import com.easy.bpm.service.process.ProcessService
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.maps.shouldContain
 import io.mockk.*

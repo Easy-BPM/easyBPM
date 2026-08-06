@@ -6,8 +6,8 @@ import com.easy.bpm.model.message.MessageEventInbox
 import com.easy.bpm.enum.MessageEventInboxStatus
 import com.easy.bpm.service.ExternalMessageAcceptance
 import com.easy.bpm.service.MessageEventInboxService
-import com.easy.bpm.service.ProcessInstanceTimelineService
-import com.easy.bpm.service.ProcessService
+import com.easy.bpm.service.process.ProcessInstanceTimelineService
+import com.easy.bpm.service.process.ProcessService
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.kotest.assertions.throwables.shouldThrow

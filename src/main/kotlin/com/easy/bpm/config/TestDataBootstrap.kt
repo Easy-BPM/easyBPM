@@ -3,7 +3,7 @@ package com.easy.bpm.config
 import com.easy.bpm.enum.TaskStatus
 import com.easy.bpm.repository.process.ProcessDefinitionRepository
 import com.easy.bpm.repository.task.TaskRepository
-import com.easy.bpm.service.ProcessService
+import com.easy.bpm.service.process.ProcessService
 import com.easy.bpm.service.TaskService
 import com.fasterxml.jackson.databind.ObjectMapper
 import jakarta.transaction.Transactional

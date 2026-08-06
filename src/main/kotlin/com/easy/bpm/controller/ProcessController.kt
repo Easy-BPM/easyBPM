@@ -10,8 +10,8 @@ import com.easy.bpm.model.process.ProcessInstanceEvent
 import com.easy.bpm.model.process.ProcessInstance
 import com.easy.bpm.model.variable.ProcessVariable
 import com.easy.bpm.service.MessageEventInboxService
-import com.easy.bpm.service.ProcessInstanceTimelineService
-import com.easy.bpm.service.ProcessService
+import com.easy.bpm.service.process.ProcessInstanceTimelineService
+import com.easy.bpm.service.process.ProcessService
 import com.easy.bpm.util.ParseXMLToJsonFormat.convertXmlToInternalJson
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
