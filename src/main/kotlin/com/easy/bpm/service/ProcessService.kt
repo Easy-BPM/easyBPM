@@ -37,8 +37,6 @@ class ProcessService(
     private val workerRequestRepository: WorkerRequestRepository,
     private val callActivityHandler: CallActivityHandler,
     private val callActivityMappingRepository: CallActivityMappingRepository,
-    private val aiTaskHandler: com.easy.bpm.handler.AITaskHandler,
-    private val agentProcessCallHandler: com.easy.bpm.handler.AgentProcessCallHandler,
     private val timelineService: ProcessInstanceTimelineService,
     private val pageableSanitizer: ProcessPageableSanitizer,
     private val processDefinitionValidator: ProcessDefinitionValidator,
@@ -46,9 +44,13 @@ class ProcessService(
     private val failureHandler: ProcessFailureHandler,
     private val navigator: ProcessNavigator,
     private val messageNodeHandler: ProcessMessageNodeHandler,
-    private val serviceTaskOutputMapper: ServiceTaskOutputMapper,
     private val userTaskHandler: ProcessUserTaskHandler,
-    private val serviceTaskHandler: ProcessServiceTaskHandler
+    private val serviceTaskHandler: ProcessServiceTaskHandler,
+    private val workerCallbackHandler: ProcessWorkerCallbackHandler,
+    private val messageReceivedHandler: ProcessMessageReceivedHandler,
+    private val messageStartResolver: ProcessMessageStartResolver,
+    private val processAiTaskHandler: ProcessAiTaskHandler,
+    private val processAgentCallHandler: ProcessAgentCallHandler
 ) {
 
     companion object {
@@ -367,7 +369,7 @@ class ProcessService(
             when (nodeType) {
                 NodeType.UserTask -> userTaskHandler.handleUserTask(instance, node)
                 NodeType.APITask -> serviceTaskHandler.handleApiTask(instance, node)
-                NodeType.AiTask -> handleAITask(instance, node)
+                NodeType.AiTask -> processAiTaskHandler.handleAiTask(instance, node)
                 NodeType.AgentProcessCall -> handleAgentProcessCall(instance, node, definition)
                 NodeType.ServiceTask -> handleServiceTaskNode(instance, node, definition)
                 NodeType.TimerEvent -> messageNodeHandler.handleTimerEvent(instance, node, INTERNAL_TIMER_MESSAGE_NAME)
@@ -442,65 +444,12 @@ class ProcessService(
         return false
     }
 
-    private fun handleAITask(
-        instance: ProcessInstance,
-        node: JsonNode
-    ) {
-        val nodeId = node.get("id").asText()
-        
-        try {
-            // Get current process variables as a map
-            val variables = processVariableRepository.findByProcessInstanceId(instance.id)
-                .associateBy({ it.name }, { it.value })
-
-            // Execute AI task (synchronous - waits for provider response)
-            val outputVars = aiTaskHandler.executeAITask(
-                instanceId = instance.id,
-                node = node,
-                inputVariables = variables
-            )
-
-            // Store output variable in process instance
-            outputVars.forEach { (varName, varValue) ->
-                assignProcessVariables(instance.id, mapOf(varName to varValue))
-            }
-
-            logger.info("AI Task completed successfully: instance=${instance.id}, nodeId=$nodeId")
-            
-            // Persist instance updated timestamp
-            instance.updatedAt = LocalDateTime.now()
-            processInstanceRepository.save(instance)
-
-        } catch (ex: com.easy.bpm.handler.AITaskExecutionException) {
-            logger.error("AI Task execution failed: instance=${instance.id}, nodeId=$nodeId, errorCode=${ex.errorCode}", ex)
-            throw ex
-        }
-    }
-
     private fun handleAgentProcessCall(
         instance: ProcessInstance,
         node: JsonNode,
         definition: JsonNode
     ) {
-        val nodeId = node.get("id").asText()
-        timelineService.record(
-            processInstanceId = instance.id,
-            nodeId = nodeId,
-            eventType = ProcessInstanceEventType.AGENT_PROCESS_STARTED,
-            message = "Agent process call started."
-        )
-
-        val execution = agentProcessCallHandler.execute(instance, node)
-
-        timelineService.record(
-            processInstanceId = instance.id,
-            nodeId = nodeId,
-            eventType = ProcessInstanceEventType.AGENT_PROCESS_COMPLETED,
-            message = "Agent process call completed.",
-            details = "agentExecutionId=${execution.id}; status=${execution.status}"
-        )
-
-        val nextNodes = navigator.getNextNodes(node, definition, instance)
+        val nextNodes = processAgentCallHandler.handleAgentProcessCall(instance, node, definition)
         navigator.advanceProcess(instance, nextNodes, definition)
         executeNodes(nextNodes, instance, definition)
     }
@@ -549,31 +498,8 @@ class ProcessService(
 
     @Transactional
     fun handleServiceTaskCompleted(processInstanceId: Long, nodeId: String, outputs: Map<String, String>) {
-        val startTime = System.currentTimeMillis()
-        
-        val instance = processInstanceRepository.findByIdForUpdate(processInstanceId)
-            ?: throw IllegalArgumentException("Process instance not found")
-
-        val definition = parseDefinition(instance.processDefinition.definitionJson)
-        val node = findNode(definition, nodeId)
-        timelineService.record(
-            processInstanceId = processInstanceId,
-            nodeId = nodeId,
-            eventType = ProcessInstanceEventType.WORKER_COMPLETED,
-            message = "Service task completed by worker.",
-            details = outputs.takeIf { it.isNotEmpty() }?.toString()
-        )
-
-        serviceTaskOutputMapper.applyOutputMappings(instance, node, outputs)
-
-        val nextNodes = navigator.getNextNodes(node, definition, instance)
-
-        navigator.advanceProcess(instance, nextNodes, definition)
-
-        executeNodes(nextNodes, instance, definition)
-        
-        val duration = System.currentTimeMillis() - startTime
-        metricsService.recordServiceTaskExecution(duration, success = true)
+        val result = workerCallbackHandler.handleCompleted(processInstanceId, nodeId, outputs)
+        continueFromWorkerCallback(result)
     }
 
     @Transactional
@@ -586,47 +512,24 @@ class ProcessService(
         ,
         createIncident: Boolean = true
     ) {
-        val startTime = System.currentTimeMillis()
-
-        val instance = processInstanceRepository.findByIdForUpdate(processInstanceId)
-            ?: throw IllegalArgumentException("Process instance not found")
-
-        logger.info("handleServiceTaskFailed: instanceId=$processInstanceId, nodeId=$nodeId, errorMessage=$errorMessage")
-        timelineService.record(
+        val result = workerCallbackHandler.handleFailed(
             processInstanceId = processInstanceId,
-            nodeId = nodeId,
-            eventType = ProcessInstanceEventType.WORKER_FAILED,
-            message = errorMessage ?: "Service task failed."
-        )
-
-        val definition = parseDefinition(instance.processDefinition.definitionJson)
-        val node = findNode(definition, nodeId)
-
-        val errorBoundaryNode = navigator.findAttachedErrorBoundary(node, definition)
-        if (errorBoundaryNode != null) {
-            logger.info("Found error boundary for node $nodeId, advancing to boundary node")
-            val nextNodes = navigator.getNextNodes(errorBoundaryNode, definition, instance)
-            navigator.advanceProcess(instance, nextNodes, definition)
-            executeNodes(nextNodes, instance, definition)
-
-            val duration = System.currentTimeMillis() - startTime
-            metricsService.recordServiceTaskExecution(duration, success = false)
-            return
-        }
-
-        // No boundary to recover from this failure; mark instance as failed.
-        logger.info("No error boundary found for node $nodeId, marking instance $processInstanceId as FAILED")
-        failureHandler.failInstance(
-            instance = instance,
             nodeId = nodeId,
             errorMessage = errorMessage ?: "Service task failed",
             incidentSource = incidentSource,
             externalReferenceId = externalReferenceId
         )
-        logger.info("Instance $processInstanceId status set to FAILED")
+        continueFromWorkerCallback(result)
+    }
 
-        val duration = System.currentTimeMillis() - startTime
-        metricsService.recordServiceTaskExecution(duration, success = false)
+    private fun continueFromWorkerCallback(result: WorkerCallbackResult) {
+        if (result.shouldContinue) {
+            navigator.advanceProcess(result.instance, result.nextNodes, result.definition)
+            executeNodes(result.nextNodes, result.instance, result.definition)
+        }
+
+        val duration = System.currentTimeMillis() - result.startTime
+        metricsService.recordServiceTaskExecution(duration, success = result.success)
     }
 
     fun markServiceTaskTimedOut(
@@ -650,44 +553,18 @@ class ProcessService(
         correlationKey: String,
         variables: Map<String, Any>? = null
     ) {
-        metricsService.recordMessageEventReceived(messageName)
-        
-        // Find matching message subscription
-        val subscription = messageSubscriptionService.receiveMessage(
-            messageName,
-            correlationKey,
-            variables
-        )
-
-        if (subscription == null) {
+        val result = messageReceivedHandler.handleReceived(messageName, correlationKey, variables)
+        if (!result.subscriptionFound) {
             val startedInstance = startProcessInstanceFromMessageStart(messageName, correlationKey, variables)
                 ?: throw IllegalArgumentException("No waiting subscription or message start event for message '$messageName' with correlationKey '$correlationKey'")
             logger.info("Started process instance ${startedInstance.id} from message '$messageName'")
             return
         }
 
-        val instance = processInstanceRepository.findByIdForUpdate(subscription.processInstanceId)
-            ?: throw IllegalArgumentException("Process instance ${subscription.processInstanceId} not found")
-
-        variableManager.saveMessageVariables(instance, variables)
-
-        // Clean up subscription after message received
-        messageSubscriptionService.deleteSubscription(subscription.id)
-        timelineService.record(
-            processInstanceId = instance.id,
-            nodeId = subscription.nodeId,
-            eventType = ProcessInstanceEventType.MESSAGE_RECEIVED,
-            message = "Message '$messageName' received with correlation key '$correlationKey'."
-        )
-
-        val definition = parseDefinition(instance.processDefinition.definitionJson)
-        val node = findNode(definition, subscription.nodeId)
-
-        val nextNodes = navigator.getNextNodes(node, definition, instance)
-
-        navigator.advanceProcess(instance, nextNodes, definition)
-
-        executeNodes(nextNodes, instance, definition)
+        val instance = requireNotNull(result.instance)
+        val definition = requireNotNull(result.definition)
+        navigator.advanceProcess(instance, result.nextNodes, definition)
+        executeNodes(result.nextNodes, instance, definition)
     }
 
     private fun startProcessInstanceFromMessageStart(
@@ -695,23 +572,12 @@ class ProcessService(
         correlationKey: String,
         variables: Map<String, Any>?
     ): ProcessInstance? {
-        val match = processDefinitionRepository.findLatestVersionProcessDefinitions()
-            .asSequence()
-            .mapNotNull { definition ->
-                val json = parseDefinition(definition.definitionJson)
-                val startNode = findMatchingMessageStartNode(json, messageName, correlationKey, variables)
-                if (startNode == null) null else definition to startNode
-            }
-            .firstOrNull()
-            ?: return null
-
-        val (definition, messageStartNode) = match
-        val startVariables = buildMessageStartVariables(messageStartNode, correlationKey, variables)
-        val instance = startWithDefinition(definition, startVariables, messageStartNode.get("id").asText())
+        val match = messageStartResolver.findMatch(messageName, correlationKey, variables) ?: return null
+        val instance = startWithDefinition(match.definition, match.variables, match.startNode.get("id").asText())
 
         timelineService.record(
             processInstanceId = instance.id,
-            nodeId = messageStartNode.get("id").asText(),
+            nodeId = match.startNode.get("id").asText(),
             eventType = ProcessInstanceEventType.MESSAGE_RECEIVED,
             message = "Message '$messageName' started process with correlation key '$correlationKey'."
         )
@@ -784,64 +650,5 @@ class ProcessService(
         definition.get("nodes")
             .find { it.get("id").asText() == nodeId }
             ?: throw IllegalArgumentException("Node '$nodeId' not found")
-
-    private fun findMatchingMessageStartNode(
-        definition: JsonNode,
-        messageName: String,
-        correlationKey: String,
-        variables: Map<String, Any>?
-    ): JsonNode? =
-        definition.get("nodes")
-            .find { node ->
-                NodeType.fromString(node.get("type").asText()) == NodeType.MessageStartEvent &&
-                    node.get("message")?.get("name")?.asText() == messageName &&
-                    matchesMessageStartCorrelation(node.get("message"), correlationKey, variables)
-            }
-
-    private fun matchesMessageStartCorrelation(
-        message: JsonNode?,
-        correlationKey: String,
-        variables: Map<String, Any>?
-    ): Boolean {
-        val correlationKeys = message?.get("correlationKeys")
-        if (correlationKeys == null || !correlationKeys.isArray || correlationKeys.size() == 0) {
-            return true
-        }
-
-        return correlationKeys.any { keyNode ->
-            val key = keyNode.asText()
-            key == correlationKey || variables?.get(key)?.toString() == correlationKey
-        }
-    }
-
-    private fun buildMessageStartVariables(
-        messageStartNode: JsonNode,
-        correlationKey: String,
-        variables: Map<String, Any>?
-    ): Map<String, Any> {
-        val result = variables?.toMutableMap() ?: mutableMapOf()
-        result.putIfAbsent("correlationKey", correlationKey)
-
-        val payload = messageStartNode.get("message")?.get("payload")
-        if (payload != null && payload.isArray) {
-            payload.forEach { mapping ->
-                val targetVariable = mapping.get("targetVariable")?.asText()
-                    ?: mapping.get("targetName")?.asText()
-                    ?: mapping.get("value")?.asText()
-                    ?: return@forEach
-
-                val sourceName = mapping.get("sourceValue")?.asText()
-                    ?: mapping.get("sourceName")?.asText()
-                    ?: mapping.get("value")?.asText()
-                    ?: targetVariable
-
-                if (variables?.containsKey(sourceName) == true) {
-                    result[targetVariable] = variables.getValue(sourceName)
-                }
-            }
-        }
-
-        return result
-    }
 
 }

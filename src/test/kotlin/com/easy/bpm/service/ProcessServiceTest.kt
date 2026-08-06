@@ -101,6 +101,38 @@ class ProcessServiceTest : FunSpec() {
         variableManager,
         mockTimelineService
     )
+    val workerCallbackHandler = ProcessWorkerCallbackHandler(
+        mockProcessInstanceRepository,
+        mockObjectMapper,
+        navigator,
+        serviceTaskOutputMapper,
+        failureHandler,
+        mockTimelineService
+    )
+    val messageReceivedHandler = ProcessMessageReceivedHandler(
+        mockProcessInstanceRepository,
+        mockMessageSubscriptionService,
+        mockObjectMapper,
+        variableManager,
+        navigator,
+        mockMetricsService,
+        mockTimelineService
+    )
+    val messageStartResolver = ProcessMessageStartResolver(
+        mockProcessDefinitionRepository,
+        mockObjectMapper
+    )
+    val processAiTaskHandler = ProcessAiTaskHandler(
+        mockProcessInstanceRepository,
+        mockProcessVariableRepository,
+        mockAITaskHandler,
+        variableManager
+    )
+    val processAgentCallHandler = ProcessAgentCallHandler(
+        mockAgentProcessCallHandler,
+        navigator,
+        mockTimelineService
+    )
 
     val processService = ProcessService(
         mockProcessDefinitionRepository,
@@ -114,8 +146,6 @@ class ProcessServiceTest : FunSpec() {
         mockWorkerRequestRepository,
         mockCallActivityHandler,
         mockCallActivityMappingRepository,
-        mockAITaskHandler,
-        mockAgentProcessCallHandler,
         mockTimelineService,
         pageableSanitizer,
         processDefinitionValidator,
@@ -123,9 +153,13 @@ class ProcessServiceTest : FunSpec() {
         failureHandler,
         navigator,
         messageNodeHandler,
-        serviceTaskOutputMapper,
         userTaskHandler,
-        serviceTaskHandler
+        serviceTaskHandler,
+        workerCallbackHandler,
+        messageReceivedHandler,
+        messageStartResolver,
+        processAiTaskHandler,
+        processAgentCallHandler
     )
 
     val objectMapper = ObjectMapper()
