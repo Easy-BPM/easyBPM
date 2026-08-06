@@ -1,0 +1,45 @@
+{
+  "processId": "wf_message_timeout_timer_backend",
+  "metadata": {
+    "version": "1.0",
+    "purpose": "Timer-like behavior via MessageEvent timeoutSeconds (backend/API)"
+  },
+  "variables": [
+    { "name": "orderId", "type": "string", "initialValue": "ORD-999" }
+  ],
+  "nodes": [
+    {
+      "id": "start",
+      "name": "Start",
+      "type": "StartEvent",
+      "position": { "x": 80, "y": 200 },
+      "next": ["wait_message"]
+    },
+    {
+      "id": "wait_message",
+      "name": "Wait Message With Timeout",
+      "type": "MessageEvent",
+      "position": { "x": 300, "y": 200 },
+      "next": ["end_ok"],
+      "properties": {
+        "messageName": "payment.confirmed",
+        "correlationKey": "${orderId}",
+        "timeoutSeconds": 15
+      }
+    },
+    {
+      "id": "end_ok",
+      "name": "End",
+      "type": "EndEvent",
+      "position": { "x": 520, "y": 200 },
+      "next": []
+    }
+  ],
+  "flows": [
+    { "from": "start", "to": "wait_message", "condition": null },
+    { "from": "wait_message", "to": "end_ok", "condition": null }
+  ],
+  "notes": [
+    "This workflow is for backend API tests and is not currently importable/editable in Modeler palette."
+  ]
+}
