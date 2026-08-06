@@ -92,6 +92,7 @@ class TaskService(
 
         // 1️⃣ Salvar dados do formulário como TASK VARIABLES
         persistTaskVariables(task, variables)
+        syncNoFormTaskVariablesToProcess(task, instance, variables)
 
         // 2️⃣ OUTPUT mapping → TASK → PROCESS
         applyTaskOutputs(task, currentNode, instance)
@@ -745,6 +746,32 @@ class TaskService(
                 taskVariableRepository.save(
                     TaskVariable(
                         taskId = task.id,
+                        name = key,
+                        value = valueNode
+                    )
+                )
+            }
+        }
+    }
+
+    private fun syncNoFormTaskVariablesToProcess(
+        task: Task,
+        instance: ProcessInstance,
+        variables: Map<String, Any?>
+    ) {
+        if (task.formId != null) return
+
+        variables.forEach { (key, value) ->
+            val valueNode = objectMapper.valueToTree<JsonNode>(value)
+            val existingVariable = processVariableRepository.findByProcessInstanceIdAndName(instance.id, key)
+
+            if (existingVariable != null) {
+                existingVariable.value = valueNode
+                processVariableRepository.save(existingVariable)
+            } else {
+                processVariableRepository.save(
+                    ProcessVariable(
+                        processInstanceId = instance.id,
                         name = key,
                         value = valueNode
                     )

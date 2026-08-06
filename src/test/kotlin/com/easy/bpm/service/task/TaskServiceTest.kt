@@ -1,5 +1,6 @@
 package com.easy.bpm.service.task
 
+import com.easy.bpm.enum.ProcessStatus
 import com.easy.bpm.enum.TaskStatus
 import com.easy.bpm.handler.AgentProcessCallHandler
 import com.easy.bpm.model.process.ProcessDefinition
@@ -167,6 +168,92 @@ class TaskServiceTest : FunSpec() {
 
             // Assert
             result shouldBe null
+        }
+    }
+
+    context("completeTask") {
+        test("should synchronize submitted variables to process variables when task has no form") {
+            // Arrange
+            val realObjectMapper = ObjectMapper()
+            val service = TaskService(
+                mockTaskRepository,
+                mockProcessInstanceRepository,
+                mockProcessVariableRepository,
+                mockTaskVariableRepository,
+                mockIntegrationService,
+                mockFormService,
+                realObjectMapper,
+                mockRabbitPublisher,
+                mockGatewayService,
+                mockMessageSubscriptionService,
+                mockMetricsService,
+                mockAgentProcessCallHandler,
+                mockTimelineService
+            )
+            val definitionJson = """
+                {
+                  "nodes": [
+                    {"id": "review", "type": "UserTask", "name": "Review"},
+                    {"id": "end", "type": "EndEvent", "name": "End"}
+                  ],
+                  "flows": []
+                }
+            """.trimIndent()
+            val definition = ProcessDefinition(id = 1, key = "no-form", definitionJson = definitionJson)
+            val instance = ProcessInstance(
+                id = 100,
+                processDefinition = definition,
+                status = ProcessStatus.ACTIVE,
+                currentNode = listOf("review"),
+                nodeHistory = listOf("review")
+            )
+            val task = Task(
+                id = 10,
+                processInstanceId = 100,
+                title = "Review",
+                nodeId = "review",
+                assignee = "alice",
+                status = TaskStatus.PENDING,
+                formId = null
+            )
+
+            every { mockTaskRepository.findByIdForUpdate(10) } returns Optional.of(task)
+            every { mockProcessInstanceRepository.findByIdForUpdate(100) } returns instance
+            every { mockTaskVariableRepository.findAllByTaskIdAndNameOrderByIdDesc(10, "decision") } returns emptyList()
+            every { mockTaskVariableRepository.findAllByTaskIdAndNameOrderByIdDesc(10, "amount") } returns emptyList()
+            every { mockTaskVariableRepository.save(any<TaskVariable>()) } answers { firstArg() }
+            every { mockProcessVariableRepository.findByProcessInstanceIdAndName(100, "decision") } returns null
+            every { mockProcessVariableRepository.findByProcessInstanceIdAndName(100, "amount") } returns null
+            every { mockProcessVariableRepository.save(any<ProcessVariable>()) } answers { firstArg() }
+            every { mockGatewayService.getNextNodes(any(), any(), instance) } returns listOf("end")
+            every { mockTaskRepository.save(any<Task>()) } answers { firstArg() }
+            every { mockProcessInstanceRepository.save(any<ProcessInstance>()) } answers { firstArg() }
+
+            // Act
+            service.completeTask(
+                taskId = 10,
+                assignee = "alice",
+                variables = mapOf(
+                    "decision" to "approved",
+                    "amount" to 125
+                )
+            )
+
+            // Assert
+            verify {
+                mockTaskVariableRepository.save(match<TaskVariable> {
+                    it.taskId == 10L && it.name == "decision" && it.value.asText() == "approved"
+                })
+                mockTaskVariableRepository.save(match<TaskVariable> {
+                    it.taskId == 10L && it.name == "amount" && it.value.asInt() == 125
+                })
+                mockProcessVariableRepository.save(match<ProcessVariable> {
+                    it.processInstanceId == 100L && it.name == "decision" && it.value.asText() == "approved"
+                })
+                mockProcessVariableRepository.save(match<ProcessVariable> {
+                    it.processInstanceId == 100L && it.name == "amount" && it.value.asInt() == 125
+                })
+            }
         }
     }
 
