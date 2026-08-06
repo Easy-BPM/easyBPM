@@ -2,7 +2,7 @@ package com.easy.bpm.controller
 
 import com.easy.bpm.controller.data.DeployFormRequest
 import com.easy.bpm.model.form.Form
-import com.easy.bpm.service.FormService
+import com.easy.bpm.service.form.FormService
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe

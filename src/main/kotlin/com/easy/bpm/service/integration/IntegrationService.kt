@@ -1,4 +1,4 @@
-package com.easy.bpm.service
+package com.easy.bpm.service.integration
 
 import com.easy.bpm.model.process.ProcessInstance
 import com.easy.bpm.model.variable.ProcessVariable

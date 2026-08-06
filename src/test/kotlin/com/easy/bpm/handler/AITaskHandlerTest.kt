@@ -5,7 +5,7 @@ import com.easy.bpm.ai.factory.AIProviderFactory
 import com.easy.bpm.ai.provider.AIProvider
 import com.easy.bpm.ai.service.CredentialVault
 import com.easy.bpm.repository.variable.ProcessVariableRepository
-import com.easy.bpm.service.IncidentService
+import com.easy.bpm.service.incident.IncidentService
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.mockk.every
 import io.mockk.mockk

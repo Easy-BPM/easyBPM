@@ -1,4 +1,4 @@
-package com.easy.bpm.service
+package com.easy.bpm.service.metrics
 
 import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.core.instrument.Timer

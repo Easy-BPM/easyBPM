@@ -7,7 +7,7 @@ import com.easy.bpm.ai.service.CredentialVault
 import com.easy.bpm.model.incident.IncidentSource
 import com.easy.bpm.model.variable.ProcessVariable
 import com.easy.bpm.repository.variable.ProcessVariableRepository
-import com.easy.bpm.service.IncidentService
+import com.easy.bpm.service.incident.IncidentService
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.slf4j.LoggerFactory

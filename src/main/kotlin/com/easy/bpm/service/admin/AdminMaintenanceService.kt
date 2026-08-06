@@ -1,4 +1,4 @@
-package com.easy.bpm.service
+package com.easy.bpm.service.admin
 
 import com.easy.bpm.controller.data.MaintenanceCleanupSummary
 import com.easy.bpm.controller.data.PurgeCompletedInstancesRequest

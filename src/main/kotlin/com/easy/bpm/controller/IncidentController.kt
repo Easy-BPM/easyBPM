@@ -7,7 +7,7 @@ import com.easy.bpm.model.incident.Incident
 import com.easy.bpm.model.incident.IncidentEvent
 import com.easy.bpm.model.incident.IncidentSource
 import com.easy.bpm.model.incident.IncidentStatus
-import com.easy.bpm.service.IncidentService
+import com.easy.bpm.service.incident.IncidentService
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.data.domain.Page

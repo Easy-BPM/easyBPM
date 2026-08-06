@@ -2,7 +2,7 @@ package com.easy.bpm.controller
 
 import com.easy.bpm.dto.security.*
 import com.easy.bpm.security.AuthenticatedUser
-import com.easy.bpm.service.AdminSecurityService
+import com.easy.bpm.service.admin.AdminSecurityService
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.security.access.prepost.PreAuthorize

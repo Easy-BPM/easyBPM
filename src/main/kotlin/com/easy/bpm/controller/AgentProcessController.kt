@@ -1,7 +1,7 @@
 package com.easy.bpm.controller
 
 import com.easy.bpm.model.agent.AgentProcessDefinition
-import com.easy.bpm.service.AgentProcessService
+import com.easy.bpm.service.agent.AgentProcessService
 import com.fasterxml.jackson.databind.JsonNode
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag

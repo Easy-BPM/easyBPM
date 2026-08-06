@@ -2,7 +2,7 @@ package com.easy.bpm.controller
 
 import com.easy.bpm.controller.data.DeployFormRequest
 import com.easy.bpm.model.form.Form
-import com.easy.bpm.service.FormService
+import com.easy.bpm.service.form.FormService
 import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.ExampleObject
 import io.swagger.v3.oas.annotations.media.Schema

@@ -4,8 +4,8 @@ import com.easy.bpm.model.process.ProcessDefinition
 import com.easy.bpm.model.process.ProcessInstance
 import com.easy.bpm.model.message.MessageEventInbox
 import com.easy.bpm.enum.MessageEventInboxStatus
-import com.easy.bpm.service.ExternalMessageAcceptance
-import com.easy.bpm.service.MessageEventInboxService
+import com.easy.bpm.service.message.ExternalMessageAcceptance
+import com.easy.bpm.service.message.MessageEventInboxService
 import com.easy.bpm.service.process.ProcessInstanceTimelineService
 import com.easy.bpm.service.process.ProcessService
 import com.fasterxml.jackson.databind.JsonNode

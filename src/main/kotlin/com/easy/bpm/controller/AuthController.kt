@@ -3,7 +3,7 @@ package com.easy.bpm.controller
 import com.easy.bpm.dto.security.CurrentUserResponse
 import com.easy.bpm.dto.security.LoginRequest
 import com.easy.bpm.dto.security.LoginResponse
-import com.easy.bpm.service.AuthService
+import com.easy.bpm.service.auth.AuthService
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody

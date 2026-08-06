@@ -2,7 +2,7 @@ package com.easy.bpm.controller
 
 import com.easy.bpm.controller.data.DocumentResponseDto
 import com.easy.bpm.model.document.Document
-import com.easy.bpm.service.DocumentService
+import com.easy.bpm.service.document.DocumentService
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe

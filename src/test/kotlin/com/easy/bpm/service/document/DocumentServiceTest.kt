@@ -1,4 +1,4 @@
-package com.easy.bpm.service
+package com.easy.bpm.service.document
 
 import com.easy.bpm.model.document.Document
 import com.easy.bpm.repository.document.DocumentRepository

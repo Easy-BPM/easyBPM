@@ -2,7 +2,7 @@ package com.easy.bpm.controller
 
 import com.easy.bpm.controller.data.MaintenanceCleanupSummary
 import com.easy.bpm.controller.data.PurgeCompletedInstancesRequest
-import com.easy.bpm.service.AdminMaintenanceService
+import com.easy.bpm.service.admin.AdminMaintenanceService
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.http.ResponseEntity

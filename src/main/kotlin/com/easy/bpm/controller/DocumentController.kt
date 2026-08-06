@@ -1,7 +1,7 @@
 package com.easy.bpm.controller
 
 import com.easy.bpm.controller.data.DocumentResponseDto
-import com.easy.bpm.service.DocumentService
+import com.easy.bpm.service.document.DocumentService
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import org.slf4j.LoggerFactory
