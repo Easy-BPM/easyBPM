@@ -1,0 +1,18 @@
+{
+  "id": "public/tutorials",
+  "title": "Tutorials and Learning Guides",
+  "description": "This landing page groups step-by-step walkthroughs for common Easy BPM tasks.",
+  "source": "@site/docs/public/tutorials.md",
+  "sourceDirName": "public",
+  "slug": "/public/tutorials",
+  "permalink": "/docs/public/tutorials",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/facebook/docusaurus/tree/main/packages/create-docusaurus/templates/shared/docs/public/tutorials.md",
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 9,
+  "frontMatter": {
+    "sidebar_position": 9
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "id": "phase-8-progress-report",
+  "title": "Phase 8 Progress Report & Phase 8.3 Launch Brief",
+  "description": "Date: April 22, 2026",
+  "source": "@site/docs/phase-8-progress-report.md",
+  "sourceDirName": ".",
+  "slug": "/phase-8-progress-report",
+  "permalink": "/docs/phase-8-progress-report",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/facebook/docusaurus/tree/main/packages/create-docusaurus/templates/shared/docs/phase-8-progress-report.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "docs",
+  "previous": {
+    "title": "Phase 8.1.9 & 8.2 Implementation Summary",
+    "permalink": "/docs/phase-8-1-9-8-2-delivery-summary"
+  },
+  "next": {
+    "title": "Phase 8: Code Task Feature - Documentation Index",
+    "permalink": "/docs/phase-8-documentation-index"
+  }
+}

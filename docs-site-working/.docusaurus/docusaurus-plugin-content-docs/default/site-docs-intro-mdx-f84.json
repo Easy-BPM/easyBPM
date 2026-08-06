@@ -1,0 +1,24 @@
+{
+  "id": "intro",
+  "title": "Welcome",
+  "description": "Easy BPM is a modern, production-ready Business Process Management (BPM) engine built with Spring Boot and Kotlin.",
+  "source": "@site/docs/intro.mdx",
+  "sourceDirName": ".",
+  "slug": "/intro",
+  "permalink": "/docs/intro",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/facebook/docusaurus/tree/main/packages/create-docusaurus/templates/shared/docs/intro.mdx",
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 1,
+  "frontMatter": {
+    "sidebar_position": 1,
+    "title": "Welcome"
+  },
+  "sidebar": "docs",
+  "next": {
+    "title": "Getting Started with Easy BPM",
+    "permalink": "/docs/getting-started"
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "id": "easy-task-portal-getting-started",
+  "title": "Easy BPM Task Portal — Getting Started",
+  "description": "This guide walks you through running the Task Portal locally, connecting it to a live Easy BPM backend, and completing your first task end-to-end.",
+  "source": "@site/docs/easy-task-portal-getting-started.md",
+  "sourceDirName": ".",
+  "slug": "/easy-task-portal-getting-started",
+  "permalink": "/docs/easy-task-portal-getting-started",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/facebook/docusaurus/tree/main/packages/create-docusaurus/templates/shared/docs/easy-task-portal-getting-started.md",
+  "tags": [],
+  "version": "current",
+  "frontMatter": {},
+  "sidebar": "docs",
+  "previous": {
+    "title": "Easy BPM Task Portal — Overview",
+    "permalink": "/docs/easy-task-portal-overview"
+  },
+  "next": {
+    "title": "Document Handling",
+    "permalink": "/docs/document-handling"
+  }
+}

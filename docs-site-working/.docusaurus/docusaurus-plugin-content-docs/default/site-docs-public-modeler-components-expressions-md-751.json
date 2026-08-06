@@ -1,0 +1,18 @@
+{
+  "id": "public/modeler-components/expressions",
+  "title": "Expressions",
+  "description": "Expressions evaluate data and conditions inside a workflow.",
+  "source": "@site/docs/public/modeler-components/expressions.md",
+  "sourceDirName": "public/modeler-components",
+  "slug": "/public/modeler-components/expressions",
+  "permalink": "/docs/public/modeler-components/expressions",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/facebook/docusaurus/tree/main/packages/create-docusaurus/templates/shared/docs/public/modeler-components/expressions.md",
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 9,
+  "frontMatter": {
+    "sidebar_position": 9
+  }
+}
