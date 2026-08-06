@@ -417,6 +417,28 @@ class ProcessServiceTest : FunSpec() {
         }
     }
 
+    context("assignProcessVariables") {
+        test("should reject variable assignment for completed process instance") {
+            // Arrange
+            val instanceId = 100L
+            val instance = ProcessInstance(
+                id = instanceId,
+                processDefinition = ProcessDefinition(id = 1, processName = "proc", definitionJson = "{}", version = 1),
+                status = ProcessStatus.COMPLETED,
+                currentNode = emptyList()
+            )
+            every { mockProcessInstanceRepository.findById(instanceId) } returns Optional.of(instance)
+
+            // Act & Assert
+            shouldThrow<IllegalStateException> {
+                processService.assignProcessVariables(instanceId, mapOf("approved" to true))
+            }.message shouldBe "Cannot assign variables to a completed process instance"
+
+            verify(exactly = 0) { mockProcessInstanceRepository.findByIdForUpdate(instanceId) }
+            verify(exactly = 0) { mockProcessVariableRepository.save(any<ProcessVariable>()) }
+        }
+    }
+
     context("getLatestProcessDefinitions") {
         test("should retrieve latest versions of all processes") {
             // Arrange

@@ -4,6 +4,7 @@ import com.easy.bpm.model.process.ProcessDefinition
 import com.easy.bpm.model.process.ProcessInstance
 import com.easy.bpm.model.message.MessageEventInbox
 import com.easy.bpm.enum.MessageEventInboxStatus
+import com.easy.bpm.controller.data.AssignProcessVariablesRequest
 import com.easy.bpm.service.message.ExternalMessageAcceptance
 import com.easy.bpm.service.message.MessageEventInboxService
 import com.easy.bpm.service.process.ProcessInstanceTimelineService
@@ -240,6 +241,26 @@ class ProcessControllerTest : FunSpec() {
 
             // Assert
             response.statusCode.value() shouldBe 404
+            response.body shouldBe null
+        }
+    }
+
+    context("assignProcessVariables") {
+        test("should return conflict when process instance is completed") {
+            // Arrange
+            val instanceId = 100L
+            val request = AssignProcessVariablesRequest(
+                variables = mapOf("approved" to true)
+            )
+            every {
+                mockProcessService.assignProcessVariables(instanceId, request.variables)
+            } throws IllegalStateException("Cannot assign variables to a completed process instance")
+
+            // Act
+            val response = processController.assignProcessVariables(instanceId, request)
+
+            // Assert
+            response.statusCode.value() shouldBe 409
             response.body shouldBe null
         }
     }

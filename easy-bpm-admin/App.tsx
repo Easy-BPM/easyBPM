@@ -258,6 +258,7 @@ const InstanceExplorerView: React.FC<{ initialInstanceId?: number | null }> = ({
   const [hierarchyLoading, setHierarchyLoading] = useState(false);
   const [selectedChildId, setSelectedChildId] = useState<number | null>(null);
   const [childMapping, setChildMapping] = useState<any>(null);
+  const isInstanceCompleted = instance?.status === 'COMPLETED';
 
   const loadDefinitionForInstance = async (targetInstance: ProcessInstance | null) => {
     setWorkflowDefinition(null);
@@ -378,6 +379,10 @@ const InstanceExplorerView: React.FC<{ initialInstanceId?: number | null }> = ({
 
   const handleAssignVariable = async () => {
     if (!instance || !newVarName.trim()) return;
+    if (isInstanceCompleted) {
+      setActionMessage('Completed process instances cannot be edited.');
+      return;
+    }
     try {
       await adminService.assignProcessVariables(instance.id, {
         variables: { [newVarName.trim()]: newVarValue }
@@ -573,6 +578,12 @@ const InstanceExplorerView: React.FC<{ initialInstanceId?: number | null }> = ({
               <h3 className="font-semibold text-slate-800 flex items-center gap-2">
                 <Settings2 size={18} className="text-blue-600" /> Process Variables Assignment
               </h3>
+              {isInstanceCompleted && (
+                <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600 flex items-center gap-2">
+                  <Lock size={15} className="text-slate-500" />
+                  Variables are locked because this process instance is completed.
+                </div>
+              )}
               <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
                 {variables.length === 0 ? (
                   <p className="text-sm text-slate-500">No variables found for this instance.</p>
@@ -587,21 +598,24 @@ const InstanceExplorerView: React.FC<{ initialInstanceId?: number | null }> = ({
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                 <input
-                  className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                  className="rounded-lg border border-slate-300 px-3 py-2 text-sm disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
                   placeholder="variableName"
                   value={newVarName}
+                  disabled={isInstanceCompleted}
                   onChange={(e) => setNewVarName(e.target.value)}
                 />
                 <input
-                  className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                  className="rounded-lg border border-slate-300 px-3 py-2 text-sm disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
                   placeholder="value"
                   value={newVarValue}
+                  disabled={isInstanceCompleted}
                   onChange={(e) => setNewVarValue(e.target.value)}
                 />
               </div>
               <button
                 onClick={handleAssignVariable}
-                className="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                disabled={isInstanceCompleted}
+                className="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:bg-slate-300 disabled:text-slate-500 disabled:cursor-not-allowed"
               >
                 Assign Variable
               </button>
