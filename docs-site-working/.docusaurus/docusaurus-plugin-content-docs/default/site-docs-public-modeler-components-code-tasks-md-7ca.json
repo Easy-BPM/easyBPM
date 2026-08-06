@@ -1,0 +1,18 @@
+{
+  "id": "public/modeler-components/code-tasks",
+  "title": "Code Tasks",
+  "description": "Code tasks execute uploaded Java code artifacts from Easy BPM.",
+  "source": "@site/docs/public/modeler-components/code-tasks.md",
+  "sourceDirName": "public/modeler-components",
+  "slug": "/public/modeler-components/code-tasks",
+  "permalink": "/docs/public/modeler-components/code-tasks",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/facebook/docusaurus/tree/main/packages/create-docusaurus/templates/shared/docs/public/modeler-components/code-tasks.md",
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 5,
+  "frontMatter": {
+    "sidebar_position": 5
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "id": "epics/overview",
+  "title": "EPIC Overview",
+  "description": "Welcome to the Easy BPM EPIC Documentation. This section contains comprehensive specifications for major feature initiatives (EPICs) that drive the evolution of the Easy BPM platform.",
+  "source": "@site/docs/epics/overview.md",
+  "sourceDirName": "epics",
+  "slug": "/epics/overview",
+  "permalink": "/docs/epics/overview",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/facebook/docusaurus/tree/main/packages/create-docusaurus/templates/shared/docs/epics/overview.md",
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 0,
+  "frontMatter": {
+    "sidebar_position": 0
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "Phase 8: Code Task Feature - Documentation Index",
+    "permalink": "/docs/phase-8-documentation-index"
+  },
+  "next": {
+    "title": "EPIC: Call Activity & Subprocess Support",
+    "permalink": "/docs/epics/epic-call-activity-subprocess-support"
+  }
+}

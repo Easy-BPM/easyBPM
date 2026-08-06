@@ -1,0 +1,18 @@
+{
+  "id": "public/modeler-components/connectors",
+  "title": "Connectors",
+  "description": "Connectors integrate Easy BPM with external services using reusable configuration.",
+  "source": "@site/docs/public/modeler-components/connectors.md",
+  "sourceDirName": "public/modeler-components",
+  "slug": "/public/modeler-components/connectors",
+  "permalink": "/docs/public/modeler-components/connectors",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/facebook/docusaurus/tree/main/packages/create-docusaurus/templates/shared/docs/public/modeler-components/connectors.md",
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 10,
+  "frontMatter": {
+    "sidebar_position": 10
+  }
+}

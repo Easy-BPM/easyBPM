@@ -1,0 +1,27 @@
+{
+  "id": "easy-admin-getting-started",
+  "title": "Easy BPM Admin: Getting Started",
+  "description": "Prerequisites",
+  "source": "@site/docs/easy-admin-getting-started.md",
+  "sourceDirName": ".",
+  "slug": "/easy-admin-getting-started",
+  "permalink": "/docs/easy-admin-getting-started",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/facebook/docusaurus/tree/main/packages/create-docusaurus/templates/shared/docs/easy-admin-getting-started.md",
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 7,
+  "frontMatter": {
+    "sidebar_position": 7
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "Easy BPM Admin: Overview",
+    "permalink": "/docs/easy-admin-overview"
+  },
+  "next": {
+    "title": "Easy BPM Admin: Architecture & Components",
+    "permalink": "/docs/easy-admin-architecture"
+  }
+}

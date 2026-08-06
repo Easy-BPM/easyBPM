@@ -1,0 +1,27 @@
+{
+  "id": "call-activity-examples",
+  "title": "Real-World Examples",
+  "description": "Example 1: E-Commerce Order Fulfillment",
+  "source": "@site/docs/call-activity-examples.md",
+  "sourceDirName": ".",
+  "slug": "/call-activity-examples",
+  "permalink": "/docs/call-activity-examples",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/facebook/docusaurus/tree/main/packages/create-docusaurus/templates/shared/docs/call-activity-examples.md",
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 43,
+  "frontMatter": {
+    "sidebar_position": 43
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "Call Activity Error Handling",
+    "permalink": "/docs/call-activity-error-handling"
+  },
+  "next": {
+    "title": "Phase 7: Call Activity & Subprocess QA Test Plan",
+    "permalink": "/docs/phase-7-qa-test-plan"
+  }
+}

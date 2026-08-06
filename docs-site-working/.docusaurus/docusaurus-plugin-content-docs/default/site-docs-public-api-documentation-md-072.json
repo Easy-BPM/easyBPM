@@ -1,0 +1,18 @@
+{
+  "id": "public/api-documentation",
+  "title": "API Documentation",
+  "description": "This section is the public integration guide for Easy BPM APIs.",
+  "source": "@site/docs/public/api-documentation.md",
+  "sourceDirName": "public",
+  "slug": "/public/api-documentation",
+  "permalink": "/docs/public/api-documentation",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/facebook/docusaurus/tree/main/packages/create-docusaurus/templates/shared/docs/public/api-documentation.md",
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 8,
+  "frontMatter": {
+    "sidebar_position": 8
+  }
+}

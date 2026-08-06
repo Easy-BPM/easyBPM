@@ -1,0 +1,27 @@
+{
+  "id": "phase-7-qa-test-plan",
+  "title": "Phase 7: Call Activity & Subprocess QA Test Plan",
+  "description": "Overview",
+  "source": "@site/docs/phase-7-qa-test-plan.md",
+  "sourceDirName": ".",
+  "slug": "/phase-7-qa-test-plan",
+  "permalink": "/docs/phase-7-qa-test-plan",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/facebook/docusaurus/tree/main/packages/create-docusaurus/templates/shared/docs/phase-7-qa-test-plan.md",
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 90,
+  "frontMatter": {
+    "sidebar_position": 90
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "Real-World Examples",
+    "permalink": "/docs/call-activity-examples"
+  },
+  "next": {
+    "title": "Easy BPM Task Portal — Overview",
+    "permalink": "/docs/easy-task-portal-overview"
+  }
+}
