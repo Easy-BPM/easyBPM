@@ -1,4 +1,4 @@
-package com.easy.bpm.service
+package com.easy.bpm.service.message
 
 import com.easy.bpm.enum.MessageEventInboxStatus
 import com.easy.bpm.model.message.MessageEventInbox

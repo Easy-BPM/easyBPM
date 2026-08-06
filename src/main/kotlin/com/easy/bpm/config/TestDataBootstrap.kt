@@ -4,7 +4,7 @@ import com.easy.bpm.enum.TaskStatus
 import com.easy.bpm.repository.process.ProcessDefinitionRepository
 import com.easy.bpm.repository.task.TaskRepository
 import com.easy.bpm.service.process.ProcessService
-import com.easy.bpm.service.TaskService
+import com.easy.bpm.service.task.TaskService
 import com.fasterxml.jackson.databind.ObjectMapper
 import jakarta.transaction.Transactional
 import org.slf4j.LoggerFactory

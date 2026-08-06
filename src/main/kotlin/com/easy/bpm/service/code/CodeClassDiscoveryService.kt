@@ -1,4 +1,4 @@
-package com.easy.bpm.service
+package com.easy.bpm.service.code
 
 import com.easy.bpm.entity.CodeClassMetadata
 import com.easy.bpm.entity.CodeTaskJar

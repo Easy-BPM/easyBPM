@@ -1,4 +1,4 @@
-package com.easy.bpm.service
+package com.easy.bpm.service.worker
 
 import com.easy.bpm.model.worker.WorkerRequestStatus
 import com.easy.bpm.repository.worker.WorkerRequestRepository

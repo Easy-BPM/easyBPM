@@ -9,10 +9,10 @@ import com.easy.bpm.repository.process.ProcessInstanceRepository
 import com.easy.bpm.repository.task.TaskRepository
 import com.easy.bpm.repository.variable.ProcessVariableRepository
 import com.easy.bpm.repository.variable.TaskVariableRepository
-import com.easy.bpm.service.IntegrationService
-import com.easy.bpm.service.AgentProcessService
+import com.easy.bpm.service.integration.IntegrationService
+import com.easy.bpm.service.agent.AgentProcessService
 import com.easy.bpm.service.process.ProcessService
-import com.easy.bpm.service.TaskService
+import com.easy.bpm.service.task.TaskService
 import com.easy.bpm.messaging.RabbitPublisher
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.assertj.core.api.Assertions.assertThat

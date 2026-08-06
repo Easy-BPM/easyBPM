@@ -1,4 +1,4 @@
-package com.easy.bpm.service
+package com.easy.bpm.service.admin
 
 import com.easy.bpm.dto.security.*
 import com.easy.bpm.model.security.AppUser

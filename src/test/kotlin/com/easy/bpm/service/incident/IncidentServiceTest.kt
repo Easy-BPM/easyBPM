@@ -1,4 +1,4 @@
-package com.easy.bpm.service
+package com.easy.bpm.service.incident
 
 import com.easy.bpm.model.incident.Incident
 import com.easy.bpm.model.incident.IncidentEvent

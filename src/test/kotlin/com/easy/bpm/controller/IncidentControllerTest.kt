@@ -5,7 +5,7 @@ import com.easy.bpm.controller.data.IncidentResolutionRequest
 import com.easy.bpm.model.incident.Incident
 import com.easy.bpm.model.incident.IncidentSource
 import com.easy.bpm.model.incident.IncidentStatus
-import com.easy.bpm.service.IncidentService
+import com.easy.bpm.service.incident.IncidentService
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.mockk.clearAllMocks

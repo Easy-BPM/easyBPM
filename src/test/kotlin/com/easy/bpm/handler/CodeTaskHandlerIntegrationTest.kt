@@ -5,9 +5,9 @@ import com.easy.bpm.entity.CodeTaskJar
 import com.easy.bpm.repository.CodeClassMetadataRepository
 import com.easy.bpm.repository.CodeTaskExecutionAuditRepository
 import com.easy.bpm.repository.CodeTaskJarRepository
-import com.easy.bpm.service.CodeClassDiscoveryService
-import com.easy.bpm.service.CodeExecutionService
-import com.easy.bpm.service.IncidentService
+import com.easy.bpm.service.code.CodeClassDiscoveryService
+import com.easy.bpm.service.code.CodeExecutionService
+import com.easy.bpm.service.incident.IncidentService
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test

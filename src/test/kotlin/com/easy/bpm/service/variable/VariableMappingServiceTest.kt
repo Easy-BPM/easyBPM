@@ -1,4 +1,4 @@
-package com.easy.bpm.service
+package com.easy.bpm.service.variable
 
 import com.easy.bpm.model.variable.ProcessVariable
 import com.easy.bpm.repository.variable.ProcessVariableRepository

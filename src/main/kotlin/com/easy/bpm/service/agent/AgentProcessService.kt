@@ -1,4 +1,4 @@
-package com.easy.bpm.service
+package com.easy.bpm.service.agent
 
 import com.easy.bpm.model.agent.AgentProcessDefinition
 import com.easy.bpm.repository.agent.AgentProcessDefinitionRepository

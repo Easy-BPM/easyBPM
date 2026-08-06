@@ -17,7 +17,7 @@ import com.easy.bpm.repository.security.UserGroupRepository
 import com.easy.bpm.repository.task.TaskRepository
 import com.easy.bpm.repository.variable.TaskVariableRepository
 import com.easy.bpm.security.AppUserDetailsService
-import com.easy.bpm.service.TaskService
+import com.easy.bpm.service.task.TaskService
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test

@@ -1,4 +1,4 @@
-package com.easy.bpm.service
+package com.easy.bpm.service.code
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.junit.jupiter.api.Test

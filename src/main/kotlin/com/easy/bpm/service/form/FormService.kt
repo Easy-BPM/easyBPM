@@ -1,4 +1,4 @@
-package com.easy.bpm.service
+package com.easy.bpm.service.form
 
 import com.easy.bpm.model.form.Form
 import com.easy.bpm.repository.form.FormDefinitionRepository

@@ -1,4 +1,4 @@
-package com.easy.bpm.service
+package com.easy.bpm.service.auth
 
 import com.easy.bpm.dto.security.CurrentUserResponse
 import com.easy.bpm.dto.security.LoginRequest

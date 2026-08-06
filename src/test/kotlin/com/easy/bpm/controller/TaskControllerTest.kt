@@ -2,7 +2,7 @@ package com.easy.bpm.controller
 
 import com.easy.bpm.controller.data.TaskResponseDto
 import com.easy.bpm.enum.TaskStatus
-import com.easy.bpm.service.TaskService
+import com.easy.bpm.service.task.TaskService
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
