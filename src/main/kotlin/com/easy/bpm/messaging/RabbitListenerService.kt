@@ -1,11 +1,12 @@
 package com.easy.bpm.messaging
 
+import com.easy.bpm.service.process.ProcessService
 import org.springframework.amqp.rabbit.annotation.RabbitListener
 import org.springframework.stereotype.Service
 
 @Service
 class RabbitListenerService(
-    private val processService: com.easy.bpm.service.ProcessService
+    private val processService: ProcessService
 ) {
 
     @RabbitListener(queues = [AmqpConfig.SERVICE_TASK_COMPLETIONS_QUEUE])
@@ -96,4 +97,3 @@ class RabbitListenerService(
         }
     }
 }
-

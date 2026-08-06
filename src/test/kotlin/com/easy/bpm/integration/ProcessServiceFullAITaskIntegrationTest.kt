@@ -6,7 +6,7 @@ import com.easy.bpm.model.variable.ProcessVariable
 import com.easy.bpm.repository.ProcessDefinitionRepository
 import com.easy.bpm.repository.ProcessInstanceRepository
 import com.easy.bpm.repository.variable.ProcessVariableRepository
-import com.easy.bpm.service.ProcessService
+import com.easy.bpm.service.process.ProcessService
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.JsonNodeFactory
 import org.junit.jupiter.api.BeforeEach

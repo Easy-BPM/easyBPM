@@ -6,8 +6,8 @@ import com.easy.bpm.repository.process.ProcessInstanceRepository
 import com.easy.bpm.repository.process.CallActivityMappingRepository
 import com.easy.bpm.repository.task.TaskRepository
 import com.easy.bpm.repository.variable.ProcessVariableRepository
-import com.easy.bpm.service.ProcessService
-import com.easy.bpm.service.CallActivityHandler
+import com.easy.bpm.service.process.ProcessService
+import com.easy.bpm.service.process.CallActivityHandler
 import com.easy.bpm.messaging.RabbitPublisher
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.assertj.core.api.Assertions.assertThat
