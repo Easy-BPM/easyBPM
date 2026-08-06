@@ -1,20 +1,5 @@
 package com.easy.bpm.service.process
 
-import com.easy.bpm.service.admin.*
-import com.easy.bpm.service.agent.*
-import com.easy.bpm.service.auth.*
-import com.easy.bpm.service.code.*
-import com.easy.bpm.service.document.*
-import com.easy.bpm.service.form.*
-import com.easy.bpm.service.incident.*
-import com.easy.bpm.service.integration.*
-import com.easy.bpm.service.message.*
-import com.easy.bpm.service.metrics.*
-import com.easy.bpm.service.process.*
-import com.easy.bpm.service.task.*
-import com.easy.bpm.service.variable.*
-import com.easy.bpm.service.worker.*
-
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Sort

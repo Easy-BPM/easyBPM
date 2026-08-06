@@ -1,20 +1,5 @@
 package com.easy.bpm.service.process
 
-import com.easy.bpm.service.admin.*
-import com.easy.bpm.service.agent.*
-import com.easy.bpm.service.auth.*
-import com.easy.bpm.service.code.*
-import com.easy.bpm.service.document.*
-import com.easy.bpm.service.form.*
-import com.easy.bpm.service.incident.*
-import com.easy.bpm.service.integration.*
-import com.easy.bpm.service.message.*
-import com.easy.bpm.service.metrics.*
-import com.easy.bpm.service.process.*
-import com.easy.bpm.service.task.*
-import com.easy.bpm.service.variable.*
-import com.easy.bpm.service.worker.*
-
 import com.easy.bpm.enum.ProcessStatus
 import com.easy.bpm.enum.NodeType
 import com.easy.bpm.model.process.ProcessDefinition
@@ -25,6 +10,7 @@ import com.easy.bpm.repository.process.ProcessDefinitionRepository
 import com.easy.bpm.repository.process.ProcessInstanceRepository
 import com.easy.bpm.repository.process.CallActivityMappingRepository
 import com.easy.bpm.repository.variable.ProcessVariableRepository
+import com.easy.bpm.service.variable.VariableMappingService
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import jakarta.transaction.Transactional
@@ -551,4 +537,3 @@ class CallActivityHandler(
         }
     }
 }
-
