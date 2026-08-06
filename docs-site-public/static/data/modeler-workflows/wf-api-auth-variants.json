@@ -1,0 +1,26 @@
+{
+  "processId": "wf_api_auth_variants",
+  "metadata": {
+    "version": "1.0",
+    "purpose": "APITask auth variants bearer/basic/apikey"
+  },
+  "variables": [
+    { "name": "customerId", "type": "string", "initialValue": "C-100" },
+    { "name": "bearerStatus", "type": "string", "initialValue": "" },
+    { "name": "basicStatus", "type": "string", "initialValue": "" },
+    { "name": "apiKeyStatus", "type": "string", "initialValue": "" }
+  ],
+  "nodes": [
+    { "id": "start", "name": "Start", "type": "StartEvent", "position": { "x": 80, "y": 260 }, "next": ["api_bearer"] },
+    { "id": "api_bearer", "name": "API Bearer", "type": "APITask", "position": { "x": 260, "y": 160 }, "next": ["api_basic"], "properties": { "url": "https://httpbin.org/get", "method": "GET", "auth": { "type": "bearer", "ref": "PARTNER_API_TOKEN" }, "outputs": [ { "source": "static", "sourceValue": "OK", "type": "string", "targetVariable": "bearerStatus" } ] } },
+    { "id": "api_basic", "name": "API Basic", "type": "APITask", "position": { "x": 460, "y": 260 }, "next": ["api_apikey"], "properties": { "url": "https://httpbin.org/get", "method": "GET", "auth": { "type": "basic", "ref": "ERP_CREDENTIALS" }, "outputs": [ { "source": "static", "sourceValue": "OK", "type": "string", "targetVariable": "basicStatus" } ] } },
+    { "id": "api_apikey", "name": "API Key", "type": "APITask", "position": { "x": 660, "y": 360 }, "next": ["end"], "properties": { "url": "https://httpbin.org/get", "method": "GET", "auth": { "type": "apikey", "ref": "PARTNER_API_KEY", "in": "header", "key": "X-API-Key" }, "outputs": [ { "source": "static", "sourceValue": "OK", "type": "string", "targetVariable": "apiKeyStatus" } ] } },
+    { "id": "end", "name": "End", "type": "EndEvent", "position": { "x": 860, "y": 260 }, "next": [] }
+  ],
+  "flows": [
+    { "from": "start", "to": "api_bearer", "condition": null },
+    { "from": "api_bearer", "to": "api_basic", "condition": null },
+    { "from": "api_basic", "to": "api_apikey", "condition": null },
+    { "from": "api_apikey", "to": "end", "condition": null }
+  ]
+}

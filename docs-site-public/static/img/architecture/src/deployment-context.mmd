@@ -1,0 +1,25 @@
+flowchart TB
+  Dev[Developer Workstation]
+
+  subgraph Local[Local Environment]
+    direction TB
+    subgraph Apps[Frontend Apps]
+      A1[easy-bpm-admin]
+      A2[easybpmn-modeler]
+      A3[easy-bpm-task-portal]
+    end
+    B1[bpm backend]
+    B2[(PostgreSQL)]
+    B3[(RabbitMQ)]
+  end
+
+  subgraph Docs[Documentation]
+    D1[docs-site-working]
+    D2[static/img/architecture/*.svg]
+  end
+
+  Dev --> Apps
+  Apps --> B1
+  B1 --> B2
+  B1 --> B3
+  D1 --> D2

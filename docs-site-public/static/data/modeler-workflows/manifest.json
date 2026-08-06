@@ -1,0 +1,52 @@
+{
+  "library": "modeler-workflows",
+  "version": "1.1.0",
+  "importFormat": "easybpmn-modeler process export JSON",
+  "workflows": [
+    {
+      "id": "wf-message-events-e2e",
+      "file": "/data/modeler-workflows/wf-message-events-e2e.json",
+      "focus": ["message-start", "message-catch", "message-throw"],
+      "deployExpected": "validate message contracts and correlation keys"
+    },
+    {
+      "id": "wf-gateway-exclusive-routing",
+      "file": "/data/modeler-workflows/wf-gateway-exclusive-routing.json",
+      "focus": ["exclusive-gateway", "conditional-flows"],
+      "deployExpected": "validate condition routing"
+    },
+    {
+      "id": "wf-gateway-parallel-sync",
+      "file": "/data/modeler-workflows/wf-gateway-parallel-sync.json",
+      "focus": ["parallel-gateway", "split-join"],
+      "deployExpected": "validate branch synchronization"
+    },
+    {
+      "id": "wf-api-auth-variants",
+      "file": "/data/modeler-workflows/wf-api-auth-variants.json",
+      "focus": ["api-task", "auth-bearer", "auth-basic", "auth-apikey"],
+      "deployExpected": "validate auth.ref runtime resolution"
+    },
+    {
+      "id": "wf-boundary-error-recovery",
+      "file": "/data/modeler-workflows/wf-boundary-error-recovery.json",
+      "focus": ["error-boundary", "failover-path"],
+      "deployExpected": "validate boundary recovery",
+      "notes": ["re-attach boundary after import"]
+    },
+    {
+      "id": "wf-boundary-message-recovery",
+      "file": "/data/modeler-workflows/wf-boundary-message-recovery.json",
+      "focus": ["message-boundary", "interrupt-path"],
+      "deployExpected": "validate boundary message interruption",
+      "notes": ["re-attach boundary after import"]
+    }
+  ],
+  "runtimeOnly": [
+    {
+      "id": "wf-message-timeout-timer-via-backend",
+      "file": "/data/runtime-workflows/wf-message-timeout-timer-via-backend.json",
+      "reason": "Modeler palette has no timer node yet"
+    }
+  ]
+}
