@@ -69,6 +69,23 @@ class ProcessServiceTest : FunSpec() {
         mockIncidentService,
         mockTimelineService
     )
+    val navigator = ProcessNavigator(
+        mockGatewayService,
+        mockProcessInstanceRepository,
+        mockTimelineService
+    )
+    val messageNodeHandler = ProcessMessageNodeHandler(
+        mockMessageSubscriptionService,
+        mockRabbitPublisher,
+        mockProcessInstanceRepository,
+        mockProcessVariableRepository,
+        variableManager,
+        mockTimelineService
+    )
+    val serviceTaskOutputMapper = ServiceTaskOutputMapper(
+        mockObjectMapper,
+        variableManager
+    )
 
     val processService = ProcessService(
         mockProcessDefinitionRepository,
@@ -80,7 +97,6 @@ class ProcessServiceTest : FunSpec() {
         mockTaskRepository,
         mockObjectMapper,
         mockRabbitPublisher,
-        mockGatewayService,
         mockMessageSubscriptionService,
         mockMetricsService,
         mockWorkerRequestRepository,
@@ -92,7 +108,10 @@ class ProcessServiceTest : FunSpec() {
         pageableSanitizer,
         processDefinitionValidator,
         variableManager,
-        failureHandler
+        failureHandler,
+        navigator,
+        messageNodeHandler,
+        serviceTaskOutputMapper
     )
 
     val objectMapper = ObjectMapper()
