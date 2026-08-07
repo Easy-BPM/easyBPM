@@ -178,11 +178,11 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
     }
 
     const isNumber = prop.type === 'number' || prop.type === 'integer';
-    const isDate = prop.format === 'date';
+    const isDate = prop.format === 'date' || prop.format === 'date-time';
 
     return (
       <input
-        type={isNumber ? 'number' : isDate ? 'date' : 'text'}
+        type={isNumber ? 'number' : prop.format === 'date-time' || prop.includeTime ? 'datetime-local' : isDate ? 'date' : 'text'}
         className={`w-full rounded-lg border px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all ${
           isReadOnly
             ? 'bg-slate-100 text-slate-500 border-slate-200'

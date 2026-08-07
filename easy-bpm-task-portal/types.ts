@@ -54,6 +54,7 @@ export interface JsonSchemaProperty {
   minimum?: number;
   maximum?: number;
   multipleOf?: number;
+  includeTime?: boolean;
   minDate?: string;
   maxDate?: string;
   formatMinimum?: string;

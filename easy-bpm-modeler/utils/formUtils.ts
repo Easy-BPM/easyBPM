@@ -9,6 +9,7 @@ export interface FormExportData {
 const fieldTypeFromSchema = (property: any): FormDefinition['tabs'][number]['fields'][number]['type'] => {
   if (property.format === 'textarea') return 'text';
   if (property.format === 'date') return 'date';
+  if (property.format === 'date-time') return 'date';
   if (property.format === 'fileUpload') return 'fileUpload';
   if (property.format === 'fileDownload') return 'fileDownload';
   if (property.format === 'pdfViewer') return 'pdfViewer';
@@ -39,6 +40,7 @@ const formFromBackendSchema = (data: any): FormDefinition | null => {
       minimum: typeof property.minimum === 'number' ? property.minimum : undefined,
       maximum: typeof property.maximum === 'number' ? property.maximum : undefined,
       multipleOf: typeof property.multipleOf === 'number' ? property.multipleOf : undefined,
+      includeTime: property.format === 'date-time' || Boolean(property.includeTime),
       minDate: typeof property.minDate === 'string' ? property.minDate : typeof property.formatMinimum === 'string' ? property.formatMinimum : undefined,
       maxDate: typeof property.maxDate === 'string' ? property.maxDate : typeof property.formatMaximum === 'string' ? property.formatMaximum : undefined,
       allowedExtensions: Array.isArray(property.allowedExtensions) ? property.allowedExtensions : undefined,
@@ -94,6 +96,7 @@ const normalizeImportedForm = (data: any): FormDefinition | null => {
         minimum: typeof field.minimum === 'number' ? field.minimum : undefined,
         maximum: typeof field.maximum === 'number' ? field.maximum : undefined,
         multipleOf: typeof field.multipleOf === 'number' ? field.multipleOf : undefined,
+        includeTime: Boolean(field.includeTime),
         minDate: typeof field.minDate === 'string' ? field.minDate : undefined,
         maxDate: typeof field.maxDate === 'string' ? field.maxDate : undefined,
         allowedExtensions: field.allowedExtensions,
@@ -264,7 +267,8 @@ export const generateJsonSchema = (formDef: FormDefinition) => {
           prop.format = 'textarea';
           break;
         case 'date':
-          prop.format = 'date';
+          prop.format = field.includeTime ? 'date-time' : 'date';
+          if (field.includeTime) prop.includeTime = true;
           break;
         case 'fileUpload':
           prop.format = 'fileUpload';
