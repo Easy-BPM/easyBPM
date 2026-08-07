@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Plus, Trash2, GripVertical, Settings, Eye, Code, 
   ChevronRight, ChevronDown, Layout, Type, Hash, 
@@ -166,6 +166,7 @@ interface FormModelerProps {
 }
 
 export const FormModeler: React.FC<FormModelerProps> = ({ formLibrary, selectedFormKey, onFormSave, onFormChange }) => {
+  const loadedSelectedFormKeyRef = useRef<string | null>(null);
   const [form, setForm] = useState<FormDefinition>(() => {
     // If a form key is selected and exists in library, load it
     if (selectedFormKey && formLibrary?.has(selectedFormKey)) {
@@ -189,14 +190,19 @@ export const FormModeler: React.FC<FormModelerProps> = ({ formLibrary, selectedF
   // Load selected form from library when it changes
   useEffect(() => {
     if (selectedFormKey && formLibrary?.has(selectedFormKey)) {
+      if (loadedSelectedFormKeyRef.current === selectedFormKey) return;
+
       const libForm = formLibrary.get(selectedFormKey)!;
       const nextForm = {
         ...libForm,
         formKey: libForm.formKey || libForm.id
       };
+      loadedSelectedFormKeyRef.current = selectedFormKey;
       setForm(nextForm);
       setActiveTabId(nextForm.tabs[0]?.id || null);
       setSelectedFieldId(null);
+    } else if (!selectedFormKey) {
+      loadedSelectedFormKeyRef.current = null;
     }
   }, [selectedFormKey, formLibrary]);
 
