@@ -7,6 +7,7 @@ export interface FormExportData {
 }
 
 const fieldTypeFromSchema = (property: any): FormDefinition['tabs'][number]['fields'][number]['type'] => {
+  if (property.type === 'date') return 'date';
   if (property.format === 'textarea') return 'text';
   if (property.format === 'date') return 'date';
   if (property.format === 'date-time') return 'date';
@@ -267,6 +268,7 @@ export const generateJsonSchema = (formDef: FormDefinition) => {
           prop.format = 'textarea';
           break;
         case 'date':
+          prop.type = 'date';
           prop.format = field.includeTime ? 'date-time' : 'date';
           if (field.includeTime) prop.includeTime = true;
           break;

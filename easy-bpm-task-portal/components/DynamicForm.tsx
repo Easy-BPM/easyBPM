@@ -178,7 +178,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
     }
 
     const isNumber = prop.type === 'number' || prop.type === 'integer';
-    const isDate = prop.format === 'date' || prop.format === 'date-time';
+    const isDate = prop.type === 'date' || prop.format === 'date' || prop.format === 'date-time';
 
     return (
       <input
