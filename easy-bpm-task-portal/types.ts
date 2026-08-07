@@ -48,6 +48,12 @@ export interface JsonSchemaProperty {
   allowedExtensions?: string[];
   maxSizeMb?: number;
   readOnly?: boolean;
+  minLength?: number;
+  maxLength?: number;
+  pattern?: string;
+  minimum?: number;
+  maximum?: number;
+  multipleOf?: number;
 }
 
 export interface JsonSchema {

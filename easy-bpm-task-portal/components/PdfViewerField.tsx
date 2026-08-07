@@ -21,8 +21,10 @@ export interface PdfViewerFieldProps {
 export const PdfViewerField: React.FC<PdfViewerFieldProps> = ({ value, label }) => {
   const [meta, setMeta] = useState<DocumentMetadata | null>(null);
   const [loading, setLoading] = useState(false);
+  const [downloading, setDownloading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fullscreen, setFullscreen] = useState(false);
+  const [previewObjectUrl, setPreviewObjectUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (!value) return;
@@ -34,6 +36,41 @@ export const PdfViewerField: React.FC<PdfViewerFieldProps> = ({ value, label }) 
       .catch((err: unknown) => setError((err as Error).message ?? 'Could not load document'))
       .finally(() => setLoading(false));
   }, [value]);
+
+  useEffect(() => {
+    if (!value || meta?.contentType !== 'application/pdf') {
+      setPreviewObjectUrl(null);
+      return;
+    }
+
+    let objectUrl: string | null = null;
+    let cancelled = false;
+    bpmService
+      .getDocumentPreviewBlob(value)
+      .then((blob) => {
+        if (cancelled) return;
+        objectUrl = URL.createObjectURL(blob);
+        setPreviewObjectUrl(objectUrl);
+      })
+      .catch((err: unknown) => setError((err as Error).message ?? 'Could not load PDF preview'));
+
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [meta?.contentType, value]);
+
+  const handleDownload = async () => {
+    setDownloading(true);
+    setError(null);
+    try {
+      await bpmService.downloadDocument(value, meta?.fileName ?? 'document.pdf');
+    } catch (err) {
+      setError((err as Error).message ?? 'Could not download document');
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   if (!value) {
     return (
@@ -63,9 +100,6 @@ export const PdfViewerField: React.FC<PdfViewerFieldProps> = ({ value, label }) 
   }
 
   const isPdf = meta?.contentType === 'application/pdf';
-  const previewUrl = bpmService.getDocumentPreviewUrl(value);
-  const downloadUrl = bpmService.getDocumentDownloadUrl(value);
-
   if (!isPdf) {
     // Fallback for non-PDF: show download link instead
     return (
@@ -74,15 +108,25 @@ export const PdfViewerField: React.FC<PdfViewerFieldProps> = ({ value, label }) 
           <AlertCircle size={16} className="flex-shrink-0" />
           Inline preview is only available for PDF files. Use the download button below.
         </div>
-        <a
-          href={downloadUrl}
-          download={meta?.fileName ?? 'document'}
+        <button
+          type="button"
+          onClick={handleDownload}
+          disabled={downloading}
           className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium transition-colors"
           aria-label={`Download ${label}`}
         >
-          <Download size={14} />
+          {downloading ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
           {meta?.fileName ?? 'Download file'}
-        </a>
+        </button>
+      </div>
+    );
+  }
+
+  if (!previewObjectUrl) {
+    return (
+      <div className="flex items-center gap-2 p-3 text-slate-500 text-sm">
+        <Loader2 size={16} className="animate-spin" />
+        Loading PDF preview...
       </div>
     );
   }
@@ -96,25 +140,25 @@ export const PdfViewerField: React.FC<PdfViewerFieldProps> = ({ value, label }) 
           <span className="truncate max-w-[200px]">{meta?.fileName}</span>
         </div>
         <div className="flex items-center gap-2">
-          <a
-            href={previewUrl}
-            target="_blank"
-            rel="noopener noreferrer"
+          <button
+            type="button"
+            onClick={() => window.open(previewObjectUrl, '_blank', 'noopener,noreferrer')}
             className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded text-xs font-medium bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors"
             aria-label="Open in new tab"
           >
             <ExternalLink size={12} />
             New tab
-          </a>
-          <a
-            href={downloadUrl}
-            download={meta?.fileName ?? 'document.pdf'}
+          </button>
+          <button
+            type="button"
+            onClick={handleDownload}
+            disabled={downloading}
             className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded text-xs font-medium bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors"
             aria-label="Download document"
           >
-            <Download size={12} />
+            {downloading ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />}
             Download
-          </a>
+          </button>
           <button
             type="button"
             onClick={() => setFullscreen(!fullscreen)}
@@ -141,7 +185,7 @@ export const PdfViewerField: React.FC<PdfViewerFieldProps> = ({ value, label }) 
             </button>
           </div>
           <iframe
-            src={previewUrl}
+            src={previewObjectUrl}
             title={`PDF preview of ${label}`}
             className="flex-1 w-full bg-white"
             style={{ border: 'none' }}
@@ -149,7 +193,7 @@ export const PdfViewerField: React.FC<PdfViewerFieldProps> = ({ value, label }) 
         </div>
       ) : (
         <iframe
-          src={previewUrl}
+          src={previewObjectUrl}
           title={`PDF preview of ${label}`}
           className="w-full rounded-lg border border-slate-200"
           style={{ height: '500px', border: 'none' }}

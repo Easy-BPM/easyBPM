@@ -162,7 +162,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
             <option value="all">All processes</option>
             {definitions.map((definition) => (
               <option key={definition.id} value={definition.id}>
-                {definition.name} v{definition.version}
+                {getDefinitionDisplayName(definition)} v{definition.version}
               </option>
             ))}
           </select>
@@ -540,7 +540,15 @@ function getDefinitionId(instance: ProcessInstance) {
 }
 
 function getProcessName(instance: ProcessInstance) {
-  return instance.processDefinitionName ?? instance.processDefinition?.name ?? `Definition #${getDefinitionId(instance) ?? 'unknown'}`;
+  const embeddedName = instance.processDefinition?.processName ?? instance.processDefinition?.name;
+  const directName = instance.processDefinitionName;
+  const fallbackName = embeddedName ?? directName;
+  if (fallbackName && !/^Definition\s+#/i.test(fallbackName)) return fallbackName;
+  return directName ?? embeddedName ?? `Definition #${getDefinitionId(instance) ?? 'unknown'}`;
+}
+
+function getDefinitionDisplayName(definition: ProcessDefinition) {
+  return definition.processName ?? definition.name ?? definition.key ?? `Definition #${definition.id}`;
 }
 
 function parseDate(value?: string) {

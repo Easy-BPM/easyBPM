@@ -9,6 +9,7 @@ export interface Page<T> {
 export interface ProcessDefinition {
   id: number;
   name: string;
+  processName?: string;
   key?: string;
   description?: string;
   version: number;
@@ -18,6 +19,7 @@ export interface ProcessDefinition {
 export interface ProcessDefinitionSummary {
   id: number;
   name: string;
+  processName?: string;
   key?: string;
   description?: string;
   version: number;

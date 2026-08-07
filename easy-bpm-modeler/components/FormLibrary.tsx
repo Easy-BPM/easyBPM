@@ -45,7 +45,6 @@ export const FormLibrary: React.FC<FormLibraryProps> = ({
       }
 
       onAddForm(validationResult.form);
-      toast.success(`Form "${getFormDisplayName(validationResult.form)}" imported successfully`);
     } catch (error) {
       toast.error(`Import failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }

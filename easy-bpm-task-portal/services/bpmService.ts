@@ -348,6 +348,30 @@ export const bpmService = {
   getDocumentPreviewUrl: (id: string): string =>
     `${API_BASE_URL}/api/documents/${id}/preview`,
 
+  getDocumentDownloadBlob: async (id: string): Promise<Blob> => {
+    const response = await fetchWithAuth(`${API_BASE_URL}/api/documents/${id}/download`);
+    await assertOk(response, `Download document ${id}`);
+    return response.blob();
+  },
+
+  getDocumentPreviewBlob: async (id: string): Promise<Blob> => {
+    const response = await fetchWithAuth(`${API_BASE_URL}/api/documents/${id}/preview`);
+    await assertOk(response, `Preview document ${id}`);
+    return response.blob();
+  },
+
+  downloadDocument: async (id: string, fileName = 'document'): Promise<void> => {
+    const blob = await bpmService.getDocumentDownloadBlob(id);
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  },
+
   /** Delete a document by UUID. */
   deleteDocument: async (id: string): Promise<void> => {
     const response = await fetchWithAuth(`${API_BASE_URL}/api/documents/${id}`, {
