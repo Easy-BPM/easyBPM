@@ -3,6 +3,7 @@ package com.easy.bpm.repository.worker
 import com.easy.bpm.model.worker.WorkerRequest
 import com.easy.bpm.model.worker.WorkerRequestStatus
 import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
 import java.time.LocalDateTime
@@ -46,6 +47,8 @@ interface WorkerRequestRepository : JpaRepository<WorkerRequest, Long> {
         @Param("batchSize") batchSize: Int
     ): List<WorkerRequest>
 
-    fun deleteByProcessInstanceId(processInstanceId: Long)
-}
+    fun countByProcessInstanceId(processInstanceId: Long): Long
 
+    @Modifying
+    fun deleteByProcessInstanceId(processInstanceId: Long): Int
+}

@@ -14,15 +14,15 @@ import java.util.UUID
  *
  * Validation rules (all enforced at upload time):
  * - File must not be empty
- * - File size must not exceed [MAX_FILE_SIZE_BYTES] (20 MB default)
- * - Content type must be in the [ALLOWED_CONTENT_TYPES] allowlist
+ * - File size must not exceed the configured 20 MB default
+ * - Content type must be in the allowed content type allowlist
  * - File name is sanitized to prevent path traversal
  */
 @Service
 class DocumentService(
     private val documentRepository: DocumentRepository
 ) {
-    private val logger = LoggerFactory.getLogger(javaClass)
+    private val logger = LoggerFactory.getLogger(DocumentService::class.java)
 
     companion object {
         const val MAX_FILE_SIZE_BYTES: Long = 20 * 1024 * 1024 // 20 MB

@@ -1,4 +1,4 @@
-package com.easy.bpm.repository
+package com.easy.bpm.repository.codetask
 
 import com.easy.bpm.entity.CodeTaskJar
 import org.springframework.data.jpa.repository.JpaRepository

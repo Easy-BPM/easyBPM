@@ -6,6 +6,7 @@ import {
   AuthSession,
   BpmTask,
   CallActivityMapping,
+  DataRetentionSettings,
   Incident,
   IncidentEvent,
   IncidentResolutionAction,
@@ -21,6 +22,8 @@ import {
   TaskStatus,
   MaintenanceCleanupSummary,
   PurgeCompletedInstancesPayload,
+  PurgeCompletedTasksPayload,
+  UpdateDataRetentionSettingsPayload,
   VariableAssignmentPayload
 } from '../types';
 
@@ -452,6 +455,49 @@ export const adminService = {
       body: JSON.stringify(payload)
     });
     if (!res.ok) throw new Error(`Failed to purge completed instances: ${res.statusText}`);
+    return res.json();
+  },
+
+  purgeCompletedTasks: async (payload: PurgeCompletedTasksPayload): Promise<MaintenanceCleanupSummary> => {
+    const res = await fetchWithAuth(`${API_BASE_URL}/admin/maintenance/purge-completed-tasks`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) throw new Error(`Failed to purge completed tasks: ${res.statusText}`);
+    return res.json();
+  },
+
+  getRetentionSettings: async (): Promise<DataRetentionSettings> => {
+    const res = await fetchWithAuth(`${API_BASE_URL}/admin/maintenance/retention`);
+    if (!res.ok) throw new Error(`Failed to fetch retention settings: ${res.statusText}`);
+    return res.json();
+  },
+
+  updateRetentionSettings: async (payload: UpdateDataRetentionSettingsPayload): Promise<DataRetentionSettings> => {
+    const res = await fetchWithAuth(`${API_BASE_URL}/admin/maintenance/retention`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) throw new Error(`Failed to update retention settings: ${res.statusText}`);
+    return res.json();
+  },
+
+  previewConfiguredRetention: async (): Promise<MaintenanceCleanupSummary> => {
+    const res = await fetchWithAuth(`${API_BASE_URL}/admin/maintenance/retention/preview`, {
+      method: 'POST'
+    });
+    if (!res.ok) throw new Error(`Failed to preview retention: ${res.statusText}`);
+    return res.json();
+  },
+
+  runConfiguredRetention: async (): Promise<MaintenanceCleanupSummary> => {
+    const res = await fetchWithAuth(`${API_BASE_URL}/admin/maintenance/retention/run`, {
+      method: 'POST'
+    });
+    if (res.status === 409) throw new Error('Configured retention is disabled');
+    if (!res.ok) throw new Error(`Failed to run retention: ${res.statusText}`);
     return res.json();
   },
 

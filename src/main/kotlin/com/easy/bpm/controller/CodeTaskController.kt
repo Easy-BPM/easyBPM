@@ -3,9 +3,9 @@ package com.easy.bpm.controller
 import com.easy.bpm.dto.*
 import com.easy.bpm.entity.CodeTaskJar
 import com.easy.bpm.entity.CodeTaskExecutionAudit
-import com.easy.bpm.repository.CodeTaskJarRepository
-import com.easy.bpm.repository.CodeClassMetadataRepository
-import com.easy.bpm.repository.CodeTaskExecutionAuditRepository
+import com.easy.bpm.repository.codetask.CodeTaskJarRepository
+import com.easy.bpm.repository.codetask.CodeClassMetadataRepository
+import com.easy.bpm.repository.codetask.CodeTaskExecutionAuditRepository
 import com.easy.bpm.service.code.CodeClassDiscoveryService
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Page
@@ -234,13 +234,13 @@ class CodeTaskController(
 
             val auditPage: Page<CodeTaskExecutionAudit> = when {
                 instanceId != null && status != null ->
-                    executionAuditRepository.findByInstanceIdAndStatus(instanceId, status, pageRequest) as Page<CodeTaskExecutionAudit>
+                    executionAuditRepository.findByInstanceIdAndStatus(instanceId, status, pageRequest)
                 instanceId != null ->
-                    executionAuditRepository.findByInstanceId(instanceId, pageRequest) as Page<CodeTaskExecutionAudit>
+                    executionAuditRepository.findByInstanceId(instanceId, pageRequest)
                 status != null ->
-                    executionAuditRepository.findByStatus(status, pageRequest) as Page<CodeTaskExecutionAudit>
+                    executionAuditRepository.findByStatus(status, pageRequest)
                 else ->
-                    executionAuditRepository.findAll(pageRequest) as Page<CodeTaskExecutionAudit>
+                    executionAuditRepository.findAll(pageRequest)
             }
 
             val content = auditPage.content.map { audit ->

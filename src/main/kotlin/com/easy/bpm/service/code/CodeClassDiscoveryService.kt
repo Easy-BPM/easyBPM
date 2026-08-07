@@ -2,8 +2,8 @@ package com.easy.bpm.service.code
 
 import com.easy.bpm.entity.CodeClassMetadata
 import com.easy.bpm.entity.CodeTaskJar
-import com.easy.bpm.repository.CodeClassMetadataRepository
-import com.easy.bpm.repository.CodeTaskJarRepository
+import com.easy.bpm.repository.codetask.CodeClassMetadataRepository
+import com.easy.bpm.repository.codetask.CodeTaskJarRepository
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -30,7 +30,7 @@ class CodeClassDiscoveryService(
   private val codeExecutionService: CodeExecutionService,
   private val objectMapper: ObjectMapper
 ) {
-  private val logger = LoggerFactory.getLogger(javaClass)
+  private val logger = LoggerFactory.getLogger(CodeClassDiscoveryService::class.java)
 
   /**
    * Load a JAR file and create a ClassLoader

@@ -539,7 +539,7 @@ class ProcessServiceTest : FunSpec() {
                 )
             } returns emptyList()
 
-            every { mockTaskVariableRepository.deleteByTaskId(pendingSourceTask.id) } just runs
+            every { mockTaskVariableRepository.deleteByTaskId(pendingSourceTask.id) } returns 1
             every { mockTaskRepository.delete(pendingSourceTask) } just runs
 
             every { mockFormService.getLatestVersionByName("approve-request") } returns null

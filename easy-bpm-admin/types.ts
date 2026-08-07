@@ -200,8 +200,25 @@ export interface PurgeCompletedInstancesPayload {
   completedBefore: string;
   processDefinitionId?: number | null;
   processKey?: string | null;
+  batchSize?: number | null;
   dryRun: boolean;
 }
+
+export interface PurgeCompletedTasksPayload {
+  completedBefore: string;
+  batchSize?: number | null;
+  dryRun: boolean;
+}
+
+export interface DataRetentionSettings {
+  enabled: boolean;
+  completedProcessRetentionDays: number;
+  completedTaskRetentionDays: number;
+  batchSize: number;
+  cron: string;
+}
+
+export type UpdateDataRetentionSettingsPayload = DataRetentionSettings;
 
 export interface MaintenanceCleanupSummary {
   dryRun: boolean;
@@ -219,6 +236,7 @@ export interface MaintenanceCleanupSummary {
   timelineEventsDeleted: number;
   callActivityMappingsDeleted: number;
   candidateInstanceIds: number[];
+  candidateTaskIds: number[];
 }
 
 export interface AuthLoginResponse {

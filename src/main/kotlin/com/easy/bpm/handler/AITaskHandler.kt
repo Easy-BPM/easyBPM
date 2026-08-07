@@ -13,7 +13,6 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import java.time.LocalDateTime
 
 /**
  * AITaskHandler - Orchestrates AI Task execution lifecycle
@@ -45,7 +44,7 @@ class AITaskHandler(
     private val incidentService: IncidentService,
     private val objectMapper: ObjectMapper
 ) {
-    private val logger = LoggerFactory.getLogger(javaClass)
+    private val logger = LoggerFactory.getLogger(AITaskHandler::class.java)
 
     /**
      * Execute an AI Task within a process instance
@@ -62,7 +61,6 @@ class AITaskHandler(
         node: JsonNode,
         inputVariables: Map<String, Any?>
     ): Map<String, Any?> {
-        val executionStart = System.currentTimeMillis()
         val nodeId = node.get("id").asText()
 
         try {
@@ -145,9 +143,9 @@ class AITaskHandler(
             val executionResult = executeWithRetry(
                 provider = provider,
                 request = executionRequest,
-                maxRetries = tuningParams?.retryCount ?: 0,
-                initialDelayMs = tuningParams?.initialDelayMs ?: 1000,
-                backoffMultiplier = tuningParams?.backoffMultiplier ?: 2.0,
+                maxRetries = tuningParams.retryCount,
+                initialDelayMs = tuningParams.initialDelayMs,
+                backoffMultiplier = tuningParams.backoffMultiplier,
                 nodeId = nodeId
             )
 

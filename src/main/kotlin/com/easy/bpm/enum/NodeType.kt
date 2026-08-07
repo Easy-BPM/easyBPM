@@ -24,7 +24,7 @@ enum class NodeType(val typeName: String) {
     CallActivity("CallActivity");
 
     companion object {
-        private val map = values().associateBy { it.typeName } + mapOf(
+        private val map = entries.associateBy { it.typeName } + mapOf(
             // Backward compatibility for existing process definitions and imports.
             "UserTask" to UserTask,
             "Pool" to Participant

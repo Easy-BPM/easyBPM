@@ -268,6 +268,8 @@ ADD COLUMN completion_node_id VARCHAR(255);
 CREATE INDEX idx_process_instance_parent_id ON process_instance(parent_instance_id);
 CREATE INDEX idx_process_instance_call_activity_node ON process_instance(call_activity_node_id);
 CREATE INDEX idx_process_instance_nesting_level ON process_instance(nesting_level);
+CREATE INDEX idx_process_instance_status_updated ON process_instance(status, updated_at, id);
+CREATE INDEX idx_process_instance_definition_status_updated ON process_instance(process_definition_id, status, updated_at, id);
 
 -- Call Activity Mapping Table
 CREATE TABLE call_activity_mapping (
@@ -459,6 +461,21 @@ CREATE INDEX idx_agent_process_execution_definition ON agent_process_execution(a
 CREATE INDEX idx_agent_process_execution_instance ON agent_process_execution(process_instance_id);
 CREATE INDEX idx_agent_process_execution_node ON agent_process_execution(node_id);
 CREATE INDEX idx_agent_process_execution_status ON agent_process_execution(status);
+
+CREATE INDEX idx_task_process_instance ON task(process_instance_id);
+CREATE INDEX idx_task_status_completed_at ON task(status, completed_at, id);
+CREATE INDEX idx_task_variable_task ON task_variable(task_id);
+CREATE INDEX idx_process_variable_instance ON process_variable(process_instance_id);
+
+CREATE TABLE data_retention_settings (
+    id BIGINT PRIMARY KEY,
+    enabled BOOLEAN NOT NULL DEFAULT FALSE,
+    completed_process_retention_days BIGINT NOT NULL DEFAULT 90,
+    completed_task_retention_days BIGINT NOT NULL DEFAULT 90,
+    batch_size INT NOT NULL DEFAULT 500,
+    cron VARCHAR(120) NOT NULL DEFAULT '0 0 3 * * *',
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
 
 -- ============================================================================
 -- END OF SCHEMA

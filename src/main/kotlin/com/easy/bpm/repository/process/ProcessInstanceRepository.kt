@@ -2,6 +2,7 @@ package com.easy.bpm.repository.process
 
 import com.easy.bpm.model.process.ProcessInstance
 import com.easy.bpm.enum.ProcessStatus
+import org.springframework.data.domain.Pageable
 import jakarta.persistence.LockModeType
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Lock
@@ -59,5 +60,26 @@ interface ProcessInstanceRepository : JpaRepository<ProcessInstance, Long> {
         @Param("processKey") processKey: String?
     ): List<ProcessInstance>
 
+    @Query(
+        """
+        SELECT pi.id FROM ProcessInstance pi
+        WHERE pi.status = :status
+          AND pi.updatedAt < :before
+          AND (:processDefinitionId IS NULL OR pi.processDefinition.id = :processDefinitionId)
+          AND (:processKey IS NULL OR pi.processDefinition.key = :processKey)
+        ORDER BY pi.updatedAt ASC, pi.id ASC
+        """
+    )
+    fun findPurgeCandidateIds(
+        @Param("status") status: ProcessStatus,
+        @Param("before") before: LocalDateTime,
+        @Param("processDefinitionId") processDefinitionId: Long?,
+        @Param("processKey") processKey: String?,
+        pageable: Pageable
+    ): List<Long>
+
     fun findByProcessDefinitionId(processDefinitionId: Long): List<ProcessInstance>
+
+    @Query("SELECT pi.id FROM ProcessInstance pi WHERE pi.processDefinition.id = :processDefinitionId")
+    fun findIdsByProcessDefinitionId(@Param("processDefinitionId") processDefinitionId: Long): List<Long>
 }

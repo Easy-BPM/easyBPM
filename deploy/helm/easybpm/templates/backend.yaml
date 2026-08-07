@@ -33,6 +33,16 @@ spec:
               value: {{ .Values.config.managementHealthShowDetails | quote }}
             - name: EASY_BPM_SERVER_TEST_DATA_ENABLED
               value: {{ .Values.config.testDataEnabled | quote }}
+            - name: EASY_BPM_SERVER_RETENTION_ENABLED
+              value: {{ .Values.config.retention.enabled | quote }}
+            - name: EASY_BPM_SERVER_RETENTION_COMPLETED_PROCESS_RETENTION_DAYS
+              value: {{ .Values.config.retention.completedProcessRetentionDays | quote }}
+            - name: EASY_BPM_SERVER_RETENTION_COMPLETED_TASK_RETENTION_DAYS
+              value: {{ .Values.config.retention.completedTaskRetentionDays | quote }}
+            - name: EASY_BPM_SERVER_RETENTION_BATCH_SIZE
+              value: {{ .Values.config.retention.batchSize | quote }}
+            - name: EASY_BPM_SERVER_RETENTION_CRON
+              value: {{ .Values.config.retention.cron | quote }}
           envFrom:
             - secretRef:
                 name: {{ include "easybpm.secretName" . }}

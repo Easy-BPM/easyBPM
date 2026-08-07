@@ -233,7 +233,7 @@ class CredentialVault(
             "****"
         } else {
             val lastFour = token.takeLast(4)
-            "${token.take(4)}***...${lastFour}"
+            "${token.take(4)}***...$lastFour"
         }
     }
     

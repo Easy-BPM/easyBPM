@@ -35,7 +35,7 @@ import java.util.UUID
 class DocumentController(
     private val documentService: DocumentService
 ) {
-    private val logger = LoggerFactory.getLogger(javaClass)
+    private val logger = LoggerFactory.getLogger(DocumentController::class.java)
 
     @PostMapping(consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
     @Operation(summary = "Upload a document", description = "Upload a file and associate it with a task, process instance and/or form field")

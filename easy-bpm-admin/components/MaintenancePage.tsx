@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { AlertTriangle, Database, Loader2, Search, Trash2 } from 'lucide-react';
+import { AlertTriangle, CalendarClock, Database, Loader2, Save, Search, Trash2 } from 'lucide-react';
 import { adminService } from '../services/adminService';
-import { MaintenanceCleanupSummary, ProcessDefinition } from '../types';
+import { DataRetentionSettings, MaintenanceCleanupSummary, ProcessDefinition } from '../types';
 
 const SummaryGrid: React.FC<{ summary: MaintenanceCleanupSummary }> = ({ summary }) => {
   const rows = [
@@ -42,6 +42,12 @@ const SummaryGrid: React.FC<{ summary: MaintenanceCleanupSummary }> = ({ summary
           {summary.candidateInstanceIds.length > 20 ? ` and ${summary.candidateInstanceIds.length - 20} more` : ''}
         </p>
       )}
+      {summary.candidateTaskIds.length > 0 && (
+        <p className="text-xs text-slate-500">
+          Candidate tasks: {summary.candidateTaskIds.slice(0, 20).join(', ')}
+          {summary.candidateTaskIds.length > 20 ? ` and ${summary.candidateTaskIds.length - 20} more` : ''}
+        </p>
+      )}
     </div>
   );
 };
@@ -50,8 +56,18 @@ export const MaintenancePage: React.FC = () => {
   const [definitions, setDefinitions] = useState<ProcessDefinition[]>([]);
   const [loadingDefinitions, setLoadingDefinitions] = useState(false);
   const [completedBefore, setCompletedBefore] = useState('');
+  const [purgeBatchSize, setPurgeBatchSize] = useState('500');
   const [purgeDefinitionId, setPurgeDefinitionId] = useState('');
   const [purgeSummary, setPurgeSummary] = useState<MaintenanceCleanupSummary | null>(null);
+  const [retentionSettings, setRetentionSettings] = useState<DataRetentionSettings | null>(null);
+  const [retentionForm, setRetentionForm] = useState<DataRetentionSettings>({
+    enabled: false,
+    completedProcessRetentionDays: 90,
+    completedTaskRetentionDays: 90,
+    batchSize: 500,
+    cron: '0 0 3 * * *'
+  });
+  const [retentionSummary, setRetentionSummary] = useState<MaintenanceCleanupSummary | null>(null);
   const [deleteDefinitionId, setDeleteDefinitionId] = useState('');
   const [deleteSummary, setDeleteSummary] = useState<MaintenanceCleanupSummary | null>(null);
   const [loading, setLoading] = useState(false);
@@ -63,6 +79,14 @@ export const MaintenancePage: React.FC = () => {
       .then((page) => setDefinitions(page.content))
       .catch(() => setMessage('Failed to load process definitions.'))
       .finally(() => setLoadingDefinitions(false));
+
+    adminService.getRetentionSettings()
+      .then((settings) => {
+        setRetentionSettings(settings);
+        setRetentionForm(settings);
+        setPurgeBatchSize(String(settings.batchSize));
+      })
+      .catch(() => setMessage('Failed to load retention settings.'));
   }, []);
 
   const previewPurge = async (execute = false) => {
@@ -77,6 +101,7 @@ export const MaintenancePage: React.FC = () => {
       const summary = await adminService.purgeCompletedInstances({
         completedBefore,
         processDefinitionId: purgeDefinitionId ? Number(purgeDefinitionId) : null,
+        batchSize: purgeBatchSize ? Number(purgeBatchSize) : null,
         dryRun: !execute
       });
       setPurgeSummary(summary);
@@ -84,6 +109,47 @@ export const MaintenancePage: React.FC = () => {
     } catch (error) {
       console.error(error);
       setMessage('Purge operation failed.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const runConfiguredRetention = async (execute = false) => {
+    setLoading(true);
+    setMessage(null);
+    try {
+      const summary = execute
+        ? await adminService.runConfiguredRetention()
+        : await adminService.previewConfiguredRetention();
+      setRetentionSummary(summary);
+      setMessage(execute ? 'Configured retention executed.' : 'Configured retention preview generated.');
+    } catch (error) {
+      console.error(error);
+      setMessage(error instanceof Error ? error.message : 'Configured retention failed.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const saveRetentionSettings = async () => {
+    setLoading(true);
+    setMessage(null);
+    try {
+      const settings = await adminService.updateRetentionSettings({
+        enabled: retentionForm.enabled,
+        completedProcessRetentionDays: Number(retentionForm.completedProcessRetentionDays),
+        completedTaskRetentionDays: Number(retentionForm.completedTaskRetentionDays),
+        batchSize: Number(retentionForm.batchSize),
+        cron: retentionForm.cron.trim()
+      });
+      setRetentionSettings(settings);
+      setRetentionForm(settings);
+      setPurgeBatchSize(String(settings.batchSize));
+      setRetentionSummary(null);
+      setMessage('Retention settings saved.');
+    } catch (error) {
+      console.error(error);
+      setMessage('Failed to save retention settings.');
     } finally {
       setLoading(false);
     }
@@ -129,11 +195,124 @@ export const MaintenancePage: React.FC = () => {
       )}
 
       <section className="bg-white border border-slate-200 rounded-xl p-5 space-y-4">
+        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
+          <div>
+            <h3 className="font-semibold text-slate-800 flex items-center gap-2">
+              <CalendarClock size={18} className="text-slate-700" /> Data Retention Policy
+            </h3>
+            <p className="text-sm text-slate-500 mt-1">Scheduled cleanup for completed process instances and completed tasks.</p>
+          </div>
+          {retentionSettings && (
+            <span className={`text-xs px-2 py-1 rounded-full border w-fit ${retentionSettings.enabled ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-50 text-slate-600 border-slate-200'}`}>
+              {retentionSettings.enabled ? 'Enabled' : 'Disabled'}
+            </span>
+          )}
+        </div>
+        {retentionSettings && (
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+              <p className="text-[10px] uppercase tracking-wide text-slate-500 font-semibold">Completed process TTL</p>
+              <p className="text-lg font-bold text-slate-800">{retentionSettings.completedProcessRetentionDays} days</p>
+            </div>
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+              <p className="text-[10px] uppercase tracking-wide text-slate-500 font-semibold">Completed task TTL</p>
+              <p className="text-lg font-bold text-slate-800">{retentionSettings.completedTaskRetentionDays} days</p>
+            </div>
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+              <p className="text-[10px] uppercase tracking-wide text-slate-500 font-semibold">Batch size</p>
+              <p className="text-lg font-bold text-slate-800">{retentionSettings.batchSize}</p>
+            </div>
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+              <p className="text-[10px] uppercase tracking-wide text-slate-500 font-semibold">Cron</p>
+              <p className="text-sm font-semibold text-slate-800 break-words">{retentionSettings.cron}</p>
+            </div>
+          </div>
+        )}
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
+          <label className="flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm min-h-[38px]">
+            <input
+              type="checkbox"
+              checked={retentionForm.enabled}
+              onChange={(event) => setRetentionForm((current) => ({ ...current, enabled: event.target.checked }))}
+              className="h-4 w-4"
+            />
+            <span className="font-medium text-slate-700">Enabled</span>
+          </label>
+          <label className="space-y-1">
+            <span className="text-xs font-semibold text-slate-600">Completed process TTL days</span>
+            <input
+              type="number"
+              min="1"
+              max="3650"
+              value={retentionForm.completedProcessRetentionDays}
+              onChange={(event) => setRetentionForm((current) => ({ ...current, completedProcessRetentionDays: Number(event.target.value) }))}
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            />
+          </label>
+          <label className="space-y-1">
+            <span className="text-xs font-semibold text-slate-600">Completed task TTL days</span>
+            <input
+              type="number"
+              min="1"
+              max="3650"
+              value={retentionForm.completedTaskRetentionDays}
+              onChange={(event) => setRetentionForm((current) => ({ ...current, completedTaskRetentionDays: Number(event.target.value) }))}
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            />
+          </label>
+          <label className="space-y-1">
+            <span className="text-xs font-semibold text-slate-600">Batch size</span>
+            <input
+              type="number"
+              min="1"
+              max="10000"
+              value={retentionForm.batchSize}
+              onChange={(event) => setRetentionForm((current) => ({ ...current, batchSize: Number(event.target.value) }))}
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            />
+          </label>
+          <label className="space-y-1">
+            <span className="text-xs font-semibold text-slate-600">Cron</span>
+            <input
+              type="text"
+              value={retentionForm.cron}
+              onChange={(event) => setRetentionForm((current) => ({ ...current, cron: event.target.value }))}
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            />
+          </label>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={saveRetentionSettings}
+            disabled={loading}
+            className="px-3 py-2 rounded-lg bg-white border border-slate-300 text-slate-700 text-sm font-medium flex items-center gap-2 disabled:opacity-60"
+          >
+            {loading ? <Loader2 className="animate-spin" size={15} /> : <Save size={15} />} Save Settings
+          </button>
+          <button
+            onClick={() => runConfiguredRetention(false)}
+            disabled={loading}
+            className="px-3 py-2 rounded-lg bg-slate-900 text-white text-sm font-medium flex items-center gap-2 disabled:opacity-60"
+          >
+            {loading ? <Loader2 className="animate-spin" size={15} /> : <Search size={15} />} Preview Policy
+          </button>
+          <button
+            onClick={() => runConfiguredRetention(true)}
+            disabled={loading || !retentionSettings?.enabled || !retentionSummary || (retentionSummary.processInstancesDeleted === 0 && retentionSummary.tasksDeleted === 0)}
+            className="px-3 py-2 rounded-lg bg-red-600 text-white text-sm font-medium flex items-center gap-2 disabled:opacity-50"
+          >
+            <Trash2 size={15} /> Run Policy
+          </button>
+        </div>
+        {retentionSummary && <SummaryGrid summary={retentionSummary} />}
+      </section>
+
+      <section className="bg-white border border-slate-200 rounded-xl p-5 space-y-4">
         <div>
           <h3 className="font-semibold text-slate-800">Purge Completed Instances</h3>
           <p className="text-sm text-slate-500 mt-1">Deletes completed instances older than the selected date, including tasks, variables, documents, incidents, worker requests, and timeline events.</p>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <input
             type="datetime-local"
             value={completedBefore}
@@ -153,6 +332,15 @@ export const MaintenancePage: React.FC = () => {
               </option>
             ))}
           </select>
+          <input
+            type="number"
+            min="1"
+            max="10000"
+            value={purgeBatchSize}
+            onChange={(event) => setPurgeBatchSize(event.target.value)}
+            className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            aria-label="Batch size"
+          />
         </div>
         <div className="flex flex-wrap gap-2">
           <button
