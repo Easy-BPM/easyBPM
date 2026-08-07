@@ -557,6 +557,9 @@ export const FormModeler: React.FC<FormModelerProps> = ({ formLibrary, selectedF
                           type={field.type === 'number' ? 'number' : (field.type === 'date' ? 'date' : 'text')} 
                           className={`w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none ${field.readOnly ? 'bg-slate-50 cursor-not-allowed' : ''}`} 
                           placeholder={field.title}
+                          min={field.type === 'date' ? field.minDate : field.type === 'number' ? field.minimum : undefined}
+                          max={field.type === 'date' ? field.maxDate : field.type === 'number' ? field.maximum : undefined}
+                          step={field.type === 'number' ? field.multipleOf : undefined}
                           readOnly={field.readOnly}
                         />
                       )}
@@ -856,6 +859,33 @@ export const FormModeler: React.FC<FormModelerProps> = ({ formLibrary, selectedF
                       step="any"
                       value={selectedField.multipleOf ?? ''}
                       onChange={(e) => handleUpdateField(selectedField.id, { multipleOf: e.target.value === '' ? undefined : Number(e.target.value) })}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-md text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {selectedField.type === 'date' && (
+                <div className="space-y-4 pt-4 border-t border-slate-100">
+                  <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-blue-600" />
+                    Date Validators
+                  </h3>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Earliest Date</label>
+                    <input
+                      type="date"
+                      value={selectedField.minDate ?? ''}
+                      onChange={(e) => handleUpdateField(selectedField.id, { minDate: e.target.value || undefined })}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-md text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Latest Date</label>
+                    <input
+                      type="date"
+                      value={selectedField.maxDate ?? ''}
+                      onChange={(e) => handleUpdateField(selectedField.id, { maxDate: e.target.value || undefined })}
                       className="w-full px-3 py-2 border border-slate-200 rounded-md text-sm focus:ring-2 focus:ring-blue-500 outline-none"
                     />
                   </div>
