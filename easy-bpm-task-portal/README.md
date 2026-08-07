@@ -1,24 +1,71 @@
 # Easy BPM Task Portal
 
-Task-first portal for Easy BPM process instances.
+React/Vite workspace for operators who start Easy BPM processes and complete human tasks.
 
-## Features
+## What It Does
 
-- Lists and opens user tasks
-- Renders task forms when `formId` exists
-- Falls back to editable task variables when no form is attached
-- Allows adding new task variables in no-form tasks
-- Completes tasks and sends variables to backend for global process synchronization
+- Signs users in through the Easy BPM backend.
+- Shows assigned, shared, and completed tasks.
+- Starts deployed process definitions.
+- Opens task details and automatically claims unassigned tasks for the current user.
+- Renders deployed form schemas for human tasks.
+- Falls back to editable task variables when no form is attached.
+- Saves task drafts and completes tasks with output variables.
+- Supports document upload, download, and inline PDF preview fields.
+- Lets users unclaim tasks back to the shared pool.
 
-## Local Run
+## Requirements
 
-1. Install dependencies:
-   `npm install`
-2. Optional API override (default is `http://localhost:8080`):
-   set `EASY_BPM_TASK_PORTAL_API_BASE_URL`
-3. Start dev server:
-   `npm run dev`
+- Node.js
+- npm
+- Easy BPM backend, usually running at `http://localhost:8080`
+
+## Configuration
+
+The app uses `http://localhost:8080` by default.
+
+To point at a different backend, set:
+
+```powershell
+$env:EASY_BPM_TASK_PORTAL_API_BASE_URL = "http://localhost:8080"
+```
+
+The authentication session is stored in browser `localStorage` under `easybpm_portal_auth`.
+
+## Run Locally
+
+```powershell
+npm install
+npm run dev
+```
+
+Open the Vite URL printed in the terminal.
 
 ## Build
 
-- `npm run build`
+```powershell
+npm run build
+```
+
+The production output is written to `dist`.
+
+## Preview A Production Build
+
+```powershell
+npm run preview
+```
+
+## Backend APIs Used
+
+- `POST /auth/login`
+- `GET /auth/me`
+- `GET /processes`
+- `POST /processes/{processKey}/start`
+- `GET /tasks/search`
+- `GET /tasks/{id}`
+- `POST /tasks/{id}/claim`
+- `POST /tasks/{id}/unclaim`
+- `POST /tasks/{id}/draft`
+- `POST /tasks/{id}/complete`
+- `GET /forms/{id}`
+- `/api/documents` endpoints for upload, metadata, download, preview, delete, and task document lookup
