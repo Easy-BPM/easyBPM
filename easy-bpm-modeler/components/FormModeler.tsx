@@ -36,6 +36,11 @@ import { getModelerApiBaseUrl } from '../config/runtimeConfig';
 const API_BASE_URL = getModelerApiBaseUrl();
 const FORM_KEY_PATTERN = /^[A-Za-z][A-Za-z0-9_-]*$/;
 
+const toDateValidatorValue = (value: string | undefined, includeTime: boolean) => {
+  if (!value) return undefined;
+  return includeTime ? (value.includes('T') ? value : `${value}T00:00`) : value.slice(0, 10);
+};
+
 const FIELD_TYPES = [
   { type: 'string', label: 'Short Text', icon: <Type className="w-4 h-4" /> },
   { type: 'text', label: 'Long Text', icon: <AlignLeft className="w-4 h-4" /> },
@@ -139,7 +144,7 @@ const SortableField: React.FC<{
           </div>
         ) : (
           <div className="w-full px-3 py-2 border border-slate-300 rounded-md bg-white/50 text-slate-400">
-            {field.type === 'date' ? 'YYYY-MM-DD' : (field.type === 'number' ? '0.00' : field.title)}
+            {field.type === 'date' ? (field.includeTime ? 'YYYY-MM-DD HH:mm' : 'YYYY-MM-DD') : (field.type === 'number' ? '0.00' : field.title)}
           </div>
         )}
       </div>
@@ -554,7 +559,7 @@ export const FormModeler: React.FC<FormModelerProps> = ({ formLibrary, selectedF
                         </div>
                       ) : (
                         <input 
-                          type={field.type === 'number' ? 'number' : (field.type === 'date' ? 'date' : 'text')} 
+                          type={field.type === 'number' ? 'number' : (field.type === 'date' ? (field.includeTime ? 'datetime-local' : 'date') : 'text')} 
                           className={`w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none ${field.readOnly ? 'bg-slate-50 cursor-not-allowed' : ''}`} 
                           placeholder={field.title}
                           min={field.type === 'date' ? field.minDate : field.type === 'number' ? field.minimum : undefined}
@@ -871,19 +876,37 @@ export const FormModeler: React.FC<FormModelerProps> = ({ formLibrary, selectedF
                     <Calendar className="w-4 h-4 text-blue-600" />
                     Date Validators
                   </h3>
+                  <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-100">
+                    <span className="text-xs font-bold text-slate-500 uppercase">Include Time</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const includeTime = !selectedField.includeTime;
+                        handleUpdateField(selectedField.id, {
+                          includeTime,
+                          minDate: toDateValidatorValue(selectedField.minDate, includeTime),
+                          maxDate: toDateValidatorValue(selectedField.maxDate, includeTime)
+                        });
+                      }}
+                      className={`w-10 h-5 rounded-full transition-colors relative ${selectedField.includeTime ? 'bg-blue-600' : 'bg-slate-300'}`}
+                      aria-label="Toggle date time input"
+                    >
+                      <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${selectedField.includeTime ? 'left-6' : 'left-1'}`} />
+                    </button>
+                  </div>
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Earliest Date</label>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{selectedField.includeTime ? 'Earliest Date/Time' : 'Earliest Date'}</label>
                     <input
-                      type="date"
+                      type={selectedField.includeTime ? 'datetime-local' : 'date'}
                       value={selectedField.minDate ?? ''}
                       onChange={(e) => handleUpdateField(selectedField.id, { minDate: e.target.value || undefined })}
                       className="w-full px-3 py-2 border border-slate-200 rounded-md text-sm focus:ring-2 focus:ring-blue-500 outline-none"
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Latest Date</label>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{selectedField.includeTime ? 'Latest Date/Time' : 'Latest Date'}</label>
                     <input
-                      type="date"
+                      type={selectedField.includeTime ? 'datetime-local' : 'date'}
                       value={selectedField.maxDate ?? ''}
                       onChange={(e) => handleUpdateField(selectedField.id, { maxDate: e.target.value || undefined })}
                       className="w-full px-3 py-2 border border-slate-200 rounded-md text-sm focus:ring-2 focus:ring-blue-500 outline-none"
