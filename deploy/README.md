@@ -23,11 +23,11 @@ Build and publish one immutable image per runtime:
 - `easybpm-modeler`
 - `easybpm-task-portal`
 
-Use the same tag for all images in one release, usually a semver tag such as `v0.1.0-beta.1` or a commit SHA for preview builds.
+Use the same tag for all images in one release, usually a semver tag such as `v0.1.1-beta.1` or a commit SHA for preview builds.
 
 ## Beta Path
 
-1. Push to `master` or create a tag like `v0.1.0-beta.1`.
+1. Push to `master` or create a tag like `v0.1.1-beta.1`.
 2. GitHub Actions publishes Docker images to GitHub Container Registry.
 3. Copy `deploy/docker/.env.beta.example` to `.env.beta` and change all secrets.
 4. Start the public beta stack:
