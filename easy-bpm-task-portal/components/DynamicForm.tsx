@@ -177,9 +177,12 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
       );
     }
 
+    const isNumber = prop.type === 'number' || prop.type === 'integer';
+    const isDate = prop.format === 'date';
+
     return (
       <input
-        type={prop.type === 'number' || prop.type === 'integer' ? 'number' : prop.format === 'date' ? 'date' : 'text'}
+        type={isNumber ? 'number' : isDate ? 'date' : 'text'}
         className={`w-full rounded-lg border px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all ${
           isReadOnly
             ? 'bg-slate-100 text-slate-500 border-slate-200'
@@ -199,9 +202,9 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
         minLength={prop.type === 'string' ? prop.minLength : undefined}
         maxLength={prop.type === 'string' ? prop.maxLength : undefined}
         pattern={prop.type === 'string' ? prop.pattern : undefined}
-        min={prop.type === 'number' || prop.type === 'integer' ? prop.minimum : undefined}
-        max={prop.type === 'number' || prop.type === 'integer' ? prop.maximum : undefined}
-        step={prop.type === 'number' || prop.type === 'integer' ? prop.multipleOf ?? (prop.type === 'integer' ? 1 : undefined) : undefined}
+        min={isNumber ? prop.minimum : isDate ? prop.minDate ?? prop.formatMinimum : undefined}
+        max={isNumber ? prop.maximum : isDate ? prop.maxDate ?? prop.formatMaximum : undefined}
+        step={isNumber ? prop.multipleOf ?? (prop.type === 'integer' ? 1 : undefined) : undefined}
         placeholder={prop.description || `Enter ${prop.title || key}...`}
       />
     );

@@ -39,6 +39,8 @@ const formFromBackendSchema = (data: any): FormDefinition | null => {
       minimum: typeof property.minimum === 'number' ? property.minimum : undefined,
       maximum: typeof property.maximum === 'number' ? property.maximum : undefined,
       multipleOf: typeof property.multipleOf === 'number' ? property.multipleOf : undefined,
+      minDate: typeof property.minDate === 'string' ? property.minDate : typeof property.formatMinimum === 'string' ? property.formatMinimum : undefined,
+      maxDate: typeof property.maxDate === 'string' ? property.maxDate : typeof property.formatMaximum === 'string' ? property.formatMaximum : undefined,
       allowedExtensions: Array.isArray(property.allowedExtensions) ? property.allowedExtensions : undefined,
       maxSizeMb: property.maxSizeMb
     };
@@ -92,6 +94,8 @@ const normalizeImportedForm = (data: any): FormDefinition | null => {
         minimum: typeof field.minimum === 'number' ? field.minimum : undefined,
         maximum: typeof field.maximum === 'number' ? field.maximum : undefined,
         multipleOf: typeof field.multipleOf === 'number' ? field.multipleOf : undefined,
+        minDate: typeof field.minDate === 'string' ? field.minDate : undefined,
+        maxDate: typeof field.maxDate === 'string' ? field.maxDate : undefined,
         allowedExtensions: field.allowedExtensions,
         maxSizeMb: field.maxSizeMb
       })) : []
@@ -285,6 +289,14 @@ export const generateJsonSchema = (formDef: FormDefinition) => {
       if (field.minimum !== undefined) prop.minimum = field.minimum;
       if (field.maximum !== undefined) prop.maximum = field.maximum;
       if (field.multipleOf !== undefined) prop.multipleOf = field.multipleOf;
+      if (field.minDate) {
+        prop.minDate = field.minDate;
+        prop.formatMinimum = field.minDate;
+      }
+      if (field.maxDate) {
+        prop.maxDate = field.maxDate;
+        prop.formatMaximum = field.maxDate;
+      }
 
       properties[field.name] = prop;
       if (field.required) required.push(field.name);

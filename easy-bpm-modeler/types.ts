@@ -153,6 +153,8 @@ export interface FormField {
   minimum?: number;
   maximum?: number;
   multipleOf?: number;
+  minDate?: string;
+  maxDate?: string;
   // File-field specific
   allowedExtensions?: string[];
   maxSizeMb?: number;
