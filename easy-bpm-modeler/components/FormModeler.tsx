@@ -781,6 +781,87 @@ export const FormModeler: React.FC<FormModelerProps> = ({ formLibrary, selectedF
                 </div>
               )}
 
+              {(selectedField.type === 'string' || selectedField.type === 'text') && (
+                <div className="space-y-4 pt-4 border-t border-slate-100">
+                  <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                    <Type className="w-4 h-4 text-blue-600" />
+                    Data Validators
+                  </h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Min Length</label>
+                      <input
+                        type="number"
+                        min={0}
+                        value={selectedField.minLength ?? ''}
+                        onChange={(e) => handleUpdateField(selectedField.id, { minLength: e.target.value === '' ? undefined : Number(e.target.value) })}
+                        className="w-full px-3 py-2 border border-slate-200 rounded-md text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Max Length</label>
+                      <input
+                        type="number"
+                        min={1}
+                        value={selectedField.maxLength ?? ''}
+                        onChange={(e) => handleUpdateField(selectedField.id, { maxLength: e.target.value === '' ? undefined : Number(e.target.value) })}
+                        className="w-full px-3 py-2 border border-slate-200 rounded-md text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Pattern</label>
+                    <input
+                      type="text"
+                      value={selectedField.pattern ?? ''}
+                      onChange={(e) => handleUpdateField(selectedField.id, { pattern: e.target.value || undefined })}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-md text-sm font-mono focus:ring-2 focus:ring-blue-500 outline-none"
+                      placeholder="^[A-Z0-9_-]+$"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {selectedField.type === 'number' && (
+                <div className="space-y-4 pt-4 border-t border-slate-100">
+                  <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                    <Hash className="w-4 h-4 text-blue-600" />
+                    Value Validators
+                  </h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Minimum</label>
+                      <input
+                        type="number"
+                        value={selectedField.minimum ?? ''}
+                        onChange={(e) => handleUpdateField(selectedField.id, { minimum: e.target.value === '' ? undefined : Number(e.target.value) })}
+                        className="w-full px-3 py-2 border border-slate-200 rounded-md text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Maximum</label>
+                      <input
+                        type="number"
+                        value={selectedField.maximum ?? ''}
+                        onChange={(e) => handleUpdateField(selectedField.id, { maximum: e.target.value === '' ? undefined : Number(e.target.value) })}
+                        className="w-full px-3 py-2 border border-slate-200 rounded-md text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Step / Multiple Of</label>
+                    <input
+                      type="number"
+                      min={0}
+                      step="any"
+                      value={selectedField.multipleOf ?? ''}
+                      onChange={(e) => handleUpdateField(selectedField.id, { multipleOf: e.target.value === '' ? undefined : Number(e.target.value) })}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-md text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                    />
+                  </div>
+                </div>
+              )}
+
               <div className="pt-6 border-t border-slate-100">
                 <button 
                   onClick={() => {

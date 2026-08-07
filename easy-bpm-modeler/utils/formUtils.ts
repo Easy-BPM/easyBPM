@@ -33,6 +33,12 @@ const formFromBackendSchema = (data: any): FormDefinition | null => {
       required: requiredFields.includes(name),
       readOnly: Boolean(property.readOnly),
       options: Array.isArray(property.enum) ? property.enum.map(String) : undefined,
+      minLength: typeof property.minLength === 'number' ? property.minLength : undefined,
+      maxLength: typeof property.maxLength === 'number' ? property.maxLength : undefined,
+      pattern: typeof property.pattern === 'string' ? property.pattern : undefined,
+      minimum: typeof property.minimum === 'number' ? property.minimum : undefined,
+      maximum: typeof property.maximum === 'number' ? property.maximum : undefined,
+      multipleOf: typeof property.multipleOf === 'number' ? property.multipleOf : undefined,
       allowedExtensions: Array.isArray(property.allowedExtensions) ? property.allowedExtensions : undefined,
       maxSizeMb: property.maxSizeMb
     };
@@ -80,6 +86,12 @@ const normalizeImportedForm = (data: any): FormDefinition | null => {
         readOnly: Boolean(field.readOnly),
         options: field.options,
         defaultValue: field.defaultValue,
+        minLength: typeof field.minLength === 'number' ? field.minLength : undefined,
+        maxLength: typeof field.maxLength === 'number' ? field.maxLength : undefined,
+        pattern: typeof field.pattern === 'string' ? field.pattern : undefined,
+        minimum: typeof field.minimum === 'number' ? field.minimum : undefined,
+        maximum: typeof field.maximum === 'number' ? field.maximum : undefined,
+        multipleOf: typeof field.multipleOf === 'number' ? field.multipleOf : undefined,
         allowedExtensions: field.allowedExtensions,
         maxSizeMb: field.maxSizeMb
       })) : []
@@ -267,6 +279,12 @@ export const generateJsonSchema = (formDef: FormDefinition) => {
       }
 
       if (field.options && field.options.length > 0) prop.enum = field.options;
+      if (field.minLength !== undefined) prop.minLength = field.minLength;
+      if (field.maxLength !== undefined) prop.maxLength = field.maxLength;
+      if (field.pattern) prop.pattern = field.pattern;
+      if (field.minimum !== undefined) prop.minimum = field.minimum;
+      if (field.maximum !== undefined) prop.maximum = field.maximum;
+      if (field.multipleOf !== undefined) prop.multipleOf = field.multipleOf;
 
       properties[field.name] = prop;
       if (field.required) required.push(field.name);

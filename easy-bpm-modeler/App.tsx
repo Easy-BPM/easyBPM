@@ -1140,7 +1140,6 @@ const App: React.FC = () => {
       return;
     }
     handleAddForm(result.form);
-    toast.success(`Form "${result.form.name}" imported successfully`);
   };
 
   const handleDeployForm = async () => {

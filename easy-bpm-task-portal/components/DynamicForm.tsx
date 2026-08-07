@@ -170,6 +170,8 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
           onChange={(e) => handleChange(key, e.target.value)}
           disabled={isReadOnly}
           required={isRequired}
+          minLength={prop.minLength}
+          maxLength={prop.maxLength}
           placeholder={prop.description || `Enter ${prop.title || key}...`}
         />
       );
@@ -194,6 +196,12 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
         }}
         disabled={isReadOnly}
         required={isRequired}
+        minLength={prop.type === 'string' ? prop.minLength : undefined}
+        maxLength={prop.type === 'string' ? prop.maxLength : undefined}
+        pattern={prop.type === 'string' ? prop.pattern : undefined}
+        min={prop.type === 'number' || prop.type === 'integer' ? prop.minimum : undefined}
+        max={prop.type === 'number' || prop.type === 'integer' ? prop.maximum : undefined}
+        step={prop.type === 'number' || prop.type === 'integer' ? prop.multipleOf ?? (prop.type === 'integer' ? 1 : undefined) : undefined}
         placeholder={prop.description || `Enter ${prop.title || key}...`}
       />
     );

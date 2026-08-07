@@ -19,6 +19,7 @@ export interface FileDownloadFieldProps {
 export const FileDownloadField: React.FC<FileDownloadFieldProps> = ({ value, label }) => {
   const [meta, setMeta] = useState<DocumentMetadata | null>(null);
   const [loading, setLoading] = useState(false);
+  const [downloading, setDownloading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -65,12 +66,23 @@ export const FileDownloadField: React.FC<FileDownloadFieldProps> = ({ value, lab
     );
   }
 
-  const downloadUrl = bpmService.getDocumentDownloadUrl(value);
+  const handleDownload = async () => {
+    setDownloading(true);
+    setError(null);
+    try {
+      await bpmService.downloadDocument(value, meta?.fileName ?? 'document');
+    } catch (err) {
+      setError((err as Error).message ?? 'Could not download file');
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   return (
-    <a
-      href={downloadUrl}
-      download={meta?.fileName ?? 'document'}
+    <button
+      type="button"
+      onClick={handleDownload}
+      disabled={downloading}
       className="flex items-center gap-3 p-3 rounded-lg border border-blue-200 bg-blue-50 hover:bg-blue-100 transition-colors group w-fit"
       aria-label={`Download ${label}`}
     >
@@ -81,7 +93,11 @@ export const FileDownloadField: React.FC<FileDownloadFieldProps> = ({ value, lab
           <p className="text-xs text-slate-500">{formatBytes(meta.fileSize)} · {meta.contentType}</p>
         )}
       </div>
-      <Download size={16} className="text-blue-400 group-hover:text-blue-600 transition-colors flex-shrink-0" />
-    </a>
+      {downloading ? (
+        <Loader2 size={16} className="text-blue-400 animate-spin flex-shrink-0" />
+      ) : (
+        <Download size={16} className="text-blue-400 group-hover:text-blue-600 transition-colors flex-shrink-0" />
+      )}
+    </button>
   );
 };

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   ArrowRightLeft,
   CheckCircle2,
@@ -259,6 +259,16 @@ const InstanceExplorerView: React.FC<{ initialInstanceId?: number | null }> = ({
   const [selectedChildId, setSelectedChildId] = useState<number | null>(null);
   const [childMapping, setChildMapping] = useState<any>(null);
   const isInstanceCompleted = instance?.status === 'COMPLETED';
+  const effectiveNodeHistory = useMemo(() => {
+    const rawHistory = instance?.nodeHistory ?? [];
+    const startNodeId = workflowDefinition?.nodes?.find((node) => {
+      const normalizedType = node.type.toLowerCase();
+      return normalizedType === 'startevent' || normalizedType === 'start' || normalizedType === 'messagestartevent' || normalizedType === 'message-start';
+    })?.id;
+
+    if (!startNodeId || rawHistory.includes(startNodeId)) return rawHistory;
+    return [startNodeId, ...rawHistory];
+  }, [instance?.nodeHistory, workflowDefinition]);
 
   const loadDefinitionForInstance = async (targetInstance: ProcessInstance | null) => {
     setWorkflowDefinition(null);
@@ -672,7 +682,7 @@ const InstanceExplorerView: React.FC<{ initialInstanceId?: number | null }> = ({
               <GitBranch size={18} className="text-purple-600" /> Current Node History
             </h3>
             <div className="flex flex-wrap gap-2">
-              {(instance.nodeHistory ?? []).map((node, idx) => (
+              {effectiveNodeHistory.map((node, idx) => (
                 <span key={`${node}-${idx}`} className="px-3 py-1.5 rounded-full bg-purple-50 text-purple-700 text-xs font-medium border border-purple-200">
                   {idx + 1}. {getNodeDisplayName(node)}
                 </span>
@@ -739,12 +749,12 @@ const InstanceExplorerView: React.FC<{ initialInstanceId?: number | null }> = ({
               <>
                 <div className="flex flex-wrap items-center gap-3 text-xs">
                   <span className="px-2 py-1 rounded bg-slate-100 text-slate-700 border border-slate-200">Total nodes: {workflowDefinition.nodes?.length ?? 0}</span>
-                  <span className="px-2 py-1 rounded bg-blue-50 text-blue-700 border border-blue-200">Visited nodes: {instance.nodeHistory?.length ?? 0}</span>
+                  <span className="px-2 py-1 rounded bg-blue-50 text-blue-700 border border-blue-200">Visited nodes: {effectiveNodeHistory.length}</span>
                   <span className="px-2 py-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">Current nodes: {instance.currentNode?.length ?? 0}</span>
                 </div>
                 <WorkflowCanvas
                   definition={workflowDefinition}
-                  nodeHistory={instance.nodeHistory ?? []}
+                  nodeHistory={effectiveNodeHistory}
                   currentNodes={instance.currentNode ?? []}
                 />
               </>

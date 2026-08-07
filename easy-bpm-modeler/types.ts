@@ -147,6 +147,12 @@ export interface FormField {
   readOnly: boolean;
   options?: string[];
   defaultValue?: string;
+  minLength?: number;
+  maxLength?: number;
+  pattern?: string;
+  minimum?: number;
+  maximum?: number;
+  multipleOf?: number;
   // File-field specific
   allowedExtensions?: string[];
   maxSizeMb?: number;
