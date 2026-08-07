@@ -79,7 +79,7 @@ class ProcessInstanceLifecycleManagerTest : FunSpec() {
             every {
                 taskRepository.findByProcessInstanceIdAndNodeIdAndStatus(10, "approve", TaskStatus.PENDING)
             } returns emptyList()
-            justRun { taskVariableRepository.deleteByTaskId(99) }
+            every { taskVariableRepository.deleteByTaskId(99) } returns 1
             justRun { taskRepository.delete(pendingTask) }
             justRun { userTaskHandler.handleUserTask(instance, any()) }
             every { processInstanceRepository.save(instance) } returns instance
@@ -102,11 +102,11 @@ class ProcessInstanceLifecycleManagerTest : FunSpec() {
 
             every { processInstanceRepository.findById(10) } returns Optional.of(instance)
             every { taskRepository.findByProcessInstanceId(10) } returns listOf(task)
-            justRun { taskVariableRepository.deleteByTaskId(22) }
-            justRun { taskRepository.deleteByProcessInstanceId(10) }
-            justRun { processVariableRepository.deleteByProcessInstanceId(10) }
+            every { taskVariableRepository.deleteByTaskId(22) } returns 1
+            every { taskRepository.deleteByProcessInstanceId(10) } returns 1
+            every { processVariableRepository.deleteByProcessInstanceId(10) } returns 1
             justRun { messageSubscriptionService.deleteSubscriptionsForInstance(10) }
-            justRun { workerRequestRepository.deleteByProcessInstanceId(10) }
+            every { workerRequestRepository.deleteByProcessInstanceId(10) } returns 1
             justRun { processInstanceRepository.delete(instance) }
 
             manager.deleteProcessInstance(10)

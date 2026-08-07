@@ -2,6 +2,7 @@ package com.easy.bpm.repository.process
 
 import com.easy.bpm.model.process.CallActivityMapping
 import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
 import org.springframework.stereotype.Repository
 
@@ -45,9 +46,15 @@ interface CallActivityMappingRepository : JpaRepository<CallActivityMapping, Lon
     /**
      * Delete all mappings for a child instance (cascade cleanup).
      */
-    fun deleteByChildInstanceId(childInstanceId: Long)
+    @Modifying
+    fun deleteByChildInstanceId(childInstanceId: Long): Int
 
-    fun deleteByParentInstanceId(parentInstanceId: Long)
+    @Modifying
+    fun deleteByParentInstanceId(parentInstanceId: Long): Int
+
+    fun countByParentInstanceId(parentInstanceId: Long): Long
+
+    fun countByChildInstanceId(childInstanceId: Long): Long
 
     /**
      * Check if there are active mappings for a parent instance.

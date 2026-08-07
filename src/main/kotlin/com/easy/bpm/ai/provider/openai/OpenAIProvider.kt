@@ -153,8 +153,7 @@ class OpenAIProvider(
             val response = sendRequest(
                 requestBody = requestBody,
                 apiKey = apiKey,
-                endpoint = request.providerConfig.endpoint ?: DEFAULT_ENDPOINT,
-                timeoutMs = request.providerConfig.timeoutMs
+                endpoint = request.providerConfig.endpoint ?: DEFAULT_ENDPOINT
             )
             
             // Parse response
@@ -166,7 +165,7 @@ class OpenAIProvider(
             
             val duration = Instant.now().toEpochMilli() - startTime
             
-            logger.info("OpenAI execution successful: model=${request.providerConfig.modelName}, tokens=$totalTokens, duration=${duration}ms")
+            logger.info("OpenAI execution successful: model={}, tokens={}, duration={}ms", request.providerConfig.modelName, totalTokens, duration)
             
             return AIExecutionResponseDto(
                 responseText = resultText,
@@ -176,7 +175,7 @@ class OpenAIProvider(
                 executionDurationMs = duration,
                 success = true,
                 metadata = mapOf(
-                    "model" to (request.providerConfig.modelName ?: DEFAULT_MODEL),
+                    "model" to request.providerConfig.modelName,
                     "stopReason" to (parsed.at("/choices[0].finish_reason").asText("unknown"))
                 )
             )
@@ -250,8 +249,7 @@ class OpenAIProvider(
     private fun sendRequest(
         requestBody: String,
         apiKey: String,
-        endpoint: String,
-        timeoutMs: Long
+        endpoint: String
     ): String {
         val headers = HttpHeaders().apply {
             contentType = MediaType.APPLICATION_JSON

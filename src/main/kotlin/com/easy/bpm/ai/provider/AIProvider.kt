@@ -95,6 +95,6 @@ enum class AIProviderType(val providerId: String, val displayName: String) {
     CUSTOM_REST("custom-rest", "Custom REST API");
     
     companion object {
-        fun fromId(id: String): AIProviderType? = values().find { it.providerId == id }
+        fun fromId(id: String): AIProviderType? = entries.find { it.providerId == id }
     }
 }

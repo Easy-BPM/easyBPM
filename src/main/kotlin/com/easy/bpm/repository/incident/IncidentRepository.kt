@@ -7,6 +7,7 @@ import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor
+import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
 import java.time.LocalDateTime
@@ -33,5 +34,11 @@ interface IncidentRepository : JpaRepository<Incident, Long>, JpaSpecificationEx
     @Query("SELECT COUNT(i) FROM Incident i WHERE i.createdAt >= :since")
     fun countCreatedSince(@Param("since") since: LocalDateTime): Long
 
-    fun deleteByProcessInstanceId(processInstanceId: Long)
+    @Modifying
+    fun deleteByProcessInstanceId(processInstanceId: Long): Int
+
+    fun countByProcessInstanceId(processInstanceId: Long): Long
+
+    @Query("SELECT i.id FROM Incident i WHERE i.processInstanceId = :processInstanceId")
+    fun findIdsByProcessInstanceId(@Param("processInstanceId") processInstanceId: Long): List<Long>
 }

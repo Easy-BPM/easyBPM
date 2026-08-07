@@ -70,6 +70,12 @@ springdoc:
 easybpm:
   test-data:
     enabled: ${EASY_BPM_SERVER_TEST_DATA_ENABLED:false}
+  retention:
+    enabled: ${EASY_BPM_SERVER_RETENTION_ENABLED:false}
+    completed-process-retention-days: ${EASY_BPM_SERVER_RETENTION_COMPLETED_PROCESS_RETENTION_DAYS:90}
+    completed-task-retention-days: ${EASY_BPM_SERVER_RETENTION_COMPLETED_TASK_RETENTION_DAYS:90}
+    batch-size: ${EASY_BPM_SERVER_RETENTION_BATCH_SIZE:500}
+    cron: "${EASY_BPM_SERVER_RETENTION_CRON:0 0 3 * * *}"
   security:
     enabled: ${EASY_BPM_SERVER_SECURITY_ENABLED:true}
     jwt-secret: ${EASY_BPM_SERVER_SECURITY_JWT_SECRET:ZWFzeWJwbS1kZWZhdWx0LXNlY3JldC1tdXN0LWJlLWNoYW5nZWQ=}

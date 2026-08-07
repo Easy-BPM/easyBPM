@@ -1,8 +1,8 @@
 package com.easy.bpm.handler
 
 import com.easy.bpm.entity.CodeTaskExecutionAudit
-import com.easy.bpm.repository.CodeTaskExecutionAuditRepository
-import com.easy.bpm.repository.CodeTaskJarRepository
+import com.easy.bpm.repository.codetask.CodeTaskExecutionAuditRepository
+import com.easy.bpm.repository.codetask.CodeTaskJarRepository
 import com.easy.bpm.model.incident.IncidentSource
 import com.easy.bpm.service.code.CodeClassDiscoveryService
 import com.easy.bpm.service.code.CodeExecutionService
@@ -38,7 +38,7 @@ class CodeTaskHandler(
   private val incidentService: IncidentService,
   private val objectMapper: ObjectMapper
 ) {
-  private val logger = LoggerFactory.getLogger(javaClass)
+  private val logger = LoggerFactory.getLogger(CodeTaskHandler::class.java)
 
   /**
    * Execute a Code Task within a process instance
@@ -65,7 +65,6 @@ class CodeTaskHandler(
     outputMappings: Map<String, String>,
     inputVariables: Map<String, Any?>
   ): Map<String, Any?> {
-    val executionStart = LocalDateTime.now()
     val startTime = System.currentTimeMillis()
 
     try {

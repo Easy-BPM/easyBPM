@@ -2,9 +2,9 @@ package com.easy.bpm.handler
 
 import com.easy.bpm.entity.CodeClassMetadata
 import com.easy.bpm.entity.CodeTaskJar
-import com.easy.bpm.repository.CodeClassMetadataRepository
-import com.easy.bpm.repository.CodeTaskExecutionAuditRepository
-import com.easy.bpm.repository.CodeTaskJarRepository
+import com.easy.bpm.repository.codetask.CodeClassMetadataRepository
+import com.easy.bpm.repository.codetask.CodeTaskExecutionAuditRepository
+import com.easy.bpm.repository.codetask.CodeTaskJarRepository
 import com.easy.bpm.service.code.CodeClassDiscoveryService
 import com.easy.bpm.service.code.CodeExecutionService
 import com.easy.bpm.service.incident.IncidentService
@@ -61,7 +61,6 @@ class CodeTaskHandlerIntegrationTest {
   @Test
   fun `should execute code task successfully`() {
     // Arrange
-    val instanceId = 123L
     val jarId = 1L
     val jarContent = byteArrayOf(0x50, 0x4B, 0x03, 0x04) + ByteArray(100)
     val jar = CodeTaskJar(
@@ -70,10 +69,6 @@ class CodeTaskHandlerIntegrationTest {
       fileName = "calculator-1.0.jar",
       fileHash = "hash123"
     )
-
-    val inputMappings = mapOf("a" to "0", "b" to "1")
-    val outputMappings = mapOf("result" to "sum")
-    val inputVariables = mapOf("a" to 5, "b" to 3)
 
     // Mock behavior
     `when`(codeTaskJarRepository.findById(jarId)).thenReturn(java.util.Optional.of(jar))

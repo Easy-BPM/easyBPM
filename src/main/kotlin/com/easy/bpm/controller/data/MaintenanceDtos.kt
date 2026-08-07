@@ -6,7 +6,30 @@ data class PurgeCompletedInstancesRequest(
     val completedBefore: LocalDateTime,
     val processDefinitionId: Long? = null,
     val processKey: String? = null,
+    val batchSize: Int? = null,
     val dryRun: Boolean = true
+)
+
+data class PurgeCompletedTasksRequest(
+    val completedBefore: LocalDateTime,
+    val batchSize: Int? = null,
+    val dryRun: Boolean = true
+)
+
+data class DataRetentionSettingsResponse(
+    val enabled: Boolean,
+    val completedProcessRetentionDays: Long,
+    val completedTaskRetentionDays: Long,
+    val batchSize: Int,
+    val cron: String
+)
+
+data class UpdateDataRetentionSettingsRequest(
+    val enabled: Boolean,
+    val completedProcessRetentionDays: Long,
+    val completedTaskRetentionDays: Long,
+    val batchSize: Int,
+    val cron: String
 )
 
 data class MaintenanceCleanupSummary(
@@ -24,5 +47,6 @@ data class MaintenanceCleanupSummary(
     val incidentEventsDeleted: Int = 0,
     val timelineEventsDeleted: Int = 0,
     val callActivityMappingsDeleted: Int = 0,
-    val candidateInstanceIds: List<Long> = emptyList()
+    val candidateInstanceIds: List<Long> = emptyList(),
+    val candidateTaskIds: List<Long> = emptyList()
 )

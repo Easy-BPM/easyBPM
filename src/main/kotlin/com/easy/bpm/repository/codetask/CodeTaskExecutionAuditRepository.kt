@@ -1,9 +1,10 @@
-package com.easy.bpm.repository
+package com.easy.bpm.repository.codetask
 
 import com.easy.bpm.entity.CodeTaskExecutionAudit
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.Modifying
 import org.springframework.stereotype.Repository
 
 /**
@@ -72,6 +73,8 @@ interface CodeTaskExecutionAuditRepository : JpaRepository<CodeTaskExecutionAudi
     pageable: Pageable
   ): Page<CodeTaskExecutionAudit>
 
-  fun deleteByInstanceId(instanceId: Long)
-}
+  fun countByInstanceId(instanceId: Long): Long
 
+  @Modifying
+  fun deleteByInstanceId(instanceId: Long): Int
+}

@@ -45,6 +45,12 @@ config:
   loggingLevelComEasyBpm: INFO
   managementHealthShowDetails: when_authorized
   testDataEnabled: "false"
+  retention:
+    enabled: "false"
+    completedProcessRetentionDays: "90"
+    completedTaskRetentionDays: "90"
+    batchSize: "500"
+    cron: "0 0 3 * * *"
 
 secrets:
   create: true

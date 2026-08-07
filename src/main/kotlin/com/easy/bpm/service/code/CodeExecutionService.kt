@@ -20,7 +20,7 @@ import java.lang.reflect.Modifier
 class CodeExecutionService(
   private val objectMapper: ObjectMapper
 ) {
-  private val logger = LoggerFactory.getLogger(javaClass)
+  private val logger = LoggerFactory.getLogger(CodeExecutionService::class.java)
 
   /**
    * Invoke a method on a class with given parameters
