@@ -31,7 +31,7 @@ export interface DocumentMetadata {
 // JSON Schema Types based on provided format
 // Example: {"type": "object", "title": "...", "required": [...], "properties": {...}}
 export interface JsonSchemaProperty {
-  type: 'string' | 'number' | 'integer' | 'boolean' | 'object' | 'array';
+  type: 'string' | 'number' | 'integer' | 'boolean' | 'date' | 'object' | 'array';
   title?: string;
   description?: string;
   enum?: (string | number)[];
