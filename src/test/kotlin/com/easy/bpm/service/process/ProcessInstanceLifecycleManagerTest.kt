@@ -13,6 +13,7 @@ import com.easy.bpm.repository.worker.WorkerRequestRepository
 import com.easy.bpm.service.message.MessageSubscriptionService
 import com.easy.bpm.service.metrics.MetricsService
 import com.easy.bpm.service.process.handler.ProcessUserTaskHandler
+import com.easy.bpm.service.variable.HistoricVariableArchiver
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldContain
@@ -35,6 +36,7 @@ class ProcessInstanceLifecycleManagerTest : FunSpec() {
         val metricsService = mockk<MetricsService>(relaxed = true)
         val timelineService = mockk<ProcessInstanceTimelineService>(relaxed = true)
         val userTaskHandler = mockk<ProcessUserTaskHandler>()
+        val historicVariableArchiver = mockk<HistoricVariableArchiver>(relaxed = true)
         val manager = ProcessInstanceLifecycleManager(
             processInstanceRepository,
             processVariableRepository,
@@ -45,7 +47,8 @@ class ProcessInstanceLifecycleManagerTest : FunSpec() {
             messageSubscriptionService,
             metricsService,
             timelineService,
-            userTaskHandler
+            userTaskHandler,
+            historicVariableArchiver
         )
 
         beforeEach {
@@ -80,7 +83,6 @@ class ProcessInstanceLifecycleManagerTest : FunSpec() {
             every {
                 taskRepository.findByProcessInstanceIdAndNodeIdAndStatus(10, "approve", TaskStatus.PENDING)
             } returns emptyList()
-            every { taskVariableRepository.deleteByTaskId(99) } returns 1
             justRun { taskRepository.delete(pendingTask) }
             justRun { userTaskHandler.handleUserTask(instance, any()) }
             every { processInstanceRepository.save(instance) } returns instance
@@ -90,7 +92,7 @@ class ProcessInstanceLifecycleManagerTest : FunSpec() {
             result.currentNode shouldBe listOf("approve")
             result.nodeHistory shouldContain "approve"
             verify {
-                taskVariableRepository.deleteByTaskId(99)
+                historicVariableArchiver.archiveTaskVariables(pendingTask)
                 taskRepository.delete(pendingTask)
                 userTaskHandler.handleUserTask(instance, any())
             }

@@ -19,6 +19,7 @@ import com.easy.bpm.service.incident.IncidentService
 import com.easy.bpm.service.message.MessageSubscriptionService
 import com.easy.bpm.service.metrics.MetricsService
 import com.easy.bpm.service.process.handler.*
+import com.easy.bpm.service.variable.HistoricVariableArchiver
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
@@ -55,6 +56,7 @@ class ProcessServiceTest : FunSpec() {
     val mockAgentProcessCallHandler = mockk<AgentProcessCallHandler>()
     val mockIncidentService = mockk<IncidentService>(relaxed = true)
     val mockTimelineService = mockk<ProcessInstanceTimelineService>(relaxed = true)
+    val mockHistoricVariableArchiver = mockk<HistoricVariableArchiver>(relaxed = true)
     val pageableSanitizer = ProcessPageableSanitizer()
     val variableManager = ProcessVariableManager(
         mockProcessInstanceRepository,
@@ -70,7 +72,8 @@ class ProcessServiceTest : FunSpec() {
     val navigator = ProcessNavigator(
         mockGatewayService,
         mockProcessInstanceRepository,
-        mockTimelineService
+        mockTimelineService,
+        mockHistoricVariableArchiver
     )
     val messageNodeHandler = ProcessMessageNodeHandler(
         mockMessageSubscriptionService,
@@ -142,7 +145,8 @@ class ProcessServiceTest : FunSpec() {
         mockMessageSubscriptionService,
         mockMetricsService,
         mockTimelineService,
-        userTaskHandler
+        userTaskHandler,
+        mockHistoricVariableArchiver
     )
     val executionEngine: ProcessExecutionEngine = ProcessExecutionEngine(
         mockMetricsService,
@@ -535,7 +539,6 @@ class ProcessServiceTest : FunSpec() {
                 )
             } returns emptyList()
 
-            every { mockTaskVariableRepository.deleteByTaskId(pendingSourceTask.id) } returns 1
             every { mockTaskRepository.delete(pendingSourceTask) } just runs
 
             every { mockFormService.getLatestVersionByName("approve-request") } returns null
@@ -552,7 +555,7 @@ class ProcessServiceTest : FunSpec() {
             result.currentNode shouldBe listOf("approve-request")
             result.nodeHistory shouldContain "approve-request"
 
-            verify(exactly = 1) { mockTaskVariableRepository.deleteByTaskId(pendingSourceTask.id) }
+            verify(exactly = 1) { mockHistoricVariableArchiver.archiveTaskVariables(pendingSourceTask) }
             verify(exactly = 1) { mockTaskRepository.delete(pendingSourceTask) }
             verify(exactly = 1) {
                 mockTaskRepository.save(match<Task> {

@@ -10,6 +10,7 @@ import com.easy.bpm.model.variable.ProcessVariable
 import com.easy.bpm.model.variable.TaskVariable
 import com.easy.bpm.repository.process.ProcessInstanceRepository
 import com.easy.bpm.repository.task.TaskRepository
+import com.easy.bpm.repository.variable.HistoricTaskVariableRepository
 import com.easy.bpm.repository.variable.ProcessVariableRepository
 import com.easy.bpm.repository.variable.TaskVariableRepository
 import com.easy.bpm.service.form.FormService
@@ -18,6 +19,7 @@ import com.easy.bpm.service.message.MessageSubscriptionService
 import com.easy.bpm.service.metrics.MetricsService
 import com.easy.bpm.service.process.GatewayService
 import com.easy.bpm.service.process.ProcessInstanceTimelineService
+import com.easy.bpm.service.variable.HistoricVariableArchiver
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.TextNode
 import io.kotest.assertions.throwables.shouldThrow
@@ -41,6 +43,7 @@ class TaskServiceTest : FunSpec() {
     val mockProcessInstanceRepository = mockk<ProcessInstanceRepository>()
     val mockProcessVariableRepository = mockk<ProcessVariableRepository>()
     val mockTaskVariableRepository = mockk<TaskVariableRepository>()
+    val mockHistoricTaskVariableRepository = mockk<HistoricTaskVariableRepository>()
     val mockIntegrationService = mockk<IntegrationService>()
     val mockFormService = mockk<FormService>()
     val mockObjectMapper = mockk<ObjectMapper>()
@@ -50,12 +53,14 @@ class TaskServiceTest : FunSpec() {
     val mockMetricsService = mockk<MetricsService>(relaxed = true)
     val mockAgentProcessCallHandler = mockk<AgentProcessCallHandler>()
     val mockTimelineService = mockk<ProcessInstanceTimelineService>(relaxed = true)
+    val mockHistoricVariableArchiver = mockk<HistoricVariableArchiver>(relaxed = true)
 
     val taskService = TaskService(
         mockTaskRepository,
         mockProcessInstanceRepository,
         mockProcessVariableRepository,
         mockTaskVariableRepository,
+        mockHistoricTaskVariableRepository,
         mockIntegrationService,
         mockFormService,
         mockObjectMapper,
@@ -64,7 +69,8 @@ class TaskServiceTest : FunSpec() {
         mockMessageSubscriptionService,
         mockMetricsService,
         mockAgentProcessCallHandler,
-        mockTimelineService
+        mockTimelineService,
+        mockHistoricVariableArchiver
     )
 
     beforeEach {
@@ -180,6 +186,7 @@ class TaskServiceTest : FunSpec() {
                 mockProcessInstanceRepository,
                 mockProcessVariableRepository,
                 mockTaskVariableRepository,
+                mockHistoricTaskVariableRepository,
                 mockIntegrationService,
                 mockFormService,
                 realObjectMapper,
@@ -188,7 +195,8 @@ class TaskServiceTest : FunSpec() {
                 mockMessageSubscriptionService,
                 mockMetricsService,
                 mockAgentProcessCallHandler,
-                mockTimelineService
+                mockTimelineService,
+                mockHistoricVariableArchiver
             )
             val definitionJson = """
                 {
@@ -242,10 +250,10 @@ class TaskServiceTest : FunSpec() {
             // Assert
             verify {
                 mockTaskVariableRepository.save(match<TaskVariable> {
-                    it.taskId == 10L && it.name == "decision" && it.value.asText() == "approved"
+                    it.taskId == 10L && it.processInstanceId == 100L && it.name == "decision" && it.value.asText() == "approved"
                 })
                 mockTaskVariableRepository.save(match<TaskVariable> {
-                    it.taskId == 10L && it.name == "amount" && it.value.asInt() == 125
+                    it.taskId == 10L && it.processInstanceId == 100L && it.name == "amount" && it.value.asInt() == 125
                 })
                 mockProcessVariableRepository.save(match<ProcessVariable> {
                     it.processInstanceId == 100L && it.name == "decision" && it.value.asText() == "approved"
