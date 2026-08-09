@@ -4,6 +4,7 @@ import com.easy.bpm.enum.NodeType
 import com.easy.bpm.model.process.ProcessInstance
 import com.easy.bpm.model.process.ProcessInstanceEventType
 import com.easy.bpm.repository.process.ProcessInstanceRepository
+import com.easy.bpm.service.process.handler.ProcessMessageReceivedHandler
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import jakarta.transaction.Transactional

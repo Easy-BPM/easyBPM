@@ -1,4 +1,4 @@
-package com.easy.bpm.service.process
+package com.easy.bpm.service.process.handler
 
 import com.easy.bpm.messaging.RabbitPublisher
 import com.easy.bpm.model.process.ProcessInstance
@@ -6,6 +6,8 @@ import com.easy.bpm.model.process.ProcessInstanceEventType
 import com.easy.bpm.repository.process.ProcessInstanceRepository
 import com.easy.bpm.repository.variable.ProcessVariableRepository
 import com.easy.bpm.service.message.MessageSubscriptionService
+import com.easy.bpm.service.process.ProcessInstanceTimelineService
+import com.easy.bpm.service.process.ProcessVariableManager
 import com.fasterxml.jackson.databind.JsonNode
 import org.springframework.stereotype.Component
 import java.time.LocalDateTime

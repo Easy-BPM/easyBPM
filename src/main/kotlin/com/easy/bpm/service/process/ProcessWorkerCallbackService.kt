@@ -2,6 +2,8 @@ package com.easy.bpm.service.process
 
 import com.easy.bpm.model.incident.IncidentSource
 import com.easy.bpm.service.metrics.MetricsService
+import com.easy.bpm.service.process.handler.ProcessWorkerCallbackHandler
+import com.easy.bpm.service.process.handler.WorkerCallbackResult
 import jakarta.transaction.Transactional
 import org.springframework.stereotype.Component
 

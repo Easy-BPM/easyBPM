@@ -1,8 +1,10 @@
-package com.easy.bpm.service.process
+package com.easy.bpm.service.process.handler
 
 import com.easy.bpm.handler.AgentProcessCallHandler
 import com.easy.bpm.model.process.ProcessInstance
 import com.easy.bpm.model.process.ProcessInstanceEventType
+import com.easy.bpm.service.process.ProcessInstanceTimelineService
+import com.easy.bpm.service.process.ProcessNavigator
 import com.fasterxml.jackson.databind.JsonNode
 import org.springframework.stereotype.Component
 
