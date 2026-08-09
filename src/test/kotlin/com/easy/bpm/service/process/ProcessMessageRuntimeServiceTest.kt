@@ -5,6 +5,8 @@ import com.easy.bpm.model.process.ProcessDefinition
 import com.easy.bpm.model.process.ProcessInstance
 import com.easy.bpm.model.process.ProcessInstanceEventType
 import com.easy.bpm.repository.process.ProcessInstanceRepository
+import com.easy.bpm.service.process.handler.MessageReceivedResult
+import com.easy.bpm.service.process.handler.ProcessMessageReceivedHandler
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe

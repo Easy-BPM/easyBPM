@@ -12,6 +12,7 @@ import com.easy.bpm.repository.variable.TaskVariableRepository
 import com.easy.bpm.repository.worker.WorkerRequestRepository
 import com.easy.bpm.service.message.MessageSubscriptionService
 import com.easy.bpm.service.metrics.MetricsService
+import com.easy.bpm.service.process.handler.ProcessUserTaskHandler
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import jakarta.transaction.Transactional

@@ -1,4 +1,4 @@
-package com.easy.bpm.service.process
+package com.easy.bpm.service.process.handler
 
 import com.easy.bpm.enum.NodeType
 import com.easy.bpm.enum.ProcessStatus
@@ -7,6 +7,7 @@ import com.easy.bpm.model.process.ProcessInstance
 import com.easy.bpm.model.process.ProcessInstanceEventType
 import com.easy.bpm.repository.process.ProcessInstanceRepository
 import com.easy.bpm.service.incident.IncidentService
+import com.easy.bpm.service.process.ProcessInstanceTimelineService
 import org.springframework.stereotype.Component
 import java.time.LocalDateTime
 

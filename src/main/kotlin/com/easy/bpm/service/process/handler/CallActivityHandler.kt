@@ -1,4 +1,4 @@
-package com.easy.bpm.service.process
+package com.easy.bpm.service.process.handler
 
 import com.easy.bpm.enum.ProcessStatus
 import com.easy.bpm.enum.NodeType

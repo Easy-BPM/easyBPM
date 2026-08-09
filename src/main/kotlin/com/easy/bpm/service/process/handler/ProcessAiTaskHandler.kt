@@ -1,10 +1,11 @@
-package com.easy.bpm.service.process
+package com.easy.bpm.service.process.handler
 
 import com.easy.bpm.handler.AITaskExecutionException
 import com.easy.bpm.handler.AITaskHandler
 import com.easy.bpm.model.process.ProcessInstance
 import com.easy.bpm.repository.process.ProcessInstanceRepository
 import com.easy.bpm.repository.variable.ProcessVariableRepository
+import com.easy.bpm.service.process.ProcessVariableManager
 import com.fasterxml.jackson.databind.JsonNode
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
