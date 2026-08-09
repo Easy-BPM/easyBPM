@@ -6,6 +6,7 @@ import com.easy.bpm.messaging.RabbitPublisher
 import com.easy.bpm.repository.process.ProcessDefinitionRepository
 import com.easy.bpm.repository.process.ProcessInstanceRepository
 import com.easy.bpm.repository.task.TaskRepository
+import com.easy.bpm.repository.variable.HistoricProcessVariableRepository
 import com.easy.bpm.repository.variable.ProcessVariableRepository
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
@@ -18,7 +19,8 @@ class TestDataBootstrapIntegrationTest(
     @Autowired private val processDefinitionRepository: ProcessDefinitionRepository,
     @Autowired private val processInstanceRepository: ProcessInstanceRepository,
     @Autowired private val taskRepository: TaskRepository,
-    @Autowired private val processVariableRepository: ProcessVariableRepository
+    @Autowired private val processVariableRepository: ProcessVariableRepository,
+    @Autowired private val historicProcessVariableRepository: HistoricProcessVariableRepository
 ) : IntegrationTestBase() {
 
     @MockBean
@@ -56,10 +58,12 @@ class TestDataBootstrapIntegrationTest(
         }
 
         val activeVariables = processVariableRepository.findByProcessInstanceId(activeInstances.first().id)
-        val completedVariables = processVariableRepository.findByProcessInstanceId(completedInstances.first().id)
+        val completedRuntimeVariables = processVariableRepository.findByProcessInstanceId(completedInstances.first().id)
+        val completedVariables = historicProcessVariableRepository.findByProcessInstanceId(completedInstances.first().id)
 
         assertThat(activeVariables.map { it.name })
             .contains("supplierName", "requester", "riskScore", "contractValue")
+        assertThat(completedRuntimeVariables).isEmpty()
         assertThat(completedVariables.map { it.name })
             .contains("requester", "amount", "costCenter", "decision", "approvedBy", "approvalComment")
     }

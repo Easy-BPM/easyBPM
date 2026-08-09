@@ -7,10 +7,15 @@ import org.springframework.data.jpa.repository.Query
 
 interface TaskVariableRepository : JpaRepository<TaskVariable, Long> {
     fun findByTaskId(taskId: Long): List<TaskVariable>
+    fun findByProcessInstanceId(processInstanceId: Long): List<TaskVariable>
     fun countByTaskId(taskId: Long): Long
+    fun countByProcessInstanceId(processInstanceId: Long): Long
 
     @Modifying
     fun deleteByTaskId(taskId: Long): Int
+
+    @Modifying
+    fun deleteByProcessInstanceId(processInstanceId: Long): Int
 
     fun findByTaskIdAndName(taskId: Long, name: String): TaskVariable?
     fun findAllByTaskIdAndNameOrderByIdDesc(taskId: Long, name: String): List<TaskVariable>

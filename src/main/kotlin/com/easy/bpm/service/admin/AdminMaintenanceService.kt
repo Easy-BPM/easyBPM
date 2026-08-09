@@ -15,6 +15,8 @@ import com.easy.bpm.repository.process.ProcessDefinitionRepository
 import com.easy.bpm.repository.process.ProcessInstanceEventRepository
 import com.easy.bpm.repository.process.ProcessInstanceRepository
 import com.easy.bpm.repository.task.TaskRepository
+import com.easy.bpm.repository.variable.HistoricProcessVariableRepository
+import com.easy.bpm.repository.variable.HistoricTaskVariableRepository
 import com.easy.bpm.repository.variable.ProcessVariableRepository
 import com.easy.bpm.repository.variable.TaskVariableRepository
 import com.easy.bpm.repository.worker.WorkerRequestRepository
@@ -29,6 +31,8 @@ class AdminMaintenanceService(
     private val taskRepository: TaskRepository,
     private val processVariableRepository: ProcessVariableRepository,
     private val taskVariableRepository: TaskVariableRepository,
+    private val historicProcessVariableRepository: HistoricProcessVariableRepository,
+    private val historicTaskVariableRepository: HistoricTaskVariableRepository,
     private val documentRepository: DocumentRepository,
     private val messageSubscriptionRepository: MessageSubscriptionRepository,
     private val workerRequestRepository: WorkerRequestRepository,
@@ -132,8 +136,12 @@ class AdminMaintenanceService(
             val incidentIds = incidentRepository.findIdsByProcessInstanceId(instanceId)
 
             tasksDeleted += taskRepository.countByProcessInstanceId(instanceId).toInt()
-            taskVariablesDeleted += if (taskIds.isEmpty()) 0 else taskVariableRepository.countByTaskIdIn(taskIds).toInt()
-            processVariablesDeleted += processVariableRepository.countByProcessInstanceId(instanceId).toInt()
+            taskVariablesDeleted +=
+                (if (taskIds.isEmpty()) 0 else taskVariableRepository.countByTaskIdIn(taskIds).toInt()) +
+                    historicTaskVariableRepository.countByProcessInstanceId(instanceId).toInt()
+            processVariablesDeleted +=
+                processVariableRepository.countByProcessInstanceId(instanceId).toInt() +
+                    historicProcessVariableRepository.countByProcessInstanceId(instanceId).toInt()
             documentsDeleted += if (taskIds.isEmpty()) {
                 documentRepository.countByProcessInstanceId(instanceId).toInt()
             } else {
@@ -154,6 +162,7 @@ class AdminMaintenanceService(
                 if (taskIds.isNotEmpty()) {
                     documentRepository.deleteByTaskIdIn(taskIds)
                     taskVariableRepository.deleteByTaskIdIn(taskIds)
+                    historicTaskVariableRepository.deleteByTaskIdIn(taskIds)
                 }
 
                 if (incidentIds.isNotEmpty()) {
@@ -169,6 +178,8 @@ class AdminMaintenanceService(
                 codeTaskExecutionAuditRepository.deleteByInstanceId(instanceId)
                 taskRepository.deleteByProcessInstanceId(instanceId)
                 processVariableRepository.deleteByProcessInstanceId(instanceId)
+                historicProcessVariableRepository.deleteByProcessInstanceId(instanceId)
+                historicTaskVariableRepository.deleteByProcessInstanceId(instanceId)
                 processInstanceRepository.deleteById(instanceId)
             }
         }
@@ -193,12 +204,18 @@ class AdminMaintenanceService(
 
     private fun cleanupCompletedTasks(taskIds: List<Long>, dryRun: Boolean): MaintenanceCleanupSummary {
         val uniqueTaskIds = taskIds.distinct()
-        val taskVariablesDeleted = if (uniqueTaskIds.isEmpty()) 0 else taskVariableRepository.countByTaskIdIn(uniqueTaskIds).toInt()
+        val taskVariablesDeleted = if (uniqueTaskIds.isEmpty()) {
+            0
+        } else {
+            taskVariableRepository.countByTaskIdIn(uniqueTaskIds).toInt() +
+                historicTaskVariableRepository.countByTaskIdIn(uniqueTaskIds).toInt()
+        }
         val documentsDeleted = if (uniqueTaskIds.isEmpty()) 0 else documentRepository.countByTaskIdIn(uniqueTaskIds).toInt()
 
         if (!dryRun && uniqueTaskIds.isNotEmpty()) {
             documentRepository.deleteByTaskIdIn(uniqueTaskIds)
             taskVariableRepository.deleteByTaskIdIn(uniqueTaskIds)
+            historicTaskVariableRepository.deleteByTaskIdIn(uniqueTaskIds)
             taskRepository.deleteByIdIn(uniqueTaskIds)
         }
 

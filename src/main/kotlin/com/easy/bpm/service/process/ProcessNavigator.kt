@@ -5,6 +5,7 @@ import com.easy.bpm.enum.ProcessStatus
 import com.easy.bpm.model.process.ProcessInstance
 import com.easy.bpm.model.process.ProcessInstanceEventType
 import com.easy.bpm.repository.process.ProcessInstanceRepository
+import com.easy.bpm.service.variable.HistoricVariableArchiver
 import com.fasterxml.jackson.databind.JsonNode
 import org.springframework.stereotype.Component
 import java.time.LocalDateTime
@@ -13,7 +14,8 @@ import java.time.LocalDateTime
 class ProcessNavigator(
     private val gatewayService: GatewayService,
     private val processInstanceRepository: ProcessInstanceRepository,
-    private val timelineService: ProcessInstanceTimelineService
+    private val timelineService: ProcessInstanceTimelineService,
+    private val historicVariableArchiver: HistoricVariableArchiver
 ) {
     fun getNextNodes(node: JsonNode, definition: JsonNode, instance: ProcessInstance): List<String> =
         gatewayService.getNextNodes(node, definition, instance)
@@ -108,6 +110,9 @@ class ProcessNavigator(
         }
 
         processInstanceRepository.save(instance)
+        if (isCompleted) {
+            historicVariableArchiver.archiveProcessInstanceVariables(instance.id)
+        }
     }
 
     private fun findNode(definition: JsonNode, nodeId: String): JsonNode =

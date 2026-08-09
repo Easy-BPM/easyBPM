@@ -77,6 +77,7 @@ class ProcessVariableManager(
             taskVariableRepository.save(
                 TaskVariable(
                     taskId = task.id,
+                    processInstanceId = task.processInstanceId,
                     name = targetName,
                     value = value
                 )

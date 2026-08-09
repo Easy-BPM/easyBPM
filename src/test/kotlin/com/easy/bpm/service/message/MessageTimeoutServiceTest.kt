@@ -25,8 +25,8 @@ class MessageTimeoutServiceTest : FunSpec() {
     val mockProcessService = mockk<ProcessService>()
     val messageTimeoutService = MessageTimeoutService(
         mockMessageSubscriptionRepository,
-        mockProcessInstanceRepository
-        , mockProcessService
+        mockProcessInstanceRepository,
+        mockProcessService
     )
 
     beforeEach {

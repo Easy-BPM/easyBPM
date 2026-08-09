@@ -13,6 +13,7 @@ import com.easy.bpm.repository.worker.WorkerRequestRepository
 import com.easy.bpm.service.message.MessageSubscriptionService
 import com.easy.bpm.service.metrics.MetricsService
 import com.easy.bpm.service.process.handler.ProcessUserTaskHandler
+import com.easy.bpm.service.variable.HistoricVariableArchiver
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import jakarta.transaction.Transactional
@@ -30,7 +31,8 @@ class ProcessInstanceLifecycleManager(
     private val messageSubscriptionService: MessageSubscriptionService,
     private val metricsService: MetricsService,
     private val timelineService: ProcessInstanceTimelineService,
-    private val userTaskHandler: ProcessUserTaskHandler
+    private val userTaskHandler: ProcessUserTaskHandler,
+    private val historicVariableArchiver: HistoricVariableArchiver
 ) {
     @Transactional
     fun moveProcessNode(processInstanceId: Long, fromNode: String, toNode: String): ProcessInstance {
@@ -83,7 +85,7 @@ class ProcessInstanceLifecycleManager(
         val pendingTasks = taskRepository.findByProcessInstanceId(id)
             .filter { it.status == TaskStatus.PENDING }
         pendingTasks.forEach { task ->
-            taskVariableRepository.deleteByTaskId(task.id)
+            historicVariableArchiver.archiveTaskVariables(task)
             taskRepository.delete(task)
         }
 
@@ -93,6 +95,7 @@ class ProcessInstanceLifecycleManager(
         instance.currentNode = emptyList()
         instance.updatedAt = LocalDateTime.now()
         val saved = processInstanceRepository.save(instance)
+        historicVariableArchiver.archiveProcessInstanceVariables(id)
         timelineService.record(
             processInstanceId = id,
             eventType = ProcessInstanceEventType.PROCESS_CANCELLED,
@@ -123,6 +126,7 @@ class ProcessInstanceLifecycleManager(
         instance.currentNode = emptyList()
         instance.updatedAt = LocalDateTime.now()
         processInstanceRepository.save(instance)
+        historicVariableArchiver.archiveProcessInstanceVariables(instance.id)
 
         metricsService.recordProcessCompleted()
         timelineService.record(
@@ -145,7 +149,7 @@ class ProcessInstanceLifecycleManager(
         )
 
         fromPendingTasks.forEach { task ->
-            taskVariableRepository.deleteByTaskId(task.id)
+            historicVariableArchiver.archiveTaskVariables(task)
             taskRepository.delete(task)
         }
 

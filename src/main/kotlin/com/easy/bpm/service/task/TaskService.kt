@@ -12,6 +12,7 @@ import com.easy.bpm.model.variable.ProcessVariable
 import com.easy.bpm.model.variable.TaskVariable
 import com.easy.bpm.repository.process.ProcessInstanceRepository
 import com.easy.bpm.repository.task.TaskRepository
+import com.easy.bpm.repository.variable.HistoricTaskVariableRepository
 import com.easy.bpm.repository.variable.ProcessVariableRepository
 import com.easy.bpm.repository.variable.TaskVariableRepository
 import com.easy.bpm.service.form.FormService
@@ -20,6 +21,7 @@ import com.easy.bpm.service.message.MessageSubscriptionService
 import com.easy.bpm.service.metrics.MetricsService
 import com.easy.bpm.service.process.GatewayService
 import com.easy.bpm.service.process.ProcessInstanceTimelineService
+import com.easy.bpm.service.variable.HistoricVariableArchiver
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.NullNode
@@ -39,7 +41,8 @@ class TaskService(
     private val taskRepository: TaskRepository,
     private val processInstanceRepository: ProcessInstanceRepository,
     private val processVariableRepository: ProcessVariableRepository,
-        private val taskVariableRepository: TaskVariableRepository,
+    private val taskVariableRepository: TaskVariableRepository,
+    private val historicTaskVariableRepository: HistoricTaskVariableRepository,
     private val integrationService: IntegrationService,
     private val formService: FormService,
     private val objectMapper: ObjectMapper
@@ -49,7 +52,8 @@ class TaskService(
     private val messageSubscriptionService: MessageSubscriptionService,
     private val metricsService: MetricsService,
     private val agentProcessCallHandler: AgentProcessCallHandler,
-    private val timelineService: ProcessInstanceTimelineService
+    private val timelineService: ProcessInstanceTimelineService,
+    private val historicVariableArchiver: HistoricVariableArchiver
 ) {
 
     private val taskSortableFields = setOf(
@@ -681,6 +685,9 @@ class TaskService(
         }
 
         processInstanceRepository.save(instance)
+        if (instance.status == ProcessStatus.COMPLETED) {
+            historicVariableArchiver.archiveProcessInstanceVariables(instance.id)
+        }
     }
 
     private fun completeTaskEntity(task: Task, assignee: String) {
@@ -688,11 +695,21 @@ class TaskService(
         task.status = TaskStatus.COMPLETED
         task.completedAt = LocalDateTime.now()
         taskRepository.save(task)
+        historicVariableArchiver.archiveTaskVariables(task)
     }
 
     private fun toResponseDto(task: Task): TaskResponseDto {
-        val variables = taskVariableRepository.findByTaskId(task.id)
-            .associate { it.name to objectMapper.convertValue(it.value, Any::class.java) }
+        val taskVariables = taskVariableRepository.findByTaskId(task.id)
+        val historicTaskVariables = if (taskVariables.isEmpty() && task.status == TaskStatus.COMPLETED) {
+            historicTaskVariableRepository.findByTaskId(task.id)
+        } else {
+            emptyList()
+        }
+        val variables = if (taskVariables.isNotEmpty()) {
+            taskVariables.associate { it.name to objectMapper.convertValue(it.value, Any::class.java) }
+        } else {
+            historicTaskVariables.associate { it.name to objectMapper.convertValue(it.value, Any::class.java) }
+        }
         val formId = task.formId?.let { formService.getById(it)?.formId }
 
         return TaskResponseDto(
@@ -726,6 +743,7 @@ class TaskService(
         instance.currentNode = emptyList()
         instance.updatedAt = LocalDateTime.now()
         processInstanceRepository.save(instance)
+        historicVariableArchiver.archiveProcessInstanceVariables(instance.id)
     }
 
     /* =========================
@@ -746,6 +764,7 @@ class TaskService(
                 taskVariableRepository.save(
                     TaskVariable(
                         taskId = task.id,
+                        processInstanceId = task.processInstanceId,
                         name = key,
                         value = valueNode
                     )
@@ -854,6 +873,7 @@ class TaskService(
             taskVariableRepository.save(
                 TaskVariable(
                     taskId = task.id,
+                    processInstanceId = task.processInstanceId,
                     name = targetName,
                     value = value
                 )

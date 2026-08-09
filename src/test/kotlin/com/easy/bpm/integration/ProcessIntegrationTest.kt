@@ -7,6 +7,8 @@ import com.easy.bpm.repository.message.MessageSubscriptionRepository
 import com.easy.bpm.repository.agent.AgentProcessExecutionRepository
 import com.easy.bpm.repository.process.ProcessInstanceRepository
 import com.easy.bpm.repository.task.TaskRepository
+import com.easy.bpm.repository.variable.HistoricProcessVariableRepository
+import com.easy.bpm.repository.variable.HistoricTaskVariableRepository
 import com.easy.bpm.repository.variable.ProcessVariableRepository
 import com.easy.bpm.repository.variable.TaskVariableRepository
 import com.easy.bpm.service.integration.IntegrationService
@@ -42,12 +44,28 @@ class ProcessIntegrationTest(
     @Autowired private val processInstanceRepository: ProcessInstanceRepository,
     @Autowired private val taskRepository: TaskRepository,
     @Autowired private val processVariableRepository: ProcessVariableRepository,
+    @Autowired private val historicProcessVariableRepository: HistoricProcessVariableRepository,
+    @Autowired private val historicTaskVariableRepository: HistoricTaskVariableRepository,
     @Autowired private val messageSubscriptionRepository: MessageSubscriptionRepository,
     @Autowired private val agentProcessExecutionRepository: AgentProcessExecutionRepository,
     @Autowired private val taskVariableRepository: TaskVariableRepository,
     @Autowired private val objectMapper: ObjectMapper,
     @Autowired private val mockMvc: MockMvc
 ) : IntegrationTestBase() {
+
+    private fun processVariableValue(processInstanceId: Long, name: String) =
+        processVariableRepository.findByProcessInstanceIdAndName(processInstanceId, name)?.value
+            ?: historicProcessVariableRepository.findByProcessInstanceId(processInstanceId)
+                .firstOrNull { it.name == name }
+                ?.value
+
+    private fun processVariableNames(processInstanceId: Long): List<String> =
+        processVariableRepository.findByProcessInstanceId(processInstanceId).map { it.name } +
+            historicProcessVariableRepository.findByProcessInstanceId(processInstanceId).map { it.name }
+
+    private fun taskVariableNames(taskId: Long): Set<String> =
+        (taskVariableRepository.findByTaskId(taskId).map { it.name } +
+            historicTaskVariableRepository.findByTaskId(taskId).map { it.name }).toSet()
 
     @Test
     fun `service task error should trigger error boundary event and route to after-error user task`() {
@@ -114,9 +132,10 @@ class ProcessIntegrationTest(
         val completedTask = taskRepository.findById(createdTask.id).orElseThrow()
         assertThat(completedTask.status).isEqualTo(TaskStatus.COMPLETED)
 
-        val finalProcessVariable = processVariableRepository.findByProcessInstanceIdAndName(processInstance.id, "var_2")
+        val finalProcessVariable = processVariableValue(processInstance.id, "var_2")
         assertThat(finalProcessVariable).isNotNull
-        assertThat(finalProcessVariable?.value?.asText()).isEqualTo("\"test\"")
+        assertThat(finalProcessVariable?.asText()).isEqualTo("\"test\"")
+        assertThat(processVariableRepository.findByProcessInstanceId(processInstance.id)).isEmpty()
     }
 
 
@@ -164,14 +183,15 @@ class ProcessIntegrationTest(
         assertThat(processInstance.nodeHistory).containsExactly("service_task_1", "end_service_task")
 
         // Verify static variable was set
-        val staticVar = processVariableRepository.findByProcessInstanceIdAndName(processInstance.id, "staticVar")
+        val staticVar = processVariableValue(processInstance.id, "staticVar")
         assertThat(staticVar).isNotNull
-        assertThat(staticVar?.value?.asText()).isEqualTo("\"static_value\"")
+        assertThat(staticVar?.asText()).isEqualTo("\"static_value\"")
 
         // Verify dynamic variable was set (copied from sourceVar)
-        val dynamicVar = processVariableRepository.findByProcessInstanceIdAndName(processInstance.id, "dynamicVar")
+        val dynamicVar = processVariableValue(processInstance.id, "dynamicVar")
         assertThat(dynamicVar).isNotNull
-        assertThat(dynamicVar?.value?.asText()).isEqualTo("\"initial_value\"")
+        assertThat(dynamicVar?.asText()).isEqualTo("\"initial_value\"")
+        assertThat(processVariableRepository.findByProcessInstanceId(processInstance.id)).isEmpty()
     }
 
     @Test
@@ -184,22 +204,19 @@ class ProcessIntegrationTest(
         assertThat(processInstance.status).isEqualTo(ProcessStatus.COMPLETED)
 
         // Retrieve all process variables for the instance
-        val variables = processVariableRepository.findByProcessInstanceId(processInstance.id)
+        val variableNames = processVariableNames(processInstance.id)
 
         // Should have sourceVar, staticVar, and dynamicVar
-        assertThat(variables).hasSize(3)
+        assertThat(variableNames).hasSize(3)
 
         // Check sourceVar is unchanged (initial value)
-        val sourceVar = variables.first { it.name == "sourceVar" }
-        assertThat(sourceVar.value.asText()).isEqualTo("\"initial_value\"")
+        assertThat(processVariableValue(processInstance.id, "sourceVar")?.asText()).isEqualTo("\"initial_value\"")
 
         // Check staticVar was set
-        val staticVar = variables.first { it.name == "staticVar" }
-        assertThat(staticVar.value.asText()).isEqualTo("\"static_value\"")
+        assertThat(processVariableValue(processInstance.id, "staticVar")?.asText()).isEqualTo("\"static_value\"")
 
         // Check dynamicVar was set from sourceVar
-        val dynamicVar = variables.first { it.name == "dynamicVar" }
-        assertThat(dynamicVar.value.asText()).isEqualTo("\"initial_value\"")
+        assertThat(processVariableValue(processInstance.id, "dynamicVar")?.asText()).isEqualTo("\"initial_value\"")
     }
 
     @Test
@@ -213,8 +230,7 @@ class ProcessIntegrationTest(
 
         // Verify that there are no duplicate variables - this tests the overwrite logic
         // If the bug existed (always creating new vars), we'd have duplicates
-        val variables = processVariableRepository.findByProcessInstanceId(processInstance.id)
-        val varNames = variables.map { it.name }
+        val varNames = processVariableNames(processInstance.id)
         
         // Key assertion: no duplicate variable names
         assertThat(varNames).doesNotHaveDuplicates()
@@ -223,8 +239,8 @@ class ProcessIntegrationTest(
         assertThat(varNames).contains("staticVar", "dynamicVar", "sourceVar")
         
         // Each variable should appear exactly once
-        assertThat(variables.filter { it.name == "dynamicVar" }).hasSize(1)
-        assertThat(variables.filter { it.name == "staticVar" }).hasSize(1)
+        assertThat(varNames.filter { it == "dynamicVar" }).hasSize(1)
+        assertThat(varNames.filter { it == "staticVar" }).hasSize(1)
     }
 
     @Test
@@ -246,8 +262,9 @@ class ProcessIntegrationTest(
 
         taskService.completeTask(createdTask.id, "test-user", formVariables)
 
-        // All variables should be persisted as task variables
-        val taskVariables = taskVariableRepository.findByTaskId(createdTask.id)
+        // Completed task variables are moved from runtime to historic variables
+        assertThat(taskVariableRepository.findByTaskId(createdTask.id)).isEmpty()
+        val taskVariables = historicTaskVariableRepository.findByTaskId(createdTask.id)
         assertThat(taskVariables).hasSizeGreaterThanOrEqualTo(4)
 
         val varNames = taskVariables.map { it.name }.toSet()
@@ -267,12 +284,11 @@ class ProcessIntegrationTest(
         taskService.completeTask(createdTask.id, "test-user", emptyMap())
 
         // Verify no duplicate variables exist
-        val allVars = processVariableRepository.findByProcessInstanceId(processInstance.id)
+        val allVars = processVariableNames(processInstance.id)
         assertThat(allVars.size).isGreaterThan(0)
 
         // Should not have duplicate variables
-        val varNames = allVars.map { it.name }
-        assertThat(varNames).doesNotHaveDuplicates()
+        assertThat(allVars).doesNotHaveDuplicates()
     }
 
     @Test
@@ -479,10 +495,10 @@ class ProcessIntegrationTest(
         assertThat(completedInstance.currentNode).isEmpty()
         assertThat(completedInstance.nodeHistory).contains("service_send-email", "service_notify-manager")
 
-        val emailSent = processVariableRepository.findByProcessInstanceIdAndName(processInstance.id, "emailSent")
-        val managerNotified = processVariableRepository.findByProcessInstanceIdAndName(processInstance.id, "managerNotified")
-        assertThat(emailSent?.value?.asText()).isEqualTo("true")
-        assertThat(managerNotified?.value?.asText()).isEqualTo("true")
+        val emailSent = processVariableValue(processInstance.id, "emailSent")
+        val managerNotified = processVariableValue(processInstance.id, "managerNotified")
+        assertThat(emailSent?.asText()).isEqualTo("true")
+        assertThat(managerNotified?.asText()).isEqualTo("true")
     }
 
     @Test
@@ -576,13 +592,13 @@ class ProcessIntegrationTest(
         assertThat(executions.first().nodeId).isEqualTo("invoke-agent")
         assertThat(executions.first().outputPayload).contains("AGENT_PROCESS_PLANNED")
 
-        val agentDecision = processVariableRepository.findByProcessInstanceIdAndName(processInstance.id, "agentDecision")
+        val agentDecision = processVariableValue(processInstance.id, "agentDecision")
         assertThat(agentDecision).isNotNull
-        assertThat(agentDecision?.value?.asText()).isEqualTo("AGENT_PROCESS_PLANNED")
+        assertThat(agentDecision?.asText()).isEqualTo("AGENT_PROCESS_PLANNED")
 
-        val defaultDecision = processVariableRepository.findByProcessInstanceIdAndName(processInstance.id, "invoke-agent_agentDecision")
+        val defaultDecision = processVariableValue(processInstance.id, "invoke-agent_agentDecision")
         assertThat(defaultDecision).isNotNull
-        assertThat(defaultDecision?.value?.asText()).isEqualTo("AGENT_PROCESS_PLANNED")
+        assertThat(defaultDecision?.asText()).isEqualTo("AGENT_PROCESS_PLANNED")
     }
 
     @Test
