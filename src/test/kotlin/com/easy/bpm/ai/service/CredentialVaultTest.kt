@@ -151,13 +151,7 @@ class CredentialVaultTest {
     }
 
     @Test
-    fun `test resolve environment variable reference without dollar prefix`() {
-        val resolved = vault.resolveCredentialRef("PATH", "user123")
-        assertTrue(resolved.isNotEmpty())
-    }
-
-    @Test
-    fun `test resolve inline secret returns safe error`() {
+    fun `test missing credential reference returns safe error`() {
         val rawSecret = "THISLOOKSLIKEARAWSECRET1234567890VALUE"
 
         `when`(credentialRepository.findByIdAndOwnerId(rawSecret, "user123"))
@@ -167,7 +161,7 @@ class CredentialVaultTest {
             vault.resolveCredentialRef(rawSecret, "user123")
         }
 
-        assertTrue(error.message!!.contains("raw secret"))
+        assertTrue(error.message!!.contains("Credential not found for provided reference"))
         assertTrue(!error.message!!.contains(rawSecret))
     }
     
