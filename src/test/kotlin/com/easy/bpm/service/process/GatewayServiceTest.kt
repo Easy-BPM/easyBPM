@@ -8,6 +8,7 @@ import com.easy.bpm.repository.variable.ProcessVariableRepository
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.TextNode
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.collections.shouldBeEmpty
@@ -63,6 +64,88 @@ class GatewayServiceTest : FunSpec() {
             // Assert
             result shouldHaveSize 1
             result shouldContain "task-1"
+        }
+
+        test("should throw when exclusive gateway has no matching route") {
+            val definition = objectMapper.readTree("""
+                {
+                    "nodes": [
+                        { "id": "gateway-1", "type": "ExclusiveGateway" },
+                        { "id": "approve", "type": "UserTask" },
+                        { "id": "reject", "type": "UserTask" }
+                    ],
+                    "flows": [
+                        { "from": "gateway-1", "to": "approve", "condition": "${'$'}{routingDecision} == 'APPROVE'" },
+                        { "from": "gateway-1", "to": "reject", "condition": "${'$'}{routingDecision} == 'REJECT'" }
+                    ]
+                }
+            """.trimIndent())
+
+            val gatewayNode = definition.get("nodes").first { it.get("id").asText() == "gateway-1" }
+            val processDefinition = ProcessDefinition(
+                id = 1,
+                processName = "test-process",
+                definitionJson = definition.toString(),
+                version = 1
+            )
+            val instance = ProcessInstance(
+                id = 100,
+                processDefinition = processDefinition,
+                status = com.easy.bpm.enum.ProcessStatus.ACTIVE,
+                currentNode = listOf("gateway-1")
+            )
+
+            every {
+                mockProcessVariableRepository.findByProcessInstanceIdAndName(100, "routingDecision")
+            } returns ProcessVariable(processInstanceId = 100, name = "routingDecision", value = TextNode("NEEDS_REVIEW"))
+
+            val error = shouldThrow<GatewayRoutingException> {
+                gatewayService.getNextNodes(gatewayNode, definition, instance)
+            }
+
+            error.nodeId shouldBe "gateway-1"
+        }
+
+        test("should route using nested field from JSON string process variable") {
+            val definition = objectMapper.readTree("""
+                {
+                    "nodes": [
+                        { "id": "gateway-1", "type": "ExclusiveGateway" },
+                        { "id": "human-review", "type": "UserTask" },
+                        { "id": "end", "type": "EndEvent" }
+                    ],
+                    "flows": [
+                        { "from": "gateway-1", "to": "human-review", "condition": "${'$'}{agentRecommendation.analysisStatus} == 'NEEDS_REVIEW'" },
+                        { "from": "gateway-1", "to": "end", "condition": "${'$'}{agentRecommendation.analysisStatus} == 'APPROVED'" }
+                    ]
+                }
+            """.trimIndent())
+
+            val gatewayNode = definition.get("nodes").first { it.get("id").asText() == "gateway-1" }
+            val processDefinition = ProcessDefinition(
+                id = 1,
+                processName = "test-process",
+                definitionJson = definition.toString(),
+                version = 1
+            )
+            val instance = ProcessInstance(
+                id = 100,
+                processDefinition = processDefinition,
+                status = com.easy.bpm.enum.ProcessStatus.ACTIVE,
+                currentNode = listOf("gateway-1")
+            )
+
+            every {
+                mockProcessVariableRepository.findByProcessInstanceIdAndName(100, "agentRecommendation")
+            } returns ProcessVariable(
+                processInstanceId = 100,
+                name = "agentRecommendation",
+                value = TextNode("""{"analysisStatus":"NEEDS_REVIEW","riskLevel":"medio"}""")
+            )
+
+            val result = gatewayService.getNextNodes(gatewayNode, definition, instance)
+
+            result shouldBe listOf("human-review")
         }
     }
 

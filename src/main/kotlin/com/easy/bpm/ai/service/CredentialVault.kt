@@ -156,11 +156,28 @@ class CredentialVault(
                     ?: throw IllegalArgumentException("Environment variable not found: $envVarName")
             }
             else -> {
-                // UUID reference to vault
-                retrieveCredential(credentialRef, userId, userRole)
+                System.getenv(credentialRef)?.let { return it }
+
+                // UUID or stored credential reference to vault
+                try {
+                    retrieveCredential(credentialRef, userId, userRole)
+                } catch (e: IllegalArgumentException) {
+                    if (looksLikeInlineSecret(credentialRef)) {
+                        throw IllegalArgumentException(
+                            "Credential reference appears to contain a raw secret. Store the key in an environment variable and use credentialRef like '\$AZURE_OPENAI_API_KEY', or create an AI credential and use credentialId."
+                        )
+                    }
+                    throw e
+                }
             }
         }
     }
+
+    private fun looksLikeInlineSecret(value: String): Boolean =
+        value.length >= 32 &&
+            !value.contains("-") &&
+            value.any { it.isDigit() } &&
+            value.any { it.isLetter() }
     
     /**
      * Retrieve credential with full response DTO (for API responses).

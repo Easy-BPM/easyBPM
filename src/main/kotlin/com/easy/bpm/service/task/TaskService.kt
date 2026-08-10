@@ -20,11 +20,12 @@ import com.easy.bpm.service.integration.IntegrationService
 import com.easy.bpm.service.message.MessageSubscriptionService
 import com.easy.bpm.service.metrics.MetricsService
 import com.easy.bpm.service.process.GatewayService
+import com.easy.bpm.service.process.GatewayRoutingException
 import com.easy.bpm.service.process.ProcessInstanceTimelineService
+import com.easy.bpm.service.process.handler.ProcessFailureHandler
 import com.easy.bpm.service.variable.HistoricVariableArchiver
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.databind.node.NullNode
 import jakarta.transaction.Transactional
 import org.springframework.stereotype.Service
 import org.springframework.data.domain.Page
@@ -53,6 +54,7 @@ class TaskService(
     private val metricsService: MetricsService,
     private val agentProcessCallHandler: AgentProcessCallHandler,
     private val timelineService: ProcessInstanceTimelineService,
+    private val failureHandler: ProcessFailureHandler,
     private val historicVariableArchiver: HistoricVariableArchiver
 ) {
 
@@ -132,11 +134,19 @@ class TaskService(
         } catch (_: Exception) {
         }
 
-        // 5️⃣ Atualizar instância
-        advanceProcess(instance, nextNodeIds, definition)
+        try {
+            // 5️⃣ Atualizar instância
+            advanceProcess(instance, nextNodeIds, definition)
 
-        // 6️⃣ Continuar execução
-        executeNextSteps(nextNodeIds, instance, definition)
+            // 6️⃣ Continuar execução
+            executeNextSteps(nextNodeIds, instance, definition)
+        } catch (ex: GatewayRoutingException) {
+            failureHandler.failInstance(
+                instance = instance,
+                nodeId = ex.nodeId,
+                errorMessage = ex.message ?: "Gateway routing failed"
+            )
+        }
     }
 
     /* =========================
@@ -821,7 +831,8 @@ class TaskService(
                 val taskVar = taskVariableRepository
                     .findAllByTaskIdAndNameOrderByIdDesc(task.id, sourceName)
                     .firstOrNull()
-                taskVar?.value ?: NullNode.instance
+                    ?: return@forEach
+                taskVar.value
             } else {
                 parseStaticValue(output.get("value"))
             }

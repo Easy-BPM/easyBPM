@@ -161,6 +161,7 @@ class AgentProcessCallHandler(
         output.put("modelName", modelName)
         output.put("responseText", response.responseText)
         output.put("tokensUsed", response.tokensUsed)
+        mergeProviderResponseJson(output, response.responseText)
         output.set<JsonNode>("inputs", inputPayload)
         invocationConfig.get("goalOverride")?.asText()?.takeIf { it.isNotBlank() }?.let {
             output.put("goalOverride", it)
@@ -250,7 +251,8 @@ class AgentProcessCallHandler(
         Inputs:
         {{inputs}}
 
-        Return an auditable orchestration decision.
+        Return only valid JSON with analysisStatus, riskLevel, confidence, recommendation, evidence, missingInformation, suggestedAction, and rationale.
+        analysisStatus must be one of APPROVED, REJECTED, NEEDS_REVIEW, or NEEDS_MORE_DATA so BPM gateways can route deterministically.
         """.trimIndent()
 
     private fun buildDecisionTrace(
@@ -293,9 +295,97 @@ class AgentProcessCallHandler(
     private fun extractValueByPath(node: JsonNode, path: String): JsonNode {
         var current: JsonNode? = node
         path.split(".").filter { it.isNotBlank() }.forEach { part ->
+            current = parseTextualJson(current)
             current = current?.get(part)
         }
         return current ?: objectMapper.nullNode()
+    }
+
+    private fun parseTextualJson(node: JsonNode?): JsonNode? {
+        if (node == null || !node.isTextual) return node
+        val text = node.asText().trim()
+        if (!text.startsWith("{") && !text.startsWith("[")) return node
+        return try {
+            objectMapper.readTree(text)
+        } catch (_: Exception) {
+            node
+        }
+    }
+
+    private fun mergeProviderResponseJson(output: ObjectNode, responseText: String) {
+        val parsed = parseProviderResponseJson(responseText) ?: return
+        output.set<JsonNode>("agentResponse", parsed)
+        if (!parsed.isObject) return
+
+        parsed.properties().forEach { (fieldName, fieldValue) ->
+            if (!output.has(fieldName)) {
+                output.set<JsonNode>(fieldName, fieldValue)
+            }
+        }
+    }
+
+    private fun parseProviderResponseJson(responseText: String): JsonNode? {
+        val trimmed = responseText.trim()
+        if (trimmed.isBlank()) return null
+
+        val candidates = mutableListOf<String>()
+        candidates.add(when {
+            trimmed.startsWith("```") -> {
+                trimmed
+                    .removePrefix("```json")
+                    .removePrefix("```")
+                    .removeSuffix("```")
+                    .trim()
+            }
+            else -> trimmed
+        })
+
+        extractJsonCandidate(trimmed)?.let(candidates::add)
+
+        candidates.forEach { candidate ->
+            try {
+                return objectMapper.readTree(candidate)
+            } catch (_: Exception) {
+            }
+        }
+
+        return null
+    }
+
+    private fun extractJsonCandidate(text: String): String? {
+        val objectStart = text.indexOf('{')
+        val arrayStart = text.indexOf('[')
+        val start = listOf(objectStart, arrayStart).filter { it >= 0 }.minOrNull() ?: return null
+        val opener = text[start]
+        val closer = if (opener == '{') '}' else ']'
+        var depth = 0
+        var inString = false
+        var escaped = false
+
+        for (index in start until text.length) {
+            val char = text[index]
+            if (escaped) {
+                escaped = false
+                continue
+            }
+            if (char == '\\' && inString) {
+                escaped = true
+                continue
+            }
+            if (char == '"') {
+                inString = !inString
+                continue
+            }
+            if (inString) continue
+
+            if (char == opener) depth++
+            if (char == closer) depth--
+            if (depth == 0) {
+                return text.substring(start, index + 1)
+            }
+        }
+
+        return null
     }
 
     private fun upsertVariable(processInstanceId: Long, name: String, value: JsonNode) {

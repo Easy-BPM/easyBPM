@@ -119,8 +119,11 @@ class AIProviderFactory(
                 )
             }
             "azure-openai" -> {
-                // Phase 9.6.3: Implement AzureOpenAIProvider
-                throw NotImplementedError("Azure OpenAI provider not yet implemented (Phase 9.6.3)")
+                com.easy.bpm.ai.provider.azureopenai.AzureOpenAIProvider(
+                    config = config,
+                    credentialVault = credentialVault,
+                    userId = userId
+                )
             }
             "custom-rest" -> {
                 // Phase 9.6.4: Implement CustomRESTProvider
@@ -147,7 +150,7 @@ class AIProviderFactory(
             "anthropic" -> null  // Not implemented yet
             "gemini" -> com.easy.bpm.ai.provider.gemini.GeminiProvider.getStaticMetadata()
             "ollama" -> com.easy.bpm.ai.provider.ollama.OllamaProvider.getStaticMetadata()
-            "azure-openai" -> null // Not implemented yet
+            "azure-openai" -> com.easy.bpm.ai.provider.azureopenai.AzureOpenAIProvider.getStaticMetadata()
             "custom-rest" -> null  // Not implemented yet
             else -> null
         }
@@ -183,6 +186,7 @@ class AIProviderFactory(
             "openai" -> com.easy.bpm.ai.provider.openai.OpenAIProvider.validateConfig(config)
             "gemini" -> com.easy.bpm.ai.provider.gemini.GeminiProvider.validateConfig(config)
             "ollama" -> com.easy.bpm.ai.provider.ollama.OllamaProvider.validateConfig(config)
+            "azure-openai" -> com.easy.bpm.ai.provider.azureopenai.AzureOpenAIProvider.validateConfig(config)
             else -> {
                 com.easy.bpm.ai.dto.ValidationResultDto(
                     valid = false,
