@@ -19,6 +19,7 @@ import com.easy.bpm.service.message.MessageSubscriptionService
 import com.easy.bpm.service.metrics.MetricsService
 import com.easy.bpm.service.process.GatewayService
 import com.easy.bpm.service.process.ProcessInstanceTimelineService
+import com.easy.bpm.service.process.handler.ProcessFailureHandler
 import com.easy.bpm.service.variable.HistoricVariableArchiver
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.TextNode
@@ -53,6 +54,7 @@ class TaskServiceTest : FunSpec() {
     val mockMetricsService = mockk<MetricsService>(relaxed = true)
     val mockAgentProcessCallHandler = mockk<AgentProcessCallHandler>()
     val mockTimelineService = mockk<ProcessInstanceTimelineService>(relaxed = true)
+    val mockFailureHandler = mockk<ProcessFailureHandler>(relaxed = true)
     val mockHistoricVariableArchiver = mockk<HistoricVariableArchiver>(relaxed = true)
 
     val taskService = TaskService(
@@ -70,6 +72,7 @@ class TaskServiceTest : FunSpec() {
         mockMetricsService,
         mockAgentProcessCallHandler,
         mockTimelineService,
+        mockFailureHandler,
         mockHistoricVariableArchiver
     )
 
@@ -196,6 +199,7 @@ class TaskServiceTest : FunSpec() {
                 mockMetricsService,
                 mockAgentProcessCallHandler,
                 mockTimelineService,
+                mockFailureHandler,
                 mockHistoricVariableArchiver
             )
             val definitionJson = """

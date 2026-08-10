@@ -1,6 +1,7 @@
 package com.easy.bpm.ai.factory
 
 import com.easy.bpm.ai.dto.AIProviderConfigDto
+import com.easy.bpm.ai.provider.azureopenai.AzureOpenAIProvider
 import com.easy.bpm.ai.provider.gemini.GeminiProvider
 import com.easy.bpm.ai.provider.ollama.OllamaProvider
 import com.easy.bpm.ai.provider.openai.OpenAIProvider
@@ -81,6 +82,20 @@ class AIProviderFactoryTest {
         assertTrue(provider is OllamaProvider)
         assertTrue(provider.getProviderId() == "ollama")
     }
+
+    @Test
+    fun `test create Azure OpenAI provider`() {
+        val config = AIProviderConfigDto(
+            providerId = "azure-openai",
+            modelName = "claims-agent-deployment",
+            endpoint = "https://example-resource.openai.azure.com",
+            apiVersion = "2024-02-15-preview"
+        )
+
+        val provider = factory.createProvider("azure-openai", config, "user123")
+        assertTrue(provider is AzureOpenAIProvider)
+        assertTrue(provider.getProviderId() == "azure-openai")
+    }
     
     @Test
     fun `test create provider with invalid provider ID throws exception`() {
@@ -117,6 +132,14 @@ class AIProviderFactoryTest {
         assertTrue(metadata != null)
         assertTrue(metadata!!.providerId == "ollama")
         assertTrue(metadata.supportedModels.contains("llama3.2"))
+    }
+
+    @Test
+    fun `test get provider metadata for Azure OpenAI`() {
+        val metadata = factory.getProviderMetadata("azure-openai")
+        assertTrue(metadata != null)
+        assertTrue(metadata!!.providerId == "azure-openai")
+        assertTrue(metadata.configFields.containsKey("apiVersion"))
     }
     
     @Test
@@ -167,6 +190,20 @@ class AIProviderFactoryTest {
         assertTrue(result.valid)
         assertTrue(result.errors.isEmpty())
     }
+
+    @Test
+    fun `test validate Azure OpenAI config with valid deployment`() {
+        val config = AIProviderConfigDto(
+            providerId = "azure-openai",
+            modelName = "claims-agent-deployment",
+            endpoint = "https://example-resource.openai.azure.com",
+            apiVersion = "2024-02-15-preview"
+        )
+
+        val result = factory.validateConfig("azure-openai", config)
+        assertTrue(result.valid)
+        assertTrue(result.errors.isEmpty())
+    }
     
     @Test
     fun `test validate config with invalid endpoint`() {
@@ -186,6 +223,7 @@ class AIProviderFactoryTest {
         assertTrue(availableProviders.containsKey("openai"))
         assertTrue(availableProviders.containsKey("gemini"))
         assertTrue(availableProviders.containsKey("ollama"))
+        assertTrue(availableProviders.containsKey("azure-openai"))
         assertTrue(availableProviders["openai"]?.supportedModels?.isNotEmpty() == true)
     }
 }

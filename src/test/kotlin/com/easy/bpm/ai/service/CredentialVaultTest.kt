@@ -149,6 +149,27 @@ class CredentialVaultTest {
         val resolved = vault.resolveCredentialRef("\$PATH", "user123")
         assertTrue(resolved.isNotEmpty())
     }
+
+    @Test
+    fun `test resolve environment variable reference without dollar prefix`() {
+        val resolved = vault.resolveCredentialRef("PATH", "user123")
+        assertTrue(resolved.isNotEmpty())
+    }
+
+    @Test
+    fun `test resolve inline secret returns safe error`() {
+        val rawSecret = "THISLOOKSLIKEARAWSECRET1234567890VALUE"
+
+        `when`(credentialRepository.findByIdAndOwnerId(rawSecret, "user123"))
+            .thenReturn(Optional.empty())
+
+        val error = assertThrows<IllegalArgumentException> {
+            vault.resolveCredentialRef(rawSecret, "user123")
+        }
+
+        assertTrue(error.message!!.contains("raw secret"))
+        assertTrue(!error.message!!.contains(rawSecret))
+    }
     
     @Test
     fun `test mask token shows only last 4 characters`() {

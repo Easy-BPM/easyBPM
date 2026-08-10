@@ -94,7 +94,10 @@ class GatewayService(
                     if (!t.isNullOrBlank()) return listOf(t)
                 }
 
-                return emptyList()
+                throw GatewayRoutingException(
+                    nodeId = nodeId,
+                    message = "Exclusive gateway '$nodeId' could not route: no outgoing condition matched and no default flow is available."
+                )
             } else if (nodeType == NodeType.ParallelGateway) {
                 // Parallel gateway join logic as before
                 val incomingFlows = flows.filter { 
@@ -139,21 +142,7 @@ class GatewayService(
 
         val regex = Regex("\\$\\{([^}]+)\\}")
         expr = regex.replace(expr) { match ->
-            val varName = match.groupValues[1]
-            val procVar = processVariableRepository.findByProcessInstanceIdAndName(instance.id, varName)
-            val node = procVar?.value
-            when {
-                node == null || node.isNull -> "null"
-                node.isTextual -> {
-                    val text = node.asText()
-                    if (text.matches(Regex("-?\\d+(\\.\\d+)?"))) {
-                        text
-                    } else {
-                        "\"${text.replace("\"","\\\"") }\""
-                    }
-                }
-                else -> node.toString()
-            }
+            formatConditionValue(resolveProcessVariablePath(instance.id, match.groupValues[1]))
         }
 
         return try {
@@ -181,5 +170,50 @@ class GatewayService(
             throw ex
         }
     }
+
+    private fun resolveProcessVariablePath(processInstanceId: Long, path: String): JsonNode? {
+        val parts = path.split(".").filter { it.isNotBlank() }
+        if (parts.isEmpty()) return null
+
+        val procVar = processVariableRepository.findByProcessInstanceIdAndName(processInstanceId, parts.first())
+            ?: return null
+        var current: JsonNode? = procVar.value
+
+        parts.drop(1).forEach { part ->
+            current = parseTextualJson(current)
+            current = current?.get(part)
+        }
+
+        return current
+    }
+
+    private fun parseTextualJson(node: JsonNode?): JsonNode? {
+        if (node == null || !node.isTextual) return node
+        val text = node.asText().trim()
+        if (!text.startsWith("{") && !text.startsWith("[")) return node
+        return try {
+            objectMapper.readTree(text)
+        } catch (_: Exception) {
+            node
+        }
+    }
+
+    private fun formatConditionValue(node: JsonNode?): String =
+        when {
+            node == null || node.isNull -> "null"
+            node.isTextual -> {
+                val text = node.asText()
+                if (text.matches(Regex("-?\\d+(\\.\\d+)?"))) {
+                    text
+                } else {
+                    "\"${text.replace("\"", "\\\"")}\""
+                }
+            }
+            else -> node.toString()
+        }
 }
 
+class GatewayRoutingException(
+    val nodeId: String,
+    message: String
+) : IllegalStateException(message)
