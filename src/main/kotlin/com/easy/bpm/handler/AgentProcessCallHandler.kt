@@ -251,8 +251,7 @@ class AgentProcessCallHandler(
         Inputs:
         {{inputs}}
 
-        Return only valid JSON with analysisStatus, riskLevel, confidence, recommendation, evidence, missingInformation, suggestedAction, and rationale.
-        analysisStatus must be one of APPROVED, REJECTED, NEEDS_REVIEW, or NEEDS_MORE_DATA so BPM gateways can route deterministically.
+        Return an auditable orchestration decision
         """.trimIndent()
 
     private fun buildDecisionTrace(
