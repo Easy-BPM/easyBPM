@@ -3,7 +3,9 @@ package com.easy.bpm.service.task
 import com.easy.bpm.enum.ProcessStatus
 import com.easy.bpm.enum.NodeType
 import com.easy.bpm.enum.TaskStatus
+import com.easy.bpm.controller.data.TaskFilterOperator
 import com.easy.bpm.controller.data.TaskResponseDto
+import com.easy.bpm.controller.data.TaskSearchFilterDto
 import com.easy.bpm.handler.AgentProcessCallHandler
 import com.easy.bpm.model.process.ProcessInstance
 import com.easy.bpm.model.process.ProcessInstanceEventType
@@ -29,7 +31,6 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import jakarta.transaction.Transactional
 import org.springframework.stereotype.Service
 import org.springframework.data.domain.Page
-import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Sort
@@ -189,6 +190,37 @@ class TaskService(
         return result
     }
 
+    fun searchTasks(filters: List<TaskSearchFilterDto>, pageable: Pageable): Page<Task> {
+        val startTime = System.currentTimeMillis()
+        val result = taskRepository.findAll(
+            TaskSearchSpecification.build(filters, objectMapper = objectMapper),
+            sanitizeTaskPageable(pageable)
+        )
+        val duration = System.currentTimeMillis() - startTime
+        metricsService.recordTaskQueryDuration(duration)
+        return result
+    }
+
+    fun searchVisibleTasks(
+        username: String,
+        groups: Set<String>,
+        filters: List<TaskSearchFilterDto>,
+        pageable: Pageable
+    ): Page<Task> {
+        val startTime = System.currentTimeMillis()
+        val result = taskRepository.findAll(
+            TaskSearchSpecification.build(
+                filters = filters,
+                visibleTo = TaskVisibility(username, groups),
+                objectMapper = objectMapper
+            ),
+            sanitizeTaskPageable(pageable)
+        )
+        val duration = System.currentTimeMillis() - startTime
+        metricsService.recordTaskQueryDuration(duration)
+        return result
+    }
+
     private fun sanitizeTaskPageable(pageable: Pageable): Pageable {
         val sanitizedOrders = pageable.sort
             .filter { it.property in taskSortableFields }
@@ -212,8 +244,7 @@ class TaskService(
     }
 
     fun getVisibleTaskResponses(username: String, groups: Set<String>, pageable: Pageable): Page<TaskResponseDto> {
-        val tasks = getTasks(pageable).content.filter { isTaskVisibleForUser(it, username, groups) }
-        return PageImpl(tasks.map { toResponseDto(it) }, pageable, tasks.size.toLong())
+        return searchVisibleTasks(username, groups, emptyList(), pageable).map { toResponseDto(it) }
     }
 
     fun getTaskResponseById(id: Long): TaskResponseDto? {
@@ -232,10 +263,32 @@ class TaskService(
         return searchTasks(assignee, status, pageable).map { toResponseDto(it) }
     }
 
-    fun searchVisibleTaskResponses(username: String, groups: Set<String>, assignee: String?, status: TaskStatus?, pageable: Pageable): Page<TaskResponseDto> {
-        val tasks = searchTasks(assignee, status, pageable).content.filter { isTaskVisibleForUser(it, username, groups) }
-        return PageImpl(tasks.map { toResponseDto(it) }, pageable, tasks.size.toLong())
+    fun searchTaskResponses(filters: List<TaskSearchFilterDto>, pageable: Pageable): Page<TaskResponseDto> {
+        return searchTasks(filters, pageable).map { toResponseDto(it) }
     }
+
+    fun searchVisibleTaskResponses(username: String, groups: Set<String>, assignee: String?, status: TaskStatus?, pageable: Pageable): Page<TaskResponseDto> {
+        return searchVisibleTaskResponses(username, groups, buildLegacyFilters(assignee, status), pageable)
+    }
+
+    fun searchVisibleTaskResponses(
+        username: String,
+        groups: Set<String>,
+        filters: List<TaskSearchFilterDto>,
+        pageable: Pageable
+    ): Page<TaskResponseDto> {
+        return searchVisibleTasks(username, groups, filters, pageable).map { toResponseDto(it) }
+    }
+
+    private fun buildLegacyFilters(assignee: String?, status: TaskStatus?): List<TaskSearchFilterDto> =
+        buildList {
+            assignee?.let {
+                add(TaskSearchFilterDto(field = "assignee", operator = TaskFilterOperator.EQUALS, value = it))
+            }
+            status?.let {
+                add(TaskSearchFilterDto(field = "status", operator = TaskFilterOperator.EQUALS, value = it.name))
+            }
+        }
 
     @Transactional
     fun claimTask(taskId: Long, username: String, groups: Set<String>): TaskResponseDto {

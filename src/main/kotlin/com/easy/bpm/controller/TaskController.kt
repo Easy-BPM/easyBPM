@@ -1,6 +1,7 @@
 package com.easy.bpm.controller
 
 import com.easy.bpm.controller.data.TaskResponseDto
+import com.easy.bpm.controller.data.TaskSearchRequestDto
 import com.easy.bpm.enum.TaskStatus
 import com.easy.bpm.service.task.TaskService
 import io.swagger.v3.oas.annotations.media.Content
@@ -70,6 +71,20 @@ class TaskController(
             taskService.searchTaskResponses(assignee, status, pageable)
         } else {
             taskService.searchVisibleTaskResponses(principal.username, principal.groups, assignee, status, pageable)
+        }
+    }
+
+    @PostMapping("/search")
+    @Operation(summary = "Search tasks with structured filters", description = "Search tasks using structured AND-combined filters with pagination and sorting")
+    fun searchTasks(
+        @RequestBody request: TaskSearchRequestDto,
+        pageable: Pageable,
+        @AuthenticationPrincipal principal: AuthenticatedUser? = null
+    ): Page<TaskResponseDto> {
+        return if (principal == null || principal.isBpmAdmin()) {
+            taskService.searchTaskResponses(request.filters, pageable)
+        } else {
+            taskService.searchVisibleTaskResponses(principal.username, principal.groups, request.filters, pageable)
         }
     }
 

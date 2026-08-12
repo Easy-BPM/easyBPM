@@ -100,6 +100,34 @@ export interface Task {
   variables?: Record<string, any>;
 }
 
+export type TaskFilterOperator =
+  | 'EQUALS'
+  | 'NOT_EQUALS'
+  | 'IN'
+  | 'NOT_IN'
+  | 'GREATER_THAN'
+  | 'GREATER_THAN_OR_EQUAL'
+  | 'LESS_THAN'
+  | 'LESS_THAN_OR_EQUAL'
+  | 'CONTAINS'
+  | 'STARTS_WITH'
+  | 'ENDS_WITH';
+
+export type TaskVariableScope = 'TASK' | 'PROCESS';
+
+export interface TaskSearchFilter {
+  field: string;
+  operator: TaskFilterOperator;
+  value?: string | number | boolean | null;
+  values?: Array<string | number | boolean | null>;
+  scope?: TaskVariableScope;
+  name?: string;
+}
+
+export interface TaskSearchRequest {
+  filters: TaskSearchFilter[];
+}
+
 // Payload for completing a task
 // POST /tasks/id/complete
 export interface CompleteTaskPayload {
