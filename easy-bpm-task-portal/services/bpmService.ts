@@ -1,4 +1,4 @@
-import { Task, TaskStatus, ProcessDefinition, CompleteTaskPayload, Page, Form, AuthLoginResponse, AuthSession, DocumentMetadata } from '../types';
+import { Task, TaskStatus, ProcessDefinition, CompleteTaskPayload, Page, Form, AuthLoginResponse, AuthSession, DocumentMetadata, TaskSearchFilter } from '../types';
 
 const API_BASE_URL = (import.meta.env.EASY_BPM_TASK_PORTAL_API_BASE_URL || 'http://localhost:8080').replace(/\/$/, '');
 const USE_MOCK = false;
@@ -194,17 +194,19 @@ export const bpmService = {
     return response.json();
   },
 
-  getTasks: async (assignee?: string): Promise<Task[]> => {
+  getTasks: async (filters: TaskSearchFilter[] = []): Promise<Task[]> => {
     if (USE_MOCK) {
       await delay(200);
-      const tasks = [...MOCK_TASKS];
-      return assignee ? tasks.filter(t => t.assignee === assignee) : tasks;
+      return [...MOCK_TASKS];
     }
 
     const params = new URLSearchParams({ page: '0', size: '100' });
-    if (assignee) params.append('assignee', assignee);
 
-    const response = await fetchWithAuth(`${API_BASE_URL}/tasks/search?${params.toString()}`);
+    const response = await fetchWithAuth(`${API_BASE_URL}/tasks/search?${params.toString()}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filters })
+    });
     await assertOk(response, 'Get tasks');
     const taskPage: Page<Task> = await response.json();
     return taskPage.content;

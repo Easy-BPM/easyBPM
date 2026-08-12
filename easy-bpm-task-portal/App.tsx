@@ -3,7 +3,7 @@ import { Sidebar } from './components/Sidebar';
 import { bpmService } from './services/bpmService';
 import { DynamicForm } from './components/DynamicForm';
 import { ThemeMode, ThemeToggle } from './components/ThemeToggle';
-import { Task, ProcessDefinition, TaskStatus, Form, JsonSchemaProperty } from './types';
+import { Task, ProcessDefinition, TaskStatus, Form, JsonSchemaProperty, TaskFilterOperator, TaskSearchFilter } from './types';
 import {
   Play,
   CheckCircle2,
@@ -21,7 +21,10 @@ import {
   ChevronRight,
   Zap,
   ListTodo,
-  Unlock
+  Unlock,
+  Filter,
+  Search,
+  X
 } from 'lucide-react';
 
 type VariableType = 'string' | 'number' | 'boolean' | 'json';
@@ -32,6 +35,71 @@ interface VariableEntry {
   type: VariableType;
   value: string;
 }
+
+type InboxFilterField =
+  | 'status'
+  | 'assignee'
+  | 'candidateUser'
+  | 'candidateGroup'
+  | 'processDefinition'
+  | 'processInstanceId'
+  | 'taskName'
+  | 'createdAt'
+  | 'taskVariable'
+  | 'processVariable';
+
+interface InboxFilterDraft {
+  id: string;
+  field: InboxFilterField;
+  operator: TaskFilterOperator;
+  value: string;
+  variableName: string;
+}
+
+const FILTER_FIELD_OPTIONS: Array<{ value: InboxFilterField; label: string }> = [
+  { value: 'status', label: 'State' },
+  { value: 'assignee', label: 'Assignee' },
+  { value: 'candidateUser', label: 'Candidate User' },
+  { value: 'candidateGroup', label: 'Candidate Group' },
+  { value: 'processDefinition', label: 'Process Definition' },
+  { value: 'processInstanceId', label: 'Process Instance' },
+  { value: 'taskName', label: 'Task Name' },
+  { value: 'createdAt', label: 'Created Date' },
+  { value: 'taskVariable', label: 'Task Variable' },
+  { value: 'processVariable', label: 'Process Variable' }
+];
+
+const FILTER_FIELD_LABELS = Object.fromEntries(FILTER_FIELD_OPTIONS.map((option) => [option.value, option.label])) as Record<InboxFilterField, string>;
+
+const OPERATOR_LABELS: Record<TaskFilterOperator, string> = {
+  EQUALS: '=',
+  NOT_EQUALS: '!=',
+  IN: 'in',
+  NOT_IN: 'not in',
+  GREATER_THAN: '>',
+  GREATER_THAN_OR_EQUAL: '>=',
+  LESS_THAN: '<',
+  LESS_THAN_OR_EQUAL: '<=',
+  CONTAINS: 'contains',
+  STARTS_WITH: 'starts with',
+  ENDS_WITH: 'ends with'
+};
+
+const operatorOptionsForField = (field: InboxFilterField): TaskFilterOperator[] => {
+  if (field === 'taskName') return ['CONTAINS', 'EQUALS', 'STARTS_WITH', 'ENDS_WITH'];
+  if (field === 'createdAt' || field === 'processInstanceId') return ['EQUALS', 'GREATER_THAN_OR_EQUAL', 'LESS_THAN_OR_EQUAL', 'GREATER_THAN', 'LESS_THAN'];
+  if (field === 'taskVariable' || field === 'processVariable') return ['EQUALS', 'NOT_EQUALS', 'CONTAINS', 'GREATER_THAN_OR_EQUAL', 'LESS_THAN_OR_EQUAL'];
+  if (field === 'candidateGroup') return ['EQUALS', 'IN', 'NOT_IN'];
+  return ['EQUALS', 'NOT_EQUALS', 'IN', 'NOT_IN'];
+};
+
+const createFilterDraft = (): InboxFilterDraft => ({
+  id: `filter-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+  field: 'status',
+  operator: 'EQUALS',
+  value: TaskStatus.PENDING,
+  variableName: ''
+});
 
 const parseVariableValue = (entry: VariableEntry): unknown => {
   if (entry.type === 'number') {
@@ -360,29 +428,137 @@ const DashboardView: React.FC<{ onNavigate: (view: string) => void; currentUser:
 const InboxView: React.FC<{ onSelectTask: (id: number) => void; currentUser: string }> = ({ onSelectTask, currentUser }) => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'assigned' | 'completed'>('assigned');
+  const [filterPanelOpen, setFilterPanelOpen] = useState(false);
+  const [draftFilters, setDraftFilters] = useState<InboxFilterDraft[]>([]);
+  const [activeFilters, setActiveFilters] = useState<InboxFilterDraft[]>([]);
 
   useEffect(() => {
     void loadTasks();
-  }, [filter, currentUser]);
+  }, [filter, currentUser, activeFilters]);
+
+  const buildQuickFilters = (): TaskSearchFilter[] => {
+    if (filter === 'completed') {
+      return [
+        { field: 'assignee', operator: 'EQUALS', value: currentUser },
+        { field: 'status', operator: 'EQUALS', value: TaskStatus.COMPLETED }
+      ];
+    }
+
+    const statusFilter: TaskSearchFilter = { field: 'status', operator: 'NOT_EQUALS', value: TaskStatus.COMPLETED };
+    if (filter === 'assigned') {
+      return [
+        { field: 'assignee', operator: 'EQUALS', value: currentUser },
+        statusFilter
+      ];
+    }
+
+    return [statusFilter];
+  };
+
+  const parseFilterValue = (draft: InboxFilterDraft): string | number => {
+    if (draft.field === 'processInstanceId') return Number(draft.value);
+    return draft.value.trim();
+  };
+
+  const toSearchFilter = (draft: InboxFilterDraft): TaskSearchFilter => {
+    const baseValue = parseFilterValue(draft);
+    const usesValues = draft.operator === 'IN' || draft.operator === 'NOT_IN';
+    const valueParts = String(draft.value)
+      .split(',')
+      .map((part) => part.trim())
+      .filter(Boolean);
+
+    if (draft.field === 'taskVariable' || draft.field === 'processVariable') {
+      return {
+        field: 'variable',
+        scope: draft.field === 'taskVariable' ? 'TASK' : 'PROCESS',
+        name: draft.variableName.trim(),
+        operator: draft.operator,
+        ...(usesValues ? { values: valueParts } : { value: baseValue })
+      };
+    }
+
+    return {
+      field: draft.field,
+      operator: draft.operator,
+      ...(usesValues ? { values: valueParts } : { value: baseValue })
+    };
+  };
+
+  const validateDraftFilters = (filtersToValidate: InboxFilterDraft[]): string | null => {
+    for (const draft of filtersToValidate) {
+      if ((draft.field === 'taskVariable' || draft.field === 'processVariable') && !draft.variableName.trim()) {
+        return `${FILTER_FIELD_LABELS[draft.field]} requires a variable name.`;
+      }
+      if (!draft.value.trim()) return `${FILTER_FIELD_LABELS[draft.field]} requires a value.`;
+      if (draft.field === 'processInstanceId' && Number.isNaN(Number(draft.value))) {
+        return 'Process Instance must be a number.';
+      }
+    }
+    return null;
+  };
 
   const loadTasks = async () => {
     setLoading(true);
+    setError(null);
     try {
-      const data = await bpmService.getTasks(filter === 'all' ? undefined : currentUser);
-
-      let filtered = data;
-      if (filter === 'completed') {
-        filtered = data.filter((task) => task.status === TaskStatus.COMPLETED);
-      } else {
-        filtered = data.filter((task) => task.status !== TaskStatus.COMPLETED);
-      }
-      setTasks(filtered);
+      const data = await bpmService.getTasks([...buildQuickFilters(), ...activeFilters.map(toSearchFilter)]);
+      setTasks(data);
     } catch (error) {
-      console.error(error);
+      setError((error as Error).message);
     } finally {
       setLoading(false);
     }
+  };
+
+  const updateDraftFilter = (id: string, patch: Partial<InboxFilterDraft>) => {
+    setDraftFilters((current) => current.map((draft) => {
+      if (draft.id !== id) return draft;
+      const next = { ...draft, ...patch };
+      if (patch.field) {
+        const operators = operatorOptionsForField(patch.field);
+        next.operator = operators[0];
+        next.value = patch.field === 'status' ? TaskStatus.PENDING : '';
+        next.variableName = '';
+      }
+      return next;
+    }));
+  };
+
+  const addDraftFilter = () => {
+    setDraftFilters((current) => [...current, createFilterDraft()]);
+    setFilterPanelOpen(true);
+  };
+
+  const applyFilters = () => {
+    const validationError = validateDraftFilters(draftFilters);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+    setActiveFilters(draftFilters);
+    setFilterPanelOpen(false);
+  };
+
+  const removeActiveFilter = (id: string) => {
+    const next = activeFilters.filter((draft) => draft.id !== id);
+    setActiveFilters(next);
+    setDraftFilters(next);
+  };
+
+  const clearFilters = () => {
+    setActiveFilters([]);
+    setDraftFilters([]);
+  };
+
+  const describeFilter = (draft: InboxFilterDraft) => {
+    const fieldLabel = FILTER_FIELD_LABELS[draft.field];
+    const prefix = draft.field === 'taskVariable' || draft.field === 'processVariable'
+      ? `${fieldLabel} ${draft.variableName}`
+      : fieldLabel;
+    return `${prefix} ${OPERATOR_LABELS[draft.operator]} ${draft.value}`;
   };
 
   return (
@@ -393,20 +569,145 @@ const InboxView: React.FC<{ onSelectTask: (id: number) => void; currentUser: str
           <p className="text-slate-500 text-sm mt-1">Open tasks, forms, and variable outputs</p>
         </div>
 
-        <div className="flex bg-slate-200 p-1 rounded-lg self-start">
-          {(['assigned', 'all', 'completed'] as const).map((current) => (
-            <button
-              key={current}
-              onClick={() => setFilter(current)}
-              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
-                filter === current ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600 hover:text-slate-800'
-              }`}
-            >
-              {current.charAt(0).toUpperCase() + current.slice(1)}
-            </button>
-          ))}
+        <div className="flex flex-wrap gap-2">
+          <div className="flex bg-slate-200 p-1 rounded-lg self-start">
+            {(['assigned', 'all', 'completed'] as const).map((current) => (
+              <button
+                key={current}
+                onClick={() => setFilter(current)}
+                className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+                  filter === current ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600 hover:text-slate-800'
+                }`}
+              >
+                {current.charAt(0).toUpperCase() + current.slice(1)}
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={() => setFilterPanelOpen((open) => !open)}
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm font-medium text-slate-700 hover:border-blue-200 hover:text-blue-700"
+          >
+            <Filter size={16} /> Filters
+          </button>
         </div>
       </div>
+
+      {(activeFilters.length > 0 || error) && (
+        <div className="space-y-3">
+          {activeFilters.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {activeFilters.map((activeFilter) => (
+                <button
+                  key={activeFilter.id}
+                  onClick={() => removeActiveFilter(activeFilter.id)}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100"
+                >
+                  {describeFilter(activeFilter)}
+                  <X size={12} />
+                </button>
+              ))}
+              <button onClick={clearFilters} className="text-xs font-medium text-slate-500 hover:text-red-600 px-2">
+                Clear all
+              </button>
+            </div>
+          )}
+          {error && (
+            <div className="p-3 rounded-lg border border-red-200 bg-red-50 text-red-700 text-sm flex items-center gap-2">
+              <AlertCircle size={16} />
+              {error}
+            </div>
+          )}
+        </div>
+      )}
+
+      {filterPanelOpen && (
+        <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-4 space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="text-sm font-semibold text-slate-800 inline-flex items-center gap-2">
+              <Search size={16} /> Task filters
+            </h3>
+            <button onClick={addDraftFilter} className="inline-flex items-center gap-1.5 text-sm font-medium text-blue-700 hover:text-blue-800">
+              <Plus size={14} /> Add filter
+            </button>
+          </div>
+
+          {draftFilters.length === 0 ? (
+            <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
+              No custom filters applied.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {draftFilters.map((draft) => {
+                const operatorOptions = operatorOptionsForField(draft.field);
+                return (
+                  <div key={draft.id} className="grid grid-cols-1 md:grid-cols-12 gap-2 items-center">
+                    <select
+                      className="md:col-span-3 rounded-lg border px-3 py-2 text-sm border-slate-300"
+                      value={draft.field}
+                      onChange={(event) => updateDraftFilter(draft.id, { field: event.target.value as InboxFilterField })}
+                    >
+                      {FILTER_FIELD_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>{option.label}</option>
+                      ))}
+                    </select>
+                    {(draft.field === 'taskVariable' || draft.field === 'processVariable') && (
+                      <input
+                        className="md:col-span-2 rounded-lg border px-3 py-2 text-sm border-slate-300"
+                        placeholder="name"
+                        value={draft.variableName}
+                        onChange={(event) => updateDraftFilter(draft.id, { variableName: event.target.value })}
+                      />
+                    )}
+                    <select
+                      className={`${draft.field === 'taskVariable' || draft.field === 'processVariable' ? 'md:col-span-2' : 'md:col-span-3'} rounded-lg border px-3 py-2 text-sm border-slate-300`}
+                      value={draft.operator}
+                      onChange={(event) => updateDraftFilter(draft.id, { operator: event.target.value as TaskFilterOperator })}
+                    >
+                      {operatorOptions.map((operator) => (
+                        <option key={operator} value={operator}>{OPERATOR_LABELS[operator]}</option>
+                      ))}
+                    </select>
+                    {draft.field === 'status' ? (
+                      <select
+                        className="md:col-span-5 rounded-lg border px-3 py-2 text-sm border-slate-300"
+                        value={draft.value}
+                        onChange={(event) => updateDraftFilter(draft.id, { value: event.target.value })}
+                      >
+                        {Object.values(TaskStatus).map((status) => (
+                          <option key={status} value={status}>{status}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        className="md:col-span-5 rounded-lg border px-3 py-2 text-sm border-slate-300"
+                        placeholder={draft.operator === 'IN' || draft.operator === 'NOT_IN' ? 'comma,separated,values' : 'value'}
+                        type={draft.field === 'createdAt' ? 'date' : draft.field === 'processInstanceId' ? 'number' : 'text'}
+                        value={draft.value}
+                        onChange={(event) => updateDraftFilter(draft.id, { value: event.target.value })}
+                      />
+                    )}
+                    <button
+                      className="md:col-span-1 inline-flex justify-center p-2 rounded-md border border-slate-200 text-slate-500 hover:text-red-600 hover:border-red-200"
+                      onClick={() => setDraftFilters((current) => current.filter((item) => item.id !== draft.id))}
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          <div className="flex justify-end gap-2">
+            <button onClick={clearFilters} className="px-3 py-2 rounded-lg border border-slate-200 text-sm font-medium text-slate-600 hover:bg-slate-50">
+              Clear
+            </button>
+            <button onClick={applyFilters} className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700">
+              Apply Filters
+            </button>
+          </div>
+        </div>
+      )}
 
       {loading ? (
         <div className="flex justify-center py-20">
