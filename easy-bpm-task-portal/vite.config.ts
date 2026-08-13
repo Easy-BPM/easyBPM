@@ -4,7 +4,9 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
+    const base = process.env.EASY_BPM_TASK_PORTAL_BASE_PATH ?? env.EASY_BPM_TASK_PORTAL_BASE_PATH ?? '/';
     return {
+      base,
       server: {
         port: 3002,
         host: '0.0.0.0',

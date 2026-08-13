@@ -1,0 +1,59 @@
+FROM gradle:jdk21 AS backend-builder
+WORKDIR /home/gradle/project
+COPY --chown=gradle:gradle . .
+RUN gradle bootJar :worker:bootJar -x test --no-daemon
+
+FROM node:22-alpine AS admin-builder
+WORKDIR /app
+COPY easy-bpm-admin/package*.json ./
+RUN npm ci
+COPY easy-bpm-admin/ ./
+ENV EASY_BPM_ADMIN_API_BASE_URL=""
+ENV EASY_BPM_ADMIN_BASE_PATH="/ui/admin/"
+RUN npm run build
+
+FROM node:22-alpine AS portal-builder
+WORKDIR /app
+COPY easy-bpm-task-portal/package*.json ./
+RUN npm ci
+COPY easy-bpm-task-portal/ ./
+ENV EASY_BPM_TASK_PORTAL_API_BASE_URL=""
+ENV EASY_BPM_TASK_PORTAL_BASE_PATH="/ui/portal/"
+RUN npm run build
+
+FROM node:22-alpine AS modeler-builder
+WORKDIR /app
+COPY easy-bpm-modeler/package*.json ./
+RUN npm ci
+COPY easy-bpm-modeler/ ./
+ENV EASY_BPM_MODELER_API_BASE_URL=""
+ENV EASY_BPM_MODELER_BASE_PATH="/ui/modeler/"
+ENV EASY_BPM_MODELER_AGENTIC_ORCHESTRATION="true"
+RUN npm run build
+
+FROM eclipse-temurin:21-jre-jammy
+WORKDIR /app
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends nginx gettext-base \
+    && rm -rf /var/lib/apt/lists/* \
+    && useradd --system --home-dir /app --shell /usr/sbin/nologin easybpm \
+    && mkdir -p /app/logs /usr/share/nginx/html/ui/admin /usr/share/nginx/html/ui/portal /usr/share/nginx/html/ui/modeler /etc/nginx/templates /run/nginx \
+    && chown -R easybpm:easybpm /app /usr/share/nginx/html /run/nginx /var/lib/nginx /var/log/nginx
+
+COPY --from=backend-builder --chown=easybpm:easybpm /home/gradle/project/build/libs/*.jar /app/backend.jar
+COPY --from=backend-builder --chown=easybpm:easybpm /home/gradle/project/worker/build/libs/*.jar /app/worker.jar
+COPY --from=admin-builder --chown=easybpm:easybpm /app/dist/ /usr/share/nginx/html/ui/admin/
+COPY --from=portal-builder --chown=easybpm:easybpm /app/dist/ /usr/share/nginx/html/ui/portal/
+COPY --from=modeler-builder --chown=easybpm:easybpm /app/dist/ /usr/share/nginx/html/ui/modeler/
+COPY deploy/fly/nginx.conf /etc/nginx/templates/easybpm.conf.template
+COPY deploy/fly/start-web.sh deploy/fly/start-worker.sh /app/bin/
+
+RUN chmod +x /app/bin/start-web.sh /app/bin/start-worker.sh \
+    && rm -f /etc/nginx/sites-enabled/default /etc/nginx/conf.d/default.conf
+
+USER easybpm
+EXPOSE 8080
+
+ENV JAVA_OPTS=""
+CMD ["/app/bin/start-web.sh"]

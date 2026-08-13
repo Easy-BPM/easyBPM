@@ -1,0 +1,40 @@
+# Change this before the first deploy:
+#   fly launch --copy-config --name your-easybpm-app
+# or edit `app` directly.
+app = "easybpm"
+primary_region = "gru"
+
+[build]
+  dockerfile = "Dockerfile.fly"
+
+[env]
+  EASY_BPM_SERVER_ADDRESS = "127.0.0.1"
+  EASY_BPM_SERVER_PORT = "8081"
+  EASY_BPM_SERVER_LOGGING_LEVEL_APP = "INFO"
+  EASY_BPM_SERVER_SECURITY_JWT_EXPIRATION_MS = "86400000"
+  EASY_BPM_TEST_DATA = "false"
+  EASY_BPM_SERVER_TEST_DATA_ENABLED = "false"
+
+[processes]
+  web = "/app/bin/start-web.sh"
+  worker = "/app/bin/start-worker.sh"
+
+[http_service]
+  processes = ["web"]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "off"
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [http_service.concurrency]
+    type = "requests"
+    soft_limit = 200
+    hard_limit = 250
+
+  [[http_service.checks]]
+    interval = "15s"
+    timeout = "2s"
+    grace_period = "30s"
+    method = "GET"
+    path = "/healthz"
