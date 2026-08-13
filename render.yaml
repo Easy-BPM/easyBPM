@@ -17,7 +17,7 @@ services:
       sizeGB: 1
 
   - type: web
-    name: easybpm-web
+    name: easybpm
     runtime: docker
     plan: starter
     region: ohio
