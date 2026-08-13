@@ -39,7 +39,8 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/* \
     && useradd --system --home-dir /app --shell /usr/sbin/nologin easybpm \
     && mkdir -p /app/logs /usr/share/nginx/html/ui/admin /usr/share/nginx/html/ui/portal /usr/share/nginx/html/ui/modeler /etc/nginx/templates /run/nginx \
-    && chown -R easybpm:easybpm /app /usr/share/nginx/html /run/nginx /var/lib/nginx /var/log/nginx
+    && sed -i 's#pid /run/nginx.pid;#pid /tmp/nginx.pid;#' /etc/nginx/nginx.conf \
+    && chown -R easybpm:easybpm /app /usr/share/nginx/html /run/nginx /var/lib/nginx /var/log/nginx /etc/nginx/conf.d /etc/nginx/templates
 
 COPY --from=backend-builder --chown=easybpm:easybpm /home/gradle/project/build/libs/*.jar /app/backend.jar
 COPY --from=backend-builder --chown=easybpm:easybpm /home/gradle/project/worker/build/libs/*.jar /app/worker.jar
