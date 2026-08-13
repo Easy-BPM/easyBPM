@@ -22,7 +22,7 @@ services:
     plan: starter
     region: ohio
     branch: fly/test
-    dockerfilePath: ./Dockerfile.fly
+    dockerfilePath: ./Dockerfile
     dockerContext: .
     dockerCommand: /app/bin/start-web.sh
     healthCheckPath: /healthz
@@ -71,7 +71,7 @@ services:
     plan: starter
     region: ohio
     branch: fly/test
-    dockerfilePath: ./Dockerfile.fly
+    dockerfilePath: ./Dockerfile
     dockerContext: .
     dockerCommand: /app/bin/start-worker.sh
     envVars:
