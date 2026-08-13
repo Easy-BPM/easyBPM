@@ -430,6 +430,87 @@ class ProcessIntegrationTest(
     }
 
     @Test
+    fun `message catch event should resolve direct variable correlation key after message start`() {
+        val processDefinitionJson = objectMapper.readTree(
+            """
+            {
+              "processId": "message-start-catch-order",
+              "variables": [
+                { "name": "orderId", "type": "string", "initialValue": "" },
+                { "name": "invoiceReceived", "type": "boolean", "initialValue": false }
+              ],
+              "nodes": [
+                {
+                  "id": "start_msg",
+                  "name": "Message Start",
+                  "type": "MessageStartEvent",
+                  "next": ["wait_invoice"],
+                  "message": {
+                    "name": "order.started",
+                    "correlationKeys": ["orderId"]
+                  }
+                },
+                {
+                  "id": "wait_invoice",
+                  "name": "Wait Invoice",
+                  "type": "MessageIntermediateCatchEvent",
+                  "next": ["review_invoice"],
+                  "message": {
+                    "name": "invoice.received",
+                    "correlationKeys": ["orderId"],
+                    "payload": []
+                  }
+                },
+                {
+                  "id": "review_invoice",
+                  "name": "Review Invoice",
+                  "type": "HumanTask",
+                  "next": ["end"]
+                },
+                {
+                  "id": "end",
+                  "name": "End",
+                  "type": "EndEvent",
+                  "next": []
+                }
+              ],
+              "flows": [
+                { "from": "start_msg", "to": "wait_invoice", "condition": null },
+                { "from": "wait_invoice", "to": "review_invoice", "condition": null },
+                { "from": "review_invoice", "to": "end", "condition": null }
+              ]
+            }
+            """.trimIndent()
+        )
+
+        val processDefinition = processService.deployProcess(processDefinitionJson)
+
+        processService.handleMessageReceived(
+            "order.started",
+            "ORD-1001",
+            mapOf("orderId" to "ORD-1001")
+        )
+
+        val instance = processInstanceRepository.findAll()
+            .single { it.processDefinition.id == processDefinition.id }
+
+        assertThat(instance.currentNode).containsExactly("wait_invoice")
+        val subscription = messageSubscriptionRepository.findByProcessInstanceIdAndNodeId(instance.id, "wait_invoice")
+        assertThat(subscription?.correlationKey).isEqualTo("ORD-1001")
+
+        processService.handleMessageReceived(
+            "invoice.received",
+            "ORD-1001",
+            mapOf("invoiceReceived" to true)
+        )
+
+        val updatedInstance = processInstanceRepository.findById(instance.id).orElseThrow()
+        assertThat(updatedInstance.status).isEqualTo(ProcessStatus.ACTIVE)
+        assertThat(updatedInstance.currentNode).containsExactly("review_invoice")
+        assertThat(processVariableValue(instance.id, "invoiceReceived")?.asBoolean()).isTrue()
+    }
+
+    @Test
     fun `timer event json process should create subscription and continue after timeout`() {
         val processDefinitionJson = objectMapper.readTree(ClassPathResource("process-timer-event.json").inputStream)
 

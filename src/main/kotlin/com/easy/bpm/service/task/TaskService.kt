@@ -582,7 +582,7 @@ class TaskService(
             throw IllegalArgumentException("MessageIntermediateCatchEvent $nodeId missing 'message.correlationKeys'")
         }
 
-        val correlationKey = correlationKeys[0].asText()
+        val correlationKey = evaluateCorrelationKey(correlationKeys[0].asText(), instance)
 
         // Create message subscription
         messageSubscriptionService.subscribeToMessage(
@@ -633,7 +633,7 @@ class TaskService(
             throw IllegalArgumentException("MessageIntermediateThrowEvent $nodeId missing 'message.correlationKeys'")
         }
 
-        val correlationKey = correlationKeys[0].asText()
+        val correlationKey = evaluateCorrelationKey(correlationKeys[0].asText(), instance)
 
         // Build payload from node configuration
         val payloadArray = message.get("payload")
@@ -997,7 +997,30 @@ class TaskService(
             .find { it.get("id").asText() == nodeId }
             ?: throw IllegalArgumentException("Node '$nodeId' not found")
 
-    
+    private fun evaluateCorrelationKey(template: String, instance: ProcessInstance): String {
+        val regex = Regex("\\$\\{([^}]+)\\}")
+        val evaluated = regex.replace(template) { match ->
+            readVariableAsCorrelationKey(instance, match.groupValues[1])
+        }
+
+        return if (evaluated == template && !template.contains("\${")) {
+            val processVar = processVariableRepository.findByProcessInstanceIdAndName(instance.id, template)
+            if (processVar == null) template else readVariableAsCorrelationKey(instance, template)
+        } else {
+            evaluated
+        }
+    }
+
+    private fun readVariableAsCorrelationKey(instance: ProcessInstance, varName: String): String {
+        val processVar = processVariableRepository.findByProcessInstanceIdAndName(instance.id, varName)
+        return when {
+            processVar == null || processVar.value.isNull -> varName
+            processVar.value.isTextual -> processVar.value.asText()
+            processVar.value.isNumber -> processVar.value.toString()
+            processVar.value.isBoolean -> processVar.value.asBoolean().toString()
+            else -> processVar.value.toString()
+        }
+    }
 
     private fun getNextNodes(node: JsonNode, definition: JsonNode, instance: ProcessInstance): List<String> {
         return gatewayService.getNextNodes(node, definition, instance)
