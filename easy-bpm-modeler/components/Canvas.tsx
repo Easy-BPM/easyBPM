@@ -46,6 +46,21 @@ const ZOOM_STEP = 0.1;
 const WORKSPACE_MIN_WIDTH = 2600;
 const WORKSPACE_MIN_HEIGHT = 1800;
 const WORKSPACE_PADDING = 600;
+const BOUNDARY_TYPES: NodeType[] = ['error-boundary', 'message-boundary', 'timer-boundary'];
+const ATTACHABLE_NODE_TYPES: NodeType[] = [
+  'user-task',
+  'service-task',
+  'api-task',
+  'code-task',
+  'ai-task',
+  'agent-process-call',
+  'call-activity'
+];
+
+const isBoundaryNode = (node: BpmnNode) => BOUNDARY_TYPES.includes(node.type);
+const isAttachableNode = (node: BpmnNode) => ATTACHABLE_NODE_TYPES.includes(node.type);
+const isBoundaryAttachedToNode = (boundary: BpmnNode, parent: BpmnNode) =>
+  boundary.attachedTo === parent.uid || boundary.attachedTo === parent.id;
 
 export const Canvas: React.FC<CanvasProps> = ({
   nodes,
@@ -141,9 +156,9 @@ export const Canvas: React.FC<CanvasProps> = ({
             initialPosMap.set(n.uid, { ...n.position });
             // Also add boundary events attached to this node
             nodes.forEach(b => {
-                if (b.attachedTo === n.uid) {
-                    initialPosMap.set(b.uid, { ...b.position });
-                }
+              if (isBoundaryNode(b) && isBoundaryAttachedToNode(b, n)) {
+                initialPosMap.set(b.uid, { ...b.position });
+              }
             });
         }
     });
@@ -280,10 +295,21 @@ export const Canvas: React.FC<CanvasProps> = ({
   const handleMouseUp = (e: React.MouseEvent) => {
     if (isDraggingNodes) {
         const updatedNodes = nodes.map(node => {
-            if ((node.type === 'error-boundary' || node.type === 'message-boundary' || node.type === 'timer-boundary') && initialNodePositions.has(node.uid)) {
+            if (isBoundaryNode(node) && initialNodePositions.has(node.uid)) {
+                const attachedParent = node.attachedTo
+                  ? nodes.find(candidate => candidate.uid === node.attachedTo || candidate.id === node.attachedTo)
+                  : undefined;
+                const movedWithParent = attachedParent &&
+                  initialNodePositions.has(attachedParent.uid) &&
+                  !selectedNodeUids.includes(node.uid);
+
+                if (movedWithParent) {
+                    return { ...node, attachedTo: attachedParent.uid };
+                }
+
                 // Try to snap to a task
                 const parent = nodes.find(n => 
-                    (n.type === 'user-task' || n.type === 'service-task' || n.type === 'api-task' || n.type === 'code-task' || n.type === 'agent-process-call') &&
+                    isAttachableNode(n) &&
                     node.position.x > n.position.x - 20 &&
                     node.position.x < n.position.x + n.width + 20 &&
                     node.position.y > n.position.y - 20 &&
