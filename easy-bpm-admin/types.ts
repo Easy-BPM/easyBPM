@@ -39,8 +39,10 @@ export interface WorkflowNode {
 }
 
 export interface WorkflowFlow {
-  from: string;
-  to: string;
+  from?: string;
+  to?: string;
+  source?: string;
+  target?: string;
   condition?: string | null;
 }
 

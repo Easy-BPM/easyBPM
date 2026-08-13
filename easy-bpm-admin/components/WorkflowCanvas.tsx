@@ -31,25 +31,37 @@ const labelForNode = (node: WorkflowNode): string => {
 };
 
 const nodeSizeByType = (type: string): { width: number; height: number } => {
+  const normalized = type.toLowerCase();
   if (type === 'Participant' || type === 'Pool') return { width: 640, height: 260 };
-  if (type === 'StartEvent' || type === 'EndEvent') return { width: 40, height: 40 };
-  if (type.toLowerCase().includes('gateway')) return { width: 40, height: 40 };
-  if (type.toLowerCase().includes('boundary')) return { width: 30, height: 30 };
+  if (normalized.includes('start') || normalized.includes('endevent') || type === 'EndEvent') return { width: 40, height: 40 };
+  if (normalized.includes('gateway')) return { width: 40, height: 40 };
+  if (normalized.includes('boundary')) return { width: 30, height: 30 };
   return { width: 120, height: 60 };
 };
 
 const getNodeSize = (node: WorkflowNode): { width: number; height: number } => {
+  const fixedSize = nodeSizeByType(node.type);
+  const normalized = node.type.toLowerCase();
+  if (
+    normalized.includes('start') ||
+    normalized.includes('end') ||
+    normalized.includes('gateway') ||
+    normalized.includes('boundary')
+  ) {
+    return fixedSize;
+  }
   if (node.width && node.height) return { width: node.width, height: node.height };
-  return nodeSizeByType(node.type);
+  return fixedSize;
 };
 
 const getNodeStyle = (type: string, visited: boolean, current: boolean): string => {
+  const normalized = type.toLowerCase();
   if (current) return 'fill-emerald-100 stroke-emerald-600';
   if (visited) return 'fill-blue-50 stroke-blue-500';
 
-  if (type === 'StartEvent') return 'fill-white stroke-green-600';
-  if (type === 'EndEvent') return 'fill-white stroke-red-600';
-  if (type.toLowerCase().includes('gateway')) return 'fill-white stroke-orange-600';
+  if (normalized.includes('start')) return 'fill-white stroke-green-600';
+  if (normalized.includes('end')) return 'fill-white stroke-red-600';
+  if (normalized.includes('gateway')) return 'fill-white stroke-orange-600';
   if (type === 'ErrorBoundaryEvent') return 'fill-white stroke-red-600';
   if (type === 'MessageBoundaryEvent') return 'fill-white stroke-blue-600';
   if (type === 'TimerEvent' && type.toLowerCase().includes('boundary')) return 'fill-white stroke-amber-600';
@@ -89,7 +101,9 @@ const getOrthogonalPath = (source: WorkflowNode, target: WorkflowNode): string =
 
 const collectEdges = (definition: WorkflowDefinition): Edge[] => {
   if (definition.flows && definition.flows.length > 0) {
-    return definition.flows.map((flow) => ({ from: flow.from, to: flow.to }));
+    return definition.flows
+      .map((flow) => ({ from: flow.from || flow.source || '', to: flow.to || flow.target || '' }))
+      .filter((flow) => flow.from.length > 0 && flow.to.length > 0);
   }
 
   const edges: Edge[] = [];
@@ -109,14 +123,98 @@ const isParticipant = (node: WorkflowNode): boolean => {
   return node.type === 'Participant' || node.type === 'Pool';
 };
 
+const hasDegenerateLayout = (nodes: WorkflowNode[]): boolean => {
+  const drawableNodes = nodes.filter((node) => !isParticipant(node));
+  if (drawableNodes.length <= 1) return false;
+
+  const positionKeys = new Set(drawableNodes.map((node) => `${Math.round(node.position?.x ?? 0)}:${Math.round(node.position?.y ?? 0)}`));
+  if (positionKeys.size <= Math.max(1, Math.floor(drawableNodes.length / 2))) return true;
+
+  const xs = drawableNodes.map((node) => node.position?.x ?? 0);
+  const ys = drawableNodes.map((node) => node.position?.y ?? 0);
+  const spreadX = Math.max(...xs) - Math.min(...xs);
+  const spreadY = Math.max(...ys) - Math.min(...ys);
+  return spreadX < 120 && spreadY < 90;
+};
+
+const autoLayoutNodes = (nodes: WorkflowNode[], edges: Edge[]): WorkflowNode[] => {
+  if (!hasDegenerateLayout(nodes)) return nodes;
+
+  const incoming = new Map<string, number>();
+  const outgoing = new Map<string, string[]>();
+  nodes.forEach((node) => {
+    incoming.set(node.id, 0);
+    outgoing.set(node.id, []);
+  });
+  edges.forEach((edge) => {
+    if (!incoming.has(edge.to) || !outgoing.has(edge.from)) return;
+    incoming.set(edge.to, (incoming.get(edge.to) ?? 0) + 1);
+    outgoing.set(edge.from, [...(outgoing.get(edge.from) ?? []), edge.to]);
+  });
+
+  const levels = new Map<string, number>();
+  const queue = nodes
+    .filter((node) => !isParticipant(node) && (incoming.get(node.id) ?? 0) === 0)
+    .map((node) => node.id);
+
+  if (queue.length === 0 && nodes[0]) queue.push(nodes[0].id);
+  queue.forEach((id) => levels.set(id, 0));
+
+  while (queue.length > 0) {
+    const id = queue.shift()!;
+    const nextLevel = (levels.get(id) ?? 0) + 1;
+    for (const targetId of outgoing.get(id) ?? []) {
+      if ((levels.get(targetId) ?? -1) >= nextLevel) continue;
+      levels.set(targetId, nextLevel);
+      queue.push(targetId);
+    }
+  }
+
+  nodes.forEach((node) => {
+    if (!levels.has(node.id) && !isParticipant(node)) {
+      levels.set(node.id, levels.size);
+    }
+  });
+
+  const rowsByLevel = new Map<number, WorkflowNode[]>();
+  nodes.filter((node) => !isParticipant(node) && !isBoundaryEvent(node)).forEach((node) => {
+    const level = levels.get(node.id) ?? 0;
+    rowsByLevel.set(level, [...(rowsByLevel.get(level) ?? []), node]);
+  });
+
+  const positions = new Map<string, { x: number; y: number }>();
+  Array.from(rowsByLevel.entries()).forEach(([level, levelNodes]) => {
+    const totalHeight = (levelNodes.length - 1) * 120;
+    levelNodes.forEach((node, row) => {
+      positions.set(node.id, {
+        x: 100 + level * 220,
+        y: 120 + row * 120 - totalHeight / 2
+      });
+    });
+  });
+
+  return nodes.map((node) => {
+    if (isParticipant(node)) return node;
+    if (isBoundaryEvent(node) && node.attachedTo) {
+      const parentPosition = positions.get(node.attachedTo);
+      if (parentPosition) {
+        const parentSize = getNodeSize(nodes.find((candidate) => candidate.id === node.attachedTo) ?? node);
+        return { ...node, position: { x: parentPosition.x + parentSize.width - 10, y: parentPosition.y + parentSize.height - 8 } };
+      }
+    }
+    return { ...node, position: positions.get(node.id) ?? node.position ?? { x: 100, y: 120 } };
+  });
+};
+
 export const WorkflowCanvas: React.FC<Props> = ({ definition, nodeHistory, currentNodes }) => {
   const [zoom, setZoom] = useState(1);
-  const nodes = definition.nodes ?? [];
-  if (nodes.length === 0) {
+  const rawNodes = definition.nodes ?? [];
+  if (rawNodes.length === 0) {
     return <p className="text-sm text-slate-500">No workflow nodes available for this definition.</p>;
   }
 
   const edges = collectEdges(definition);
+  const nodes = autoLayoutNodes(rawNodes, edges);
   const visitedSet = new Set(nodeHistory);
   const currentSet = new Set(currentNodes);
   const visitedEdges = new Set<string>();
@@ -321,7 +419,8 @@ export const WorkflowCanvas: React.FC<Props> = ({ definition, nodeHistory, curre
           const current = currentSet.has(node.id);
           const className = getNodeStyle(node.type, visited, current);
 
-          if (node.type === 'StartEvent' || node.type === 'EndEvent') {
+          const normalizedType = node.type.toLowerCase();
+          if (normalizedType.includes('start') || normalizedType.includes('end')) {
             return (
               <g key={node.id}>
                 <circle

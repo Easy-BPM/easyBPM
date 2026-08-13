@@ -43,6 +43,25 @@ class TestDataBootstrapIntegrationTest(
 
         assertThat(activeDefinition).isNotNull
         assertThat(completedDefinition).isNotNull
+        assertThat(
+            listOf(
+                "qa_user_task_forms",
+                "qa_gateway_routing",
+                "qa_api_components",
+                "qa_message_timer_events",
+                "qa_code_task_component",
+                "qa_agent_process_call"
+            ).mapNotNull { processDefinitionRepository.findTopByKeyOrderByVersionDesc(it)?.key }
+        ).containsExactlyInAnyOrder(
+            "qa_user_task_forms",
+            "qa_gateway_routing",
+            "qa_api_components",
+            "qa_message_timer_events",
+            "qa_code_task_component",
+            "qa_agent_process_call"
+        )
+        assertThat(processDefinitionRepository.findTopByKeyOrderByVersionDesc("qa_user_task_forms")!!.definitionJson)
+            .startsWith("<?xml")
 
         val activeInstances = processInstanceRepository.findByProcessDefinitionId(activeDefinition!!.id)
         val completedInstances = processInstanceRepository.findByProcessDefinitionId(completedDefinition!!.id)
@@ -95,7 +114,7 @@ class TestDataBootstrapIntegrationTest(
         assertThat(processDefinitionRepository.findTopByKeyOrderByVersionDesc("qa_message_timer_events")).isNotNull
         val codeTaskProcess = processDefinitionRepository.findTopByKeyOrderByVersionDesc("qa_code_task_component")
         assertThat(codeTaskProcess).isNotNull
-        assertThat(codeTaskProcess!!.definitionJson).contains("\"jarId\": ${testServiceJar.id}")
+        assertThat(codeTaskProcess!!.definitionJson).contains("\"jarId\":${testServiceJar.id}")
         assertThat(processDefinitionRepository.findTopByKeyOrderByVersionDesc("qa_agent_process_call")).isNotNull
     }
 }
