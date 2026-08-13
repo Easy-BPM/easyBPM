@@ -1,0 +1,98 @@
+services:
+  - type: pserv
+    name: easybpm-rabbitmq
+    runtime: docker
+    plan: starter
+    region: ohio
+    dockerfilePath: ./Dockerfile.rabbitmq
+    dockerContext: .
+    envVars:
+      - key: RABBITMQ_DEFAULT_USER
+        value: easybpm
+      - key: RABBITMQ_DEFAULT_PASS
+        generateValue: true
+    disk:
+      name: rabbitmq-data
+      mountPath: /var/lib/rabbitmq
+      sizeGB: 1
+
+  - type: web
+    name: easybpm-web
+    runtime: docker
+    plan: starter
+    region: ohio
+    branch: fly/test
+    dockerfilePath: ./Dockerfile.fly
+    dockerContext: .
+    dockerCommand: /app/bin/start-web.sh
+    healthCheckPath: /healthz
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: EASY_BPM_SERVER_SECURITY_JWT_SECRET
+        generateValue: true
+      - key: EASY_BPM_SERVER_SECURITY_BOOTSTRAP_ADMIN_PASSWORD
+        sync: false
+      - key: EASY_BPM_SERVER_ADDRESS
+        value: 127.0.0.1
+      - key: EASY_BPM_SERVER_PORT
+        value: 8081
+      - key: EASY_BPM_SERVER_LOGGING_LEVEL_APP
+        value: INFO
+      - key: EASY_BPM_SERVER_SECURITY_JWT_EXPIRATION_MS
+        value: "86400000"
+      - key: EASY_BPM_TEST_DATA
+        value: "false"
+      - key: EASY_BPM_SERVER_TEST_DATA_ENABLED
+        value: "false"
+      - key: JAVA_OPTS
+        value: "-XX:MaxRAMPercentage=70 -XX:+ExitOnOutOfMemoryError"
+      - key: EASY_BPM_SERVER_RABBITMQ_HOST
+        fromService:
+          type: pserv
+          name: easybpm-rabbitmq
+          property: host
+      - key: EASY_BPM_SERVER_RABBITMQ_PORT
+        value: "5672"
+      - key: EASY_BPM_SERVER_RABBITMQ_USERNAME
+        fromService:
+          type: pserv
+          name: easybpm-rabbitmq
+          envVarKey: RABBITMQ_DEFAULT_USER
+      - key: EASY_BPM_SERVER_RABBITMQ_PASSWORD
+        fromService:
+          type: pserv
+          name: easybpm-rabbitmq
+          envVarKey: RABBITMQ_DEFAULT_PASS
+
+  - type: worker
+    name: easybpm-worker
+    runtime: docker
+    plan: starter
+    region: ohio
+    branch: fly/test
+    dockerfilePath: ./Dockerfile.fly
+    dockerContext: .
+    dockerCommand: /app/bin/start-worker.sh
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: JAVA_OPTS
+        value: "-XX:MaxRAMPercentage=70 -XX:+ExitOnOutOfMemoryError"
+      - key: EASY_BPM_SERVER_RABBITMQ_HOST
+        fromService:
+          type: pserv
+          name: easybpm-rabbitmq
+          property: host
+      - key: EASY_BPM_SERVER_RABBITMQ_PORT
+        value: "5672"
+      - key: EASY_BPM_SERVER_RABBITMQ_USERNAME
+        fromService:
+          type: pserv
+          name: easybpm-rabbitmq
+          envVarKey: RABBITMQ_DEFAULT_USER
+      - key: EASY_BPM_SERVER_RABBITMQ_PASSWORD
+        fromService:
+          type: pserv
+          name: easybpm-rabbitmq
+          envVarKey: RABBITMQ_DEFAULT_PASS

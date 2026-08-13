@@ -1,6 +1,8 @@
 #!/usr/bin/env sh
 set -eu
 
+. /app/bin/render-env.sh
+
 export PORT="${PORT:-8080}"
 export EASY_BPM_SERVER_PORT="${EASY_BPM_SERVER_PORT:-8081}"
 export EASY_BPM_SERVER_ADDRESS="${EASY_BPM_SERVER_ADDRESS:-127.0.0.1}"
