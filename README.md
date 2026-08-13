@@ -131,10 +131,6 @@ Useful local URLs:
 | Modeler | `http://localhost:3000` |
 | Admin UI | `http://localhost:3001` |
 
-## Release Automation
-
-Use the `Release` GitHub Action to publish a new version. Provide the target version, optional previous tag, and release flags; the workflow updates version files, validates the build, creates an annotated `v*` tag, generates release notes from the commits between tags, creates the GitHub Release, and publishes all runtime Docker images with the release tag.
-
 ## Worker Throughput Benchmark
 
 The repository includes a benchmark script for the async worker path:
