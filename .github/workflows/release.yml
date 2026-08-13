@@ -1,0 +1,276 @@
+name: Release
+run-name: Release ${{ inputs.version }} from ${{ inputs.target_ref }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version, with or without the leading v, for example 0.1.2-beta.1 or v0.1.2-beta.1"
+        required: true
+        type: string
+      previous_tag:
+        description: "Previous release tag used for changelog generation. Leave empty to use the latest reachable v* tag."
+        required: false
+        type: string
+      target_ref:
+        description: "Branch or ref to release from."
+        required: true
+        default: "master"
+        type: string
+      update_version_files:
+        description: "Update Gradle, frontend package, and Helm version files before tagging."
+        required: true
+        default: true
+        type: boolean
+      run_validation:
+        description: "Run Gradle tests and frontend builds before tagging."
+        required: true
+        default: true
+        type: boolean
+      draft:
+        description: "Create the GitHub Release as a draft."
+        required: true
+        default: false
+        type: boolean
+      prerelease:
+        description: "Mark the GitHub Release as a prerelease."
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.event.inputs.version }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.meta.outputs.tag }}
+      previous_tag: ${{ steps.meta.outputs.previous_tag }}
+
+    steps:
+      - name: Checkout release ref
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.target_ref }}
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Prepare release metadata
+        id: meta
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          raw_version="${{ inputs.version }}"
+          version="${raw_version#v}"
+          tag="v${version}"
+
+          if [[ -z "${version}" ]]; then
+            echo "Version cannot be empty." >&2
+            exit 1
+          fi
+
+          if git rev-parse -q --verify "refs/tags/${tag}" >/dev/null; then
+            echo "Tag ${tag} already exists." >&2
+            exit 1
+          fi
+
+          previous_tag="${{ inputs.previous_tag }}"
+          if [[ -z "${previous_tag}" ]]; then
+            previous_tag="$(git describe --tags --match 'v*' --abbrev=0 2>/dev/null || true)"
+          fi
+
+          if [[ -n "${previous_tag}" ]] && ! git rev-parse -q --verify "refs/tags/${previous_tag}" >/dev/null; then
+            echo "Previous tag ${previous_tag} does not exist." >&2
+            exit 1
+          fi
+
+          {
+            echo "version=${version}"
+            echo "tag=${tag}"
+            echo "previous_tag=${previous_tag}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Update version files
+        if: inputs.update_version_files
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${{ steps.meta.outputs.version }}"
+          tag="${{ steps.meta.outputs.tag }}"
+
+          perl -0pi -e "s/version = \"[^\"]+\"/version = \"${version}\"/g" build.gradle.kts worker/build.gradle.kts
+          perl -0pi -e "s/version: [0-9A-Za-z.+-]+/version: ${version}/" deploy/helm/easybpm/Chart.yaml
+          perl -0pi -e "s/imageTag: [0-9A-Za-z.+-]+/imageTag: ${tag}/" deploy/helm/easybpm/values.yaml
+
+          node <<'NODE'
+          const fs = require('fs');
+          const version = process.env.RELEASE_VERSION;
+          const files = [
+            'easy-bpm-admin/package.json',
+            'easy-bpm-admin/package-lock.json',
+            'easy-bpm-modeler/package.json',
+            'easy-bpm-modeler/package-lock.json',
+            'easy-bpm-task-portal/package.json',
+            'easy-bpm-task-portal/package-lock.json',
+          ];
+
+          for (const file of files) {
+            const document = JSON.parse(fs.readFileSync(file, 'utf8'));
+            document.version = version;
+            if (document.packages?.['']) {
+              document.packages[''].version = version;
+            }
+            fs.writeFileSync(file, `${JSON.stringify(document, null, 2)}\n`);
+          }
+          NODE
+        env:
+          RELEASE_VERSION: ${{ steps.meta.outputs.version }}
+
+      - name: Set up Java 21
+        if: inputs.run_validation
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Node.js 22
+        if: inputs.run_validation
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: |
+            easy-bpm-admin/package-lock.json
+            easy-bpm-modeler/package-lock.json
+            easy-bpm-task-portal/package-lock.json
+
+      - name: Validate backend
+        if: inputs.run_validation
+        run: |
+          chmod +x ./gradlew
+          ./gradlew clean build --no-daemon -Dspring.profiles.active=test
+
+      - name: Validate frontends
+        if: inputs.run_validation
+        run: |
+          npm ci --prefix easy-bpm-admin
+          npm run build --prefix easy-bpm-admin
+          npm ci --prefix easy-bpm-modeler
+          npm run build --prefix easy-bpm-modeler
+          npm ci --prefix easy-bpm-task-portal
+          npm run build --prefix easy-bpm-task-portal
+
+      - name: Commit version update
+        if: inputs.update_version_files
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet; then
+            echo "No version files changed."
+            exit 0
+          fi
+
+          git add \
+            build.gradle.kts \
+            worker/build.gradle.kts \
+            deploy/helm/easybpm/Chart.yaml \
+            deploy/helm/easybpm/values.yaml \
+            easy-bpm-admin/package.json \
+            easy-bpm-admin/package-lock.json \
+            easy-bpm-modeler/package.json \
+            easy-bpm-modeler/package-lock.json \
+            easy-bpm-task-portal/package.json \
+            easy-bpm-task-portal/package-lock.json
+
+          git commit -m "Release ${{ steps.meta.outputs.tag }}"
+
+      - name: Generate release notes
+        id: notes
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="${{ steps.meta.outputs.tag }}"
+          previous_tag="${{ steps.meta.outputs.previous_tag }}"
+          notes_file="$RUNNER_TEMP/release-notes.md"
+
+          {
+            echo "## ${tag}"
+            echo
+            if [[ -n "${previous_tag}" ]]; then
+              echo "Changes since ${previous_tag}:"
+              echo
+              git log "${previous_tag}..HEAD" --no-merges --pretty=format:'- %s (%h)' || true
+              echo
+              echo
+              echo "Compare: https://github.com/${GITHUB_REPOSITORY}/compare/${previous_tag}...${tag}"
+            else
+              echo "Changes in this release:"
+              echo
+              git log --no-merges --pretty=format:'- %s (%h)' || true
+            fi
+          } > "${notes_file}"
+
+          echo "notes_file=${notes_file}" >> "$GITHUB_OUTPUT"
+
+      - name: Create and push tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="${{ steps.meta.outputs.tag }}"
+
+          git tag -a "${tag}" -m "Release ${tag}"
+          git push origin "HEAD:${{ inputs.target_ref }}"
+          git push origin "${tag}"
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="${{ steps.meta.outputs.tag }}"
+          args=("${tag}" "--title" "${tag}" "--notes-file" "${{ steps.notes.outputs.notes_file }}")
+
+          if [[ "${{ inputs.draft }}" == "true" ]]; then
+            args+=("--draft")
+          fi
+          if [[ "${{ inputs.prerelease }}" == "true" ]]; then
+            args+=("--prerelease")
+          fi
+
+          gh release create "${args[@]}"
+
+      - name: Release summary
+        shell: bash
+        run: |
+          {
+            echo "### Release created"
+            echo
+            echo "- Tag: \`${{ steps.meta.outputs.tag }}\`"
+            echo "- Previous tag: \`${{ steps.meta.outputs.previous_tag || 'first release' }}\`"
+            echo "- Release images: the \`Build Release Images\` job publishes all runtime images with the \`${{ steps.meta.outputs.tag }}\` tag."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  images:
+    name: Build Release Images
+    needs: release
+    uses: ./.github/workflows/release-images.yml
+    permissions:
+      contents: read
+      packages: write
+    secrets: inherit
+    with:
+      ref: ${{ needs.release.outputs.tag }}
+      image_tag: ${{ needs.release.outputs.tag }}
