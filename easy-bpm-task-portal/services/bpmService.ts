@@ -1,6 +1,6 @@
 import { Task, TaskStatus, ProcessDefinition, CompleteTaskPayload, Page, Form, AuthLoginResponse, AuthSession, DocumentMetadata, TaskSearchFilter } from '../types';
 
-const API_BASE_URL = (import.meta.env.EASY_BPM_TASK_PORTAL_API_BASE_URL || 'http://localhost:8080').replace(/\/$/, '');
+const API_BASE_URL = ((import.meta.env.EASY_BPM_TASK_PORTAL_API_BASE_URL as string | undefined) ?? 'http://localhost:8080').replace(/\/$/, '');
 const USE_MOCK = false;
 const AUTH_STORAGE_KEY = 'easybpm_portal_auth';
 
