@@ -67,13 +67,12 @@ class ProcessMessageRuntimeServiceTest : FunSpec() {
         }
 
         test("should start process when no subscription exists and message start matches") {
-            val definitionJson = """
-                {
-                  "nodes": [
+            val definitionJson = unitTestBpmnXml(
+                "message-start",
+                """[
                     {"id": "message-start", "type": "MessageStartEvent"}
-                  ]
-                }
-            """.trimIndent()
+                ]"""
+            )
             val definition = ProcessDefinition(id = 5, key = "message-start", definitionJson = definitionJson)
             val startNode = objectMapper.readTree("""{"id": "message-start", "type": "MessageStartEvent"}""")
             val variables = mapOf("customerId" to "c-1")
@@ -110,16 +109,15 @@ class ProcessMessageRuntimeServiceTest : FunSpec() {
         }
 
         test("should advance process when timer timeout targets a timer node") {
-            val definitionJson = """
-                {
-                  "nodes": [
+            val definitionJson = unitTestBpmnXml(
+                "message-process",
+                """[
                     {"id": "timer", "type": "TimerEvent"},
                     {"id": "next", "type": "HumanTask"}
-                  ]
-                }
-            """.trimIndent()
+                ]"""
+            )
             val instance = processInstance(definitionJson)
-            val definition = objectMapper.readTree(definitionJson)
+            val definition = internalJsonFromBpmn(definitionJson, objectMapper)
             val timerNode = definition.get("nodes")[0]
 
             every { processInstanceRepository.findByIdForUpdate(10) } returns instance

@@ -15,8 +15,6 @@ import com.easy.bpm.service.process.ProcessService
 import com.easy.bpm.service.task.TaskService
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.databind.node.ArrayNode
-import com.fasterxml.jackson.databind.node.ObjectNode
 import jakarta.transaction.Transactional
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
@@ -82,7 +80,7 @@ class TestDataBootstrap(
     }
 
     private fun deployActiveSupplierOnboardingDemo() {
-        val activeDefinition = processService.deployProcess(objectMapper.readTree(activeSupplierOnboardingProcess()))
+        val activeDefinition = processService.deployProcess(activeSupplierOnboardingProcess())
         logger.info(
             "Easy BPM test data deployed process '{}' version {} from legacy demo.",
             activeDefinition.key,
@@ -101,7 +99,7 @@ class TestDataBootstrap(
     }
 
     private fun deployCompletedExpenseApprovalDemo() {
-        val completedDefinition = processService.deployProcess(objectMapper.readTree(completedExpenseApprovalProcess()))
+        val completedDefinition = processService.deployProcess(completedExpenseApprovalProcess())
         logger.info(
             "Easy BPM test data deployed process '{}' version {} from legacy demo.",
             completedDefinition.key,
@@ -274,11 +272,11 @@ class TestDataBootstrap(
         }
 
         try {
-            val deployed = if (file.endsWith(".bpmn") || file.endsWith(".xml")) {
-                processService.deployProcess(prepareQaProcessXml(processId, resource.inputStream.use { it.bufferedReader().readText() }))
-            } else {
-                processService.deployProcess(prepareQaProcessJson(processId, resource.inputStream.use { objectMapper.readTree(it) }))
+            if (!file.endsWith(".bpmn") && !file.endsWith(".xml")) {
+                logger.warn("Easy BPM test data skipped QA process '{}' because '{}' is not BPMN XML.", processId, file)
+                return
             }
+            val deployed = processService.deployProcess(prepareQaProcessXml(processId, resource.inputStream.use { it.bufferedReader().readText() }))
             logger.info(
                 "Easy BPM test data deployed QA process '{}' version {} from '{}'.",
                 deployed.key,
@@ -316,22 +314,6 @@ class TestDataBootstrap(
         }
     }
 
-    private fun prepareQaProcessJson(processId: String, json: JsonNode): JsonNode {
-        if (processId != QA_CODE_TASK_PROCESS_ID) {
-            return json
-        }
-
-        val testServiceJarId = qaJarIds["test-service"] ?: return json
-        val copy = json.deepCopy<ObjectNode>()
-        replaceJarIds(copy, testServiceJarId)
-        logger.info(
-            "Easy BPM test data bound QA process '{}' to QA JAR database id {}.",
-            processId,
-            testServiceJarId
-        )
-        return copy
-    }
-
     private fun prepareQaProcessXml(processId: String, xml: String): String {
         if (processId != QA_CODE_TASK_PROCESS_ID) {
             return xml
@@ -344,18 +326,6 @@ class TestDataBootstrap(
             testServiceJarId
         )
         return Regex(""""jarId"\s*:\s*\d+""").replace(xml, """"jarId":$testServiceJarId""")
-    }
-
-    private fun replaceJarIds(node: JsonNode, jarId: Long) {
-        when (node) {
-            is ObjectNode -> {
-                if (node.has("jarId")) {
-                    node.put("jarId", jarId)
-                }
-                node.properties().forEach { (_, child) -> replaceJarIds(child, jarId) }
-            }
-            is ArrayNode -> node.forEach { child -> replaceJarIds(child, jarId) }
-        }
     }
 
     private fun readQaJson(relativePath: String): JsonNode? {
@@ -374,69 +344,77 @@ class TestDataBootstrap(
 
     private fun activeSupplierOnboardingProcess() =
         """
-        {
-          "processId": "$ACTIVE_APPROVAL_KEY",
-          "processName": "Test Supplier Onboarding",
-          "description": "Seeded process used to test active instances, tasks and variables.",
-          "nodes": [
-            { "id": "start", "name": "Start", "type": "StartEvent", "next": ["review-supplier"] },
-            {
-              "id": "review-supplier",
-              "name": "Review supplier onboarding",
-              "type": "HumanTask",
-              "next": ["end"],
-              "config": {
-                "inputs": [
-                  { "targetName": "supplierName", "type": "string", "source": "variable", "value": "supplierName" },
-                  { "targetName": "riskScore", "type": "number", "source": "variable", "value": "riskScore" },
-                  { "targetName": "contractValue", "type": "number", "source": "variable", "value": "contractValue" }
-                ],
-                "outputs": [
-                  { "sourceName": "approved", "type": "boolean", "target": "variable", "value": "supplierApproved" }
-                ]
-              }
-            },
-            { "id": "end", "name": "End", "type": "EndEvent", "next": [] }
-          ],
-          "flows": [
-            { "from": "start", "to": "review-supplier", "condition": null },
-            { "from": "review-supplier", "to": "end", "condition": null }
-          ]
-        }
+        <?xml version="1.0" encoding="UTF-8"?>
+        <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:easy="https://easybpm.local/bpmn/extensions" id="Definitions_$ACTIVE_APPROVAL_KEY" targetNamespace="https://easybpm.local/process/$ACTIVE_APPROVAL_KEY">
+          <bpmn:process id="$ACTIVE_APPROVAL_KEY" name="Test Supplier Onboarding" isExecutable="true">
+            <bpmn:extensionElements>
+              <easy:metadata><![CDATA[{"description":"Seeded process used to test active instances, tasks and variables."}]]></easy:metadata>
+            </bpmn:extensionElements>
+            <bpmn:startEvent id="start" name="Start">
+              <bpmn:extensionElements>
+                <easy:node><![CDATA[{"id":"start","name":"Start","type":"StartEvent","next":["review-supplier"]}]]></easy:node>
+              </bpmn:extensionElements>
+            </bpmn:startEvent>
+            <bpmn:userTask id="review-supplier" name="Review supplier onboarding">
+              <bpmn:extensionElements>
+                <easy:node><![CDATA[{"id":"review-supplier","name":"Review supplier onboarding","type":"HumanTask","next":["end"],"config":{"inputs":[{"targetName":"supplierName","type":"string","source":"variable","value":"supplierName"},{"targetName":"riskScore","type":"number","source":"variable","value":"riskScore"},{"targetName":"contractValue","type":"number","source":"variable","value":"contractValue"}],"outputs":[{"sourceName":"approved","type":"boolean","target":"variable","value":"supplierApproved"}]}}]]></easy:node>
+              </bpmn:extensionElements>
+            </bpmn:userTask>
+            <bpmn:endEvent id="end" name="End">
+              <bpmn:extensionElements>
+                <easy:node><![CDATA[{"id":"end","name":"End","type":"EndEvent","next":[]}]]></easy:node>
+              </bpmn:extensionElements>
+            </bpmn:endEvent>
+            <bpmn:sequenceFlow id="flow_start_review_supplier" sourceRef="start" targetRef="review-supplier"/>
+            <bpmn:sequenceFlow id="flow_review_supplier_end" sourceRef="review-supplier" targetRef="end"/>
+          </bpmn:process>
+          <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+            <bpmndi:BPMNPlane id="BPMNPlane_1">
+              <bpmndi:BPMNShape id="start_di" bpmnElement="start"><dc:Bounds x="120" y="160" width="56" height="56"/></bpmndi:BPMNShape>
+              <bpmndi:BPMNShape id="review-supplier_di" bpmnElement="review-supplier"><dc:Bounds x="260" y="138" width="190" height="100"/></bpmndi:BPMNShape>
+              <bpmndi:BPMNShape id="end_di" bpmnElement="end"><dc:Bounds x="540" y="160" width="56" height="56"/></bpmndi:BPMNShape>
+              <bpmndi:BPMNEdge id="flow_start_review_supplier_di" bpmnElement="flow_start_review_supplier"><di:waypoint x="176" y="188"/><di:waypoint x="260" y="188"/></bpmndi:BPMNEdge>
+              <bpmndi:BPMNEdge id="flow_review_supplier_end_di" bpmnElement="flow_review_supplier_end"><di:waypoint x="450" y="188"/><di:waypoint x="540" y="188"/></bpmndi:BPMNEdge>
+            </bpmndi:BPMNPlane>
+          </bpmndi:BPMNDiagram>
+        </bpmn:definitions>
         """.trimIndent()
 
     private fun completedExpenseApprovalProcess() =
         """
-        {
-          "processId": "$COMPLETED_APPROVAL_KEY",
-          "processName": "Test Expense Approval",
-          "description": "Seeded process used to test completed instances, completed tasks and final variables.",
-          "nodes": [
-            { "id": "start", "name": "Start", "type": "StartEvent", "next": ["approve-expense"] },
-            {
-              "id": "approve-expense",
-              "name": "Approve expense",
-              "type": "HumanTask",
-              "next": ["end"],
-              "config": {
-                "inputs": [
-                  { "targetName": "requester", "type": "string", "source": "variable", "value": "requester" },
-                  { "targetName": "amount", "type": "number", "source": "variable", "value": "amount" },
-                  { "targetName": "costCenter", "type": "string", "source": "variable", "value": "costCenter" }
-                ],
-                "outputs": [
-                  { "sourceName": "decision", "type": "string", "target": "variable", "value": "decision" },
-                  { "sourceName": "approvedBy", "type": "string", "target": "variable", "value": "approvedBy" },
-                  { "sourceName": "approvalComment", "type": "string", "target": "variable", "value": "approvalComment" }
-                ]
-              }
-            },
-            { "id": "end", "name": "End", "type": "EndEvent", "next": [] }
-          ],
-          "flows": [
-            { "from": "start", "to": "approve-expense", "condition": null },
-            { "from": "approve-expense", "to": "end", "condition": null }
-          ]
-        }
+        <?xml version="1.0" encoding="UTF-8"?>
+        <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:easy="https://easybpm.local/bpmn/extensions" id="Definitions_$COMPLETED_APPROVAL_KEY" targetNamespace="https://easybpm.local/process/$COMPLETED_APPROVAL_KEY">
+          <bpmn:process id="$COMPLETED_APPROVAL_KEY" name="Test Expense Approval" isExecutable="true">
+            <bpmn:extensionElements>
+              <easy:metadata><![CDATA[{"description":"Seeded process used to test completed instances, completed tasks and final variables."}]]></easy:metadata>
+            </bpmn:extensionElements>
+            <bpmn:startEvent id="start" name="Start">
+              <bpmn:extensionElements>
+                <easy:node><![CDATA[{"id":"start","name":"Start","type":"StartEvent","next":["approve-expense"]}]]></easy:node>
+              </bpmn:extensionElements>
+            </bpmn:startEvent>
+            <bpmn:userTask id="approve-expense" name="Approve expense">
+              <bpmn:extensionElements>
+                <easy:node><![CDATA[{"id":"approve-expense","name":"Approve expense","type":"HumanTask","next":["end"],"config":{"inputs":[{"targetName":"requester","type":"string","source":"variable","value":"requester"},{"targetName":"amount","type":"number","source":"variable","value":"amount"},{"targetName":"costCenter","type":"string","source":"variable","value":"costCenter"}],"outputs":[{"sourceName":"decision","type":"string","target":"variable","value":"decision"},{"sourceName":"approvedBy","type":"string","target":"variable","value":"approvedBy"},{"sourceName":"approvalComment","type":"string","target":"variable","value":"approvalComment"}]}}]]></easy:node>
+              </bpmn:extensionElements>
+            </bpmn:userTask>
+            <bpmn:endEvent id="end" name="End">
+              <bpmn:extensionElements>
+                <easy:node><![CDATA[{"id":"end","name":"End","type":"EndEvent","next":[]}]]></easy:node>
+              </bpmn:extensionElements>
+            </bpmn:endEvent>
+            <bpmn:sequenceFlow id="flow_start_approve_expense" sourceRef="start" targetRef="approve-expense"/>
+            <bpmn:sequenceFlow id="flow_approve_expense_end" sourceRef="approve-expense" targetRef="end"/>
+          </bpmn:process>
+          <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+            <bpmndi:BPMNPlane id="BPMNPlane_1">
+              <bpmndi:BPMNShape id="start_di" bpmnElement="start"><dc:Bounds x="120" y="160" width="56" height="56"/></bpmndi:BPMNShape>
+              <bpmndi:BPMNShape id="approve-expense_di" bpmnElement="approve-expense"><dc:Bounds x="260" y="138" width="190" height="100"/></bpmndi:BPMNShape>
+              <bpmndi:BPMNShape id="end_di" bpmnElement="end"><dc:Bounds x="540" y="160" width="56" height="56"/></bpmndi:BPMNShape>
+              <bpmndi:BPMNEdge id="flow_start_approve_expense_di" bpmnElement="flow_start_approve_expense"><di:waypoint x="176" y="188"/><di:waypoint x="260" y="188"/></bpmndi:BPMNEdge>
+              <bpmndi:BPMNEdge id="flow_approve_expense_end_di" bpmnElement="flow_approve_expense_end"><di:waypoint x="450" y="188"/><di:waypoint x="540" y="188"/></bpmndi:BPMNEdge>
+            </bpmndi:BPMNPlane>
+          </bpmndi:BPMNDiagram>
+        </bpmn:definitions>
         """.trimIndent()
 }

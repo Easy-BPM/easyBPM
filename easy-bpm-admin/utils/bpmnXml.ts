@@ -57,7 +57,7 @@ const uniqueElements = (elements: Element[]): Element[] => Array.from(new Set(el
 
 export const parseWorkflowDefinition = (raw: string): WorkflowDefinition => {
   if (!raw.trimStart().startsWith('<')) {
-    return JSON.parse(raw) as WorkflowDefinition;
+    throw new Error('Process definitions must be BPMN XML');
   }
 
   const doc = new DOMParser().parseFromString(raw, 'application/xml');

@@ -45,7 +45,7 @@ class ProcessServiceTest : FunSpec() {
     val mockTaskVariableRepository = mockk<TaskVariableRepository>()
     val mockFormService = mockk<FormService>()
     val mockTaskRepository = mockk<TaskRepository>()
-    val mockObjectMapper = mockk<ObjectMapper>()
+    val mockObjectMapper = spyk(ObjectMapper())
     val mockRabbitPublisher = mockk<com.easy.bpm.messaging.RabbitPublisher>(relaxed = true)
     val mockGatewayService = mockk<GatewayService>()
     val mockMessageSubscriptionService = mockk<MessageSubscriptionService>()
@@ -207,73 +207,65 @@ class ProcessServiceTest : FunSpec() {
     context("deployProcess") {
         test("should deploy a new process definition successfully") {
             // Arrange
-            val processJson = objectMapper.readTree("""
-                {
-                    "processId": "my-process",
-                    "version": 1,
-                    "nodes": [],
-                    "flows": []
-                }
-            """.trimIndent())
+            val processXml = """
+                <?xml version="1.0" encoding="UTF-8"?>
+                <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL">
+                  <bpmn:process id="my-process" name="my-process" isExecutable="true"/>
+                </bpmn:definitions>
+            """.trimIndent()
 
             val expectedDefinition = ProcessDefinition(
                 id = 1,
                 processName = "my-process",
-                definitionJson = processJson.toString(),
+                definitionJson = processXml,
                 version = 1
             )
-            every { mockDeploymentService.deployProcess(processJson) } returns expectedDefinition
+            every { mockDeploymentService.deployProcess(processXml) } returns expectedDefinition
 
             // Act
-            val result = processService.deployProcess(processJson)
+            val result = processService.deployProcess(processXml)
 
             // Assert
             result shouldNotBe null
             result.processName shouldBe "my-process"
             result.version shouldBe 1
-            verify { mockDeploymentService.deployProcess(processJson) }
+            verify { mockDeploymentService.deployProcess(processXml) }
         }
 
         test("should increment version for existing process definition") {
             // Arrange
-            val processJson = objectMapper.readTree("""
-                {
-                    "processId": "my-process",
-                    "version": 1,
-                    "nodes": [],
-                    "flows": []
-                }
-            """.trimIndent())
+            val processXml = """
+                <?xml version="1.0" encoding="UTF-8"?>
+                <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL">
+                  <bpmn:process id="my-process" name="my-process" isExecutable="true"/>
+                </bpmn:definitions>
+            """.trimIndent()
 
             val expectedDefinition = ProcessDefinition(
                 id = 2,
                 processName = "my-process",
-                definitionJson = processJson.toString(),
+                definitionJson = processXml,
                 version = 2
             )
-            every { mockDeploymentService.deployProcess(processJson) } returns expectedDefinition
+            every { mockDeploymentService.deployProcess(processXml) } returns expectedDefinition
 
             // Act
-            val result = processService.deployProcess(processJson)
+            val result = processService.deployProcess(processXml)
 
             // Assert
             result.version shouldBe 2
-            verify { mockDeploymentService.deployProcess(processJson) }
+            verify { mockDeploymentService.deployProcess(processXml) }
         }
 
         test("should throw exception for invalid process definition") {
             // Arrange
-            val invalidJson = objectMapper.readTree("""
-                {
-                    "version": 1
-                }
-            """.trimIndent())
+            val invalidDefinition = """{"version":1}"""
 
-            every { mockDeploymentService.deployProcess(invalidJson) } throws IllegalArgumentException("Invalid process definition")
+            every { mockDeploymentService.deployProcess(invalidDefinition) } throws IllegalArgumentException("Process definitions must be deployed as BPMN XML")
 
             // Act & Assert
             shouldThrow<IllegalArgumentException> {
-                processService.deployProcess(invalidJson)
+                processService.deployProcess(invalidDefinition)
             }
         }
     }
@@ -296,7 +288,7 @@ class ProcessServiceTest : FunSpec() {
             val definition = ProcessDefinition(
                 id = definitionId,
                 processName = "simple-process",
-                definitionJson = """{"processId":"simple","nodes":[],"flows":[]}""",
+                definitionJson = unitTestBpmnXml("simple", "[]"),
                 version = 1
             )
 
@@ -489,16 +481,13 @@ class ProcessServiceTest : FunSpec() {
         test("should remove pending task on source node and create pending task on target user task") {
             // Arrange
             val processInstanceId = 55L
-            val definitionJson = """
-                {
-                  "processId": "approval",
-                  "nodes": [
+            val definitionJson = unitTestBpmnXml(
+                "approval",
+                """[
                     {"id": "manual-review", "type": "HumanTask", "name": "Manual Review"},
                     {"id": "approve-request", "type": "HumanTask", "name": "Approve Request"}
-                  ],
-                  "flows": []
-                }
-            """.trimIndent()
+                ]"""
+            )
 
             val definition = ProcessDefinition(
                 id = 10,
@@ -524,7 +513,7 @@ class ProcessServiceTest : FunSpec() {
 
             every { mockProcessInstanceRepository.findById(processInstanceId) } returns Optional.of(instance)
             every { mockProcessInstanceRepository.findByIdForUpdate(processInstanceId) } returns instance
-            every { mockObjectMapper.readTree(definitionJson) } returns objectMapper.readTree(definitionJson)
+            every { mockObjectMapper.readTree(definitionJson) } returns internalJsonFromBpmn(definitionJson, objectMapper)
 
             every {
                 mockTaskRepository.findByProcessInstanceIdAndNodeIdAndStatus(
@@ -574,18 +563,16 @@ class ProcessServiceTest : FunSpec() {
         test("should mark instance as FAILED when no attached error boundary exists") {
             // Arrange
             val processInstanceId = 77L
-            val definitionJson = """
-                {
-                  "processId": "api-no-boundary",
-                  "nodes": [
+            val definitionJson = unitTestBpmnXml(
+                "api-no-boundary",
+                """[
                     {"id": "api-task", "type": "APITask", "next": ["end"]},
                     {"id": "end", "type": "EndEvent"}
-                  ],
-                  "flows": [
+                ]""",
+                """[
                     {"from": "api-task", "to": "end", "condition": null}
-                  ]
-                }
-            """.trimIndent()
+                ]"""
+            )
 
             val definition = ProcessDefinition(
                 id = 30,
@@ -604,7 +591,7 @@ class ProcessServiceTest : FunSpec() {
 
             every { mockProcessInstanceRepository.findById(processInstanceId) } returns Optional.of(instance)
             every { mockProcessInstanceRepository.findByIdForUpdate(processInstanceId) } returns instance
-            every { mockObjectMapper.readTree(definitionJson) } returns objectMapper.readTree(definitionJson)
+            every { mockObjectMapper.readTree(definitionJson) } returns internalJsonFromBpmn(definitionJson, objectMapper)
             every { mockProcessInstanceRepository.save(any<ProcessInstance>()) } answers { firstArg<ProcessInstance>() }
 
             // Act
