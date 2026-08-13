@@ -19,6 +19,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   isExportDisabled,
   validationErrors = [],
   validationWarnings = [],
+  currentView,
+  onViewChange,
   theme,
   onToggleTheme
 }) => {
@@ -35,6 +37,22 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 
       <div className="flex items-center gap-3 flex-wrap justify-end">
         <ThemeToggle theme={theme} onToggle={onToggleTheme} />
+        <div className="inline-flex rounded-md border border-slate-200 bg-white/80 p-0.5 text-xs shadow-sm">
+          <button
+            type="button"
+            onClick={() => onViewChange('bpmn')}
+            className={`px-3 py-1.5 rounded ${currentView === 'bpmn' ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
+          >
+            BPMN
+          </button>
+          <button
+            type="button"
+            onClick={() => onViewChange('xml')}
+            className={`px-3 py-1.5 rounded ${currentView === 'xml' ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
+          >
+            XML
+          </button>
+        </div>
         <button 
           onClick={onClear}
           className="modeler-ghost-button px-3 py-1.5 text-xs font-medium rounded-md transition-colors"

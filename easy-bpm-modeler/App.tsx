@@ -24,6 +24,7 @@ import { Toaster, toast } from 'sonner';
 import { isAuthRequiredError, processService, fetchWithAuth } from './services/processService';
 import { formService } from './services/formService';
 import { downloadForm, importForm, generateJsonSchema } from './utils/formUtils';
+import { bpmnXmlToProcessDefinition, isBpmnXml, processDefinitionToBpmnXml } from './utils/bpmnXml';
 import { featureFlags } from './config/featureFlags';
 import { getModelerApiBaseUrl } from './config/runtimeConfig';
 
@@ -65,6 +66,7 @@ const App: React.FC = () => {
    const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
    const [isDeployingProcess, setIsDeployingProcess] = useState(false);
    const [isPropertiesPanelVisible, setIsPropertiesPanelVisible] = useState(true);
+   const [processView, setProcessView] = useState<AppView>('bpmn');
 
    // Form editor state
    const [formLibrary, setFormLibrary] = useState<Map<string, FormDefinition>>(new Map());
@@ -761,18 +763,21 @@ const App: React.FC = () => {
     };
   };
 
+  const currentProcessXml = useMemo(
+    () => processDefinitionToBpmnXml(buildExportObject()),
+    [nodes, edges, variables, processId, processName]
+  );
+
   const handleExport = () => {
     if (!validationState.isValid) {
       toast.error(validationState.errors[0] || 'Validation failed. Resolve BPM issues before export.');
       return;
     }
 
-    const exportObject = buildExportObject();
-
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportObject, null, 2));
+    const dataStr = "data:application/xml;charset=utf-8," + encodeURIComponent(currentProcessXml);
     const link = document.createElement('a');
     link.href = dataStr;
-    link.download = `${processId || 'process'}.json`;
+    link.download = `${processId || 'process'}.bpmn`;
     link.click();
   };
 
@@ -785,7 +790,7 @@ const App: React.FC = () => {
 
     setIsDeployingProcess(true);
     try {
-      await processService.deployProcess(buildExportObject());
+      await processService.deployProcess(currentProcessXml);
       toast.success('Process deployed successfully.');
     } catch (error) {
       if (isAuthRequiredError(error)) {
@@ -809,6 +814,7 @@ const App: React.FC = () => {
     setProcessName('');
     setSelectedNodeUids([]);
     setSelectedEdgeId(null);
+    setProcessView('bpmn');
     setEditorMode('process-editor');
   };
 
@@ -828,6 +834,10 @@ const App: React.FC = () => {
   };
 
   const handleImport = (data: any) => {
+    if (typeof data === 'string' && isBpmnXml(data)) {
+      handleImport(bpmnXmlToProcessDefinition(data));
+      return;
+    }
     if (!data || !data.nodes) return;
 
     const reverseTypeMapping: Record<string, NodeType> = {
@@ -1258,39 +1268,51 @@ const App: React.FC = () => {
           isExportDisabled={!validationState.isValid}
           validationErrors={validationState.errors}
           validationWarnings={validationState.warnings}
-          currentView="bpmn"
-          onViewChange={() => {}}
+          currentView={processView}
+          onViewChange={setProcessView}
           theme={theme}
           onToggleTheme={toggleTheme}
         />
 
         {/* Canvas */}
         <div className="flex flex-1 overflow-hidden">
-          <Palette
-            onDragStart={(e, type) => e.dataTransfer.setData('application/reactflow', type)}
-            isAgenticOrchestrationEnabled={featureFlags.agenticOrchestration}
-          />
-          <div className="flex-1 relative flex flex-col">
-            <button
-              type="button"
-              onClick={() => setIsPropertiesPanelVisible((visible) => !visible)}
-              className="absolute right-4 top-16 z-30 flex h-9 w-9 items-center justify-center rounded-md border border-slate-200 bg-white/95 text-slate-600 shadow-sm backdrop-blur-sm transition-colors hover:bg-slate-100 hover:text-slate-900"
-              title={isPropertiesPanelVisible ? 'Hide properties panel' : 'Show properties panel'}
-              aria-label={isPropertiesPanelVisible ? 'Hide properties panel' : 'Show properties panel'}
-            >
-              {isPropertiesPanelVisible ? <PanelRightClose className="h-4 w-4" /> : <PanelRightOpen className="h-4 w-4" />}
-            </button>
-            <Canvas 
-              nodes={nodes} edges={edges} selectedNodeUids={selectedNodeUids} selectedEdgeId={selectedEdgeId}
-              invalidNodeUids={invalidNodeUids}
-              warningNodeUids={warningNodeUids}
-              invalidEdgeIds={invalidEdgeIds}
-              warningEdgeIds={warningEdgeIds}
-              onSelectNodes={setSelectedNodeUids} onSelectEdge={setSelectedEdgeId}
-              onNodesChange={setNodes} onEdgesChange={setEdges} onDrop={handleDrop}
+          {processView === 'bpmn' && (
+            <Palette
+              onDragStart={(e, type) => e.dataTransfer.setData('application/reactflow', type)}
+              isAgenticOrchestrationEnabled={featureFlags.agenticOrchestration}
             />
+          )}
+          <div className="flex-1 relative flex flex-col">
+            {processView === 'bpmn' ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setIsPropertiesPanelVisible((visible) => !visible)}
+                  className="absolute right-4 top-16 z-30 flex h-9 w-9 items-center justify-center rounded-md border border-slate-200 bg-white/95 text-slate-600 shadow-sm backdrop-blur-sm transition-colors hover:bg-slate-100 hover:text-slate-900"
+                  title={isPropertiesPanelVisible ? 'Hide properties panel' : 'Show properties panel'}
+                  aria-label={isPropertiesPanelVisible ? 'Hide properties panel' : 'Show properties panel'}
+                >
+                  {isPropertiesPanelVisible ? <PanelRightClose className="h-4 w-4" /> : <PanelRightOpen className="h-4 w-4" />}
+                </button>
+                <Canvas 
+                  nodes={nodes} edges={edges} selectedNodeUids={selectedNodeUids} selectedEdgeId={selectedEdgeId}
+                  invalidNodeUids={invalidNodeUids}
+                  warningNodeUids={warningNodeUids}
+                  invalidEdgeIds={invalidEdgeIds}
+                  warningEdgeIds={warningEdgeIds}
+                  onSelectNodes={setSelectedNodeUids} onSelectEdge={setSelectedEdgeId}
+                  onNodesChange={setNodes} onEdgesChange={setEdges} onDrop={handleDrop}
+                />
+              </>
+            ) : (
+              <div className="h-full overflow-auto bg-slate-950 p-6">
+                <pre className="min-h-full whitespace-pre-wrap break-words rounded border border-slate-800 bg-slate-900 p-4 text-xs leading-5 text-slate-100">
+                  {currentProcessXml}
+                </pre>
+              </div>
+            )}
           </div>
-          {isPropertiesPanelVisible && (
+          {processView === 'bpmn' && isPropertiesPanelVisible && (
             <PropertiesPanel
               selectedNodeUids={selectedNodeUids}
               nodes={nodes}

@@ -14,6 +14,7 @@ export interface ProcessDefinition {
   description?: string;
   version: number;
   definitionJson?: string;
+  definitionXml?: string;
 }
 
 export interface ProcessDefinitionSummary {

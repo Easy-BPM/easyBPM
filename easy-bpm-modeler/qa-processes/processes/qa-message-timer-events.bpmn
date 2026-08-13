@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:easy="https://easybpm.local/bpmn/extensions" id="Definitions_qa_message_timer_events" targetNamespace="https://easybpm.local/process/qa_message_timer_events">
+  <bpmn:process id="qa_message_timer_events" name="QA Message and Timer Events" isExecutable="true">
+    <bpmn:extensionElements>
+      <easy:variables><![CDATA[[{"name":"caseId","type":"string","initialValue":"CASE-1001"},{"name":"messagePayload","type":"json","initialValue":"{}"},{"name":"invoiceReceived","type":"boolean","initialValue":"false"},{"name":"timerStatus","type":"string","initialValue":""}]]]></easy:variables>
+      <easy:metadata><![CDATA[{"version":"1.0","purpose":"Modeler QA for message start, intermediate catch/throw, payload mappings, and timer event configuration.","backendDeployNote":"Current backend NodeType enum does not include MessageStartEvent, so use this as a modeler import/export QA asset unless backend support is added."}]]></easy:metadata>
+    </bpmn:extensionElements>
+    <bpmn:startEvent id="message_start" name="Case Created Message">
+      <bpmn:extensionElements>
+        <easy:node><![CDATA[{"id":"message_start","name":"Case Created Message","type":"MessageStartEvent","position":{"x":80,"y":240},"width":40,"height":40,"next":["wait_invoice"],"message":{"name":"qa.case.created","correlationKeys":["caseId"],"timeoutSeconds":null,"payload":[{"source":"variable","sourceName":"payload","sourceValue":"payload","target":"variable","targetVariable":"messagePayload","type":"json","value":"messagePayload"}]},"properties":{"messageName":"qa.case.created","correlationKey":"caseId","timeoutSeconds":null}}]]></easy:node>
+      </bpmn:extensionElements>
+      <bpmn:messageEventDefinition/>
+    </bpmn:startEvent>
+    <bpmn:intermediateCatchEvent id="wait_invoice" name="Wait Invoice">
+      <bpmn:extensionElements>
+        <easy:node><![CDATA[{"id":"wait_invoice","name":"Wait Invoice","type":"MessageIntermediateCatchEvent","position":{"x":280,"y":220},"width":120,"height":60,"next":["sla_timer"],"message":{"name":"qa.invoice.received","correlationKeys":["caseId"],"timeoutSeconds":300,"payload":[{"source":"variable","sourceName":"invoiceReceived","sourceValue":"invoiceReceived","target":"variable","targetVariable":"invoiceReceived","type":"boolean","value":"invoiceReceived"}]}}]]></easy:node>
+      </bpmn:extensionElements>
+      <bpmn:messageEventDefinition/>
+    </bpmn:intermediateCatchEvent>
+    <bpmn:intermediateCatchEvent id="sla_timer" name="SLA Timer">
+      <bpmn:extensionElements>
+        <easy:node><![CDATA[{"id":"sla_timer","name":"SLA Timer","type":"TimerEvent","position":{"x":500,"y":240},"width":40,"height":40,"next":["throw_status"],"properties":{"timeoutSeconds":60}}]]></easy:node>
+      </bpmn:extensionElements>
+      <bpmn:timerEventDefinition/>
+    </bpmn:intermediateCatchEvent>
+    <bpmn:intermediateThrowEvent id="throw_status" name="Throw Status">
+      <bpmn:extensionElements>
+        <easy:node><![CDATA[{"id":"throw_status","name":"Throw Status","type":"MessageIntermediateThrowEvent","position":{"x":700,"y":220},"width":120,"height":60,"next":["end"],"message":{"name":"qa.case.status.changed","correlationKeys":["caseId"],"timeoutSeconds":null,"payload":[{"targetName":"invoiceReceived","type":"boolean","source":"variable","value":"invoiceReceived"},{"targetName":"timerStatus","type":"string","source":"static","value":"SLA_TIMER_PASSED"}]}}]]></easy:node>
+      </bpmn:extensionElements>
+      <bpmn:messageEventDefinition/>
+    </bpmn:intermediateThrowEvent>
+    <bpmn:endEvent id="end" name="End">
+      <bpmn:extensionElements>
+        <easy:node><![CDATA[{"id":"end","name":"End","type":"EndEvent","position":{"x":920,"y":240},"width":40,"height":40,"next":[]}]]></easy:node>
+      </bpmn:extensionElements>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_1_message_start_wait_invoice" sourceRef="message_start" targetRef="wait_invoice"/>
+    <bpmn:sequenceFlow id="Flow_2_wait_invoice_sla_timer" sourceRef="wait_invoice" targetRef="sla_timer"/>
+    <bpmn:sequenceFlow id="Flow_3_sla_timer_throw_status" sourceRef="sla_timer" targetRef="throw_status"/>
+    <bpmn:sequenceFlow id="Flow_4_throw_status_end" sourceRef="throw_status" targetRef="end"/>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1">
+      <bpmndi:BPMNShape id="message_start_di" bpmnElement="message_start">
+        <dc:Bounds x="80" y="240" width="40" height="40"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="wait_invoice_di" bpmnElement="wait_invoice">
+        <dc:Bounds x="280" y="220" width="120" height="60"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="sla_timer_di" bpmnElement="sla_timer">
+        <dc:Bounds x="500" y="240" width="40" height="40"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="throw_status_di" bpmnElement="throw_status">
+        <dc:Bounds x="700" y="220" width="120" height="60"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_di" bpmnElement="end">
+        <dc:Bounds x="920" y="240" width="40" height="40"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_1_message_start_wait_invoice_di" bpmnElement="Flow_1_message_start_wait_invoice">
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_2_wait_invoice_sla_timer_di" bpmnElement="Flow_2_wait_invoice_sla_timer">
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_3_sla_timer_throw_status_di" bpmnElement="Flow_3_sla_timer_throw_status">
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_4_throw_status_end_di" bpmnElement="Flow_4_throw_status_end">
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

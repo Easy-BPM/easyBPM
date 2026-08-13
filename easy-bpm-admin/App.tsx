@@ -27,6 +27,7 @@ import { TaskResourcesView } from './components/TaskResourcesView';
 import { ThemeMode, ThemeToggle } from './components/ThemeToggle';
 import { adminService } from './services/adminService';
 import { ProcessDefinition, ProcessInstance, ProcessInstanceEvent, ProcessVariable, WorkflowDefinition } from './types';
+import { parseWorkflowDefinition } from './utils/bpmnXml';
 
 const App: React.FC = () => {
   const [theme, setTheme] = useState<ThemeMode>(() => {
@@ -285,12 +286,13 @@ const InstanceExplorerView: React.FC<{ initialInstanceId?: number | null }> = ({
     setWorkflowLoading(true);
     try {
       const definition = await adminService.getProcessDefinitionById(definitionId);
-      if (!definition?.definitionJson) {
-        setWorkflowError('Definition JSON is not available for this deployed version.');
+      const rawDefinition = definition?.definitionXml || definition?.definitionJson;
+      if (!rawDefinition) {
+        setWorkflowError('Definition XML is not available for this deployed version.');
         return;
       }
 
-      const parsed = JSON.parse(definition.definitionJson) as WorkflowDefinition;
+      const parsed = parseWorkflowDefinition(rawDefinition);
       setWorkflowDefinition(parsed);
     } catch (error) {
       console.error(error);

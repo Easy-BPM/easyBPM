@@ -6,6 +6,7 @@ import com.easy.bpm.model.process.ProcessInstance
 import com.easy.bpm.model.process.ProcessInstanceEventType
 import com.easy.bpm.repository.process.ProcessInstanceRepository
 import com.easy.bpm.service.metrics.MetricsService
+import com.easy.bpm.util.BpmnXmlCodec
 import com.fasterxml.jackson.databind.ObjectMapper
 import jakarta.transaction.Transactional
 import org.springframework.stereotype.Component
@@ -27,7 +28,7 @@ class ProcessInstanceStarter(
         startNodeId: String? = null
     ): ProcessInstance {
         val startTime = System.currentTimeMillis()
-        val json = objectMapper.readTree(definition.definitionJson)
+        val json = BpmnXmlCodec.parseDefinition(definition.definitionJson, objectMapper)
 
         val instance = processInstanceRepository.save(
             ProcessInstance(

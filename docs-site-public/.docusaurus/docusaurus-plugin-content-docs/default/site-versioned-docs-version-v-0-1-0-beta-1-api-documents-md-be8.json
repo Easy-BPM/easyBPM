@@ -1,0 +1,25 @@
+{
+  "id": "api/documents",
+  "title": "Documents API",
+  "description": "Use the Documents API to upload files, read metadata, preview, download, list, and delete task documents.",
+  "source": "@site/versioned_docs/version-v0.1.0-beta.1/api/documents.md",
+  "sourceDirName": "api",
+  "slug": "/api/documents",
+  "permalink": "/docs/api/documents",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "v0.1.0-beta.1",
+  "frontMatter": {
+    "title": "Documents API"
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "Forms API",
+    "permalink": "/docs/api/forms"
+  },
+  "next": {
+    "title": "Code Tasks API",
+    "permalink": "/docs/api/code-tasks"
+  }
+}

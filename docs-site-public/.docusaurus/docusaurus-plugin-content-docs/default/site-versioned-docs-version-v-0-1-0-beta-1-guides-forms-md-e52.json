@@ -1,0 +1,25 @@
+{
+  "id": "guides/forms",
+  "title": "Forms",
+  "description": "Forms define the fields shown to users in the Task Portal. They are versioned by a stable formId, so a process can reference the latest deployed version without changing the process definition.",
+  "source": "@site/versioned_docs/version-v0.1.0-beta.1/guides/forms.md",
+  "sourceDirName": "guides",
+  "slug": "/guides/forms",
+  "permalink": "/docs/guides/forms",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "v0.1.0-beta.1",
+  "frontMatter": {
+    "title": "Forms"
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "Create a Process",
+    "permalink": "/docs/guides/create-process"
+  },
+  "next": {
+    "title": "User Tasks",
+    "permalink": "/docs/guides/user-tasks"
+  }
+}

@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:easy="https://easybpm.local/bpmn/extensions" id="Definitions_qa_user_task_forms" targetNamespace="https://easybpm.local/process/qa_user_task_forms">
+  <bpmn:process id="qa_user_task_forms" name="QA User Tasks and Forms" isExecutable="true">
+    <bpmn:extensionElements>
+      <easy:variables><![CDATA[[{"name":"requestTitle","type":"string","initialValue":"Laptop replacement"},{"name":"amount","type":"number","initialValue":"1250"},{"name":"priority","type":"string","initialValue":"NORMAL"},{"name":"approved","type":"boolean","initialValue":"false"},{"name":"managerComment","type":"string","initialValue":""},{"name":"financeApproved","type":"boolean","initialValue":"false"},{"name":"financeComment","type":"string","initialValue":""},{"name":"paymentMethod","type":"string","initialValue":""},{"name":"supportingDocument","type":"string","initialValue":""}]]]></easy:variables>
+      <easy:metadata><![CDATA[{"version":"1.0","purpose":"Modeler and runtime QA for user tasks, formId references, task input/output mappings, and exclusive approval routing."}]]></easy:metadata>
+    </bpmn:extensionElements>
+    <bpmn:startEvent id="start" name="Start QA Request">
+      <bpmn:extensionElements>
+        <easy:node><![CDATA[{"id":"start","name":"Start QA Request","type":"StartEvent","position":{"x":80,"y":240},"width":40,"height":40,"next":["submit_request"]}]]></easy:node>
+      </bpmn:extensionElements>
+    </bpmn:startEvent>
+    <bpmn:userTask id="submit_request" name="Submit Request">
+      <bpmn:extensionElements>
+        <easy:node><![CDATA[{"id":"submit_request","name":"Submit Request","type":"HumanTask","position":{"x":240,"y":220},"width":120,"height":60,"next":["manager_review"],"config":{"assignee":"requester","candidateGroups":"","formId":"qaIntakeForm","inputs":[{"targetName":"requestTitle","type":"string","source":"variable","value":"requestTitle"},{"targetName":"amount","type":"number","source":"variable","value":"amount"},{"targetName":"priority","type":"string","source":"variable","value":"priority"}],"outputs":[{"target":"variable","sourceName":"requestTitle","type":"string","value":"requestTitle"},{"target":"variable","sourceName":"amount","type":"number","value":"amount"},{"target":"variable","sourceName":"priority","type":"string","value":"priority"},{"target":"variable","sourceName":"supportingDocument","type":"string","value":"supportingDocument"}]}}]]></easy:node>
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+    <bpmn:userTask id="manager_review" name="Manager Review">
+      <bpmn:extensionElements>
+        <easy:node><![CDATA[{"id":"manager_review","name":"Manager Review","type":"HumanTask","position":{"x":440,"y":220},"width":120,"height":60,"next":["approval_gateway"],"config":{"assignee":"manager","candidateGroups":"MANAGERS","formId":"qaManagerReview","inputs":[{"targetName":"requestTitle","type":"string","source":"variable","value":"requestTitle"},{"targetName":"amount","type":"number","source":"variable","value":"amount"}],"outputs":[{"target":"variable","sourceName":"approved","type":"boolean","value":"approved"},{"target":"variable","sourceName":"managerComment","type":"string","value":"managerComment"}]}}]]></easy:node>
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="approval_gateway" name="Approved?">
+      <bpmn:extensionElements>
+        <easy:node><![CDATA[{"id":"approval_gateway","name":"Approved?","type":"ExclusiveGateway","position":{"x":640,"y":240},"width":40,"height":40,"next":["finance_review","end_rejected"]}]]></easy:node>
+      </bpmn:extensionElements>
+    </bpmn:exclusiveGateway>
+    <bpmn:userTask id="finance_review" name="Finance Review">
+      <bpmn:extensionElements>
+        <easy:node><![CDATA[{"id":"finance_review","name":"Finance Review","type":"HumanTask","position":{"x":820,"y":140},"width":120,"height":60,"next":["end_approved"],"config":{"assignee":"","candidateGroups":"FINANCE,ADMIN","formId":"qaFinanceReview","inputs":[{"targetName":"amount","type":"number","source":"variable","value":"amount"},{"targetName":"managerComment","type":"string","source":"variable","value":"managerComment"},{"targetName":"approvedPdf","type":"string","source":"variable","value":"supportingDocument"}],"outputs":[{"target":"variable","sourceName":"financeApproved","type":"boolean","value":"financeApproved"},{"target":"variable","sourceName":"paymentMethod","type":"string","value":"paymentMethod"},{"target":"variable","sourceName":"financeComment","type":"string","value":"financeComment"}]}}]]></easy:node>
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+    <bpmn:endEvent id="end_approved" name="Approved End">
+      <bpmn:extensionElements>
+        <easy:node><![CDATA[{"id":"end_approved","name":"Approved End","type":"EndEvent","position":{"x":1040,"y":160},"width":40,"height":40,"next":[]}]]></easy:node>
+      </bpmn:extensionElements>
+    </bpmn:endEvent>
+    <bpmn:endEvent id="end_rejected" name="Rejected End">
+      <bpmn:extensionElements>
+        <easy:node><![CDATA[{"id":"end_rejected","name":"Rejected End","type":"EndEvent","position":{"x":820,"y":340},"width":40,"height":40,"next":[]}]]></easy:node>
+      </bpmn:extensionElements>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_1_start_submit_request" sourceRef="start" targetRef="submit_request"/>
+    <bpmn:sequenceFlow id="Flow_2_submit_request_manager_review" sourceRef="submit_request" targetRef="manager_review"/>
+    <bpmn:sequenceFlow id="Flow_3_manager_review_approval_gateway" sourceRef="manager_review" targetRef="approval_gateway"/>
+    <bpmn:sequenceFlow id="Flow_4_approval_gateway_finance_review" sourceRef="approval_gateway" targetRef="finance_review">
+      <bpmn:conditionExpression xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="bpmn:tFormalExpression">${approved} == true</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_5_approval_gateway_end_rejected" sourceRef="approval_gateway" targetRef="end_rejected">
+      <bpmn:conditionExpression xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="bpmn:tFormalExpression">${approved} == false</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_6_finance_review_end_approved" sourceRef="finance_review" targetRef="end_approved"/>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1">
+      <bpmndi:BPMNShape id="start_di" bpmnElement="start">
+        <dc:Bounds x="80" y="240" width="40" height="40"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="submit_request_di" bpmnElement="submit_request">
+        <dc:Bounds x="240" y="220" width="120" height="60"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="manager_review_di" bpmnElement="manager_review">
+        <dc:Bounds x="440" y="220" width="120" height="60"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="approval_gateway_di" bpmnElement="approval_gateway">
+        <dc:Bounds x="640" y="240" width="40" height="40"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="finance_review_di" bpmnElement="finance_review">
+        <dc:Bounds x="820" y="140" width="120" height="60"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_approved_di" bpmnElement="end_approved">
+        <dc:Bounds x="1040" y="160" width="40" height="40"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_rejected_di" bpmnElement="end_rejected">
+        <dc:Bounds x="820" y="340" width="40" height="40"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_1_start_submit_request_di" bpmnElement="Flow_1_start_submit_request">
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_2_submit_request_manager_review_di" bpmnElement="Flow_2_submit_request_manager_review">
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_3_manager_review_approval_gateway_di" bpmnElement="Flow_3_manager_review_approval_gateway">
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_4_approval_gateway_finance_review_di" bpmnElement="Flow_4_approval_gateway_finance_review">
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_5_approval_gateway_end_rejected_di" bpmnElement="Flow_5_approval_gateway_end_rejected">
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_6_finance_review_end_approved_di" bpmnElement="Flow_6_finance_review_end_approved">
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

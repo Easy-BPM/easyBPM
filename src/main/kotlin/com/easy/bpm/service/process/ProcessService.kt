@@ -41,6 +41,9 @@ class ProcessService(
     fun deployProcess(definitionJson: JsonNode): ProcessDefinition =
         deploymentService.deployProcess(definitionJson)
 
+    fun deployProcess(definitionXml: String): ProcessDefinition =
+        deploymentService.deployProcess(definitionXml)
+
     /* =========================
        START PROCESS
      ========================= */

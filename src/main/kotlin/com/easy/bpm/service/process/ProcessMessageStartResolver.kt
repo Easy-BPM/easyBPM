@@ -3,6 +3,7 @@ package com.easy.bpm.service.process
 import com.easy.bpm.enum.NodeType
 import com.easy.bpm.model.process.ProcessDefinition
 import com.easy.bpm.repository.process.ProcessDefinitionRepository
+import com.easy.bpm.util.BpmnXmlCodec
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.springframework.stereotype.Component
@@ -20,7 +21,7 @@ class ProcessMessageStartResolver(
         processDefinitionRepository.findLatestVersionProcessDefinitions()
             .asSequence()
             .mapNotNull { definition ->
-                val json = objectMapper.readTree(definition.definitionJson)
+                val json = BpmnXmlCodec.parseDefinition(definition.definitionJson, objectMapper)
                 val startNode = findMatchingMessageStartNode(json, messageName, correlationKey, variables)
                 if (startNode == null) null else MessageStartMatch(
                     definition = definition,

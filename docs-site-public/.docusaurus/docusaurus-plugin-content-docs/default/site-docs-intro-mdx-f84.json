@@ -1,0 +1,23 @@
+{
+  "id": "intro",
+  "title": "Welcome",
+  "description": "Easy BPM is a developer-friendly business process platform for modeling, running, and operating business workflows. It includes a process modeler, runtime API, task portal, admin console, asynchronous worker, document handling, code-task execution, and security administration.",
+  "source": "@site/docs/intro.mdx",
+  "sourceDirName": ".",
+  "slug": "/intro",
+  "permalink": "/docs/next/intro",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 1,
+  "frontMatter": {
+    "sidebar_position": 1,
+    "title": "Welcome"
+  },
+  "sidebar": "docs",
+  "next": {
+    "title": "Quick Start",
+    "permalink": "/docs/next/getting-started/quick-start"
+  }
+}

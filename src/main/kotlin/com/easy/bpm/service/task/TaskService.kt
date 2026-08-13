@@ -26,6 +26,7 @@ import com.easy.bpm.service.process.GatewayRoutingException
 import com.easy.bpm.service.process.ProcessInstanceTimelineService
 import com.easy.bpm.service.process.handler.ProcessFailureHandler
 import com.easy.bpm.service.variable.HistoricVariableArchiver
+import com.easy.bpm.util.BpmnXmlCodec
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import jakarta.transaction.Transactional
@@ -989,7 +990,7 @@ class TaskService(
             ?: throw IllegalArgumentException("Process instance not found")
 
     private fun parseDefinition(definitionJson: String): JsonNode =
-        objectMapper.readTree(definitionJson)
+        BpmnXmlCodec.parseDefinition(definitionJson, objectMapper)
 
     private fun findNode(definition: JsonNode, nodeId: String): JsonNode =
         definition.get("nodes")

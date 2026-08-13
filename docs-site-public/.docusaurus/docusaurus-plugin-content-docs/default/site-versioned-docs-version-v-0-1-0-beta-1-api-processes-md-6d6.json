@@ -1,0 +1,25 @@
+{
+  "id": "api/processes",
+  "title": "Processes API",
+  "description": "Use the Processes API to deploy definitions, start instances, manage variables, operate runtime state, and correlate messages.",
+  "source": "@site/versioned_docs/version-v0.1.0-beta.1/api/processes.md",
+  "sourceDirName": "api",
+  "slug": "/api/processes",
+  "permalink": "/docs/api/processes",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "v0.1.0-beta.1",
+  "frontMatter": {
+    "title": "Processes API"
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "Agent Processes API",
+    "permalink": "/docs/api/agent-processes"
+  },
+  "next": {
+    "title": "Tasks API",
+    "permalink": "/docs/api/tasks"
+  }
+}

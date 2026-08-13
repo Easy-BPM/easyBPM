@@ -1,0 +1,25 @@
+{
+  "id": "deployment/capacity-planning",
+  "title": "Capacity Planning",
+  "description": "Easy BPM scales horizontally for API traffic and asynchronous worker execution. Backend replicas can be increased for REST traffic and message consumption. Worker replicas can be increased for external API and service task throughput.",
+  "source": "@site/docs/deployment/capacity-planning.md",
+  "sourceDirName": "deployment",
+  "slug": "/deployment/capacity-planning",
+  "permalink": "/docs/next/deployment/capacity-planning",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "title": "Capacity Planning"
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "Kubernetes Deployment",
+    "permalink": "/docs/next/deployment/kubernetes"
+  },
+  "next": {
+    "title": "Observability",
+    "permalink": "/docs/next/deployment/observability"
+  }
+}

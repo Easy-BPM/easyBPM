@@ -1,9 +1,7 @@
 package com.easy.bpm.model.process
 
-import com.vladmihalcea.hibernate.type.json.JsonBinaryType
 import jakarta.persistence.*
 import com.fasterxml.jackson.annotation.JsonProperty
-import org.hibernate.annotations.Type
 
 @Entity
 data class ProcessDefinition(
@@ -22,7 +20,10 @@ data class ProcessDefinition(
 
         val version: Int = 1,
 
-        @Type(JsonBinaryType::class)
-        @Column(name = "definition_json", columnDefinition = "jsonb")
+        @Column(name = "definition_json", columnDefinition = "TEXT")
         val definitionJson: String
-)
+) {
+        @get:JsonProperty("definitionXml")
+        val definitionXml: String
+                get() = definitionJson
+}

@@ -105,7 +105,7 @@ export const processService = {
     return response.json();
   },
 
-  deployProcess: async (payload: unknown): Promise<void> => {
+  deployProcess: async (payload: string): Promise<void> => {
     const session = getSession();
     if (!session?.token) {
       throw new AuthRequiredError('No saved Modeler session was found. Please sign in again before deploying.');
@@ -114,9 +114,9 @@ export const processService = {
     const response = await fetchWithAuth(`${API_BASE_URL}/processes`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/xml'
       },
-      body: JSON.stringify(payload)
+      body: payload
     });
 
     if (response.status === 401) {

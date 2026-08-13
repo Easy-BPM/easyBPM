@@ -1,0 +1,25 @@
+{
+  "id": "reference/permissions",
+  "title": "Permissions",
+  "description": "Easy BPM uses permission codes assigned directly to users or through groups.",
+  "source": "@site/versioned_docs/version-v0.1.0-beta.1/reference/permissions.md",
+  "sourceDirName": "reference",
+  "slug": "/reference/permissions",
+  "permalink": "/docs/reference/permissions",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "v0.1.0-beta.1",
+  "frontMatter": {
+    "title": "Permissions"
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "Process JSON Reference",
+    "permalink": "/docs/reference/process-json"
+  },
+  "next": {
+    "title": "Environment Variables",
+    "permalink": "/docs/reference/environment-variables"
+  }
+}

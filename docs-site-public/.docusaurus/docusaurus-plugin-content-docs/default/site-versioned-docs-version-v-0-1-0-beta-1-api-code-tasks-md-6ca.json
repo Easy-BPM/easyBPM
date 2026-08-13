@@ -1,0 +1,25 @@
+{
+  "id": "api/code-tasks",
+  "title": "Code Tasks API",
+  "description": "Use the Code Tasks API to upload JVM JARs, discover classes and methods, and inspect execution audit history.",
+  "source": "@site/versioned_docs/version-v0.1.0-beta.1/api/code-tasks.md",
+  "sourceDirName": "api",
+  "slug": "/api/code-tasks",
+  "permalink": "/docs/api/code-tasks",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "v0.1.0-beta.1",
+  "frontMatter": {
+    "title": "Code Tasks API"
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "Documents API",
+    "permalink": "/docs/api/documents"
+  },
+  "next": {
+    "title": "Admin Security API",
+    "permalink": "/docs/api/admin-security"
+  }
+}

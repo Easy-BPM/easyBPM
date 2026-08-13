@@ -1,0 +1,25 @@
+{
+  "id": "guides/user-tasks",
+  "title": "User Tasks",
+  "description": "User tasks create human work items that appear in the Task Portal.",
+  "source": "@site/docs/guides/user-tasks.md",
+  "sourceDirName": "guides",
+  "slug": "/guides/user-tasks",
+  "permalink": "/docs/next/guides/user-tasks",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "title": "User Tasks"
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "Forms",
+    "permalink": "/docs/next/guides/forms"
+  },
+  "next": {
+    "title": "API Tasks",
+    "permalink": "/docs/next/guides/api-tasks"
+  }
+}

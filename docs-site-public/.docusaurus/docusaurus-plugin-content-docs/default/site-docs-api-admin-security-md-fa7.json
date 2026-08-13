@@ -1,0 +1,25 @@
+{
+  "id": "api/admin-security",
+  "title": "Admin Security API",
+  "description": "Use the Admin Security API to manage users, groups, passwords, group membership, and permission assignments.",
+  "source": "@site/docs/api/admin-security.md",
+  "sourceDirName": "api",
+  "slug": "/api/admin-security",
+  "permalink": "/docs/next/api/admin-security",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "title": "Admin Security API"
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "Incidents API",
+    "permalink": "/docs/next/api/incidents"
+  },
+  "next": {
+    "title": "Admin Maintenance API",
+    "permalink": "/docs/next/api/admin-maintenance"
+  }
+}

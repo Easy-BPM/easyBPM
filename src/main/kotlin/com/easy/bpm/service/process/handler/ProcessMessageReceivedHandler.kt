@@ -8,6 +8,7 @@ import com.easy.bpm.service.metrics.MetricsService
 import com.easy.bpm.service.process.ProcessInstanceTimelineService
 import com.easy.bpm.service.process.ProcessNavigator
 import com.easy.bpm.service.process.ProcessVariableManager
+import com.easy.bpm.util.BpmnXmlCodec
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.springframework.stereotype.Component
@@ -44,7 +45,7 @@ class ProcessMessageReceivedHandler(
             message = "Message '$messageName' received with correlation key '$correlationKey'."
         )
 
-        val definition = objectMapper.readTree(instance.processDefinition.definitionJson)
+        val definition = BpmnXmlCodec.parseDefinition(instance.processDefinition.definitionJson, objectMapper)
         val node = findNode(definition, subscription.nodeId)
 
         return MessageReceivedResult(

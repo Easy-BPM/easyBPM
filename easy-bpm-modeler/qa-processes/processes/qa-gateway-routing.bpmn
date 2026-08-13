@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:easy="https://easybpm.local/bpmn/extensions" id="Definitions_qa_gateway_routing" targetNamespace="https://easybpm.local/process/qa_gateway_routing">
+  <bpmn:process id="qa_gateway_routing" name="QA Gateway Routing" isExecutable="true">
+    <bpmn:extensionElements>
+      <easy:variables><![CDATA[[{"name":"priority","type":"string","initialValue":"HIGH"},{"name":"riskScore","type":"number","initialValue":"75"},{"name":"legalDone","type":"boolean","initialValue":"false"},{"name":"securityDone","type":"boolean","initialValue":"false"}]]]></easy:variables>
+      <easy:metadata><![CDATA[{"version":"1.0","purpose":"QA for exclusive conditional routing and parallel fork/join synchronization."}]]></easy:metadata>
+    </bpmn:extensionElements>
+    <bpmn:startEvent id="start" name="Start">
+      <bpmn:extensionElements>
+        <easy:node><![CDATA[{"id":"start","name":"Start","type":"StartEvent","position":{"x":80,"y":260},"width":40,"height":40,"next":["risk_gateway"]}]]></easy:node>
+      </bpmn:extensionElements>
+    </bpmn:startEvent>
+    <bpmn:exclusiveGateway id="risk_gateway" name="High Risk?">
+      <bpmn:extensionElements>
+        <easy:node><![CDATA[{"id":"risk_gateway","name":"High Risk?","type":"ExclusiveGateway","position":{"x":240,"y":260},"width":40,"height":40,"next":["parallel_fork","standard_review"]}]]></easy:node>
+      </bpmn:extensionElements>
+    </bpmn:exclusiveGateway>
+    <bpmn:userTask id="standard_review" name="Standard Review">
+      <bpmn:extensionElements>
+        <easy:node><![CDATA[{"id":"standard_review","name":"Standard Review","type":"HumanTask","position":{"x":420,"y":360},"width":120,"height":60,"next":["end_standard"],"config":{"candidateGroups":"QA","formId":"qaManagerReview","inputs":[{"targetName":"priority","type":"string","source":"variable","value":"priority"}],"outputs":[{"target":"variable","sourceName":"approved","type":"boolean","value":"approved"}]}}]]></easy:node>
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+    <bpmn:parallelGateway id="parallel_fork" name="Parallel Checks">
+      <bpmn:extensionElements>
+        <easy:node><![CDATA[{"id":"parallel_fork","name":"Parallel Checks","type":"ParallelGateway","position":{"x":420,"y":180},"width":40,"height":40,"next":["legal_check","security_check"]}]]></easy:node>
+      </bpmn:extensionElements>
+    </bpmn:parallelGateway>
+    <bpmn:userTask id="legal_check" name="Legal Check">
+      <bpmn:extensionElements>
+        <easy:node><![CDATA[{"id":"legal_check","name":"Legal Check","type":"HumanTask","position":{"x":620,"y":100},"width":120,"height":60,"next":["parallel_join"],"config":{"candidateGroups":"LEGAL","formId":"qaManagerReview","outputs":[{"target":"variable","sourceName":"legalDone","type":"boolean","value":"legalDone"}]}}]]></easy:node>
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+    <bpmn:userTask id="security_check" name="Security Check">
+      <bpmn:extensionElements>
+        <easy:node><![CDATA[{"id":"security_check","name":"Security Check","type":"HumanTask","position":{"x":620,"y":260},"width":120,"height":60,"next":["parallel_join"],"config":{"candidateGroups":"SECURITY","formId":"qaManagerReview","outputs":[{"target":"variable","sourceName":"securityDone","type":"boolean","value":"securityDone"}]}}]]></easy:node>
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+    <bpmn:parallelGateway id="parallel_join" name="Join Checks">
+      <bpmn:extensionElements>
+        <easy:node><![CDATA[{"id":"parallel_join","name":"Join Checks","type":"ParallelGateway","position":{"x":840,"y":180},"width":40,"height":40,"next":["end_high_risk"]}]]></easy:node>
+      </bpmn:extensionElements>
+    </bpmn:parallelGateway>
+    <bpmn:endEvent id="end_high_risk" name="High Risk End">
+      <bpmn:extensionElements>
+        <easy:node><![CDATA[{"id":"end_high_risk","name":"High Risk End","type":"EndEvent","position":{"x":1020,"y":180},"width":40,"height":40,"next":[]}]]></easy:node>
+      </bpmn:extensionElements>
+    </bpmn:endEvent>
+    <bpmn:endEvent id="end_standard" name="Standard End">
+      <bpmn:extensionElements>
+        <easy:node><![CDATA[{"id":"end_standard","name":"Standard End","type":"EndEvent","position":{"x":620,"y":380},"width":40,"height":40,"next":[]}]]></easy:node>
+      </bpmn:extensionElements>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_1_start_risk_gateway" sourceRef="start" targetRef="risk_gateway"/>
+    <bpmn:sequenceFlow id="Flow_2_risk_gateway_parallel_fork" sourceRef="risk_gateway" targetRef="parallel_fork">
+      <bpmn:conditionExpression xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="bpmn:tFormalExpression">${priority} == 'HIGH' || ${riskScore} &gt;= 70</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_3_risk_gateway_standard_review" sourceRef="risk_gateway" targetRef="standard_review">
+      <bpmn:conditionExpression xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="bpmn:tFormalExpression">${priority} != 'HIGH' &amp;&amp; ${riskScore} &lt; 70</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_4_parallel_fork_legal_check" sourceRef="parallel_fork" targetRef="legal_check"/>
+    <bpmn:sequenceFlow id="Flow_5_parallel_fork_security_check" sourceRef="parallel_fork" targetRef="security_check"/>
+    <bpmn:sequenceFlow id="Flow_6_legal_check_parallel_join" sourceRef="legal_check" targetRef="parallel_join"/>
+    <bpmn:sequenceFlow id="Flow_7_security_check_parallel_join" sourceRef="security_check" targetRef="parallel_join"/>
+    <bpmn:sequenceFlow id="Flow_8_parallel_join_end_high_risk" sourceRef="parallel_join" targetRef="end_high_risk"/>
+    <bpmn:sequenceFlow id="Flow_9_standard_review_end_standard" sourceRef="standard_review" targetRef="end_standard"/>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1">
+      <bpmndi:BPMNShape id="start_di" bpmnElement="start">
+        <dc:Bounds x="80" y="260" width="40" height="40"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="risk_gateway_di" bpmnElement="risk_gateway">
+        <dc:Bounds x="240" y="260" width="40" height="40"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="standard_review_di" bpmnElement="standard_review">
+        <dc:Bounds x="420" y="360" width="120" height="60"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="parallel_fork_di" bpmnElement="parallel_fork">
+        <dc:Bounds x="420" y="180" width="40" height="40"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="legal_check_di" bpmnElement="legal_check">
+        <dc:Bounds x="620" y="100" width="120" height="60"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="security_check_di" bpmnElement="security_check">
+        <dc:Bounds x="620" y="260" width="120" height="60"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="parallel_join_di" bpmnElement="parallel_join">
+        <dc:Bounds x="840" y="180" width="40" height="40"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_high_risk_di" bpmnElement="end_high_risk">
+        <dc:Bounds x="1020" y="180" width="40" height="40"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_standard_di" bpmnElement="end_standard">
+        <dc:Bounds x="620" y="380" width="40" height="40"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_1_start_risk_gateway_di" bpmnElement="Flow_1_start_risk_gateway">
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_2_risk_gateway_parallel_fork_di" bpmnElement="Flow_2_risk_gateway_parallel_fork">
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_3_risk_gateway_standard_review_di" bpmnElement="Flow_3_risk_gateway_standard_review">
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_4_parallel_fork_legal_check_di" bpmnElement="Flow_4_parallel_fork_legal_check">
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_5_parallel_fork_security_check_di" bpmnElement="Flow_5_parallel_fork_security_check">
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_6_legal_check_parallel_join_di" bpmnElement="Flow_6_legal_check_parallel_join">
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_7_security_check_parallel_join_di" bpmnElement="Flow_7_security_check_parallel_join">
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_8_parallel_join_end_high_risk_di" bpmnElement="Flow_8_parallel_join_end_high_risk">
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_9_standard_review_end_standard_di" bpmnElement="Flow_9_standard_review_end_standard">
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
