@@ -3,6 +3,10 @@ package com.easy.bpm.integration
 import com.easy.bpm.enum.ProcessStatus
 import com.easy.bpm.enum.TaskStatus
 import com.easy.bpm.messaging.RabbitPublisher
+import com.easy.bpm.repository.agent.AgentProcessDefinitionRepository
+import com.easy.bpm.repository.codetask.CodeClassMetadataRepository
+import com.easy.bpm.repository.codetask.CodeTaskJarRepository
+import com.easy.bpm.repository.form.FormDefinitionRepository
 import com.easy.bpm.repository.process.ProcessDefinitionRepository
 import com.easy.bpm.repository.process.ProcessInstanceRepository
 import com.easy.bpm.repository.task.TaskRepository
@@ -17,6 +21,10 @@ import org.springframework.boot.test.mock.mockito.MockBean
 @SpringBootTest(properties = ["easybpm.test-data.enabled=true"])
 class TestDataBootstrapIntegrationTest(
     @Autowired private val processDefinitionRepository: ProcessDefinitionRepository,
+    @Autowired private val formDefinitionRepository: FormDefinitionRepository,
+    @Autowired private val agentProcessDefinitionRepository: AgentProcessDefinitionRepository,
+    @Autowired private val codeTaskJarRepository: CodeTaskJarRepository,
+    @Autowired private val codeClassMetadataRepository: CodeClassMetadataRepository,
     @Autowired private val processInstanceRepository: ProcessInstanceRepository,
     @Autowired private val taskRepository: TaskRepository,
     @Autowired private val processVariableRepository: ProcessVariableRepository,
@@ -66,5 +74,28 @@ class TestDataBootstrapIntegrationTest(
         assertThat(completedRuntimeVariables).isEmpty()
         assertThat(completedVariables.map { it.name })
             .contains("requester", "amount", "costCenter", "decision", "approvedBy", "approvalComment")
+    }
+
+    @Test
+    fun `enabled test data flag should deploy modeler qa forms agents and processes`() {
+        assertThat(formDefinitionRepository.findTopByFormIdOrderByVersionDesc("qaIntakeForm")).isNotNull
+        assertThat(formDefinitionRepository.findTopByFormIdOrderByVersionDesc("qaManagerReview")).isNotNull
+        assertThat(formDefinitionRepository.findTopByFormIdOrderByVersionDesc("qaFinanceReview")).isNotNull
+
+        assertThat(agentProcessDefinitionRepository.findTopByKeyOrderByVersionDesc("customer-support-resolution")).isNotNull
+
+        val testServiceJar = codeTaskJarRepository.findAll().singleOrNull { it.fileName == "test-service.jar" }
+        assertThat(testServiceJar).isNotNull
+        assertThat(codeClassMetadataRepository.findByJarId(testServiceJar!!.id!!).map { it.methodName })
+            .contains("greet", "add", "multiply", "processOrder", "validateEmail")
+
+        assertThat(processDefinitionRepository.findTopByKeyOrderByVersionDesc("qa_user_task_forms")).isNotNull
+        assertThat(processDefinitionRepository.findTopByKeyOrderByVersionDesc("qa_gateway_routing")).isNotNull
+        assertThat(processDefinitionRepository.findTopByKeyOrderByVersionDesc("qa_api_components")).isNotNull
+        assertThat(processDefinitionRepository.findTopByKeyOrderByVersionDesc("qa_message_timer_events")).isNotNull
+        val codeTaskProcess = processDefinitionRepository.findTopByKeyOrderByVersionDesc("qa_code_task_component")
+        assertThat(codeTaskProcess).isNotNull
+        assertThat(codeTaskProcess!!.definitionJson).contains("\"jarId\": ${testServiceJar.id}")
+        assertThat(processDefinitionRepository.findTopByKeyOrderByVersionDesc("qa_agent_process_call")).isNotNull
     }
 }

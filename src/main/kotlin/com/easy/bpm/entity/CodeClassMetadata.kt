@@ -1,6 +1,9 @@
 package com.easy.bpm.entity
 
+import com.fasterxml.jackson.databind.JsonNode
+import com.vladmihalcea.hibernate.type.json.JsonBinaryType
 import jakarta.persistence.*
+import org.hibernate.annotations.Type
 import java.time.LocalDateTime
 
 /**
@@ -38,8 +41,9 @@ class CodeClassMetadata(
   @Column(name = "method_signature", columnDefinition = "TEXT")
   val methodSignature: String? = null,
 
-  @Column(name = "input_params", columnDefinition = "TEXT")
-  val inputParams: String? = null, // JSON array of parameter metadata
+  @Type(JsonBinaryType::class)
+  @Column(name = "input_params", columnDefinition = "jsonb")
+  val inputParams: JsonNode? = null, // JSON array of parameter metadata
 
   @Column(name = "return_type", length = 255)
   val returnType: String? = null,
@@ -82,4 +86,3 @@ class CodeClassMetadata(
      */
   }
 }
-

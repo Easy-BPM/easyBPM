@@ -1,6 +1,7 @@
 package com.easy.bpm.service.process
 
 import com.easy.bpm.enum.NodeType
+import com.easy.bpm.handler.CodeTaskHandler
 import com.easy.bpm.model.process.ProcessInstance
 import com.easy.bpm.model.process.ProcessInstanceEventType
 import com.easy.bpm.service.metrics.MetricsService
@@ -20,6 +21,7 @@ class ProcessExecutionEngine(
     private val serviceTaskHandler: ProcessServiceTaskHandler,
     private val processAiTaskHandler: ProcessAiTaskHandler,
     private val processAgentCallHandler: ProcessAgentCallHandler,
+    private val codeTaskHandler: CodeTaskHandler,
     private val callActivityHandler: CallActivityHandler,
     private val timelineService: ProcessInstanceTimelineService,
     private val lifecycleManager: ProcessInstanceLifecycleManager
@@ -57,6 +59,7 @@ class ProcessExecutionEngine(
                 NodeType.APITask -> serviceTaskHandler.handleApiTask(instance, node)
                 NodeType.AiTask -> processAiTaskHandler.handleAiTask(instance, node)
                 NodeType.AgentProcessCall -> handleAgentProcessCall(instance, node, definition)
+                NodeType.CodeTask -> handleCodeTask(instance, node, definition)
                 NodeType.ServiceTask -> handleServiceTaskNode(instance, node, definition)
                 NodeType.TimerEvent -> messageNodeHandler.handleTimerEvent(instance, node, INTERNAL_TIMER_MESSAGE_NAME)
                 NodeType.MessageEvent -> messageNodeHandler.handleMessageEvent(instance, node)
@@ -100,6 +103,58 @@ class ProcessExecutionEngine(
         val nextNodes = processAgentCallHandler.handleAgentProcessCall(instance, node, definition)
         navigator.advanceProcess(instance, nextNodes, definition)
         executeNodes(nextNodes, instance, definition)
+    }
+
+    private fun handleCodeTask(
+        instance: ProcessInstance,
+        node: JsonNode,
+        definition: JsonNode
+    ) {
+        val config = node.get("config") ?: node.get("properties")
+            ?: throw IllegalArgumentException("CodeTask ${node.get("id").asText()} missing 'config' or 'properties'")
+        val jarId = config.get("jarId")?.asLong()
+            ?: throw IllegalArgumentException("CodeTask ${node.get("id").asText()} missing 'jarId'")
+        val className = config.get("className")?.asText()?.takeIf { it.isNotBlank() }
+            ?: throw IllegalArgumentException("CodeTask ${node.get("id").asText()} missing 'className'")
+        val methodName = config.get("methodName")?.asText()?.takeIf { it.isNotBlank() }
+            ?: throw IllegalArgumentException("CodeTask ${node.get("id").asText()} missing 'methodName'")
+
+        val inputMappings = config.get("inputs")
+            ?.filter { it.get("source")?.asText() == "variable" }
+            ?.associate { mapping ->
+                val processVariableName = mapping.get("value")?.asText()
+                    ?: throw IllegalArgumentException("CodeTask input mapping missing process variable value")
+                val parameterIndex = mapping.get("targetName")?.asText()
+                    ?: throw IllegalArgumentException("CodeTask input mapping missing targetName")
+                processVariableName to parameterIndex
+            }
+            ?: emptyMap()
+        val outputMappings = config.get("outputs")
+            ?.associate { mapping ->
+                val returnPath = mapping.get("sourceName")?.asText()
+                    ?: mapping.get("sourceValue")?.asText()
+                    ?: "returnValue"
+                val processVariableName = mapping.get("value")?.asText()
+                    ?: mapping.get("targetVariable")?.asText()
+                    ?: throw IllegalArgumentException("CodeTask output mapping missing target variable")
+                returnPath to processVariableName
+            }
+            ?: emptyMap()
+
+        val outputs = codeTaskHandler.executeCodeTask(
+            instanceId = instance.id,
+            nodeId = node.get("id").asText(),
+            jarId = jarId,
+            className = className,
+            methodName = methodName,
+            inputMappings = inputMappings,
+            outputMappings = outputMappings,
+            inputVariables = variableManager.getProcessVariablesAsMap(instance.id)
+        )
+        if (outputs.isNotEmpty()) {
+            variableManager.assignProcessVariables(instance.id, outputs)
+        }
+        continueFromNode(instance, node, definition)
     }
 
     private fun handleServiceTaskNode(

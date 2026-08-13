@@ -66,6 +66,7 @@ class ProcessNavigator(
                     targets.forEach { resolveAndCollect(it) }
                 }
                 NodeType.UserTask,
+                NodeType.CodeTask,
                 NodeType.ServiceTask,
                 NodeType.AgentProcessCall,
                 NodeType.APITask,

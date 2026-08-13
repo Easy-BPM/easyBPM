@@ -289,8 +289,8 @@ class CodeTaskHandler(
         jarId = jarId,
         className = className,
         methodName = methodName,
-        inputVariables = objectMapper.writeValueAsString(inputVariables),
-        outputVariables = objectMapper.writeValueAsString(outputVariables),
+        inputVariables = objectMapper.valueToTree(inputVariables),
+        outputVariables = objectMapper.valueToTree(outputVariables),
         executionTimeMs = executionTimeMs,
         status = status,
         errorMessage = errorMessage,
@@ -311,4 +311,3 @@ class CodeTaskHandler(
  */
 class CodeTaskExecutionException(message: String, cause: Throwable? = null) :
   RuntimeException(message, cause)
-

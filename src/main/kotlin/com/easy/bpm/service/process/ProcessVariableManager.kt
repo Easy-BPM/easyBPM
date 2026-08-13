@@ -36,6 +36,10 @@ class ProcessVariableManager(
         return processVariableRepository.findByProcessInstanceId(processInstanceId)
     }
 
+    fun getProcessVariablesAsMap(processInstanceId: Long): Map<String, Any?> =
+        processVariableRepository.findByProcessInstanceId(processInstanceId)
+            .associate { it.name to objectMapper.convertValue(it.value, Any::class.java) }
+
     fun initializeProcessVariables(instance: ProcessInstance, definition: JsonNode) {
         val variablesNode = definition.get("variables") ?: return
 

@@ -1,6 +1,9 @@
 package com.easy.bpm.entity
 
+import com.fasterxml.jackson.databind.JsonNode
+import com.vladmihalcea.hibernate.type.json.JsonBinaryType
 import jakarta.persistence.*
+import org.hibernate.annotations.Type
 import java.time.LocalDateTime
 
 /**
@@ -39,11 +42,13 @@ class CodeTaskExecutionAudit(
   @Column(name = "method_name", length = 255)
   val methodName: String? = null,
 
-  @Column(name = "input_variables", columnDefinition = "TEXT")
-  val inputVariables: String? = null, // JSON object of input variable snapshots
+  @Type(JsonBinaryType::class)
+  @Column(name = "input_variables", columnDefinition = "jsonb")
+  val inputVariables: JsonNode? = null, // JSON object of input variable snapshots
 
-  @Column(name = "output_variables", columnDefinition = "TEXT")
-  val outputVariables: String? = null, // JSON object of output variable snapshots
+  @Type(JsonBinaryType::class)
+  @Column(name = "output_variables", columnDefinition = "jsonb")
+  val outputVariables: JsonNode? = null, // JSON object of output variable snapshots
 
   @Column(name = "execution_time_ms")
   val executionTimeMs: Int = 0,
@@ -90,4 +95,3 @@ class CodeTaskExecutionAudit(
      */
   }
 }
-

@@ -1,6 +1,7 @@
 package com.easy.bpm.service.process
 
 import com.easy.bpm.enum.ProcessStatus
+import com.easy.bpm.handler.CodeTaskHandler
 import com.easy.bpm.model.process.ProcessDefinition
 import com.easy.bpm.model.process.ProcessInstance
 import com.easy.bpm.service.metrics.MetricsService
@@ -23,6 +24,7 @@ class ProcessExecutionEngineTest : FunSpec() {
         val serviceTaskHandler = mockk<ProcessServiceTaskHandler>()
         val processAiTaskHandler = mockk<ProcessAiTaskHandler>()
         val processAgentCallHandler = mockk<ProcessAgentCallHandler>()
+        val codeTaskHandler = mockk<CodeTaskHandler>()
         val callActivityHandler = mockk<CallActivityHandler>()
         val timelineService = mockk<ProcessInstanceTimelineService>(relaxed = true)
         val lifecycleManager = mockk<ProcessInstanceLifecycleManager>()
@@ -36,6 +38,7 @@ class ProcessExecutionEngineTest : FunSpec() {
             serviceTaskHandler,
             processAiTaskHandler,
             processAgentCallHandler,
+            codeTaskHandler,
             callActivityHandler,
             timelineService,
             lifecycleManager
@@ -85,6 +88,85 @@ class ProcessExecutionEngineTest : FunSpec() {
                 userTaskHandler.handleUserTask(instance, definition.get("nodes")[2])
             }
             verify(exactly = 0) { failureHandler.failInstance(any(), any(), any(), any(), any(), any()) }
+        }
+
+        test("should execute code task assign outputs and continue") {
+            val definition = objectMapper.readTree(
+                """
+                {
+                  "nodes": [
+                    {
+                      "id": "code",
+                      "type": "CodeTask",
+                      "config": {
+                        "jarId": 1,
+                        "className": "TestService",
+                        "methodName": "processOrder",
+                        "inputs": [
+                          {"targetName": "0", "source": "variable", "value": "orderId"},
+                          {"targetName": "1", "source": "variable", "value": "amount"}
+                        ],
+                        "outputs": [
+                          {"sourceName": "returnValue", "value": "processedOrderMessage"}
+                        ]
+                      }
+                    },
+                    {"id": "review", "type": "HumanTask"}
+                  ],
+                  "flows": [
+                    {"from": "code", "to": "review", "condition": null}
+                  ]
+                }
+                """.trimIndent()
+            )
+            val codeNode = definition.get("nodes")[0]
+            val reviewNode = definition.get("nodes")[1]
+            val processDefinition = ProcessDefinition(id = 1, key = "code-task", definitionJson = definition.toString())
+            val instance = ProcessInstance(
+                id = 43,
+                processDefinition = processDefinition,
+                status = ProcessStatus.ACTIVE,
+                currentNode = listOf("code")
+            )
+
+            every { variableManager.getProcessVariablesAsMap(43) } returns mapOf(
+                "orderId" to "ORDER-1001",
+                "amount" to 1250
+            )
+            every {
+                codeTaskHandler.executeCodeTask(
+                    instanceId = 43,
+                    nodeId = "code",
+                    jarId = 1,
+                    className = "TestService",
+                    methodName = "processOrder",
+                    inputMappings = mapOf("orderId" to "0", "amount" to "1"),
+                    outputMappings = mapOf("returnValue" to "processedOrderMessage"),
+                    inputVariables = mapOf("orderId" to "ORDER-1001", "amount" to 1250)
+                )
+            } returns mapOf("processedOrderMessage" to "Processed ORDER-1001")
+            every { variableManager.assignProcessVariables(43, mapOf("processedOrderMessage" to "Processed ORDER-1001")) } returns emptyList()
+            every { navigator.getNextNodes(codeNode, definition, instance) } returns listOf("review")
+            justRun { navigator.advanceProcess(instance, listOf("review"), definition) }
+            justRun { userTaskHandler.handleUserTask(instance, reviewNode) }
+
+            engine.executeNodes(listOf("code"), instance, definition)
+
+            verify {
+                codeTaskHandler.executeCodeTask(
+                    instanceId = 43,
+                    nodeId = "code",
+                    jarId = 1,
+                    className = "TestService",
+                    methodName = "processOrder",
+                    inputMappings = mapOf("orderId" to "0", "amount" to "1"),
+                    outputMappings = mapOf("returnValue" to "processedOrderMessage"),
+                    inputVariables = mapOf("orderId" to "ORDER-1001", "amount" to 1250)
+                )
+                variableManager.assignProcessVariables(43, mapOf("processedOrderMessage" to "Processed ORDER-1001"))
+                navigator.advanceProcess(instance, listOf("review"), definition)
+                userTaskHandler.handleUserTask(instance, reviewNode)
+            }
         }
     }
 }
