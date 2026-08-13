@@ -145,8 +145,8 @@ class CallActivityIntegrationTest(
     @Test
     fun `simple call activity execution - parent enters call activity and suspends`() {
         // Deploy processes
-        val parentDef = processService.deployProcess(objectMapper.readTree(parentProcessJson))
-        val childDef = processService.deployProcess(objectMapper.readTree(childProcessJson))
+        val parentDef = processService.deployProcess(legacyJsonFixtureToBpmnXml(objectMapper.readTree(parentProcessJson)))
+        val childDef = processService.deployProcess(legacyJsonFixtureToBpmnXml(objectMapper.readTree(childProcessJson)))
 
         // Start parent process
         val parentInstance = processService.startProcessInstance(parentDef.id)
@@ -168,8 +168,8 @@ class CallActivityIntegrationTest(
     @Test
     fun `call activity with input variable mapping - parent variables copied to child`() {
         // Deploy processes
-        val parentDef = processService.deployProcess(objectMapper.readTree(parentProcessJson))
-        val childDef = processService.deployProcess(objectMapper.readTree(childProcessJson))
+        val parentDef = processService.deployProcess(legacyJsonFixtureToBpmnXml(objectMapper.readTree(parentProcessJson)))
+        val childDef = processService.deployProcess(legacyJsonFixtureToBpmnXml(objectMapper.readTree(childProcessJson)))
 
         // Create parent with initial variables (before process starts)
         val parentInstance = processService.startProcessInstance(parentDef.id, mapOf("parentVar" to "parent-value"))
@@ -213,7 +213,7 @@ class CallActivityIntegrationTest(
             }
         """.trimIndent()
 
-        val processDef = processService.deployProcess(objectMapper.readTree(selfRefProcessJson))
+        val processDef = processService.deployProcess(legacyJsonFixtureToBpmnXml(objectMapper.readTree(selfRefProcessJson)))
         
         // First execution should succeed (nesting level 0)
         val level0Instance = processService.startProcessInstance(processDef.id)
@@ -223,8 +223,8 @@ class CallActivityIntegrationTest(
     @Test
     fun `output variable mapping - child variables mapped back to parent on completion`() {
         // This test verifies that when child completes, its variables are mapped to parent
-        val parentDef = processService.deployProcess(objectMapper.readTree(parentProcessJson))
-        val childDef = processService.deployProcess(objectMapper.readTree(childProcessJson))
+        val parentDef = processService.deployProcess(legacyJsonFixtureToBpmnXml(objectMapper.readTree(parentProcessJson)))
+        val childDef = processService.deployProcess(legacyJsonFixtureToBpmnXml(objectMapper.readTree(childProcessJson)))
 
         // Start parent (with initial variables to ensure call activity executes)
         val parentInstance = processService.startProcessInstance(parentDef.id, mapOf("parentVar" to "parent-value"))
@@ -252,9 +252,9 @@ class CallActivityIntegrationTest(
     @Test
     fun `three-level nesting - parent → child → grandchild`() {
         // Deploy all three process levels
-        val parentDef = processService.deployProcess(objectMapper.readTree(parentProcessJson))
-        val childDef = processService.deployProcess(objectMapper.readTree(childProcessJson))
-        val grandchildDef = processService.deployProcess(objectMapper.readTree(grandchildProcessJson))
+        val parentDef = processService.deployProcess(legacyJsonFixtureToBpmnXml(objectMapper.readTree(parentProcessJson)))
+        val childDef = processService.deployProcess(legacyJsonFixtureToBpmnXml(objectMapper.readTree(childProcessJson)))
+        val grandchildDef = processService.deployProcess(legacyJsonFixtureToBpmnXml(objectMapper.readTree(grandchildProcessJson)))
 
         // Start parent (level 0)
         val parent = processService.startProcessInstance(parentDef.id)
@@ -330,8 +330,8 @@ class CallActivityIntegrationTest(
         """.trimIndent()
 
         // Deploy both processes
-        val parentDef = processService.deployProcess(objectMapper.readTree(errorHandlingParentJson))
-        val childDef = processService.deployProcess(objectMapper.readTree(errorChildJson))
+        val parentDef = processService.deployProcess(legacyJsonFixtureToBpmnXml(objectMapper.readTree(errorHandlingParentJson)))
+        val childDef = processService.deployProcess(legacyJsonFixtureToBpmnXml(objectMapper.readTree(errorChildJson)))
 
         // Start parent with initial variables
         val parent = processService.startProcessInstance(parentDef.id, mapOf("parentVar" to "parent-value"))
@@ -397,8 +397,8 @@ class CallActivityIntegrationTest(
             }
         """.trimIndent()
 
-        val parentDef = processService.deployProcess(objectMapper.readTree(propagateAllParentJson))
-        val childDef = processService.deployProcess(objectMapper.readTree(childJson))
+        val parentDef = processService.deployProcess(legacyJsonFixtureToBpmnXml(objectMapper.readTree(propagateAllParentJson)))
+        val childDef = processService.deployProcess(legacyJsonFixtureToBpmnXml(objectMapper.readTree(childJson)))
 
         val parent = processService.startProcessInstance(parentDef.id)
         val children = processInstanceRepository.findByParentInstanceId(parent.id)
@@ -422,8 +422,8 @@ class CallActivityIntegrationTest(
 
     @Test
     fun `parent-child relationship query methods`() {
-        val parentDef = processService.deployProcess(objectMapper.readTree(parentProcessJson))
-        val childDef = processService.deployProcess(objectMapper.readTree(childProcessJson))
+        val parentDef = processService.deployProcess(legacyJsonFixtureToBpmnXml(objectMapper.readTree(parentProcessJson)))
+        val childDef = processService.deployProcess(legacyJsonFixtureToBpmnXml(objectMapper.readTree(childProcessJson)))
 
         val parent = processService.startProcessInstance(parentDef.id)
         val children = processInstanceRepository.findByParentInstanceId(parent.id)

@@ -9,7 +9,6 @@ import com.easy.bpm.repository.process.ProcessDefinitionRepository
 import com.easy.bpm.repository.process.ProcessInstanceRepository
 import com.easy.bpm.repository.process.CallActivityMappingRepository
 import com.easy.bpm.repository.variable.ProcessVariableRepository
-import com.fasterxml.jackson.databind.JsonNode
 import jakarta.transaction.Transactional
 import org.springframework.stereotype.Service
 import org.springframework.data.domain.Page
@@ -37,9 +36,6 @@ class ProcessService(
     /* =========================
        DEPLOY
      ========================= */
-
-    fun deployProcess(definitionJson: JsonNode): ProcessDefinition =
-        deploymentService.deployProcess(definitionJson)
 
     fun deployProcess(definitionXml: String): ProcessDefinition =
         deploymentService.deployProcess(definitionXml)

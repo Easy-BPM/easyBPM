@@ -18,6 +18,7 @@ import com.easy.bpm.service.integration.IntegrationService
 import com.easy.bpm.service.message.MessageSubscriptionService
 import com.easy.bpm.service.metrics.MetricsService
 import com.easy.bpm.service.process.GatewayService
+import com.easy.bpm.service.process.unitTestBpmnXml
 import com.easy.bpm.service.process.ProcessInstanceTimelineService
 import com.easy.bpm.service.process.handler.ProcessFailureHandler
 import com.easy.bpm.service.variable.HistoricVariableArchiver
@@ -202,15 +203,13 @@ class TaskServiceTest : FunSpec() {
                 mockFailureHandler,
                 mockHistoricVariableArchiver
             )
-            val definitionJson = """
-                {
-                  "nodes": [
+            val definitionJson = unitTestBpmnXml(
+                "no-form",
+                """[
                     {"id": "review", "type": "UserTask", "name": "Review"},
                     {"id": "end", "type": "EndEvent", "name": "End"}
-                  ],
-                  "flows": []
-                }
-            """.trimIndent()
+                ]"""
+            )
             val definition = ProcessDefinition(id = 1, key = "no-form", definitionJson = definitionJson)
             val instance = ProcessInstance(
                 id = 100,

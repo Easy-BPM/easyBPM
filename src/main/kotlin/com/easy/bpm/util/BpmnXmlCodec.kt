@@ -13,78 +13,14 @@ object BpmnXmlCodec {
     private const val BPMN_NS = "http://www.omg.org/spec/BPMN/20100524/MODEL"
     private const val BPMNDI_NS = "http://www.omg.org/spec/BPMN/20100524/DI"
     private const val DC_NS = "http://www.omg.org/spec/DD/20100524/DC"
-    private const val DI_NS = "http://www.omg.org/spec/DD/20100524/DI"
     private const val EASY_NS = "https://easybpm.local/bpmn/extensions"
 
     fun parseDefinition(definition: String, objectMapper: ObjectMapper): JsonNode {
         val trimmed = definition.trimStart()
-        return if (trimmed.startsWith("<")) {
-            xmlToInternalJson(definition, objectMapper)
-        } else {
-            objectMapper.readTree(definition)
+        require(trimmed.startsWith("<")) {
+            "Process definitions must be BPMN XML"
         }
-    }
-
-    fun jsonToBpmnXml(definitionJson: JsonNode, objectMapper: ObjectMapper): String {
-        val json = definitionJson.takeIf { it.isObject }
-            ?: throw IllegalArgumentException("Root process definition must be an object")
-        val processId = json.get("processId")?.asText()
-            ?: json.get("id")?.asText()
-            ?: throw IllegalArgumentException("Missing 'processId'")
-        val processName = json.get("processName")?.asText()
-            ?: json.get("name")?.asText()
-            ?: processId
-
-        val nodes = json.get("nodes")?.takeIf { it.isArray }
-            ?: throw IllegalArgumentException("Missing 'nodes'")
-        val flows = json.get("flows")?.takeIf { it.isArray }
-            ?: throw IllegalArgumentException("Missing 'flows'")
-
-        return buildString {
-            append("""<?xml version="1.0" encoding="UTF-8"?>""").append('\n')
-            append("""<bpmn:definitions xmlns:bpmn="$BPMN_NS" xmlns:bpmndi="$BPMNDI_NS" xmlns:dc="$DC_NS" xmlns:di="$DI_NS" xmlns:easy="$EASY_NS" id="Definitions_$processId" targetNamespace="https://easybpm.local/process/$processId">""").append('\n')
-            append("""  <bpmn:process id="${escapeAttr(processId)}" name="${escapeAttr(processName)}" isExecutable="true">""").append('\n')
-
-            val metadata = buildMetadata(json, objectMapper)
-            json.get("variables")?.takeIf { it.isArray && it.size() > 0 }?.let {
-                append("""    <bpmn:extensionElements>""").append('\n')
-                appendJsonExtension("easy:variables", it, objectMapper, 6)
-                metadata?.let { metadataNode -> appendJsonExtension("easy:metadata", metadataNode, objectMapper, 6) }
-                append("""    </bpmn:extensionElements>""").append('\n')
-            } ?: metadata?.let {
-                append("""    <bpmn:extensionElements>""").append('\n')
-                appendJsonExtension("easy:metadata", it, objectMapper, 6)
-                append("""    </bpmn:extensionElements>""").append('\n')
-            }
-
-            nodes.forEach { node ->
-                appendBpmnNode(node, objectMapper)
-            }
-            flows.forEachIndexed { index, flow ->
-                val id = flow.get("id")?.asText()?.takeIf { it.isNotBlank() } ?: "Flow_${index + 1}_${flow.getText("from", "source")}_${flow.getText("to", "target")}"
-                val source = flow.getText("from", "source")
-                val target = flow.getText("to", "target")
-                append("""    <bpmn:sequenceFlow id="${escapeAttr(id)}" sourceRef="${escapeAttr(source)}" targetRef="${escapeAttr(target)}"""")
-                val condition = flow.get("condition")?.asText()?.takeIf { it.isNotBlank() }
-                if (condition == null && (flow.get("waypoints") == null || flow.get("waypoints").isNull)) {
-                    append("/>").append('\n')
-                } else {
-                    append(">").append('\n')
-                    condition?.let {
-                        append("""      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">${escapeText(it)}</bpmn:conditionExpression>""").append('\n')
-                    }
-                    flow.get("waypoints")?.takeIf { it.isArray && it.size() > 0 }?.let {
-                        append("""      <bpmn:extensionElements>""").append('\n')
-                        appendJsonExtension("easy:waypoints", it, objectMapper, 8)
-                        append("""      </bpmn:extensionElements>""").append('\n')
-                    }
-                    append("""    </bpmn:sequenceFlow>""").append('\n')
-                }
-            }
-            append("""  </bpmn:process>""").append('\n')
-            appendDiagram(nodes, flows)
-            append("""</bpmn:definitions>""").append('\n')
-        }
+        return xmlToInternalJson(definition, objectMapper)
     }
 
     fun xmlToInternalJson(xml: String, objectMapper: ObjectMapper): ObjectNode {
@@ -120,83 +56,6 @@ object BpmnXmlCodec {
         result.set<ArrayNode>("flows", flows)
         hydrateNext(nodes, flows)
         return result
-    }
-
-    private fun StringBuilder.appendBpmnNode(node: JsonNode, objectMapper: ObjectMapper) {
-        val tag = when (node.get("type")?.asText().orEmpty()) {
-            "StartEvent" -> "startEvent"
-            "EndEvent" -> "endEvent"
-            "HumanTask", "UserTask" -> "userTask"
-            "ServiceTask" -> "serviceTask"
-            "APITask" -> "serviceTask"
-            "AiTask" -> "serviceTask"
-            "CodeTask" -> "serviceTask"
-            "AgentProcessCall" -> "callActivity"
-            "CallActivity" -> "callActivity"
-            "ExclusiveGateway" -> "exclusiveGateway"
-            "ParallelGateway" -> "parallelGateway"
-            "InclusiveGateway" -> "inclusiveGateway"
-            "TimerEvent" -> "intermediateCatchEvent"
-            "MessageStartEvent" -> "startEvent"
-            "MessageIntermediateCatchEvent" -> "intermediateCatchEvent"
-            "MessageIntermediateThrowEvent" -> "intermediateThrowEvent"
-            "ErrorBoundaryEvent" -> "boundaryEvent"
-            "MessageBoundaryEvent" -> "boundaryEvent"
-            "TimerBoundaryEvent" -> "boundaryEvent"
-            "Participant", "Pool" -> "participant"
-            else -> "task"
-        }
-        append("""    <bpmn:$tag id="${escapeAttr(node.get("id")?.asText().orEmpty())}" name="${escapeAttr(node.get("name")?.asText() ?: node.get("id")?.asText().orEmpty())}"""")
-        node.get("attachedTo")?.asText()?.takeIf { it.isNotBlank() }?.let {
-            if (tag == "boundaryEvent") append(""" attachedToRef="${escapeAttr(it)}"""")
-        }
-        append(">").append('\n')
-        append("""      <bpmn:extensionElements>""").append('\n')
-        appendJsonExtension("easy:node", node, objectMapper, 8)
-        append("""      </bpmn:extensionElements>""").append('\n')
-        when (node.get("type")?.asText().orEmpty()) {
-            "TimerEvent", "TimerBoundaryEvent" -> append("""      <bpmn:timerEventDefinition/>""").append('\n')
-            "MessageStartEvent", "MessageIntermediateCatchEvent", "MessageIntermediateThrowEvent", "MessageBoundaryEvent" -> append("""      <bpmn:messageEventDefinition/>""").append('\n')
-            "ErrorBoundaryEvent" -> append("""      <bpmn:errorEventDefinition/>""").append('\n')
-        }
-        append("""    </bpmn:$tag>""").append('\n')
-    }
-
-    private fun buildMetadata(json: JsonNode, objectMapper: ObjectMapper): JsonNode? {
-        val metadata = json.get("metadata")?.deepCopy<ObjectNode>() ?: objectMapper.createObjectNode()
-        json.get("key")?.asText()?.takeIf { it.isNotBlank() }?.let { metadata.put("key", it) }
-        json.get("description")?.asText()?.takeIf { it.isNotBlank() }?.let { metadata.put("description", it) }
-        json.get("metadata")?.get("description")?.asText()?.takeIf { it.isNotBlank() }?.let { metadata.put("description", it) }
-        return metadata.takeIf { it.size() > 0 }
-    }
-
-    private fun StringBuilder.appendDiagram(nodes: JsonNode, flows: JsonNode) {
-        append("""  <bpmndi:BPMNDiagram id="BPMNDiagram_1">""").append('\n')
-        append("""    <bpmndi:BPMNPlane id="BPMNPlane_1">""").append('\n')
-        nodes.forEach { node ->
-            val id = node.get("id")?.asText().orEmpty()
-            val position = node.get("position")
-            val x = position?.get("x")?.asDouble() ?: 100.0
-            val y = position?.get("y")?.asDouble() ?: 100.0
-            val width = node.get("width")?.asDouble() ?: 120.0
-            val height = node.get("height")?.asDouble() ?: 60.0
-            append("""      <bpmndi:BPMNShape id="${escapeAttr(id)}_di" bpmnElement="${escapeAttr(id)}">""").append('\n')
-            append("""        <dc:Bounds x="$x" y="$y" width="$width" height="$height"/>""").append('\n')
-            append("""      </bpmndi:BPMNShape>""").append('\n')
-        }
-        flows.forEachIndexed { index, flow ->
-            val id = flow.get("id")?.asText()?.takeIf { it.isNotBlank() } ?: "Flow_${index + 1}_${flow.getText("from", "source")}_${flow.getText("to", "target")}"
-            append("""      <bpmndi:BPMNEdge id="${escapeAttr(id)}_di" bpmnElement="${escapeAttr(id)}">""").append('\n')
-            val waypoints = flow.get("waypoints")?.takeIf { it.isArray && it.size() > 0 }
-            if (waypoints != null) {
-                waypoints.forEach { point ->
-                    append("""        <di:waypoint x="${point.get("x")?.asDouble() ?: 0.0}" y="${point.get("y")?.asDouble() ?: 0.0}"/>""").append('\n')
-                }
-            }
-            append("""      </bpmndi:BPMNEdge>""").append('\n')
-        }
-        append("""    </bpmndi:BPMNPlane>""").append('\n')
-        append("""  </bpmndi:BPMNDiagram>""").append('\n')
     }
 
     private fun elementToNode(element: Element, boundsByElement: Map<String, Bounds>, objectMapper: ObjectMapper): ObjectNode {
@@ -259,15 +118,6 @@ object BpmnXmlCodec {
         return result
     }
 
-    private fun StringBuilder.appendJsonExtension(tag: String, node: JsonNode, objectMapper: ObjectMapper, indent: Int) {
-        append(" ".repeat(indent)).append("<").append(tag).append("><![CDATA[")
-        append(objectMapper.writeValueAsString(node))
-        append("]]></").append(tag).append(">").append('\n')
-    }
-
-    private fun JsonNode.getText(primary: String, secondary: String): String =
-        get(primary)?.asText()?.takeIf { it.isNotBlank() } ?: get(secondary)?.asText().orEmpty()
-
     private fun NodeList.forEachElement(action: (Element) -> Unit) {
         for (i in 0 until length) {
             val node = item(i)
@@ -293,12 +143,5 @@ object BpmnXmlCodec {
         "participant" -> "Participant"
         else -> "Task"
     }
-
-    private fun escapeAttr(value: String): String = escapeText(value).replace("\"", "&quot;")
-    private fun escapeText(value: String): String = value
-        .replace("&", "&amp;")
-        .replace("<", "&lt;")
-        .replace(">", "&gt;")
-
     private data class Bounds(val x: Double, val y: Double, val width: Double, val height: Double)
 }

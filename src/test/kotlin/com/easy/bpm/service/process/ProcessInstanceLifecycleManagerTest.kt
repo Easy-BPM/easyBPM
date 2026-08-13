@@ -56,16 +56,13 @@ class ProcessInstanceLifecycleManagerTest : FunSpec() {
         }
 
         test("should clean source task and create target user task on manual move") {
-            val definitionJson = """
-                {
-                  "processId": "approval",
-                  "nodes": [
+            val definitionJson = unitTestBpmnXml(
+                "approval",
+                """[
                     {"id": "review", "type": "HumanTask", "name": "Review"},
                     {"id": "approve", "type": "HumanTask", "name": "Approve"}
-                  ],
-                  "flows": []
-                }
-            """.trimIndent()
+                ]"""
+            )
             val definition = ProcessDefinition(id = 1, key = "approval", definitionJson = definitionJson)
             val instance = ProcessInstance(
                 id = 10,
@@ -99,7 +96,7 @@ class ProcessInstanceLifecycleManagerTest : FunSpec() {
         }
 
         test("should delete process instance dependencies before deleting instance") {
-            val definition = ProcessDefinition(id = 1, key = "cleanup", definitionJson = """{"nodes": []}""")
+            val definition = ProcessDefinition(id = 1, key = "cleanup", definitionJson = unitTestBpmnXml("cleanup", "[]"))
             val instance = ProcessInstance(id = 10, processDefinition = definition, status = ProcessStatus.CANCELLED)
             val task = Task(id = 22, processInstanceId = 10, nodeId = "task")
 

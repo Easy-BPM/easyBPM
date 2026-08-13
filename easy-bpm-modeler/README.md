@@ -8,7 +8,7 @@ React/Vite workspace for designing and deploying Easy BPM processes and forms.
 - Creates process models with start/end events, human tasks, service tasks, API tasks, code tasks, AI tasks, call activities, exclusive gateways, parallel gateways, pools, and boundary events.
 - Edits node properties, process variables, sequence flows, conditions, and task configuration.
 - Validates process structure before export and deployment.
-- Imports and exports BPMN 2.0 XML (`.bpmn`/`.xml`) while retaining legacy JSON import support.
+- Imports and exports BPMN 2.0 XML (`.bpmn`/`.xml`) for process definitions.
 - Shows the generated BPMN XML beside the visual modeler.
 - Deploys process definitions to the backend.
 - Builds form definitions with tabs, fields, validation, preview mode, import/export, and deployment.

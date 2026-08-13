@@ -42,13 +42,16 @@ export const ModelerNavbar: React.FC<NavbarProps> = ({
     reader.onload = (event) => {
       try {
         const text = event.target?.result as string;
-        if (resourceType === 'process' && text.trimStart().startsWith('<')) {
+        if (resourceType === 'process') {
+          if (!text.trimStart().startsWith('<')) {
+            throw new Error('Process imports must be BPMN XML');
+          }
           onImport?.(text);
           return;
         }
         onImport?.(JSON.parse(text));
       } catch (err) {
-        alert(resourceType === 'process' ? 'Invalid BPMN XML or JSON file' : 'Invalid JSON file');
+        alert(resourceType === 'process' ? 'Invalid BPMN XML file' : 'Invalid JSON file');
       }
     };
     reader.readAsText(file);
@@ -96,7 +99,7 @@ export const ModelerNavbar: React.FC<NavbarProps> = ({
               type="file" 
               ref={fileInputRef} 
               onChange={handleFileChange} 
-              accept={resourceType === 'process' ? '.bpmn,.xml,.json,application/xml,text/xml,application/json' : '.json,application/json'} 
+              accept={resourceType === 'process' ? '.bpmn,.xml,application/xml,text/xml' : '.json,application/json'}
               className="hidden" 
             />
             <button

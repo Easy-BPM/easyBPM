@@ -71,7 +71,7 @@ class ProcessIntegrationTest(
     fun `service task error should trigger error boundary event and route to after-error user task`() {
         val processDefinitionJson = objectMapper.readTree(ClassPathResource("examples/error-boundary.json").inputStream)
 
-        val processDefinition = processService.deployProcess(processDefinitionJson)
+        val processDefinition = processService.deployProcess(legacyJsonFixtureToBpmnXml(processDefinitionJson))
 
         // Set shouldFail to true to simulate error in service task
         val processInstance = processService.startProcessInstance(processDefinition.id)
@@ -100,7 +100,7 @@ class ProcessIntegrationTest(
     fun `start user task process should create task variable and complete process`() {
         val processDefinitionJson = objectMapper.readTree(ClassPathResource("process-one-user-task.json").inputStream)
 
-        val processDefinition = processService.deployProcess(processDefinitionJson)
+        val processDefinition = processService.deployProcess(legacyJsonFixtureToBpmnXml(processDefinitionJson))
         val processInstance = processService.startProcessInstance(processDefinition.id)
 
         assertThat(processInstance.status).isEqualTo(ProcessStatus.ACTIVE)
@@ -143,7 +143,7 @@ class ProcessIntegrationTest(
     fun `exclusive gateway should route to conditional path when condition is met`() {
         val processDefinitionJson = objectMapper.readTree(ClassPathResource("process-exclusive-gateway.json").inputStream)
 
-        val processDefinition = processService.deployProcess(processDefinitionJson)
+        val processDefinition = processService.deployProcess(legacyJsonFixtureToBpmnXml(processDefinitionJson))
         val processInstance = processService.startProcessInstance(processDefinition.id)
 
         assertThat(processInstance.status).isEqualTo(ProcessStatus.ACTIVE)
@@ -175,7 +175,7 @@ class ProcessIntegrationTest(
     fun `service task node should set process variables and continue to next step`() {
         val processDefinitionJson = objectMapper.readTree(ClassPathResource("process-service-task.json").inputStream)
 
-        val processDefinition = processService.deployProcess(processDefinitionJson)
+        val processDefinition = processService.deployProcess(legacyJsonFixtureToBpmnXml(processDefinitionJson))
         val processInstance = processService.startProcessInstance(processDefinition.id)
 
         assertThat(processInstance.status).isEqualTo(ProcessStatus.COMPLETED)
@@ -198,7 +198,7 @@ class ProcessIntegrationTest(
     fun `service task node should support both static and variable assignment in same node`() {
         val processDefinitionJson = objectMapper.readTree(ClassPathResource("process-service-task.json").inputStream)
 
-        val processDefinition = processService.deployProcess(processDefinitionJson)
+        val processDefinition = processService.deployProcess(legacyJsonFixtureToBpmnXml(processDefinitionJson))
         val processInstance = processService.startProcessInstance(processDefinition.id)
 
         assertThat(processInstance.status).isEqualTo(ProcessStatus.COMPLETED)
@@ -223,7 +223,7 @@ class ProcessIntegrationTest(
     fun `variable overwrite should update existing process variable on service task completion`() {
         val processDefinitionJson = objectMapper.readTree(ClassPathResource("process-service-task.json").inputStream)
 
-        val processDefinition = processService.deployProcess(processDefinitionJson)
+        val processDefinition = processService.deployProcess(legacyJsonFixtureToBpmnXml(processDefinitionJson))
         val processInstance = processService.startProcessInstance(processDefinition.id)
 
         assertThat(processInstance.status).isEqualTo(ProcessStatus.COMPLETED)
@@ -247,7 +247,7 @@ class ProcessIntegrationTest(
     fun `task variable creation should handle multiple variables correctly`() {
         val processDefinitionJson = objectMapper.readTree(ClassPathResource("process-one-user-task.json").inputStream)
 
-        val processDefinition = processService.deployProcess(processDefinitionJson)
+        val processDefinition = processService.deployProcess(legacyJsonFixtureToBpmnXml(processDefinitionJson))
         val processInstance = processService.startProcessInstance(processDefinition.id)
 
         val createdTask = taskRepository.findAll().first { it.processInstanceId == processInstance.id }
@@ -275,7 +275,7 @@ class ProcessIntegrationTest(
     fun `message receive should overwrite existing process variable correctly`() {
         val processDefinitionJson = objectMapper.readTree(ClassPathResource("process-one-user-task.json").inputStream)
 
-        val processDefinition = processService.deployProcess(processDefinitionJson)
+        val processDefinition = processService.deployProcess(legacyJsonFixtureToBpmnXml(processDefinitionJson))
         val processInstance = processService.startProcessInstance(processDefinition.id)
 
         val createdTask = taskRepository.findAll().first { it.processInstanceId == processInstance.id }
@@ -295,7 +295,7 @@ class ProcessIntegrationTest(
     fun `process completion should be detected correctly for all gateway types`() {
         val processDefinitionJson = objectMapper.readTree(ClassPathResource("process-service-task.json").inputStream)
 
-        val processDefinition = processService.deployProcess(processDefinitionJson)
+        val processDefinition = processService.deployProcess(legacyJsonFixtureToBpmnXml(processDefinitionJson))
         val processInstance = processService.startProcessInstance(processDefinition.id)
 
         // Process should be COMPLETED after all nodes execute
@@ -309,7 +309,7 @@ class ProcessIntegrationTest(
     fun `parallel gateway should complete process when all paths finish`() {
         val processDefinitionJson = objectMapper.readTree(ClassPathResource("process-parallel-gateway.json").inputStream)
 
-        val processDefinition = processService.deployProcess(processDefinitionJson)
+        val processDefinition = processService.deployProcess(legacyJsonFixtureToBpmnXml(processDefinitionJson))
         val processInstance = processService.startProcessInstance(processDefinition.id)
 
         // Process should complete when both parallel paths complete and join
@@ -327,14 +327,14 @@ class ProcessIntegrationTest(
 
         // Deploy and start the catch process (waits for message)
         val catchDefJson = objectMapper.readTree(ClassPathResource("examples/message-catch-process.json").inputStream)
-        val catchDef = processService.deployProcess(catchDefJson)
+        val catchDef = processService.deployProcess(legacyJsonFixtureToBpmnXml(catchDefJson))
         val catchInstance = processService.startProcessInstance(catchDef.id)
         assertThat(catchInstance.currentNode).containsExactly("message-intermediate-catch_fgsda310o")
         assertThat(catchInstance.status).isEqualTo(ProcessStatus.ACTIVE)
 
         // Deploy and start the throw process (sends message)
         val throwDefJson = objectMapper.readTree(ClassPathResource("examples/message-throw-process.json").inputStream)
-        val throwDef = processService.deployProcess(throwDefJson)
+        val throwDef = processService.deployProcess(legacyJsonFixtureToBpmnXml(throwDefJson))
         val throwInstance = processService.startProcessInstance(throwDef.id)
         assertThat(throwInstance.currentNode).isEmpty()
         assertThat(throwInstance.status).isEqualTo(ProcessStatus.COMPLETED)
@@ -402,7 +402,7 @@ class ProcessIntegrationTest(
             """.trimIndent()
         )
 
-        val processDefinition = processService.deployProcess(processDefinitionJson)
+        val processDefinition = processService.deployProcess(legacyJsonFixtureToBpmnXml(processDefinitionJson))
 
         processService.handleMessageReceived(
             "order.started",
@@ -483,7 +483,7 @@ class ProcessIntegrationTest(
             """.trimIndent()
         )
 
-        val processDefinition = processService.deployProcess(processDefinitionJson)
+        val processDefinition = processService.deployProcess(legacyJsonFixtureToBpmnXml(processDefinitionJson))
 
         processService.handleMessageReceived(
             "order.started",
@@ -514,7 +514,7 @@ class ProcessIntegrationTest(
     fun `timer event json process should create subscription and continue after timeout`() {
         val processDefinitionJson = objectMapper.readTree(ClassPathResource("process-timer-event.json").inputStream)
 
-        val processDefinition = processService.deployProcess(processDefinitionJson)
+        val processDefinition = processService.deployProcess(legacyJsonFixtureToBpmnXml(processDefinitionJson))
         val processInstance = processService.startProcessInstance(processDefinition.id)
 
         assertThat(processInstance.status).isEqualTo(ProcessStatus.ACTIVE)
@@ -545,7 +545,7 @@ class ProcessIntegrationTest(
     fun `api task json process should execute api task without external call and complete`() {
         val processDefinitionJson = objectMapper.readTree(ClassPathResource("process-api-task.json").inputStream)
 
-        val processDefinition = processService.deployProcess(processDefinitionJson)
+        val processDefinition = processService.deployProcess(legacyJsonFixtureToBpmnXml(processDefinitionJson))
         val processInstance = processService.startProcessInstance(processDefinition.id)
 
         assertThat(processInstance.status).isEqualTo(ProcessStatus.ACTIVE)
@@ -564,7 +564,7 @@ class ProcessIntegrationTest(
     fun `inclusive gateway json process should execute both service branches`() {
         val processDefinitionJson = objectMapper.readTree(ClassPathResource("process-inclusive-gateway.json").inputStream)
 
-        val processDefinition = processService.deployProcess(processDefinitionJson)
+        val processDefinition = processService.deployProcess(legacyJsonFixtureToBpmnXml(processDefinitionJson))
         val processInstance = processService.startProcessInstance(processDefinition.id)
 
         assertThat(processInstance.currentNode).containsExactly("user-task_submit-request")
@@ -587,8 +587,8 @@ class ProcessIntegrationTest(
         val childJson = objectMapper.readTree(ClassPathResource("process-call-activity-child.json").inputStream)
         val parentJson = objectMapper.readTree(ClassPathResource("process-call-activity.json").inputStream)
 
-        processService.deployProcess(childJson)
-        val parentDefinition = processService.deployProcess(parentJson)
+        processService.deployProcess(legacyJsonFixtureToBpmnXml(childJson))
+        val parentDefinition = processService.deployProcess(legacyJsonFixtureToBpmnXml(parentJson))
         val parentInstance = processService.startProcessInstance(parentDefinition.id)
 
         val waitingParent = processInstanceRepository.findById(parentInstance.id).orElseThrow()
@@ -660,7 +660,7 @@ class ProcessIntegrationTest(
             """.trimIndent()
         )
 
-        val processDefinition = processService.deployProcess(processDefinitionJson)
+        val processDefinition = processService.deployProcess(legacyJsonFixtureToBpmnXml(processDefinitionJson))
         val processInstance = processService.startProcessInstance(processDefinition.id)
 
         val completedInstance = processInstanceRepository.findById(processInstance.id).orElseThrow()
@@ -759,7 +759,7 @@ class ProcessIntegrationTest(
             """.trimIndent()
         )
 
-        val processDefinition = processService.deployProcess(processDefinitionJson)
+        val processDefinition = processService.deployProcess(legacyJsonFixtureToBpmnXml(processDefinitionJson))
         val processInstance = processService.startProcessInstance(processDefinition.id)
 
         val captureTask = taskRepository.findByProcessInstanceId(processInstance.id)
@@ -800,7 +800,7 @@ class ProcessIntegrationTest(
             """.trimIndent()
         )
 
-        val processDefinition = processService.deployProcess(processDefinitionJson)
+        val processDefinition = processService.deployProcess(legacyJsonFixtureToBpmnXml(processDefinitionJson))
         val instance = processService.startProcessInstance(processDefinition.id)
 
         val beforeMovePendingNodes = getPendingTaskNodesFromApi(instance.id)
@@ -842,7 +842,7 @@ class ProcessIntegrationTest(
             """.trimIndent()
         )
 
-        val processDefinition = processService.deployProcess(processDefinitionJson)
+        val processDefinition = processService.deployProcess(legacyJsonFixtureToBpmnXml(processDefinitionJson))
         val instance = processService.startProcessInstance(processDefinition.id)
 
         val beforeStopPendingNodes = getPendingTaskNodesFromApi(instance.id)
@@ -885,7 +885,7 @@ class ProcessIntegrationTest(
                         """.trimIndent()
                 )
 
-                val processDefinition = processService.deployProcess(processDefinitionJson)
+                val processDefinition = processService.deployProcess(legacyJsonFixtureToBpmnXml(processDefinitionJson))
                 val instance = processService.startProcessInstance(processDefinition.id)
 
                 val startedInstance = processInstanceRepository.findById(instance.id).orElseThrow()

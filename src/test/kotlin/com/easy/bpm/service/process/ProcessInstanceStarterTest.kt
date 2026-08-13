@@ -39,16 +39,13 @@ class ProcessInstanceStarterTest : FunSpec() {
         }
 
         test("should create active instance and execute start nodes") {
-            val definitionJson = """
-                {
-                  "processId": "simple",
-                  "nodes": [
+            val definitionJson = unitTestBpmnXml(
+                "simple",
+                """[
                     {"id": "start", "type": "StartEvent", "next": ["task"]},
                     {"id": "task", "type": "HumanTask"}
-                  ],
-                  "flows": []
-                }
-            """.trimIndent()
+                ]"""
+            )
             val definition = ProcessDefinition(id = 1, key = "simple", processName = "Simple", definitionJson = definitionJson)
             val savedInstance = ProcessInstance(
                 id = 50,
