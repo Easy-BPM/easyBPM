@@ -164,7 +164,7 @@ class CodeClassDiscoveryService(
       className = className,
       methodName = discoveredMethod.methodName,
       methodSignature = discoveredMethod.signature,
-      inputParams = objectMapper.writeValueAsString(inputParams),
+      inputParams = objectMapper.valueToTree(inputParams),
       returnType = discoveredMethod.returnType.name
     )
   }
@@ -219,7 +219,7 @@ class CodeClassDiscoveryService(
         className = className,
         methodName = method.methodName,
         methodSignature = method.signature,
-        inputParams = objectMapper.writeValueAsString(inputParams),
+        inputParams = objectMapper.valueToTree(inputParams),
         returnType = method.returnType.name
       )
 
@@ -256,4 +256,3 @@ data class DiscoveredMethod(
     return result
   }
 }
-

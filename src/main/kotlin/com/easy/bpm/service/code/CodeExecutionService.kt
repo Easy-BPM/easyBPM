@@ -173,7 +173,7 @@ class CodeExecutionService(
    * @return Extracted value
    */
   fun extractReturnValue(result: Any?, path: String? = null): Any? {
-    if (result == null || path == null) {
+    if (result == null || path == null || path.isBlank() || path == "returnValue") {
       return result
     }
 
@@ -232,4 +232,3 @@ class CodeExecutionService(
     return "${method.name}($params) -> $returnType"
   }
 }
-

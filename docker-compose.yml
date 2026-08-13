@@ -36,7 +36,8 @@ services:
       EASY_BPM_SERVER_DATASOURCE_PASSWORD: minha_senha
       EASY_BPM_SERVER_RABBITMQ_HOST: rabbitmq
       EASY_BPM_SERVER_SECURITY_JWT_EXPIRATION_MS: "86400000"
-      EASY_BPM_SERVER_TEST_DATA_ENABLED: "false"
+      EASY_BPM_TEST_DATA: ${EASY_BPM_TEST_DATA:-false}
+      EASY_BPM_SERVER_TEST_DATA_ENABLED: ${EASY_BPM_SERVER_TEST_DATA_ENABLED:-false}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     command: sh -c "java -jar /app/app.jar --server.port=8080"

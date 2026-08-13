@@ -1,6 +1,8 @@
 package com.easy.bpm.entity
 
 import jakarta.persistence.*
+import org.hibernate.annotations.JdbcTypeCode
+import org.hibernate.type.SqlTypes
 import java.time.LocalDateTime
 
 /**
@@ -25,7 +27,7 @@ class CodeTaskJar(
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   val id: Long? = null,
 
-  @Lob
+  @JdbcTypeCode(SqlTypes.VARBINARY)
   @Column(name = "content", nullable = false)
   val content: ByteArray,
 
@@ -61,4 +63,3 @@ class CodeTaskJar(
     return result
   }
 }
-

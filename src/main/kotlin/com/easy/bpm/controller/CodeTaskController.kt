@@ -251,8 +251,8 @@ class CodeTaskController(
                     jarId = audit.jarId,
                     className = audit.className,
                     methodName = audit.methodName,
-                    inputVariables = audit.inputVariables,
-                    outputVariables = audit.outputVariables,
+                    inputVariables = audit.inputVariables?.toString(),
+                    outputVariables = audit.outputVariables?.toString(),
                     executionTimeMs = audit.executionTimeMs,
                     status = audit.status,
                     errorMessage = audit.errorMessage,
@@ -292,4 +292,3 @@ class CodeTaskController(
         )
     }
 }
-

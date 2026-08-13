@@ -3,6 +3,7 @@ package com.easy.bpm.service.process
 import com.easy.bpm.enum.ProcessStatus
 import com.easy.bpm.handler.AITaskHandler
 import com.easy.bpm.handler.AgentProcessCallHandler
+import com.easy.bpm.handler.CodeTaskHandler
 import com.easy.bpm.model.process.ProcessDefinition
 import com.easy.bpm.model.process.ProcessInstance
 import com.easy.bpm.model.task.Task
@@ -54,6 +55,7 @@ class ProcessServiceTest : FunSpec() {
     val mockCallActivityMappingRepository = mockk<CallActivityMappingRepository>()
     val mockAITaskHandler = mockk<AITaskHandler>()
     val mockAgentProcessCallHandler = mockk<AgentProcessCallHandler>()
+    val mockCodeTaskHandler = mockk<CodeTaskHandler>()
     val mockIncidentService = mockk<IncidentService>(relaxed = true)
     val mockTimelineService = mockk<ProcessInstanceTimelineService>(relaxed = true)
     val mockHistoricVariableArchiver = mockk<HistoricVariableArchiver>(relaxed = true)
@@ -158,6 +160,7 @@ class ProcessServiceTest : FunSpec() {
         serviceTaskHandler,
         processAiTaskHandler,
         processAgentCallHandler,
+        mockCodeTaskHandler,
         mockCallActivityHandler,
         mockTimelineService,
         lifecycleManager

@@ -82,3 +82,9 @@ tasks.withType<KotlinCompile> {
 tasks.withType<Test> {
 	useJUnitPlatform()
 }
+
+tasks.processResources {
+	from("easy-bpm-modeler/qa-processes") {
+		into("modeler-qa/qa-processes")
+	}
+}

@@ -69,7 +69,8 @@ springdoc:
 
 easybpm:
   test-data:
-    enabled: ${EASY_BPM_SERVER_TEST_DATA_ENABLED:false}
+    enabled: ${EASY_BPM_TEST_DATA:${EASY_BPM_SERVER_TEST_DATA_ENABLED:false}}
+    qa-resource-path: ${EASY_BPM_TEST_DATA_QA_RESOURCE_PATH:modeler-qa/qa-processes}
   retention:
     enabled: ${EASY_BPM_SERVER_RETENTION_ENABLED:false}
     completed-process-retention-days: ${EASY_BPM_SERVER_RETENTION_COMPLETED_PROCESS_RETENTION_DAYS:90}
