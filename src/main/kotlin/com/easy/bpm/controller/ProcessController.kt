@@ -89,8 +89,32 @@ class ProcessController(
 
     @PostMapping("/{processId}/start")
     @Operation(summary = "Start a process instance", description = "Create and start a new instance of a process definition by processId")
-    fun startInstance(@PathVariable processId: String): ProcessInstance {
-        return processService.startProcessInstance(processId)
+    fun startInstance(@PathVariable processId: String): ResponseEntity<Any> {
+        return try {
+            ResponseEntity.ok(processService.startProcessInstance(processId))
+        } catch (ex: IllegalArgumentException) {
+            val errorMessage = when (ex.message) {
+                "StartEvent not found" ->
+                    "Process '$processId' does not have a regular StartEvent. It must be started by sending its MessageStartEvent payload to POST /processes/messages."
+                else -> ex.message ?: "Process could not be started."
+            }
+
+            val status = if (errorMessage.contains("not found", ignoreCase = true)) {
+                404
+            } else {
+                400
+            }
+
+            ResponseEntity.status(status).body(
+                mapOf(
+                    "status" to "error",
+                    "message" to errorMessage,
+                    "processId" to processId,
+                    "startEndpoint" to "/processes/$processId/start",
+                    "messageEndpoint" to "/processes/messages"
+                )
+            )
+        }
     }
 
     @GetMapping("/instances")

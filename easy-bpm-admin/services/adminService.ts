@@ -123,6 +123,24 @@ const fetchWithAuth = async (url: string, init?: RequestInit): Promise<Response>
   return response;
 };
 
+const errorFromResponse = async (response: Response, fallback: string): Promise<Error> => {
+  try {
+    const contentType = response.headers.get('Content-Type') ?? '';
+    if (contentType.includes('application/json')) {
+      const payload = await response.json();
+      if (payload?.message) return new Error(String(payload.message));
+      if (payload?.error) return new Error(String(payload.error));
+    } else {
+      const text = await response.text();
+      if (text.trim()) return new Error(text.trim());
+    }
+  } catch {
+    // Fall back to the caller's context-specific message.
+  }
+
+  return new Error(`${fallback}: ${response.status} ${response.statusText}`.trim());
+};
+
 export const adminService = {
   getSession: (): AuthSession | null => readSession(),
 
@@ -168,7 +186,7 @@ export const adminService = {
 
     const params = new URLSearchParams({ page: String(page), size: String(size) });
     const res = await fetchWithAuth(`${API_BASE_URL}/processes/instances?${params.toString()}`);
-    if (!res.ok) throw new Error(`Failed to fetch instances: ${res.statusText}`);
+    if (!res.ok) throw await errorFromResponse(res, 'Failed to fetch instances');
     return res.json();
   },
 
@@ -180,7 +198,7 @@ export const adminService = {
 
     const res = await fetchWithAuth(`${API_BASE_URL}/processes/instances/${instanceId}`);
     if (res.status === 404) return null;
-    if (!res.ok) throw new Error(`Failed to fetch instance ${instanceId}: ${res.statusText}`);
+    if (!res.ok) throw await errorFromResponse(res, `Failed to fetch instance ${instanceId}`);
     return res.json();
   },
 
@@ -198,7 +216,7 @@ export const adminService = {
 
     const params = new URLSearchParams({ page: String(page), size: String(size) });
     const res = await fetchWithAuth(`${API_BASE_URL}/processes?${params.toString()}`);
-    if (!res.ok) throw new Error(`Failed to fetch definitions: ${res.statusText}`);
+    if (!res.ok) throw await errorFromResponse(res, 'Failed to fetch definitions');
     return res.json();
   },
 
@@ -210,7 +228,7 @@ export const adminService = {
 
     const res = await fetchWithAuth(`${API_BASE_URL}/processes/definitions/${definitionId}`);
     if (res.status === 404) return null;
-    if (!res.ok) throw new Error(`Failed to fetch definition ${definitionId}: ${res.statusText}`);
+    if (!res.ok) throw await errorFromResponse(res, `Failed to fetch definition ${definitionId}`);
     return res.json();
   },
 
@@ -221,7 +239,7 @@ export const adminService = {
     }
 
     const res = await fetchWithAuth(`${API_BASE_URL}/processes/instances/${instanceId}/variables`);
-    if (!res.ok) throw new Error(`Failed to fetch variables: ${res.statusText}`);
+    if (!res.ok) throw await errorFromResponse(res, 'Failed to fetch variables');
     return res.json();
   },
 
@@ -259,7 +277,7 @@ export const adminService = {
 
   getProcessTimeline: async (instanceId: number): Promise<ProcessInstanceEvent[]> => {
     const res = await fetchWithAuth(`${API_BASE_URL}/processes/instances/${instanceId}/timeline`);
-    if (!res.ok) throw new Error(`Failed to fetch timeline: ${res.statusText}`);
+    if (!res.ok) throw await errorFromResponse(res, 'Failed to fetch timeline');
     return res.json();
   },
 
@@ -277,7 +295,7 @@ export const adminService = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
-    if (!res.ok) throw new Error(`Failed to assign variables: ${res.statusText}`);
+    if (!res.ok) throw await errorFromResponse(res, 'Failed to assign variables');
   },
 
   moveNode: async (instanceId: number, payload: MoveNodePayload): Promise<void> => {
@@ -297,7 +315,7 @@ export const adminService = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
-    if (!res.ok) throw new Error(`Failed to move node: ${res.statusText}`);
+    if (!res.ok) throw await errorFromResponse(res, 'Failed to move node');
   },
 
   stopInstance: async (instanceId: number): Promise<void> => {
@@ -315,7 +333,7 @@ export const adminService = {
     const res = await fetchWithAuth(`${API_BASE_URL}/processes/instances/${instanceId}/stop`, {
       method: 'POST'
     });
-    if (!res.ok) throw new Error(`Failed to stop instance: ${res.statusText}`);
+    if (!res.ok) throw await errorFromResponse(res, 'Failed to stop instance');
   },
 
   deleteInstance: async (instanceId: number): Promise<void> => {
@@ -332,7 +350,7 @@ export const adminService = {
     const res = await fetchWithAuth(`${API_BASE_URL}/processes/instances/${instanceId}`, {
       method: 'DELETE'
     });
-    if (!res.ok) throw new Error(`Failed to delete instance: ${res.statusText}`);
+    if (!res.ok) throw await errorFromResponse(res, 'Failed to delete instance');
   },
 
   getChildInstances: async (parentInstanceId: number): Promise<ProcessInstance[]> => {
