@@ -30,10 +30,23 @@ const labelForNode = (node: WorkflowNode): string => {
   return node.id;
 };
 
+const normalizedType = (type: string): string => type.toLowerCase();
+const isMessageStart = (type: string): boolean => normalizedType(type).includes('messagestart');
+const isMessageCatch = (type: string): boolean => normalizedType(type).includes('messageintermediatecatch');
+const isMessageThrow = (type: string): boolean => normalizedType(type).includes('messageintermediatethrow');
+const isMessageEvent = (type: string): boolean => isMessageStart(type) || isMessageCatch(type) || isMessageThrow(type);
+const isTimerEvent = (type: string): boolean => normalizedType(type).includes('timer') && !normalizedType(type).includes('boundary');
+const isCircularEvent = (type: string): boolean =>
+  normalizedType(type).includes('start') ||
+  normalizedType(type).includes('endevent') ||
+  type === 'EndEvent' ||
+  isTimerEvent(type) ||
+  isMessageThrow(type);
+
 const nodeSizeByType = (type: string): { width: number; height: number } => {
   const normalized = type.toLowerCase();
   if (type === 'Participant' || type === 'Pool') return { width: 640, height: 260 };
-  if (normalized.includes('start') || normalized.includes('endevent') || type === 'EndEvent') return { width: 40, height: 40 };
+  if (isCircularEvent(type)) return { width: 40, height: 40 };
   if (normalized.includes('gateway')) return { width: 40, height: 40 };
   if (normalized.includes('boundary')) return { width: 30, height: 30 };
   return { width: 120, height: 60 };
@@ -43,8 +56,7 @@ const getNodeSize = (node: WorkflowNode): { width: number; height: number } => {
   const fixedSize = nodeSizeByType(node.type);
   const normalized = node.type.toLowerCase();
   if (
-    normalized.includes('start') ||
-    normalized.includes('end') ||
+    isCircularEvent(node.type) ||
     normalized.includes('gateway') ||
     normalized.includes('boundary')
   ) {
@@ -64,7 +76,8 @@ const getNodeStyle = (type: string, visited: boolean, current: boolean): string 
   if (normalized.includes('gateway')) return 'fill-white stroke-orange-600';
   if (type === 'ErrorBoundaryEvent') return 'fill-white stroke-red-600';
   if (type === 'MessageBoundaryEvent') return 'fill-white stroke-blue-600';
-  if (type === 'TimerEvent' && type.toLowerCase().includes('boundary')) return 'fill-white stroke-amber-600';
+  if (normalized.includes('timer')) return 'fill-white stroke-amber-600';
+  if (isMessageEvent(type)) return 'fill-white stroke-blue-600';
   if (type === 'HumanTask' || type === 'UserTask' || type === 'humanTask' || type === 'userTask') return 'fill-white stroke-blue-700';
   if (type === 'ServiceTask') return 'fill-white stroke-amber-600';
   if (type === 'APITask') return 'fill-white stroke-purple-600';
@@ -419,18 +432,37 @@ export const WorkflowCanvas: React.FC<Props> = ({ definition, nodeHistory, curre
           const current = currentSet.has(node.id);
           const className = getNodeStyle(node.type, visited, current);
 
-          const normalizedType = node.type.toLowerCase();
-          if (normalizedType.includes('start') || normalizedType.includes('end')) {
+          const typeKey = normalizedType(node.type);
+          if (isCircularEvent(node.type)) {
+            const centerX = x + size.width / 2;
+            const centerY = y + size.height / 2;
+            const isEnd = typeKey.includes('end');
+            const isTimer = isTimerEvent(node.type);
+            const isMessage = isMessageEvent(node.type);
+
             return (
               <g key={node.id}>
                 <circle
-                  cx={x + size.width / 2}
-                  cy={y + size.height / 2}
+                  cx={centerX}
+                  cy={centerY}
                   r={size.width / 2}
-                  className={`${className} stroke-[3]`}
+                  className={`${className} ${isEnd ? 'stroke-[4]' : 'stroke-[3]'}`}
                 />
+                {isTimer && (
+                  <>
+                    <circle cx={centerX} cy={centerY} r={size.width / 2 - 4} className="fill-none stroke-amber-500 stroke-[1.5]" />
+                    <g transform={`translate(${centerX - 8}, ${centerY - 8})`}>
+                      <Clock3 className="h-4 w-4 text-amber-600 pointer-events-none" />
+                    </g>
+                  </>
+                )}
+                {isMessage && (
+                  <g transform={`translate(${centerX - 8}, ${centerY - 8})`}>
+                    <Mail className={`h-4 w-4 pointer-events-none ${isMessageStart(node.type) ? 'text-green-600' : 'text-blue-600'}`} />
+                  </g>
+                )}
                 <text
-                  x={x + size.width / 2}
+                  x={centerX}
                   y={y + size.height + 22}
                   textAnchor="middle"
                   className="fill-slate-700 text-xs font-medium"
@@ -439,7 +471,7 @@ export const WorkflowCanvas: React.FC<Props> = ({ definition, nodeHistory, curre
                 </text>
                 {node.name && node.name.trim().length > 0 && (
                   <text
-                    x={x + size.width / 2}
+                    x={centerX}
                     y={y + size.height + 36}
                     textAnchor="middle"
                     className="fill-slate-500 text-[10px] font-mono"
@@ -452,7 +484,7 @@ export const WorkflowCanvas: React.FC<Props> = ({ definition, nodeHistory, curre
             );
           }
 
-          if (node.type.toLowerCase().includes('gateway')) {
+          if (typeKey.includes('gateway')) {
             return (
               <g key={node.id}>
                 <rect
@@ -486,12 +518,18 @@ export const WorkflowCanvas: React.FC<Props> = ({ definition, nodeHistory, curre
             );
           }
 
+          const isMessageBox = isMessageCatch(node.type);
           return (
             <g key={node.id}>
               <rect x={x} y={y} width={size.width} height={size.height} rx={8} className={`${className} stroke-[3]`} />
+              {isMessageBox && (
+                <g transform={`translate(${x + 9}, ${y + 9})`}>
+                  <Mail className="h-4 w-4 text-blue-600 pointer-events-none" />
+                </g>
+              )}
               <text
                 x={x + size.width / 2}
-                y={y + size.height / 2 - 12}
+                y={y + size.height / 2 - 8}
                 textAnchor="middle"
                 className="fill-slate-800 text-xs font-semibold"
               >
@@ -504,14 +542,6 @@ export const WorkflowCanvas: React.FC<Props> = ({ definition, nodeHistory, curre
                 className="fill-slate-500 text-[10px] font-mono"
               >
                 {node.id}
-              </text>
-              <text
-                x={x + size.width / 2}
-                y={y + size.height / 2 + 16}
-                textAnchor="middle"
-                className="fill-slate-500 text-[10px] font-mono"
-              >
-                {node.type}
               </text>
               {current && <CurrentTokenPin x={x + size.width + 8} y={y - 4} />}
             </g>

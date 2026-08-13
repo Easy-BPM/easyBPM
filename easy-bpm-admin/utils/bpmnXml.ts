@@ -5,20 +5,41 @@ const BPMNDI_NS = 'http://www.omg.org/spec/BPMN/20100524/DI';
 const DC_NS = 'http://www.omg.org/spec/DD/20100524/DC';
 const EASY_NS = 'https://easybpm.local/bpmn/extensions';
 
-const tagToType = (tag: string): string => ({
-  startEvent: 'StartEvent',
-  endEvent: 'EndEvent',
-  userTask: 'HumanTask',
-  serviceTask: 'ServiceTask',
-  callActivity: 'CallActivity',
-  exclusiveGateway: 'ExclusiveGateway',
-  parallelGateway: 'ParallelGateway',
-  inclusiveGateway: 'InclusiveGateway',
-  intermediateCatchEvent: 'TimerEvent',
-  intermediateThrowEvent: 'MessageIntermediateThrowEvent',
-  boundaryEvent: 'ErrorBoundaryEvent',
-  participant: 'Participant'
-}[tag] || 'Task');
+const hasChild = (element: Element, localName: string): boolean =>
+  Array.from(element.children).some((child) => child.localName === localName);
+
+const elementToType = (element: Element): string => {
+  switch (element.localName) {
+    case 'startEvent':
+      return hasChild(element, 'messageEventDefinition') ? 'MessageStartEvent' : 'StartEvent';
+    case 'endEvent':
+      return 'EndEvent';
+    case 'userTask':
+      return 'HumanTask';
+    case 'serviceTask':
+      return 'ServiceTask';
+    case 'callActivity':
+      return 'CallActivity';
+    case 'exclusiveGateway':
+      return 'ExclusiveGateway';
+    case 'parallelGateway':
+      return 'ParallelGateway';
+    case 'inclusiveGateway':
+      return 'InclusiveGateway';
+    case 'intermediateCatchEvent':
+      return hasChild(element, 'messageEventDefinition') ? 'MessageIntermediateCatchEvent' : 'TimerEvent';
+    case 'intermediateThrowEvent':
+      return hasChild(element, 'messageEventDefinition') ? 'MessageIntermediateThrowEvent' : 'Task';
+    case 'boundaryEvent':
+      if (hasChild(element, 'messageEventDefinition')) return 'MessageBoundaryEvent';
+      if (hasChild(element, 'timerEventDefinition')) return 'TimerBoundaryEvent';
+      return 'ErrorBoundaryEvent';
+    case 'participant':
+      return 'Participant';
+    default:
+      return 'Task';
+  }
+};
 
 const extensionJson = (element: Element, localName: string): any | undefined => {
   const child = Array.from(element.children).find((candidate) =>
@@ -72,7 +93,7 @@ export const parseWorkflowDefinition = (raw: string): WorkflowDefinition => {
         ...extended,
         id: extended.id || element.getAttribute('id') || '',
         name: extended.name || element.getAttribute('name') || element.getAttribute('id') || '',
-        type: extended.type || tagToType(element.localName),
+        type: extended.type || elementToType(element),
         attachedTo: extended.attachedTo || element.getAttribute('attachedToRef') || undefined,
         ...(boundsById.get(element.getAttribute('id') || '') || {})
       };
