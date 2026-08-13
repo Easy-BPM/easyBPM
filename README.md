@@ -51,8 +51,6 @@ The main runtime flow is:
 
 EasyBPM uses BPMN 2.0 XML as the process definition format. Process diagrams are imported, exported, deployed, stored, and rendered as `.bpmn`/`.xml` files. Runtime-specific concepts that are not native BPMN, such as variables, task properties, mappings, API configuration, message metadata, and code-task settings, are stored inside EasyBPM BPMN extension elements.
 
-Legacy JSON process-definition import and deployment support has been retired. JSON remains in use for API payloads, forms, agent process definitions, variables, and extension payloads embedded inside BPMN XML, but not as the top-level BPM process representation.
-
 Example async workflow:
 
 ```mermaid
