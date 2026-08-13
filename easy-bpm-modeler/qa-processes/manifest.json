@@ -7,7 +7,8 @@
     "Process QA files use BPMN 2.0 XML (.bpmn) as the primary deploy/import format.",
     "Deploy the form schemas in forms-backend before testing processes that reference formId values.",
     "Upload jars/test-service.jar through the Code Task tools before attaching it to qa_code_task_component.",
-    "MessageStartEvent and code-task import behavior are included for modeler/component QA; verify backend runtime support before using them as deployment gates."
+    "MessageStartEvent is now recognized by the backend and has integration coverage; keep validating deploy/start/message correlation as a runtime gate.",
+    "CodeTask modeling, upload, metadata discovery, and handler tests exist, but ProcessExecutionEngine does not yet route CodeTask nodes to CodeTaskHandler. Treat full process runtime execution as a known gap."
   ],
   "jars": [
     {
@@ -59,6 +60,13 @@
       "coverage": ["agent-process", "provider-config", "planner-prompt", "dynamic-steps"],
       "backendDeployCandidate": true,
       "usedBy": ["qa_agent_process_call"]
+    },
+    {
+      "id": "planned-triage-agent",
+      "file": "agent-processes/planned-triage.agent-process.json",
+      "coverage": ["agent-process", "planned-execution", "no-provider-config", "audit-trace"],
+      "backendDeployCandidate": true,
+      "usedBy": ["qa_agent_planned_call"]
     }
   ],
   "processes": [
@@ -88,7 +96,8 @@
       "file": "processes/qa-message-timer-events.bpmn",
       "coverage": ["message-start", "message-catch", "message-throw", "timer-event", "message-payload-mapping"],
       "modelerImportable": true,
-      "backendDeployCandidate": true
+      "backendDeployCandidate": true,
+      "backendNote": "Backend NodeType and integration tests include MessageStartEvent. Validate deploy, message start, catch correlation, timer wait, throw event, and timeout handling."
     },
     {
       "id": "qa_code_task_component",
@@ -105,6 +114,38 @@
       "modelerImportable": true,
       "backendDeployCandidate": true,
       "backendNote": "Deploy agent-processes/customer-support-resolution.agent-process.json before starting this process. Docker Compose QA uses Ollama at http://host.docker.internal:11434 with model llama3.2."
+    },
+    {
+      "id": "qa_agent_planned_call",
+      "file": "processes/qa-agent-planned-call.json",
+      "coverage": ["agent-process-call", "planned-execution", "agent-input-mapping", "agent-output-mapping", "human-review"],
+      "modelerImportable": true,
+      "backendDeployCandidate": true,
+      "backendNote": "Deploy agent-processes/planned-triage.agent-process.json before starting this process. This scenario does not require an external AI provider."
+    },
+    {
+      "id": "qa_ai_task_runtime",
+      "file": "processes/qa-ai-task-runtime.json",
+      "coverage": ["ai-task", "prompt-substitution", "provider-config", "output-variable", "human-review"],
+      "modelerImportable": true,
+      "backendDeployCandidate": true,
+      "backendNote": "Requires an available AI provider. Default fixture uses Ollama at http://host.docker.internal:11434 with model llama3.2."
+    },
+    {
+      "id": "qa_call_activity_child",
+      "file": "processes/qa-call-activity-child.json",
+      "coverage": ["call-activity-child", "user-task", "output-mapping"],
+      "modelerImportable": true,
+      "backendDeployCandidate": true,
+      "backendNote": "Deploy before qa_call_activity_parent."
+    },
+    {
+      "id": "qa_call_activity_parent",
+      "file": "processes/qa-call-activity-parent.json",
+      "coverage": ["call-activity", "subprocess", "input-mapping", "output-mapping", "parent-resume"],
+      "modelerImportable": true,
+      "backendDeployCandidate": true,
+      "backendNote": "Requires qa_call_activity_child to be deployed first."
     }
   ]
 }

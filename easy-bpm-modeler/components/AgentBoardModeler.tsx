@@ -1,11 +1,14 @@
 import React, { useMemo, useRef, useState } from 'react';
 import {
   ArrowLeft,
+  ArrowDown,
+  ArrowUp,
   Bot,
   Brain,
   CheckCircle2,
   CircleDashed,
   Clock3,
+  Copy,
   Download,
   FilePlus2,
   FileText,
@@ -237,6 +240,45 @@ export const AgentBoardModeler: React.FC<AgentBoardModelerProps> = ({
     updateAgentState({ steps: steps.map(step => step.id === id ? { ...step, ...updates } : step) });
   };
 
+  const addStep = () => {
+    updateAgentState({ steps: [...steps, createStep(steps.length + 1)] });
+  };
+
+  const deleteStep = (id: string) => {
+    updateAgentState({ steps: steps.filter(item => item.id !== id) });
+  };
+
+  const duplicateStep = (id: string) => {
+    const sourceIndex = steps.findIndex(step => step.id === id);
+    if (sourceIndex < 0) return;
+
+    const source = steps[sourceIndex];
+    const duplicate: AgentStep = {
+      ...source,
+      id: `step_${Date.now()}_${sourceIndex + 2}`,
+      title: `${source.title || 'Step'} copy`
+    };
+
+    updateAgentState({
+      steps: [
+        ...steps.slice(0, sourceIndex + 1),
+        duplicate,
+        ...steps.slice(sourceIndex + 1)
+      ]
+    });
+  };
+
+  const moveStep = (id: string, direction: -1 | 1) => {
+    const currentIndex = steps.findIndex(step => step.id === id);
+    const nextIndex = currentIndex + direction;
+    if (currentIndex < 0 || nextIndex < 0 || nextIndex >= steps.length) return;
+
+    const nextSteps = [...steps];
+    const [movedStep] = nextSteps.splice(currentIndex, 1);
+    nextSteps.splice(nextIndex, 0, movedStep);
+    updateAgentState({ steps: nextSteps });
+  };
+
   const buildDefinition = () => ({
       resourceType: 'AgentProcess',
       processKey: processName.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'agent-process',
@@ -267,7 +309,7 @@ export const AgentBoardModeler: React.FC<AgentBoardModelerProps> = ({
       steps,
       audit: {
         decisionTraceRequired: true,
-        createdFrom: 'easy-bpm-modeler-agent-board',
+        createdFrom: 'easy-bpm-modeler-agent-plan',
           exportedAt: new Date().toISOString()
         }
     });
@@ -401,10 +443,10 @@ export const AgentBoardModeler: React.FC<AgentBoardModelerProps> = ({
           <div className="space-y-5">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Agent Process</p>
-              <p className="mt-2 text-xs leading-relaxed text-slate-400">Goal-oriented execution where agents create, reorder, wait, delegate, and explain work dynamically.</p>
+              <p className="mt-2 text-xs leading-relaxed text-slate-400">Goal-oriented execution where agents plan ordered work, wait, delegate, and explain decisions.</p>
             </div>
             <div className="space-y-2">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Board Status</p>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Plan Status</p>
               {columns.map(column => (
                 <div key={column.id} className="flex items-center justify-between rounded-md border border-white/[0.07] bg-white/[0.04] px-3 py-2">
                   <span className="flex items-center gap-2 text-xs text-slate-300">{column.icon}{column.label}</span>
@@ -532,65 +574,109 @@ export const AgentBoardModeler: React.FC<AgentBoardModelerProps> = ({
           <section className="px-6 py-5">
             <div className="mb-4 flex items-center justify-between gap-3">
               <div>
-                <h2 className="text-sm font-semibold text-slate-800">Agent Board</h2>
-                <p className="text-xs text-slate-500">Draft dynamic work items, decisions, approvals, and tool executions before runtime support lands.</p>
+                <h2 className="text-sm font-semibold text-slate-800">Execution Plan</h2>
+                <p className="text-xs text-slate-500">Order the concrete steps the agent process should plan, execute, wait on, and audit.</p>
               </div>
               <button
                 type="button"
-                onClick={() => updateAgentState({ steps: [...steps, createStep(steps.length + 1)] })}
+                onClick={addStep}
                 className="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50"
               >
                 <Plus className="h-4 w-4" />
                 Step
               </button>
             </div>
-            <div className="grid min-w-[1180px] grid-cols-7 gap-3">
-              {columns.map(column => (
-                <div key={column.id} className="rounded-md border border-slate-200 bg-white">
-                  <div className="flex items-center justify-between border-b border-slate-200 px-3 py-2">
-                    <span className="flex items-center gap-2 text-xs font-semibold text-slate-700">{column.icon}{column.label}</span>
-                    <span className="text-xs text-slate-400">{boardCounts[column.id]}</span>
+            <div className="space-y-3">
+              {steps.length === 0 ? (
+                <div className="flex min-h-48 flex-col items-center justify-center gap-3 rounded-md border border-dashed border-slate-300 bg-white px-4 py-8 text-center">
+                  <GitBranch className="h-8 w-8 text-slate-300" />
+                  <div>
+                    <h3 className="text-sm font-semibold text-slate-800">No planned steps yet</h3>
+                    <p className="mt-1 text-xs text-slate-500">Add the first execution step to make this agent process deployable and auditable.</p>
                   </div>
-                  <div className="min-h-64 space-y-3 p-3">
-                    {steps.filter(step => step.status === column.id).map(step => (
-                      <article key={step.id} className="space-y-2 rounded-md border border-slate-200 bg-slate-50 p-3 shadow-sm">
+                  <button
+                    type="button"
+                    onClick={addStep}
+                    className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-3 py-2 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-blue-500"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Add Step
+                  </button>
+                </div>
+              ) : steps.map((step, index) => (
+                <article key={step.id} className="rounded-md border border-slate-200 bg-white shadow-sm">
+                  <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-4 py-3">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-slate-900 text-xs font-semibold text-white tabular-nums">{index + 1}</span>
+                      <div className="min-w-0">
                         <input
                           value={step.title}
                           onChange={event => updateStep(step.id, { title: event.target.value })}
-                          className="w-full bg-transparent text-xs font-semibold text-slate-800 outline-none"
+                          className="w-full min-w-64 bg-transparent text-sm font-semibold text-slate-800 outline-none"
                         />
+                        <span className="mt-1 flex items-center gap-1 text-[10px] font-mono text-slate-400"><GitBranch className="h-3 w-3" />{step.id}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <button type="button" onClick={() => moveStep(step.id, -1)} disabled={index === 0} className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-slate-500 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40" title="Move up" aria-label="Move step up">
+                        <ArrowUp className="h-4 w-4" />
+                      </button>
+                      <button type="button" onClick={() => moveStep(step.id, 1)} disabled={index === steps.length - 1} className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-slate-500 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40" title="Move down" aria-label="Move step down">
+                        <ArrowDown className="h-4 w-4" />
+                      </button>
+                      <button type="button" onClick={() => duplicateStep(step.id)} className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-slate-500 transition-colors hover:bg-slate-50" title="Duplicate step" aria-label="Duplicate step">
+                        <Copy className="h-4 w-4" />
+                      </button>
+                      <button type="button" onClick={() => deleteStep(step.id)} className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-slate-500 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-600" title="Delete step" aria-label="Delete step">
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="grid gap-4 p-4 xl:grid-cols-[1.2fr_1fr]">
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <label className="space-y-1 sm:col-span-2">
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Description</span>
                         <textarea
                           value={step.description}
                           onChange={event => updateStep(step.id, { description: event.target.value })}
-                          className="h-16 w-full resize-none rounded border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-600 outline-none focus:border-blue-400"
+                          className="h-24 w-full resize-none rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                         />
+                      </label>
+                      <label className="space-y-1 sm:col-span-2">
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Audit Reasoning</span>
                         <textarea
                           value={step.reasoning}
                           onChange={event => updateStep(step.id, { reasoning: event.target.value })}
-                          className="h-14 w-full resize-none rounded border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-600 outline-none focus:border-blue-400"
+                          className="h-20 w-full resize-none rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                         />
-                        <div className="grid grid-cols-1 gap-2">
-                          <select value={step.status} onChange={event => updateStep(step.id, { status: event.target.value as AgentStepStatus })} className="rounded border border-slate-200 bg-white px-2 py-1.5 text-xs">
-                            {columns.map(option => <option key={option.id} value={option.id}>{option.label}</option>)}
-                          </select>
-                          <input value={step.owner} onChange={event => updateStep(step.id, { owner: event.target.value })} className="rounded border border-slate-200 bg-white px-2 py-1.5 text-xs" />
-                          <select value={step.priority} onChange={event => updateStep(step.id, { priority: event.target.value as AgentStep['priority'] })} className="rounded border border-slate-200 bg-white px-2 py-1.5 text-xs">
-                            <option value="low">Low priority</option>
-                            <option value="medium">Medium priority</option>
-                            <option value="high">High priority</option>
-                          </select>
-                          <input value={step.dependencies} onChange={event => updateStep(step.id, { dependencies: event.target.value })} placeholder="Dependencies" className="rounded border border-slate-200 bg-white px-2 py-1.5 text-xs" />
-                        </div>
-                        <div className="flex items-center justify-between pt-1">
-                          <span className="flex items-center gap-1 text-[10px] font-mono text-slate-400"><GitBranch className="h-3 w-3" />{step.id}</span>
-                          <button type="button" onClick={() => updateAgentState({ steps: steps.filter(item => item.id !== step.id) })} className="text-slate-400 transition-colors hover:text-red-500" title="Delete step" aria-label="Delete step">
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-                      </article>
-                    ))}
+                      </label>
+                    </div>
+                    <div className="grid content-start gap-3 sm:grid-cols-2">
+                      <label className="space-y-1">
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Status</span>
+                        <select value={step.status} onChange={event => updateStep(step.id, { status: event.target.value as AgentStepStatus })} className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500">
+                          {columns.map(option => <option key={option.id} value={option.id}>{option.label}</option>)}
+                        </select>
+                      </label>
+                      <label className="space-y-1">
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Priority</span>
+                        <select value={step.priority} onChange={event => updateStep(step.id, { priority: event.target.value as AgentStep['priority'] })} className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500">
+                          <option value="low">Low priority</option>
+                          <option value="medium">Medium priority</option>
+                          <option value="high">High priority</option>
+                        </select>
+                      </label>
+                      <label className="space-y-1">
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Owner</span>
+                        <input value={step.owner} onChange={event => updateStep(step.id, { owner: event.target.value })} className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500" />
+                      </label>
+                      <label className="space-y-1">
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Dependencies</span>
+                        <input value={step.dependencies} onChange={event => updateStep(step.id, { dependencies: event.target.value })} placeholder="Step ids or external blockers" className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500" />
+                      </label>
+                    </div>
                   </div>
-                </div>
+                </article>
               ))}
             </div>
           </section>

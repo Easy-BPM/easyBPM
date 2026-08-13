@@ -1,0 +1,88 @@
+{
+  "processId": "qa_ai_task_runtime",
+  "processName": "QA AI Task Runtime",
+  "metadata": {
+    "version": "1.0",
+    "purpose": "Runtime QA for AiTask prompt substitution, provider config, output variable mapping, and human review handoff.",
+    "providerNote": "Default fixture uses Ollama at http://host.docker.internal:11434 with model llama3.2. Change endpoint to http://localhost:11434 when backend runs directly on the host."
+  },
+  "variables": [
+    { "name": "caseId", "type": "string", "initialValue": "CASE-AI-1001" },
+    { "name": "caseDescription", "type": "string", "initialValue": "Customer requests expedited handling because an invoice approval is blocked." },
+    { "name": "aiDecision", "type": "string", "initialValue": "" },
+    { "name": "approved", "type": "boolean", "initialValue": "false" },
+    { "name": "managerComment", "type": "string", "initialValue": "" }
+  ],
+  "nodes": [
+    {
+      "id": "start",
+      "name": "Start",
+      "type": "StartEvent",
+      "position": { "x": 80, "y": 220 },
+      "width": 40,
+      "height": 40,
+      "next": ["classify_case_ai"]
+    },
+    {
+      "id": "classify_case_ai",
+      "name": "Classify Case AI",
+      "type": "AiTask",
+      "position": { "x": 280, "y": 200 },
+      "width": 140,
+      "height": 70,
+      "next": ["review_ai_decision"],
+      "properties": {
+        "providerId": "ollama",
+        "modelName": "llama3.2",
+        "endpoint": "http://host.docker.internal:11434",
+        "credentialRef": "",
+        "systemPrompt": "You are an Easy BPM QA classifier. Return a concise decision and reason.",
+        "promptTemplate": "Case {{caseId}}: {{caseDescription}}\nReturn one short recommendation for the human reviewer.",
+        "outputVariable": "aiDecision",
+        "tuningParams": {
+          "temperature": 0.2,
+          "topP": 1.0,
+          "maxTokens": 500,
+          "retryCount": 0,
+          "initialDelayMs": 1000,
+          "backoffMultiplier": 2.0
+        }
+      }
+    },
+    {
+      "id": "review_ai_decision",
+      "name": "Review AI Decision",
+      "type": "HumanTask",
+      "position": { "x": 520, "y": 200 },
+      "width": 150,
+      "height": 70,
+      "next": ["end"],
+      "config": {
+        "candidateGroups": "QA,MANAGERS",
+        "formId": "qaManagerReview",
+        "inputs": [
+          { "targetName": "requestTitle", "type": "string", "source": "variable", "value": "caseDescription" },
+          { "targetName": "managerComment", "type": "string", "source": "variable", "value": "aiDecision" }
+        ],
+        "outputs": [
+          { "target": "variable", "sourceName": "approved", "type": "boolean", "value": "approved" },
+          { "target": "variable", "sourceName": "managerComment", "type": "string", "value": "managerComment" }
+        ]
+      }
+    },
+    {
+      "id": "end",
+      "name": "End",
+      "type": "EndEvent",
+      "position": { "x": 780, "y": 220 },
+      "width": 40,
+      "height": 40,
+      "next": []
+    }
+  ],
+  "flows": [
+    { "from": "start", "to": "classify_case_ai", "condition": null },
+    { "from": "classify_case_ai", "to": "review_ai_decision", "condition": null },
+    { "from": "review_ai_decision", "to": "end", "condition": null }
+  ]
+}

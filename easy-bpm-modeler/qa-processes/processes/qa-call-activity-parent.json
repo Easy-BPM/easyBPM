@@ -1,0 +1,71 @@
+{
+  "processId": "qa_call_activity_parent",
+  "processName": "QA Call Activity Parent",
+  "metadata": {
+    "version": "1.0",
+    "purpose": "Runtime QA for CallActivity parent/child creation, input mappings, output mappings, and parent resume."
+  },
+  "variables": [
+    { "name": "customerName", "type": "string", "initialValue": "Maria Silva" },
+    { "name": "approvalResult", "type": "string", "initialValue": "" },
+    { "name": "processCompleted", "type": "boolean", "initialValue": "false" }
+  ],
+  "nodes": [
+    {
+      "id": "start_parent",
+      "name": "Start Parent",
+      "type": "StartEvent",
+      "position": { "x": 80, "y": 220 },
+      "width": 40,
+      "height": 40,
+      "next": ["call_child_approval"]
+    },
+    {
+      "id": "call_child_approval",
+      "name": "Run Approval Subprocess",
+      "type": "CallActivity",
+      "position": { "x": 280, "y": 200 },
+      "width": 160,
+      "height": 70,
+      "next": ["mark_complete"],
+      "config": {
+        "processKey": "qa_call_activity_child",
+        "inputMappings": {
+          "customerName": "subCustomerName"
+        },
+        "outputMappings": {
+          "subApprovalDecision": "approvalResult"
+        },
+        "propagateAllVariables": false
+      }
+    },
+    {
+      "id": "mark_complete",
+      "name": "Mark Complete",
+      "type": "ServiceTask",
+      "position": { "x": 540, "y": 200 },
+      "width": 130,
+      "height": 70,
+      "next": ["end_parent"],
+      "config": {
+        "variables": [
+          { "name": "processCompleted", "source": "static", "value": "true" }
+        ]
+      }
+    },
+    {
+      "id": "end_parent",
+      "name": "End Parent",
+      "type": "EndEvent",
+      "position": { "x": 800, "y": 220 },
+      "width": 40,
+      "height": 40,
+      "next": []
+    }
+  ],
+  "flows": [
+    { "from": "start_parent", "to": "call_child_approval", "condition": null },
+    { "from": "call_child_approval", "to": "mark_complete", "condition": null },
+    { "from": "mark_complete", "to": "end_parent", "condition": null }
+  ]
+}

@@ -1,0 +1,81 @@
+{
+  "processId": "qa_agent_planned_call",
+  "processName": "QA Planned Agent Call",
+  "description": "Runtime QA process for AgentProcessCall when the agent definition has no provider config.",
+  "variables": [
+    { "name": "requestTitle", "type": "string", "initialValue": "Urgent payment exception" },
+    { "name": "priority", "type": "string", "initialValue": "HIGH" },
+    { "name": "amount", "type": "number", "initialValue": 1200 },
+    { "name": "plannedDecision", "type": "string", "initialValue": "" },
+    { "name": "plannedReason", "type": "string", "initialValue": "" }
+  ],
+  "nodes": [
+    {
+      "id": "start",
+      "name": "Start",
+      "type": "StartEvent",
+      "position": { "x": 100, "y": 220 },
+      "width": 40,
+      "height": 40,
+      "next": ["invoke_planned_agent"]
+    },
+    {
+      "id": "invoke_planned_agent",
+      "name": "Invoke Planned Agent",
+      "type": "AgentProcessCall",
+      "position": { "x": 300, "y": 200 },
+      "width": 150,
+      "height": 70,
+      "next": ["review_plan"],
+      "config": {
+        "agentProcessKey": "planned-triage-agent",
+        "goalOverride": "Classify this request and recommend the next action.",
+        "waitForCompletion": true,
+        "timeoutDays": 3,
+        "inputs": [
+          { "targetName": "requestTitle", "type": "string", "source": "variable", "value": "requestTitle" },
+          { "targetName": "priority", "type": "string", "source": "variable", "value": "priority" },
+          { "targetName": "amount", "type": "number", "source": "variable", "value": "amount" }
+        ],
+        "outputs": [
+          { "source": "variable", "sourceValue": "decision", "type": "string", "targetVariable": "plannedDecision" },
+          { "source": "variable", "sourceValue": "reason", "type": "string", "targetVariable": "plannedReason" }
+        ]
+      }
+    },
+    {
+      "id": "review_plan",
+      "name": "Review Planned Decision",
+      "type": "HumanTask",
+      "position": { "x": 560, "y": 200 },
+      "width": 150,
+      "height": 70,
+      "next": ["end"],
+      "config": {
+        "candidateGroups": "QA,MANAGERS",
+        "formId": "qaManagerReview",
+        "inputs": [
+          { "targetName": "managerComment", "type": "string", "source": "variable", "value": "plannedReason" }
+        ],
+        "outputs": [
+          { "target": "variable", "sourceName": "approved", "type": "boolean", "value": "approved" },
+          { "target": "variable", "sourceName": "managerComment", "type": "string", "value": "plannedReason" }
+        ]
+      }
+    },
+    {
+      "id": "end",
+      "name": "End",
+      "type": "EndEvent",
+      "position": { "x": 820, "y": 220 },
+      "width": 40,
+      "height": 40,
+      "next": []
+    }
+  ],
+  "flows": [
+    { "from": "start", "to": "invoke_planned_agent", "condition": null },
+    { "from": "invoke_planned_agent", "to": "review_plan", "condition": null },
+    { "from": "review_plan", "to": "end", "condition": null }
+  ]
+}

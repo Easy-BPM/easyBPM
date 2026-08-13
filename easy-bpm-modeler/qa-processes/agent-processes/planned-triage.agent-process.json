@@ -1,0 +1,61 @@
+{
+  "resourceType": "AgentProcess",
+  "processKey": "planned-triage-agent",
+  "processName": "Planned Triage Agent",
+  "description": "Provider-free agent process used to validate planned/auditable orchestration without an external AI provider.",
+  "goal": "Classify an incoming case, identify required follow-up work, and return a planned orchestration decision.",
+  "instructions": "Use the provided case context to produce a deterministic triage plan. This fixture intentionally omits provider config so the backend records a planned agent execution.",
+  "constraints": [
+    "Do not call external providers.",
+    "Always include a decision reason.",
+    "Route high-risk cases to human review."
+  ],
+  "availableTools": [
+    "Case Repository",
+    "Risk Rules",
+    "Human Review"
+  ],
+  "participants": [
+    "Planner Agent",
+    "Human Reviewer"
+  ],
+  "memoryPolicy": "Persist input context, decision, reason, and planned next actions.",
+  "allowDynamicTasks": false,
+  "timeoutDays": 3,
+  "boardColumns": [
+    "backlog",
+    "ready",
+    "in-progress",
+    "waiting-human",
+    "waiting-system",
+    "completed",
+    "failed"
+  ],
+  "steps": [
+    {
+      "id": "step_classify_case",
+      "title": "Classify case",
+      "description": "Inspect amount, priority, and request title to classify the case.",
+      "reasoning": "Classification determines whether human review is required.",
+      "status": "ready",
+      "owner": "Planner Agent",
+      "priority": "high",
+      "dependencies": ""
+    },
+    {
+      "id": "step_prepare_plan",
+      "title": "Prepare follow-up plan",
+      "description": "Create an auditable list of next actions for the process.",
+      "reasoning": "Provider-free orchestration still needs a traceable decision artifact.",
+      "status": "backlog",
+      "owner": "Planner Agent",
+      "priority": "medium",
+      "dependencies": "step_classify_case"
+    }
+  ],
+  "audit": {
+    "decisionTraceRequired": true,
+    "createdFrom": "easy-bpm-modeler-qa",
+    "exportedAt": "2026-08-07T00:00:00.000Z"
+  }
+}
