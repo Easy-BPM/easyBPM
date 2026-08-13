@@ -19,6 +19,7 @@ import io.mockk.*
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.PageRequest
+import org.springframework.http.HttpStatus
 
 class ProcessControllerTest : FunSpec() {
     init {
@@ -100,21 +101,45 @@ class ProcessControllerTest : FunSpec() {
             val result = processController.startInstance(processKey)
 
             // Assert
-            result shouldNotBe null
-            result.id shouldBe 100
-            result.processDefinition.id shouldBe processDefinitionId
+            result.statusCode shouldBe HttpStatus.OK
+            val body = result.body as ProcessInstance
+            body.id shouldBe 100
+            body.processDefinition.id shouldBe processDefinitionId
             verify { mockProcessService.startProcessInstance(processKey) }
         }
 
-        test("should throw exception when process definition not found") {
+        test("should return not found when process definition does not exist") {
             // Arrange
             val processKey = "unknown"
             every { mockProcessService.startProcessInstance(processKey) } throws IllegalArgumentException("Process definition not found")
 
-            // Act & Assert
-            shouldThrow<IllegalArgumentException> {
-                processController.startInstance(processKey)
-            }
+            // Act
+            val result = processController.startInstance(processKey)
+
+            // Assert
+            result.statusCode shouldBe HttpStatus.NOT_FOUND
+            @Suppress("UNCHECKED_CAST")
+            val body = result.body as Map<String, Any>
+            body["status"] shouldBe "error"
+            body["message"] shouldBe "Process definition not found"
+            body["processId"] shouldBe processKey
+        }
+
+        test("should explain message start processes cannot use the regular start endpoint") {
+            // Arrange
+            val processKey = "qa_message_timer_events"
+            every { mockProcessService.startProcessInstance(processKey) } throws IllegalArgumentException("StartEvent not found")
+
+            // Act
+            val result = processController.startInstance(processKey)
+
+            // Assert
+            result.statusCode shouldBe HttpStatus.BAD_REQUEST
+            @Suppress("UNCHECKED_CAST")
+            val body = result.body as Map<String, Any>
+            body["status"] shouldBe "error"
+            body["message"] shouldBe "Process '$processKey' does not have a regular StartEvent. It must be started by sending its MessageStartEvent payload to POST /processes/messages."
+            body["messageEndpoint"] shouldBe "/processes/messages"
         }
     }
 
