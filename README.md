@@ -11,7 +11,6 @@ EasyBPM is a Kotlin/Spring Boot business process engine with a React modeler, an
 | `easy-bpm-modeler/` | React/Vite process and form modeler |
 | `easy-bpm-admin/` | React/Vite admin console for instances, variables, security, and code-task audits |
 | `easy-bpm-task-portal/` | React/Vite portal for users to start processes and complete human tasks |
-| `docs-site-public/` | Docusaurus documentation site |
 | `src/test/kotlin/com/easy/bpm` | Unit, controller, repository, worker, and integration tests |
 | `src/main/resources/db/migration` | Flyway migrations for the PostgreSQL schema |
 
@@ -47,6 +46,12 @@ The main runtime flow is:
 5. Human work is stored in `task` and `task_variable`.
 6. API/service work is published to RabbitMQ and executed by `worker/`.
 7. Completion messages resume waiting process instances in the backend.
+
+## Process Definition Format
+
+EasyBPM uses BPMN 2.0 XML as the process definition format. Process diagrams are imported, exported, deployed, stored, and rendered as `.bpmn`/`.xml` files. Runtime-specific concepts that are not native BPMN, such as variables, task properties, mappings, API configuration, message metadata, and code-task settings, are stored inside EasyBPM BPMN extension elements.
+
+Legacy JSON process-definition import and deployment support has been retired. JSON remains in use for API payloads, forms, agent process definitions, variables, and extension payloads embedded inside BPMN XML, but not as the top-level BPM process representation.
 
 Example async workflow:
 
@@ -91,7 +96,7 @@ In this model, RabbitMQ does not execute business logic. It stores and routes me
 
 - Java 21
 - Docker and Docker Compose
-- Node.js 22+ for the React apps and Docusaurus docs site
+- Node.js 22+ for the React apps
 
 ## Quick Start: Local Development
 
