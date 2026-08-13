@@ -1,5 +1,14 @@
 # EasyBPM
 
+[![CI](https://github.com/Easy-BPM/easyBPM/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/Easy-BPM/easyBPM/actions/workflows/ci.yml)
+[![Qodana](https://github.com/Easy-BPM/easyBPM/actions/workflows/qodana_code_quality.yml/badge.svg?branch=master)](https://github.com/Easy-BPM/easyBPM/actions/workflows/qodana_code_quality.yml)
+[![Release Images](https://github.com/Easy-BPM/easyBPM/actions/workflows/release-images.yml/badge.svg?branch=master)](https://github.com/Easy-BPM/easyBPM/actions/workflows/release-images.yml)
+[![Latest Release](https://img.shields.io/github/v/release/Easy-BPM/easyBPM?include_prereleases&label=release)](https://github.com/Easy-BPM/easyBPM/releases)
+[![License](https://img.shields.io/github/license/Easy-BPM/easyBPM)](LICENSE)
+[![Java](https://img.shields.io/badge/Java-21-orange)](https://adoptium.net/)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.x-6DB33F)](https://spring.io/projects/spring-boot)
+[![React](https://img.shields.io/badge/React%20%2B%20Vite-frontend-646CFF)](https://vite.dev/)
+
 EasyBPM is a Kotlin/Spring Boot business process engine with a React modeler, an admin console, a task portal, and an async worker for external/API work. It stores process definitions as BPMN 2.0 XML, adapts them to the runtime graph internally, persists process execution state in PostgreSQL, and uses RabbitMQ to hand long-running work to the worker.
 
 ## What Is In This Repository
