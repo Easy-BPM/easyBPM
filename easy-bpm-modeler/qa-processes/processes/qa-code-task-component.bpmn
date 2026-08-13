@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:easy="https://easybpm.local/bpmn/extensions" id="Definitions_qa_code_task_component" targetNamespace="https://easybpm.local/process/qa_code_task_component">
+  <bpmn:process id="qa_code_task_component" name="QA Code Task Component" isExecutable="true">
+    <bpmn:extensionElements>
+      <easy:variables><![CDATA[[{"name":"orderId","type":"string","initialValue":"ORDER-1001"},{"name":"amount","type":"number","initialValue":"1250"},{"name":"customerTier","type":"string","initialValue":"GOLD"},{"name":"processedOrderMessage","type":"string","initialValue":""},{"name":"codeTaskError","type":"string","initialValue":""},{"name":"approved","type":"boolean","initialValue":"false"}]]]></easy:variables>
+      <easy:metadata><![CDATA[{"version":"1.0","purpose":"Contract sample for code-task component QA with JAR, class, method, input/output mapping, and boundary recovery.","jarFile":"../jars/test-service.jar","modelerImportNote":"Current modeler importer does not hydrate CodeTask config from JSON. Use this file to verify display/import limitations and backend contract shape.","backendDeployNote":"Current ProcessService enum recognizes CodeTask, but executeNode does not route to CodeTaskHandler yet."}]]></easy:metadata>
+    </bpmn:extensionElements>
+    <bpmn:startEvent id="start" name="Start">
+      <bpmn:extensionElements>
+        <easy:node><![CDATA[{"id":"start","name":"Start","type":"StartEvent","position":{"x":80,"y":240},"width":40,"height":40,"next":["process_order_code"]}]]></easy:node>
+      </bpmn:extensionElements>
+    </bpmn:startEvent>
+    <bpmn:serviceTask id="process_order_code" name="Process Order Code">
+      <bpmn:extensionElements>
+        <easy:node><![CDATA[{"id":"process_order_code","name":"Process Order Code","type":"CodeTask","position":{"x":260,"y":220},"width":120,"height":60,"next":["review_result"],"config":{"jarId":1,"className":"TestService","methodName":"processOrder","inputs":[{"targetName":"0","type":"string","source":"variable","value":"orderId"},{"targetName":"1","type":"number","source":"variable","value":"amount"}],"outputs":[{"target":"variable","sourceName":"returnValue","type":"string","value":"processedOrderMessage"}]},"properties":{"jarId":1,"className":"TestService","methodName":"processOrder","inputs":[{"targetName":"0","type":"string","source":"variable","value":"orderId"},{"targetName":"1","type":"number","source":"variable","value":"amount"}],"outputs":[{"source":"variable","sourceValue":"returnValue","type":"string","targetVariable":"processedOrderMessage"}]}}]]></easy:node>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:boundaryEvent id="code_error" name="Code Error Boundary" attachedToRef="process_order_code">
+      <bpmn:extensionElements>
+        <easy:node><![CDATA[{"id":"code_error","name":"Code Error Boundary","type":"ErrorBoundaryEvent","position":{"x":345,"y":280},"width":30,"height":30,"next":["manual_recovery"],"attachedTo":"process_order_code","config":{"errorCode":"CODE_TASK_ERROR","exceptionVariable":"codeTaskError"},"error":{"code":"CODE_TASK_ERROR"}}]]></easy:node>
+      </bpmn:extensionElements>
+      <bpmn:errorEventDefinition/>
+    </bpmn:boundaryEvent>
+    <bpmn:userTask id="review_result" name="Review Result">
+      <bpmn:extensionElements>
+        <easy:node><![CDATA[{"id":"review_result","name":"Review Result","type":"HumanTask","position":{"x":500,"y":160},"width":120,"height":60,"next":["end_ok"],"config":{"candidateGroups":"QA","formId":"qaManagerReview","inputs":[{"targetName":"amount","type":"number","source":"variable","value":"amount"},{"targetName":"managerComment","type":"string","source":"variable","value":"processedOrderMessage"}],"outputs":[{"target":"variable","sourceName":"approved","type":"boolean","value":"approved"}]}}]]></easy:node>
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+    <bpmn:userTask id="manual_recovery" name="Manual Recovery">
+      <bpmn:extensionElements>
+        <easy:node><![CDATA[{"id":"manual_recovery","name":"Manual Recovery","type":"HumanTask","position":{"x":500,"y":340},"width":120,"height":60,"next":["end_recovered"],"config":{"candidateGroups":"ADMIN","formId":"qaManagerReview","inputs":[{"targetName":"managerComment","type":"string","source":"variable","value":"codeTaskError"}],"outputs":[{"target":"variable","sourceName":"managerComment","type":"string","value":"codeTaskError"}]}}]]></easy:node>
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+    <bpmn:endEvent id="end_ok" name="End OK">
+      <bpmn:extensionElements>
+        <easy:node><![CDATA[{"id":"end_ok","name":"End OK","type":"EndEvent","position":{"x":720,"y":180},"width":40,"height":40,"next":[]}]]></easy:node>
+      </bpmn:extensionElements>
+    </bpmn:endEvent>
+    <bpmn:endEvent id="end_recovered" name="End Recovered">
+      <bpmn:extensionElements>
+        <easy:node><![CDATA[{"id":"end_recovered","name":"End Recovered","type":"EndEvent","position":{"x":720,"y":360},"width":40,"height":40,"next":[]}]]></easy:node>
+      </bpmn:extensionElements>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_1_start_process_order_code" sourceRef="start" targetRef="process_order_code"/>
+    <bpmn:sequenceFlow id="Flow_2_process_order_code_review_result" sourceRef="process_order_code" targetRef="review_result"/>
+    <bpmn:sequenceFlow id="Flow_3_code_error_manual_recovery" sourceRef="code_error" targetRef="manual_recovery"/>
+    <bpmn:sequenceFlow id="Flow_4_review_result_end_ok" sourceRef="review_result" targetRef="end_ok"/>
+    <bpmn:sequenceFlow id="Flow_5_manual_recovery_end_recovered" sourceRef="manual_recovery" targetRef="end_recovered"/>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1">
+      <bpmndi:BPMNShape id="start_di" bpmnElement="start">
+        <dc:Bounds x="80" y="240" width="40" height="40"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="process_order_code_di" bpmnElement="process_order_code">
+        <dc:Bounds x="260" y="220" width="120" height="60"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="code_error_di" bpmnElement="code_error">
+        <dc:Bounds x="345" y="280" width="30" height="30"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="review_result_di" bpmnElement="review_result">
+        <dc:Bounds x="500" y="160" width="120" height="60"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="manual_recovery_di" bpmnElement="manual_recovery">
+        <dc:Bounds x="500" y="340" width="120" height="60"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_ok_di" bpmnElement="end_ok">
+        <dc:Bounds x="720" y="180" width="40" height="40"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_recovered_di" bpmnElement="end_recovered">
+        <dc:Bounds x="720" y="360" width="40" height="40"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_1_start_process_order_code_di" bpmnElement="Flow_1_start_process_order_code">
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_2_process_order_code_review_result_di" bpmnElement="Flow_2_process_order_code_review_result">
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_3_code_error_manual_recovery_di" bpmnElement="Flow_3_code_error_manual_recovery">
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_4_review_result_end_ok_di" bpmnElement="Flow_4_review_result_end_ok">
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_5_manual_recovery_end_recovered_di" bpmnElement="Flow_5_manual_recovery_end_recovered">
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

@@ -1,0 +1,25 @@
+{
+  "id": "platform/modeler",
+  "title": "Modeler",
+  "description": "The Easy BPM Modeler is the workspace for designing process definitions and reusable forms. It has a component palette, a canvas, a properties panel, validation feedback, import/export actions, and deployment to the configured Easy BPM backend.",
+  "source": "@site/docs/platform/modeler.md",
+  "sourceDirName": "platform",
+  "slug": "/platform/modeler",
+  "permalink": "/docs/next/platform/modeler",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "title": "Modeler"
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "Documents",
+    "permalink": "/docs/next/guides/documents"
+  },
+  "next": {
+    "title": "Task Portal",
+    "permalink": "/docs/next/platform/task-portal"
+  }
+}

@@ -12,8 +12,6 @@ import com.easy.bpm.model.variable.ProcessVariable
 import com.easy.bpm.service.message.MessageEventInboxService
 import com.easy.bpm.service.process.ProcessInstanceTimelineService
 import com.easy.bpm.service.process.ProcessService
-import com.easy.bpm.util.ParseXMLToJsonFormat.convertXmlToInternalJson
-import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.ExampleObject
@@ -58,32 +56,33 @@ class ProcessController(
     fun deploy(
         @io.swagger.v3.oas.annotations.parameters.RequestBody(
             required = true,
-            description = "Process definition payload in internal JSON format",
+            description = "Process definition payload in BPMN 2.0 XML format",
             content = [
                 Content(
-                    mediaType = "application/json",
-                    schema = Schema(type = "object"),
+                    mediaType = "application/xml",
+                    schema = Schema(type = "string"),
                     examples = [
                         ExampleObject(
                             name = "approval-process",
-                            summary = "Simple approval process",
+                            summary = "Simple BPMN XML approval process",
                             value = """
-                            {
-                              "key": "approval-process",
-                              "description": "Expense approval workflow",
-                              "nodes": [
-                                { "id": "start", "type": "START_EVENT", "next": ["managerReview"] },
-                                { "id": "managerReview", "type": "USER_TASK", "assignee": "manager", "next": ["end"] },
-                                { "id": "end", "type": "END_EVENT" }
-                              ]
-                            }
+                            <?xml version="1.0" encoding="UTF-8"?>
+                            <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL">
+                              <bpmn:process id="approval-process" name="Expense approval workflow" isExecutable="true">
+                                <bpmn:startEvent id="start"/>
+                                <bpmn:userTask id="managerReview" name="Manager Review"/>
+                                <bpmn:endEvent id="end"/>
+                                <bpmn:sequenceFlow id="flow_start_review" sourceRef="start" targetRef="managerReview"/>
+                                <bpmn:sequenceFlow id="flow_review_end" sourceRef="managerReview" targetRef="end"/>
+                              </bpmn:process>
+                            </bpmn:definitions>
                             """
                         )
                     ]
                 )
             ]
         )
-        @RequestBody request: JsonNode
+        @RequestBody request: String
     ): ProcessDefinition {
         return processService.deployProcess(request)
     }

@@ -1,0 +1,25 @@
+{
+  "id": "getting-started/configuration",
+  "title": "Configuration",
+  "description": "Easy BPM is configured with environment variables that follow the EASYBPM standard. Third-party container variables, such as POSTGRESDB, keep the names required by those images.",
+  "source": "@site/versioned_docs/version-v0.1.0-beta.1/getting-started/configuration.md",
+  "sourceDirName": "getting-started",
+  "slug": "/getting-started/configuration",
+  "permalink": "/docs/getting-started/configuration",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "v0.1.0-beta.1",
+  "frontMatter": {
+    "title": "Configuration"
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "Installation",
+    "permalink": "/docs/getting-started/install"
+  },
+  "next": {
+    "title": "First Login",
+    "permalink": "/docs/getting-started/first-login"
+  }
+}

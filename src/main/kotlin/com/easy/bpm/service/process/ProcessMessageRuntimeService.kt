@@ -5,6 +5,7 @@ import com.easy.bpm.model.process.ProcessInstance
 import com.easy.bpm.model.process.ProcessInstanceEventType
 import com.easy.bpm.repository.process.ProcessInstanceRepository
 import com.easy.bpm.service.process.handler.ProcessMessageReceivedHandler
+import com.easy.bpm.util.BpmnXmlCodec
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import jakarta.transaction.Transactional
@@ -102,7 +103,7 @@ class ProcessMessageRuntimeService(
     }
 
     private fun parseDefinition(definitionJson: String): JsonNode =
-        objectMapper.readTree(definitionJson)
+        BpmnXmlCodec.parseDefinition(definitionJson, objectMapper)
 
     private fun findNode(definition: JsonNode, nodeId: String): JsonNode =
         definition.get("nodes")

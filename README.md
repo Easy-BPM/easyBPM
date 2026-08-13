@@ -1,6 +1,6 @@
 # EasyBPM
 
-EasyBPM is a Kotlin/Spring Boot business process engine with a React modeler, an admin console, a task portal, and an async worker for external/API work. It stores process definitions as an internal JSON graph, persists process execution state in PostgreSQL, and uses RabbitMQ to hand long-running work to the worker.
+EasyBPM is a Kotlin/Spring Boot business process engine with a React modeler, an admin console, a task portal, and an async worker for external/API work. It stores process definitions as BPMN 2.0 XML, adapts them to the runtime graph internally, persists process execution state in PostgreSQL, and uses RabbitMQ to hand long-running work to the worker.
 
 ## What Is In This Repository
 
@@ -41,8 +41,8 @@ Cluster-oriented runtime behavior:
 The main runtime flow is:
 
 1. A process is modeled in `easy-bpm-modeler/`.
-2. The modeler exports an internal JSON graph, not BPMN XML.
-3. The backend stores it in `ProcessDefinition.definitionJson`.
+2. The modeler exports and deploys BPMN 2.0 XML with EasyBPM extension elements for runtime-specific variables and properties.
+3. The backend stores the XML in `ProcessDefinition.definitionJson`/`definitionXml` and converts it to the runtime graph when executing.
 4. `ProcessService` deploys, starts, and executes process instances.
 5. Human work is stored in `task` and `task_variable`.
 6. API/service work is published to RabbitMQ and executed by `worker/`.

@@ -131,7 +131,7 @@ export interface ValidationSummary {
 
 export type ToolMode = 'select' | 'connect';
 
-export type AppView = 'bpmn' | 'forms';
+export type AppView = 'bpmn' | 'xml' | 'forms';
 
 export interface ViewState {
   scale: number;

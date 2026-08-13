@@ -1,0 +1,25 @@
+{
+  "id": "api/swagger",
+  "title": "Swagger UI",
+  "description": "The backend exposes interactive Swagger UI at:",
+  "source": "@site/docs/api/swagger.md",
+  "sourceDirName": "api",
+  "slug": "/api/swagger",
+  "permalink": "/docs/next/api/swagger",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "title": "Swagger UI"
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "API Overview",
+    "permalink": "/docs/next/api/overview"
+  },
+  "next": {
+    "title": "Authentication API",
+    "permalink": "/docs/next/api/authentication"
+  }
+}

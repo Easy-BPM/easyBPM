@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:easy="https://easybpm.local/bpmn/extensions" id="Definitions_qa_agent_process_call" targetNamespace="https://easybpm.local/process/qa_agent_process_call">
+  <bpmn:process id="qa_agent_process_call" name="QA Agent Process Call" isExecutable="true">
+    <bpmn:extensionElements>
+      <easy:variables><![CDATA[[{"name":"customerId","type":"string","initialValue":"CUST-1001"},{"name":"complaintText","type":"string","initialValue":"Customer reports that the replacement product arrived damaged and asks for a refund."},{"name":"refundAmount","type":"number","initialValue":650},{"name":"agentDecision","type":"string","initialValue":""},{"name":"agentResponseText","type":"string","initialValue":""}]]]></easy:variables>
+    </bpmn:extensionElements>
+    <bpmn:startEvent id="start" name="Start">
+      <bpmn:extensionElements>
+        <easy:node><![CDATA[{"id":"start","type":"StartEvent","name":"Start","position":{"x":120,"y":220},"next":["capture-complaint"]}]]></easy:node>
+      </bpmn:extensionElements>
+    </bpmn:startEvent>
+    <bpmn:userTask id="capture-complaint" name="Capture Complaint">
+      <bpmn:extensionElements>
+        <easy:node><![CDATA[{"id":"capture-complaint","type":"HumanTask","name":"Capture Complaint","position":{"x":280,"y":200},"next":["invoke-resolution-agent"],"config":{"formId":null,"assignee":"support.agent","candidateGroups":"SUPPORT","inputs":[],"outputs":[{"target":"variable","sourceName":"complaintText","type":"string","value":"complaintText"},{"target":"variable","sourceName":"refundAmount","type":"number","value":"refundAmount"}]}}]]></easy:node>
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+    <bpmn:callActivity id="invoke-resolution-agent" name="Invoke Resolution Agent">
+      <bpmn:extensionElements>
+        <easy:node><![CDATA[{"id":"invoke-resolution-agent","type":"AgentProcessCall","name":"Invoke Resolution Agent","position":{"x":520,"y":200},"next":["review-agent-decision"],"config":{"agentProcessKey":"customer-support-resolution","goalOverride":"Investigate the customer complaint and recommend the next resolution action.","waitForCompletion":true,"timeoutDays":7,"inputs":[{"targetName":"customerId","type":"string","source":"variable","value":"customerId"},{"targetName":"complaintText","type":"string","source":"variable","value":"complaintText"},{"targetName":"refundAmount","type":"number","source":"variable","value":"refundAmount"}],"outputs":[{"source":"variable","sourceValue":"decision","type":"string","targetVariable":"agentDecision"},{"source":"variable","sourceValue":"responseText","type":"string","targetVariable":"agentResponseText"}]}}]]></easy:node>
+      </bpmn:extensionElements>
+    </bpmn:callActivity>
+    <bpmn:userTask id="review-agent-decision" name="Review Agent Decision">
+      <bpmn:extensionElements>
+        <easy:node><![CDATA[{"id":"review-agent-decision","type":"HumanTask","name":"Review Agent Decision","position":{"x":780,"y":200},"next":["end"],"config":{"formId":null,"assignee":"support.manager","candidateGroups":"SUPPORT_MANAGERS","inputs":[{"targetName":"agentDecision","type":"string","source":"variable","value":"agentDecision"},{"targetName":"agentResponseText","type":"string","source":"variable","value":"agentResponseText"}],"outputs":[]}}]]></easy:node>
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+    <bpmn:endEvent id="end" name="End">
+      <bpmn:extensionElements>
+        <easy:node><![CDATA[{"id":"end","type":"EndEvent","name":"End","position":{"x":1040,"y":220}}]]></easy:node>
+      </bpmn:extensionElements>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_1_start_capture-complaint" sourceRef="start" targetRef="capture-complaint"/>
+    <bpmn:sequenceFlow id="Flow_2_capture-complaint_invoke-resolution-agent" sourceRef="capture-complaint" targetRef="invoke-resolution-agent"/>
+    <bpmn:sequenceFlow id="Flow_3_invoke-resolution-agent_review-agent-decision" sourceRef="invoke-resolution-agent" targetRef="review-agent-decision"/>
+    <bpmn:sequenceFlow id="Flow_4_review-agent-decision_end" sourceRef="review-agent-decision" targetRef="end"/>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1">
+      <bpmndi:BPMNShape id="start_di" bpmnElement="start">
+        <dc:Bounds x="120" y="220" width="120" height="60"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="capture-complaint_di" bpmnElement="capture-complaint">
+        <dc:Bounds x="280" y="200" width="120" height="60"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="invoke-resolution-agent_di" bpmnElement="invoke-resolution-agent">
+        <dc:Bounds x="520" y="200" width="120" height="60"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="review-agent-decision_di" bpmnElement="review-agent-decision">
+        <dc:Bounds x="780" y="200" width="120" height="60"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_di" bpmnElement="end">
+        <dc:Bounds x="1040" y="220" width="120" height="60"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_1_start_capture-complaint_di" bpmnElement="Flow_1_start_capture-complaint">
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_2_capture-complaint_invoke-resolution-agent_di" bpmnElement="Flow_2_capture-complaint_invoke-resolution-agent">
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_3_invoke-resolution-agent_review-agent-decision_di" bpmnElement="Flow_3_invoke-resolution-agent_review-agent-decision">
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_4_review-agent-decision_end_di" bpmnElement="Flow_4_review-agent-decision_end">
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

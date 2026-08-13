@@ -1,0 +1,25 @@
+{
+  "id": "deployment/kubernetes",
+  "title": "Kubernetes Deployment",
+  "description": "Easy BPM includes a Helm chart at deploy/helm/easybpm for Kubernetes deployments.",
+  "source": "@site/docs/deployment/kubernetes.md",
+  "sourceDirName": "deployment",
+  "slug": "/deployment/kubernetes",
+  "permalink": "/docs/next/deployment/kubernetes",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "title": "Kubernetes Deployment"
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "Docker Deployment",
+    "permalink": "/docs/next/deployment/docker"
+  },
+  "next": {
+    "title": "Capacity Planning",
+    "permalink": "/docs/next/deployment/capacity-planning"
+  }
+}

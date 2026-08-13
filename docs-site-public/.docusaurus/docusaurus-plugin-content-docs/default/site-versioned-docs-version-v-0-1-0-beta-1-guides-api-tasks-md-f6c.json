@@ -1,0 +1,25 @@
+{
+  "id": "guides/api-tasks",
+  "title": "API Tasks",
+  "description": "API Tasks call external HTTP services through the Easy BPM worker. They are useful for CRM calls, ERP updates, payment checks, webhook-style integrations, and private service orchestration.",
+  "source": "@site/versioned_docs/version-v0.1.0-beta.1/guides/api-tasks.md",
+  "sourceDirName": "guides",
+  "slug": "/guides/api-tasks",
+  "permalink": "/docs/guides/api-tasks",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "v0.1.0-beta.1",
+  "frontMatter": {
+    "title": "API Tasks"
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "User Tasks",
+    "permalink": "/docs/guides/user-tasks"
+  },
+  "next": {
+    "title": "Code Tasks",
+    "permalink": "/docs/guides/code-tasks"
+  }
+}

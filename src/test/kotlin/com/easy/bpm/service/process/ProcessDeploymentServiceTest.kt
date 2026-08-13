@@ -14,8 +14,8 @@ import io.mockk.verify
 class ProcessDeploymentServiceTest : FunSpec() {
     init {
         val repository = mockk<ProcessDefinitionRepository>()
-        val service = ProcessDeploymentService(repository, ProcessDefinitionValidator())
         val objectMapper = ObjectMapper()
+        val service = ProcessDeploymentService(repository, ProcessDefinitionValidator(), objectMapper)
 
         beforeEach {
             io.mockk.clearAllMocks()
@@ -46,7 +46,42 @@ class ProcessDeploymentServiceTest : FunSpec() {
             capturedDefinition.captured.processName shouldBe "Order"
             capturedDefinition.captured.description shouldBe "Order flow"
             capturedDefinition.captured.version shouldBe 1
+            capturedDefinition.captured.definitionJson.trimStart().startsWith("<?xml") shouldBe true
+            capturedDefinition.captured.definitionJson.contains("<bpmn:process") shouldBe true
             verify { repository.save(any<ProcessDefinition>()) }
+        }
+
+        test("should deploy BPMN XML and preserve EasyBPM extensions") {
+            val xml = """
+                <?xml version="1.0" encoding="UTF-8"?>
+                <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:easy="https://easybpm.local/bpmn/extensions">
+                  <bpmn:process id="invoice-process" name="Invoice Process" isExecutable="true">
+                    <bpmn:extensionElements>
+                      <easy:variables><![CDATA[[{"name":"invoiceId","type":"string","initialValue":""}]]]></easy:variables>
+                    </bpmn:extensionElements>
+                    <bpmn:startEvent id="start"/>
+                    <bpmn:userTask id="review" name="Review">
+                      <bpmn:extensionElements>
+                        <easy:node><![CDATA[{"id":"review","name":"Review","type":"HumanTask","config":{"formId":"invoice-review"},"next":["end"]}]]></easy:node>
+                      </bpmn:extensionElements>
+                    </bpmn:userTask>
+                    <bpmn:endEvent id="end"/>
+                    <bpmn:sequenceFlow id="flow_start_review" sourceRef="start" targetRef="review"/>
+                    <bpmn:sequenceFlow id="flow_review_end" sourceRef="review" targetRef="end"/>
+                  </bpmn:process>
+                </bpmn:definitions>
+            """.trimIndent()
+            val capturedDefinition = slot<ProcessDefinition>()
+
+            every { repository.findTopByKeyOrderByVersionDesc("invoice-process") } returns null
+            every { repository.save(capture(capturedDefinition)) } answers { capturedDefinition.captured.copy(id = 20) }
+
+            val result = service.deployProcess(xml)
+
+            result.id shouldBe 20
+            capturedDefinition.captured.key shouldBe "invoice-process"
+            capturedDefinition.captured.processName shouldBe "Invoice Process"
+            capturedDefinition.captured.definitionJson shouldBe xml
         }
 
         test("should increment existing process version") {

@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:easy="https://easybpm.local/bpmn/extensions" id="Definitions_qa_api_components" targetNamespace="https://easybpm.local/process/qa_api_components">
+  <bpmn:process id="qa_api_components" name="QA API Components" isExecutable="true">
+    <bpmn:extensionElements>
+      <easy:variables><![CDATA[[{"name":"customerId","type":"string","initialValue":"CUST-1001"},{"name":"caseId","type":"string","initialValue":"CASE-1001"},{"name":"bearerStatus","type":"string","initialValue":""},{"name":"basicStatus","type":"string","initialValue":""},{"name":"apiKeyStatus","type":"string","initialValue":""},{"name":"apiPayload","type":"json","initialValue":"{}"}]]]></easy:variables>
+      <easy:metadata><![CDATA[{"version":"1.0","purpose":"QA for API task properties, auth variants, body serialization, and output mappings."}]]></easy:metadata>
+    </bpmn:extensionElements>
+    <bpmn:startEvent id="start" name="Start">
+      <bpmn:extensionElements>
+        <easy:node><![CDATA[{"id":"start","name":"Start","type":"StartEvent","position":{"x":80,"y":260},"width":40,"height":40,"next":["api_bearer_get"]}]]></easy:node>
+      </bpmn:extensionElements>
+    </bpmn:startEvent>
+    <bpmn:serviceTask id="api_bearer_get" name="Bearer GET">
+      <bpmn:extensionElements>
+        <easy:node><![CDATA[{"id":"api_bearer_get","name":"Bearer GET","type":"APITask","position":{"x":260,"y":160},"width":120,"height":60,"next":["api_basic_get"],"properties":{"url":"https://httpbin.org/get?customerId={{customerId}}","method":"GET","auth":{"type":"bearer","ref":"QA_PARTNER_BEARER_TOKEN"},"outputs":[{"source":"static","sourceValue":"BEARER_OK","sourceName":"status","type":"string","target":"variable","targetVariable":"bearerStatus","value":"bearerStatus"}]}}]]></easy:node>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="api_basic_get" name="Basic GET">
+      <bpmn:extensionElements>
+        <easy:node><![CDATA[{"id":"api_basic_get","name":"Basic GET","type":"APITask","position":{"x":460,"y":260},"width":120,"height":60,"next":["api_apikey_post"],"properties":{"url":"https://httpbin.org/basic-auth/qa/qa","method":"GET","auth":{"type":"basic","ref":"QA_BASIC_CREDENTIALS"},"outputs":[{"source":"static","sourceValue":"BASIC_OK","sourceName":"status","type":"string","target":"variable","targetVariable":"basicStatus","value":"basicStatus"}]}}]]></easy:node>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="api_apikey_post" name="API Key POST">
+      <bpmn:extensionElements>
+        <easy:node><![CDATA[{"id":"api_apikey_post","name":"API Key POST","type":"APITask","position":{"x":660,"y":360},"width":120,"height":60,"next":["end"],"properties":{"url":"https://httpbin.org/post","method":"POST","auth":{"type":"apikey","ref":"QA_PARTNER_API_KEY","in":"header","key":"X-QA-API-Key"},"body":{"caseId":"{{caseId}}","customerId":"{{customerId}}","source":"easy-bpm-modeler-qa"},"outputs":[{"source":"static","sourceValue":"APIKEY_OK","sourceName":"status","type":"string","target":"variable","targetVariable":"apiKeyStatus","value":"apiKeyStatus"},{"source":"static","sourceValue":"{\"ok\":true}","sourceName":"payload","type":"json","target":"variable","targetVariable":"apiPayload","value":"apiPayload"}]}}]]></easy:node>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:endEvent id="end" name="End">
+      <bpmn:extensionElements>
+        <easy:node><![CDATA[{"id":"end","name":"End","type":"EndEvent","position":{"x":880,"y":260},"width":40,"height":40,"next":[]}]]></easy:node>
+      </bpmn:extensionElements>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_1_start_api_bearer_get" sourceRef="start" targetRef="api_bearer_get"/>
+    <bpmn:sequenceFlow id="Flow_2_api_bearer_get_api_basic_get" sourceRef="api_bearer_get" targetRef="api_basic_get"/>
+    <bpmn:sequenceFlow id="Flow_3_api_basic_get_api_apikey_post" sourceRef="api_basic_get" targetRef="api_apikey_post"/>
+    <bpmn:sequenceFlow id="Flow_4_api_apikey_post_end" sourceRef="api_apikey_post" targetRef="end"/>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1">
+      <bpmndi:BPMNShape id="start_di" bpmnElement="start">
+        <dc:Bounds x="80" y="260" width="40" height="40"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="api_bearer_get_di" bpmnElement="api_bearer_get">
+        <dc:Bounds x="260" y="160" width="120" height="60"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="api_basic_get_di" bpmnElement="api_basic_get">
+        <dc:Bounds x="460" y="260" width="120" height="60"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="api_apikey_post_di" bpmnElement="api_apikey_post">
+        <dc:Bounds x="660" y="360" width="120" height="60"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_di" bpmnElement="end">
+        <dc:Bounds x="880" y="260" width="40" height="40"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_1_start_api_bearer_get_di" bpmnElement="Flow_1_start_api_bearer_get">
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_2_api_bearer_get_api_basic_get_di" bpmnElement="Flow_2_api_bearer_get_api_basic_get">
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_3_api_basic_get_api_apikey_post_di" bpmnElement="Flow_3_api_basic_get_api_apikey_post">
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_4_api_apikey_post_end_di" bpmnElement="Flow_4_api_apikey_post_end">
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

@@ -7,6 +7,7 @@ import com.easy.bpm.repository.process.ProcessInstanceRepository
 import com.easy.bpm.service.process.ProcessInstanceTimelineService
 import com.easy.bpm.service.process.ProcessNavigator
 import com.easy.bpm.service.process.ServiceTaskOutputMapper
+import com.easy.bpm.util.BpmnXmlCodec
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.slf4j.LoggerFactory
@@ -108,7 +109,7 @@ class ProcessWorkerCallbackHandler(
     }
 
     private fun parseDefinition(definitionJson: String): JsonNode =
-        objectMapper.readTree(definitionJson)
+        BpmnXmlCodec.parseDefinition(definitionJson, objectMapper)
 
     private fun findNode(definition: JsonNode, nodeId: String): JsonNode =
         definition.get("nodes")

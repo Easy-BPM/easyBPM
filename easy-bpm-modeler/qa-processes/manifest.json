@@ -2,9 +2,10 @@
   "library": "easy-bpm-modeler-qa-processes",
   "version": "1.0.0",
   "generatedFor": "Easy BPM Modeler QA",
-  "generatedAt": "2026-06-18",
+  "generatedAt": "2026-08-13",
   "notes": [
-    "These process files use the current easy-bpm-modeler import/export flow format with from/to edges.",
+    "Process QA files use BPMN 2.0 XML (.bpmn) as the primary deploy/import format.",
+    "Legacy JSON process files are kept beside the XML files only for backwards-compatibility import checks.",
     "Deploy the form schemas in forms-backend before testing processes that reference formId values.",
     "Upload jars/test-service.jar through the Code Task tools before attaching it to qa_code_task_component.",
     "MessageStartEvent and code-task import behavior are included for modeler/component QA; verify backend runtime support before using them as deployment gates."
@@ -64,28 +65,32 @@
   "processes": [
     {
       "id": "qa_user_task_forms",
-      "file": "processes/qa-user-task-forms.json",
+      "file": "processes/qa-user-task-forms.bpmn",
+      "legacyJsonFile": "processes/qa-user-task-forms.json",
       "coverage": ["start", "end", "user-task", "forms", "exclusive-gateway", "task-variable-mapping"],
       "modelerImportable": true,
       "backendDeployCandidate": true
     },
     {
       "id": "qa_gateway_routing",
-      "file": "processes/qa-gateway-routing.json",
+      "file": "processes/qa-gateway-routing.bpmn",
+      "legacyJsonFile": "processes/qa-gateway-routing.json",
       "coverage": ["exclusive-gateway", "parallel-gateway", "conditional-flows", "join"],
       "modelerImportable": true,
       "backendDeployCandidate": true
     },
     {
       "id": "qa_api_components",
-      "file": "processes/qa-api-components.json",
+      "file": "processes/qa-api-components.bpmn",
+      "legacyJsonFile": "processes/qa-api-components.json",
       "coverage": ["api-task", "bearer-auth", "basic-auth", "apikey-auth", "request-body", "api-output-mapping"],
       "modelerImportable": true,
       "backendDeployCandidate": true
     },
     {
       "id": "qa_message_timer_events",
-      "file": "processes/qa-message-timer-events.json",
+      "file": "processes/qa-message-timer-events.bpmn",
+      "legacyJsonFile": "processes/qa-message-timer-events.json",
       "coverage": ["message-start", "message-catch", "message-throw", "timer-event", "message-payload-mapping"],
       "modelerImportable": true,
       "backendDeployCandidate": false,
@@ -93,7 +98,8 @@
     },
     {
       "id": "qa_code_task_component",
-      "file": "processes/qa-code-task-component.json",
+      "file": "processes/qa-code-task-component.bpmn",
+      "legacyJsonFile": "processes/qa-code-task-component.json",
       "coverage": ["code-task", "jar-id", "class-name", "method-name", "input-output-mapping", "error-boundary"],
       "modelerImportable": "partial",
       "backendDeployCandidate": false,
@@ -101,7 +107,8 @@
     },
     {
       "id": "qa_agent_process_call",
-      "file": "processes/qa-agent-process-call.json",
+      "file": "processes/qa-agent-process-call.bpmn",
+      "legacyJsonFile": "processes/qa-agent-process-call.json",
       "coverage": ["agent-process-call", "agent-input-mapping", "agent-output-mapping", "human-review"],
       "modelerImportable": true,
       "backendDeployCandidate": true,

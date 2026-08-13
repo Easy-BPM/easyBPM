@@ -1,0 +1,25 @@
+{
+  "id": "guides/create-process",
+  "title": "Create a Process",
+  "description": "An Easy BPM process is deployed as an Easy BPM process JSON graph. You can create it visually in the Modeler or send JSON directly to the /processes API.",
+  "source": "@site/versioned_docs/version-v0.1.0-beta.1/guides/create-process.md",
+  "sourceDirName": "guides",
+  "slug": "/guides/create-process",
+  "permalink": "/docs/guides/create-process",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "v0.1.0-beta.1",
+  "frontMatter": {
+    "title": "Create a Process"
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "First Login",
+    "permalink": "/docs/getting-started/first-login"
+  },
+  "next": {
+    "title": "Forms",
+    "permalink": "/docs/guides/forms"
+  }
+}

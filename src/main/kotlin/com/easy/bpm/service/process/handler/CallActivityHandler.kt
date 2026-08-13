@@ -10,6 +10,7 @@ import com.easy.bpm.repository.process.ProcessDefinitionRepository
 import com.easy.bpm.repository.process.ProcessInstanceRepository
 import com.easy.bpm.repository.process.CallActivityMappingRepository
 import com.easy.bpm.repository.variable.ProcessVariableRepository
+import com.easy.bpm.util.BpmnXmlCodec
 import com.easy.bpm.service.variable.VariableMappingService
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -178,7 +179,7 @@ class CallActivityHandler(
 
             // Step 4: Resume parent process from call activity node
             // Get the parent's definition to find next nodes after call activity
-            val definition = objectMapper.readTree(parentInstance.processDefinition.definitionJson)
+            val definition = BpmnXmlCodec.parseDefinition(parentInstance.processDefinition.definitionJson, objectMapper)
             val callActivityNode = definition.get("nodes").firstOrNull {
                 it.get("id").asText() == mapping.callActivityNodeId
             } ?: throw IllegalStateException("Call activity node '${mapping.callActivityNodeId}' not found in definition")
@@ -249,7 +250,7 @@ class CallActivityHandler(
             processInstanceRepository.save(childInstance)
 
             // Step 2: Parse parent definition and find call activity node
-            val definition = objectMapper.readTree(parentDefinitionJson)
+            val definition = BpmnXmlCodec.parseDefinition(parentDefinitionJson, objectMapper)
             val callActivityNode = definition.get("nodes").firstOrNull {
                 it.get("id").asText() == mapping.callActivityNodeId
             } ?: throw IllegalStateException("Call activity node '${mapping.callActivityNodeId}' not found in parent definition")
@@ -528,9 +529,9 @@ class CallActivityHandler(
         val nodeId = node.get("id").asText()
 
         return edges.filter { edge ->
-            edge.get("source").asText() == nodeId
+            (edge.get("source") ?: edge.get("from"))?.asText() == nodeId
         }.mapNotNull { edge ->
-            val targetId = edge.get("target").asText()
+            val targetId = (edge.get("target") ?: edge.get("to"))?.asText() ?: return@mapNotNull null
             definition.get("nodes").firstOrNull {
                 it.get("id").asText() == targetId
             }

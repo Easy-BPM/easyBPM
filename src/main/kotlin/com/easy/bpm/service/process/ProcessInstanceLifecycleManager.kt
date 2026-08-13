@@ -14,6 +14,7 @@ import com.easy.bpm.service.message.MessageSubscriptionService
 import com.easy.bpm.service.metrics.MetricsService
 import com.easy.bpm.service.process.handler.ProcessUserTaskHandler
 import com.easy.bpm.service.variable.HistoricVariableArchiver
+import com.easy.bpm.util.BpmnXmlCodec
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import jakarta.transaction.Transactional
@@ -170,7 +171,7 @@ class ProcessInstanceLifecycleManager(
     }
 
     private fun parseDefinition(definitionJson: String): JsonNode =
-        objectMapper.readTree(definitionJson)
+        BpmnXmlCodec.parseDefinition(definitionJson, objectMapper)
 
     private fun findNode(definition: JsonNode, nodeId: String): JsonNode =
         definition.get("nodes")

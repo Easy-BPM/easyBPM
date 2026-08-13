@@ -1,0 +1,25 @@
+{
+  "id": "platform/task-portal",
+  "title": "Task Portal",
+  "description": "The Task Portal is where business users and developer testers start processes, view assigned work, claim group tasks, complete forms, upload documents, and preview PDFs.",
+  "source": "@site/versioned_docs/version-v0.1.0-beta.1/platform/task-portal.md",
+  "sourceDirName": "platform",
+  "slug": "/platform/task-portal",
+  "permalink": "/docs/platform/task-portal",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "v0.1.0-beta.1",
+  "frontMatter": {
+    "title": "Task Portal"
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "Modeler",
+    "permalink": "/docs/platform/modeler"
+  },
+  "next": {
+    "title": "Admin Console",
+    "permalink": "/docs/platform/admin"
+  }
+}

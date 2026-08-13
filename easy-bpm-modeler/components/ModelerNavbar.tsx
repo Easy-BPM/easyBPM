@@ -41,10 +41,14 @@ export const ModelerNavbar: React.FC<NavbarProps> = ({
     const reader = new FileReader();
     reader.onload = (event) => {
       try {
-        const json = JSON.parse(event.target?.result as string);
-        onImport?.(json);
+        const text = event.target?.result as string;
+        if (resourceType === 'process' && text.trimStart().startsWith('<')) {
+          onImport?.(text);
+          return;
+        }
+        onImport?.(JSON.parse(text));
       } catch (err) {
-        alert('Invalid JSON file');
+        alert(resourceType === 'process' ? 'Invalid BPMN XML or JSON file' : 'Invalid JSON file');
       }
     };
     reader.readAsText(file);
@@ -92,13 +96,13 @@ export const ModelerNavbar: React.FC<NavbarProps> = ({
               type="file" 
               ref={fileInputRef} 
               onChange={handleFileChange} 
-              accept=".json" 
+              accept={resourceType === 'process' ? '.bpmn,.xml,.json,application/xml,text/xml,application/json' : '.json,application/json'} 
               className="hidden" 
             />
             <button
               onClick={() => fileInputRef.current?.click()}
               className={`px-3 py-2 rounded-lg transition-colors flex items-center gap-2 ${isModeler ? 'text-slate-300 hover:bg-white/10 hover:text-white' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'}`}
-              title="Import process from JSON"
+              title={resourceType === 'process' ? 'Import process from BPMN XML' : 'Import from JSON'}
             >
               <Upload className="w-4 h-4" />
               <span className="text-sm font-medium">Import</span>
@@ -109,7 +113,7 @@ export const ModelerNavbar: React.FC<NavbarProps> = ({
           <button
             onClick={onExport}
             className={`px-3 py-2 rounded-lg transition-colors flex items-center gap-2 ${isModeler ? 'text-slate-300 hover:bg-white/10 hover:text-white' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'}`}
-            title="Export process as JSON"
+            title={resourceType === 'process' ? 'Export process as BPMN XML' : 'Export as JSON'}
           >
             <Download className="w-4 h-4" />
             <span className="text-sm font-medium">Export</span>

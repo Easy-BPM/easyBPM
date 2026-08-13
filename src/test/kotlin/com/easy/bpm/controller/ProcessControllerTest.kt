@@ -9,7 +9,6 @@ import com.easy.bpm.service.message.ExternalMessageAcceptance
 import com.easy.bpm.service.message.MessageEventInboxService
 import com.easy.bpm.service.process.ProcessInstanceTimelineService
 import com.easy.bpm.service.process.ProcessService
-import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
@@ -37,47 +36,42 @@ class ProcessControllerTest : FunSpec() {
     context("deploy") {
         test("should deploy process definition successfully") {
             // Arrange
-            val processJson = objectMapper.readTree("""
-                {
-                    "processId": "my-process",
-                    "version": 1,
-                    "nodes": []
-                }
-            """.trimIndent())
+            val processXml = """
+                <?xml version="1.0" encoding="UTF-8"?>
+                <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL">
+                  <bpmn:process id="my-process" name="my-process" isExecutable="true"/>
+                </bpmn:definitions>
+            """.trimIndent()
 
             val expectedDefinition = ProcessDefinition(
                 id = 1,
                 processName = "my-process",
-                definitionJson = processJson.toString(),
+                definitionJson = processXml,
                 version = 1
             )
 
-            every { mockProcessService.deployProcess(processJson) } returns expectedDefinition
+            every { mockProcessService.deployProcess(processXml) } returns expectedDefinition
 
             // Act
-            val result = processController.deploy(processJson)
+            val result = processController.deploy(processXml)
 
             // Assert
             result shouldNotBe null
             result.id shouldBe 1
             result.processName shouldBe "my-process"
             result.version shouldBe 1
-            verify { mockProcessService.deployProcess(processJson) }
+            verify { mockProcessService.deployProcess(processXml) }
         }
 
         test("should propagate exception from service") {
             // Arrange
-            val invalidJson = objectMapper.readTree("""
-                {
-                    "version": 1
-                }
-            """.trimIndent())
+            val invalidXml = "<bpmn:definitions/>"
 
-            every { mockProcessService.deployProcess(invalidJson) } throws IllegalArgumentException("Invalid process definition")
+            every { mockProcessService.deployProcess(invalidXml) } throws IllegalArgumentException("Invalid process definition")
 
             // Act & Assert
             shouldThrow<IllegalArgumentException> {
-                processController.deploy(invalidJson)
+                processController.deploy(invalidXml)
             }
         }
     }

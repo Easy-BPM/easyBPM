@@ -1,0 +1,25 @@
+{
+  "id": "api/incidents",
+  "title": "Incidents API",
+  "description": "Use the Incidents API to review, acknowledge, retry, resolve, and reopen operational incidents.",
+  "source": "@site/docs/api/incidents.md",
+  "sourceDirName": "api",
+  "slug": "/api/incidents",
+  "permalink": "/docs/next/api/incidents",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "title": "Incidents API"
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "Code Tasks API",
+    "permalink": "/docs/next/api/code-tasks"
+  },
+  "next": {
+    "title": "Admin Security API",
+    "permalink": "/docs/next/api/admin-security"
+  }
+}

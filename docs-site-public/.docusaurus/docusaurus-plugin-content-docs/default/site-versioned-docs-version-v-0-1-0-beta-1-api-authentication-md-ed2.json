@@ -1,0 +1,25 @@
+{
+  "id": "api/authentication",
+  "title": "Authentication API",
+  "description": "Use the Authentication API to sign users in and inspect the current JWT session.",
+  "source": "@site/versioned_docs/version-v0.1.0-beta.1/api/authentication.md",
+  "sourceDirName": "api",
+  "slug": "/api/authentication",
+  "permalink": "/docs/api/authentication",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "v0.1.0-beta.1",
+  "frontMatter": {
+    "title": "Authentication API"
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "Swagger UI",
+    "permalink": "/docs/api/swagger"
+  },
+  "next": {
+    "title": "Agent Processes API",
+    "permalink": "/docs/api/agent-processes"
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "id": "api/agent-processes",
+  "title": "Agent Processes API",
+  "description": "Use the Agent Processes API to deploy reusable Agent Process definitions and retrieve the latest or versioned definitions by key.",
+  "source": "@site/docs/api/agent-processes.md",
+  "sourceDirName": "api",
+  "slug": "/api/agent-processes",
+  "permalink": "/docs/next/api/agent-processes",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "title": "Agent Processes API"
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "Authentication API",
+    "permalink": "/docs/next/api/authentication"
+  },
+  "next": {
+    "title": "Processes API",
+    "permalink": "/docs/next/api/processes"
+  }
+}

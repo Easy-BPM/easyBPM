@@ -1,0 +1,25 @@
+{
+  "id": "getting-started/install",
+  "title": "Installation",
+  "description": "Easy BPM can run as individual local processes during development or as containers for shared environments.",
+  "source": "@site/docs/getting-started/install.md",
+  "sourceDirName": "getting-started",
+  "slug": "/getting-started/install",
+  "permalink": "/docs/next/getting-started/install",
+  "draft": false,
+  "unlisted": false,
+  "tags": [],
+  "version": "current",
+  "frontMatter": {
+    "title": "Installation"
+  },
+  "sidebar": "docs",
+  "previous": {
+    "title": "Quick Start",
+    "permalink": "/docs/next/getting-started/quick-start"
+  },
+  "next": {
+    "title": "Configuration",
+    "permalink": "/docs/next/getting-started/configuration"
+  }
+}

@@ -17,6 +17,7 @@ import com.easy.bpm.repository.incident.IncidentEventRepository
 import com.easy.bpm.repository.incident.IncidentRepository
 import com.easy.bpm.repository.worker.WorkerRequestRepository
 import com.easy.bpm.messaging.RabbitPublisher
+import com.easy.bpm.util.BpmnXmlCodec
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import jakarta.persistence.criteria.Predicate
@@ -162,7 +163,7 @@ class IncidentService(
         val instance = processInstanceRepository.findById(incident.processInstanceId)
             .orElseThrow { IllegalStateException("Process instance not found") }
 
-        val definition = objectMapper.readTree(instance.processDefinition.definitionJson)
+        val definition = BpmnXmlCodec.parseDefinition(instance.processDefinition.definitionJson, objectMapper)
         val node = findNode(definition, nodeId)
         val properties = node.get("properties") ?: node.get("service") ?: node.get("config") ?: objectMapper.createObjectNode()
 
