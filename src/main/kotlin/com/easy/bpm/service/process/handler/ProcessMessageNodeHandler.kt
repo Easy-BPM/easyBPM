@@ -98,7 +98,7 @@ class ProcessMessageNodeHandler(
             throw IllegalArgumentException("MessageIntermediateCatchEvent $nodeId missing 'message.correlationKeys'")
         }
 
-        val correlationKey = correlationKeys[0].asText()
+        val correlationKey = variableManager.evaluateCorrelationKey(correlationKeys[0].asText(), instance)
 
         messageSubscriptionService.subscribeToMessage(
             processInstanceId = instance.id,
@@ -140,7 +140,7 @@ class ProcessMessageNodeHandler(
         try {
             rabbitPublisher.publishMessageThrown(
                 messageName = messageName,
-                correlationKey = correlationKeys[0].asText(),
+                correlationKey = variableManager.evaluateCorrelationKey(correlationKeys[0].asText(), instance),
                 variables = payload
             )
         } catch (ex: Exception) {
