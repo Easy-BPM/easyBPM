@@ -268,14 +268,17 @@ class TestDataBootstrap(
             return
         }
 
-        val json = readQaJson(file) ?: run {
+        val resource = readQaResource(file) ?: run {
             logger.warn("Easy BPM test data skipped QA process '{}' because '{}' was not found.", processId, file)
             return
         }
 
-        val deployableJson = prepareQaProcessJson(processId, json)
         try {
-            val deployed = processService.deployProcess(deployableJson)
+            val deployed = if (file.endsWith(".bpmn") || file.endsWith(".xml")) {
+                processService.deployProcess(prepareQaProcessXml(processId, resource.inputStream.use { it.bufferedReader().readText() }))
+            } else {
+                processService.deployProcess(prepareQaProcessJson(processId, resource.inputStream.use { objectMapper.readTree(it) }))
+            }
             logger.info(
                 "Easy BPM test data deployed QA process '{}' version {} from '{}'.",
                 deployed.key,
@@ -327,6 +330,20 @@ class TestDataBootstrap(
             testServiceJarId
         )
         return copy
+    }
+
+    private fun prepareQaProcessXml(processId: String, xml: String): String {
+        if (processId != QA_CODE_TASK_PROCESS_ID) {
+            return xml
+        }
+
+        val testServiceJarId = qaJarIds["test-service"] ?: return xml
+        logger.info(
+            "Easy BPM test data bound QA process '{}' to QA JAR database id {}.",
+            processId,
+            testServiceJarId
+        )
+        return Regex(""""jarId"\s*:\s*\d+""").replace(xml, """"jarId":$testServiceJarId""")
     }
 
     private fun replaceJarIds(node: JsonNode, jarId: Long) {

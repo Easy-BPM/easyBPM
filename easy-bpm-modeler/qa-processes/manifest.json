@@ -93,17 +93,16 @@
       "legacyJsonFile": "processes/qa-message-timer-events.json",
       "coverage": ["message-start", "message-catch", "message-throw", "timer-event", "message-payload-mapping"],
       "modelerImportable": true,
-      "backendDeployCandidate": false,
-      "backendNote": "Current backend NodeType enum does not include MessageStartEvent."
+      "backendDeployCandidate": true
     },
     {
       "id": "qa_code_task_component",
       "file": "processes/qa-code-task-component.bpmn",
       "legacyJsonFile": "processes/qa-code-task-component.json",
       "coverage": ["code-task", "jar-id", "class-name", "method-name", "input-output-mapping", "error-boundary"],
-      "modelerImportable": "partial",
-      "backendDeployCandidate": false,
-      "backendNote": "Upload jars/test-service.jar and bind class TestService method processOrder. Current modeler importer does not hydrate CodeTask config and ProcessService does not execute CodeTask nodes yet."
+      "modelerImportable": true,
+      "backendDeployCandidate": true,
+      "backendNote": "Upload jars/test-service.jar before runtime execution. Deployment validates the BPMN XML and stores the CodeTask config."
     },
     {
       "id": "qa_agent_process_call",
