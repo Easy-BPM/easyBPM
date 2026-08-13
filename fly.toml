@@ -14,6 +14,7 @@ primary_region = "gru"
   EASY_BPM_SERVER_SECURITY_JWT_EXPIRATION_MS = "86400000"
   EASY_BPM_TEST_DATA = "false"
   EASY_BPM_SERVER_TEST_DATA_ENABLED = "false"
+  JAVA_OPTS = "-XX:MaxRAMPercentage=70 -XX:+ExitOnOutOfMemoryError"
 
 [processes]
   web = "/app/bin/start-web.sh"
@@ -38,3 +39,15 @@ primary_region = "gru"
     grace_period = "30s"
     method = "GET"
     path = "/healthz"
+
+[[vm]]
+  processes = ["web"]
+  cpu_kind = "shared"
+  cpus = 1
+  memory = "1gb"
+
+[[vm]]
+  processes = ["worker"]
+  cpu_kind = "shared"
+  cpus = 1
+  memory = "512mb"

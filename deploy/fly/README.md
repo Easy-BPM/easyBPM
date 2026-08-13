@@ -39,6 +39,8 @@ Then deploy:
 fly deploy
 ```
 
+Spring Boot needs more than Fly's smallest 256 MB machine once the API and nginx run together. The provided `fly.toml` sets the `web` process to 1 GB and the `worker` process to 512 MB.
+
 The `web` process serves nginx plus the API. The `worker` process uses the same image and runs `/app/worker.jar`; scale it when you are ready to process queued work:
 
 ```bash
