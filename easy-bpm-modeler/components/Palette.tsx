@@ -136,26 +136,32 @@ export const Palette: React.FC<PaletteProps> = ({ onDragStart, isAgenticOrchestr
   ];
 
   return (
-    <div className="w-64 bg-[#121920] border-r border-[#25313d] flex flex-col h-full z-10 shadow-[1px_0_0_rgba(255,255,255,0.04)]">
-      <div className="p-4 border-b border-[#25313d] bg-[#121920]">
-        <h2 className="text-sm font-bold text-slate-200 uppercase tracking-wider">Components</h2>
+    <div className="w-20 bg-[#121920] border-r border-[#25313d] flex flex-col h-full z-10 shadow-[1px_0_0_rgba(255,255,255,0.04)]">
+      <div className="p-3 border-b border-[#25313d] bg-[#121920] flex justify-center">
+        <div className="flex h-9 w-9 items-center justify-center rounded-md border border-white/[0.07] bg-white/[0.04] text-[11px] font-bold uppercase text-slate-300" title="Components">
+          BPM
+        </div>
       </div>
-      <div className="p-4 space-y-6 overflow-y-auto flex-1">
+      <div className="p-2 space-y-4 overflow-y-auto flex-1">
         {groups.map((group) => (
           <div key={group.title} className="space-y-2">
-            <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">{group.title}</h3>
-            <div className="grid grid-cols-1 gap-2">
+            <div className="mx-auto h-px w-8 bg-white/[0.08]" title={group.title} />
+            <div className="grid grid-cols-1 gap-1.5">
               {group.items.map((item) => (
                 <div
                   key={item.type}
                   draggable
                   onDragStart={(e) => onDragStart(e, item.type)}
-                  className="flex items-center p-2.5 bg-white/[0.04] border border-white/[0.07] rounded-md cursor-grab hover:border-blue-500/70 hover:bg-white/[0.07] hover:shadow-[0_0_0_1px_rgba(59,130,246,0.18)] transition-all group"
+                  title={item.label}
+                  aria-label={item.label}
+                  className="relative mx-auto flex h-10 w-10 items-center justify-center bg-white/[0.04] border border-white/[0.07] rounded-md cursor-grab hover:border-blue-500/70 hover:bg-white/[0.07] hover:shadow-[0_0_0_1px_rgba(59,130,246,0.18)] transition-all group"
                 >
-                  <div className={`mr-3 ${item.color} group-hover:scale-110 transition-transform flex-shrink-0`}>
+                  <div className={`${item.color} group-hover:scale-110 transition-transform flex-shrink-0`}>
                     {item.icon}
                   </div>
-                  <span className="text-xs font-medium text-slate-300 truncate">{item.label}</span>
+                  <span className="pointer-events-none absolute left-full ml-2 hidden whitespace-nowrap rounded-md border border-[#25313d] bg-[#121920] px-2 py-1 text-[11px] font-medium text-slate-200 shadow-lg group-hover:block">
+                    {item.label}
+                  </span>
                 </div>
               ))}
             </div>
@@ -163,10 +169,10 @@ export const Palette: React.FC<PaletteProps> = ({ onDragStart, isAgenticOrchestr
         ))}
       </div>
       
-      <div className="p-4 border-t border-[#25313d] bg-black/10">
-        <p className="text-xs text-slate-400 leading-relaxed">
-          <span className="font-semibold text-slate-300">Tip:</span> Drag components to canvas. Hover over a node to see connection points. Press <span className="font-mono bg-white/5 border border-white/10 rounded px-1 text-slate-300">Delete</span> to remove.
-        </p>
+      <div className="p-2 border-t border-[#25313d] bg-black/10 flex justify-center">
+        <div className="flex h-8 w-8 items-center justify-center rounded-md border border-white/[0.07] bg-white/[0.04] text-xs font-semibold text-slate-400" title="Drag components to canvas">
+          ?
+        </div>
       </div>
     </div>
   );
