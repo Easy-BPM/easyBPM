@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { BpmnNode, BpmnEdge, ProcessVariable, TaskVariable, ValidationIssue } from '../types';
-import { Bot, Trash2, Plus, LogIn, LogOut, Layers, Database, Hash, Type, ToggleLeft, Braces, Fingerprint, AlertCircle, FileCode, Mail, Zap, FileText, Code, Info, Brain, RotateCcw } from 'lucide-react';
+import { Bot, Trash2, Plus, LogIn, LogOut, Layers, Database, Hash, Type, ToggleLeft, Braces, Fingerprint, AlertCircle, FileCode, Mail, Zap, FileText, Code, Info, Brain, RotateCcw, Search, Copy } from 'lucide-react';
 import { validateId } from '../utils/validation';
 import { AIProviderConfigForm } from './AIProviderConfigForm';
 import { PromptEditor } from './PromptEditor';
@@ -56,12 +56,40 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
   const [localNodeId, setLocalNodeId] = useState(selectedNode?.id || '');
   const [processIdError, setProcessIdError] = useState<string | null>(null);
   const [formKeyError, setFormKeyError] = useState<string | null>(null);
+  const [globalVarSearch, setGlobalVarSearch] = useState('');
+  const [selectedGlobalVarId, setSelectedGlobalVarId] = useState<string | null>(processVariables[0]?.id || null);
+  const [selectedTaskVarIdByCollection, setSelectedTaskVarIdByCollection] = useState<Record<'inputVariables' | 'outputVariables', string | null>>({
+    inputVariables: null,
+    outputVariables: null
+  });
+
+  const filteredProcessVariables = useMemo(() => {
+    const query = globalVarSearch.trim().toLowerCase();
+    if (!query) return processVariables;
+    return processVariables.filter(v =>
+      (v.name || '').toLowerCase().includes(query) ||
+      v.type.toLowerCase().includes(query) ||
+      (v.defaultValue || '').toLowerCase().includes(query)
+    );
+  }, [globalVarSearch, processVariables]);
+
+  const selectedGlobalVar = processVariables.find(v => v.id === selectedGlobalVarId) || processVariables[0] || null;
 
   useEffect(() => {
     if (selectedNode) {
       setLocalNodeId(selectedNode.id);
     }
   }, [selectedNode?.uid]);
+
+  useEffect(() => {
+    if (processVariables.length === 0) {
+      setSelectedGlobalVarId(null);
+      return;
+    }
+    if (!selectedGlobalVarId || !processVariables.some(v => v.id === selectedGlobalVarId)) {
+      setSelectedGlobalVarId(processVariables[0].id);
+    }
+  }, [processVariables, selectedGlobalVarId]);
 
   const handleNodeIdBlur = () => {
     if (selectedNode && localNodeId !== selectedNode.id) {
@@ -84,8 +112,47 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
        defaultValue: ''
      };
      onUpdateVariables([...processVariables, newVar]);
+     setSelectedGlobalVarId(newVar.id);
      return newVar;
    };
+
+  const duplicateGlobalVar = (variable: ProcessVariable) => {
+    const newVar: ProcessVariable = {
+      ...variable,
+      id: Math.random().toString(36).substr(2, 9),
+      name: `${variable.name || 'var'}_copy`
+    };
+    onUpdateVariables([...processVariables, newVar]);
+    setSelectedGlobalVarId(newVar.id);
+  };
+
+  const deleteGlobalVar = (id: string) => {
+    const nextVariables = processVariables.filter(pv => pv.id !== id);
+    onUpdateVariables(nextVariables);
+    setSelectedGlobalVarId(nextVariables[0]?.id || null);
+  };
+
+  const addTaskVar = (collection: 'inputVariables' | 'outputVariables') => {
+    if (!selectedNode) return;
+    const newVar: TaskVariable = {
+      id: Math.random().toString(36).substr(2, 9),
+      name: '',
+      type: 'string',
+      mappingType: 'variable',
+      value: ''
+    };
+    const currentList = selectedNode.data[collection] || [];
+    onUpdateNode(selectedNode.uid, { [collection]: [...currentList, newVar] });
+    setSelectedTaskVarIdByCollection(current => ({ ...current, [collection]: newVar.id }));
+  };
+
+  const deleteTaskVar = (nodeUid: string, collection: 'inputVariables' | 'outputVariables', varId: string) => {
+    const node = nodes.find(n => n.uid === nodeUid);
+    if (!node) return;
+    const nextList = (node.data[collection] || []).filter(item => item.id !== varId);
+    onUpdateNode(nodeUid, { [collection]: nextList });
+    setSelectedTaskVarIdByCollection(current => ({ ...current, [collection]: nextList[0]?.id || null }));
+  };
 
   const handleTaskVarChange = (
     uid: string, 
@@ -211,21 +278,310 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
     );
   };
 
-  const renderVarList = (title: string, collection: 'inputVariables' | 'outputVariables', icon: React.ReactNode, namePlaceholder?: string) => (
-    <div className="space-y-3 mt-4">
-      <div className="flex items-center justify-between text-slate-600">
-        <div className="flex items-center gap-2"><span className="p-1 bg-slate-100 rounded">{icon}</span><span className="text-[11px] font-bold uppercase tracking-tight">{title}</span></div>
-        <button onClick={() => {
-          if (!selectedNode) return;
-          const newVar: TaskVariable = { id: Math.random().toString(36).substr(2, 9), name: '', type: 'string', mappingType: 'variable', value: '' };
-          const currentList = selectedNode.data[collection] || [];
-          onUpdateNode(selectedNode.uid, { [collection]: [...currentList, newVar] });
-        }} className="text-blue-600 hover:text-blue-700 transition-colors"><Plus className="w-4 h-4" /></button>
+  const renderVarList = (title: string, collection: 'inputVariables' | 'outputVariables', icon: React.ReactNode, namePlaceholder?: string) => {
+    if (!selectedNode) return null;
+
+    const isInput = collection === 'inputVariables';
+    const variables = selectedNode.data[collection] || [];
+    const selectedTaskVarId = selectedTaskVarIdByCollection[collection];
+    const selectedTaskVar = variables.find(v => v.id === selectedTaskVarId) || variables[0] || null;
+
+    return (
+      <div className="mt-4 overflow-hidden rounded-md border border-slate-200 bg-white">
+        <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-3 py-2">
+          <div className="flex items-center gap-2 text-slate-700">
+            <span className="rounded bg-white p-1 shadow-sm">{icon}</span>
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-tight">{title}</p>
+              <p className="text-[10px] text-slate-400">{variables.length} mappings</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => addTaskVar(collection)}
+            className="flex h-7 w-7 items-center justify-center rounded border border-slate-200 bg-white text-blue-600 transition-colors hover:bg-blue-50"
+            title="Add variable mapping"
+            aria-label="Add variable mapping"
+          >
+            <Plus className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        {variables.length > 0 ? (
+          <div className="max-h-40 overflow-y-auto">
+            <table className="w-full table-fixed text-left text-[11px]">
+              <thead className="sticky top-0 bg-white text-[9px] uppercase text-slate-400">
+                <tr>
+                  <th className="w-[42%] px-3 py-2 font-bold">Name</th>
+                  <th className="w-[24%] px-2 py-2 font-bold">Type</th>
+                  <th className="w-[24%] px-2 py-2 font-bold">{isInput ? 'Source' : 'Target'}</th>
+                  <th className="w-8 px-1 py-2" />
+                </tr>
+              </thead>
+              <tbody>
+                {variables.map(v => {
+                  const isDuplicate = v.name !== '' && variables.filter(item => item.name === v.name).length > 1;
+                  const isSelected = selectedTaskVar?.id === v.id;
+                  const globalMatch = processVariables.find(pv => pv.name === v.value);
+                  return (
+                    <tr
+                      key={v.id}
+                      onClick={() => setSelectedTaskVarIdByCollection(current => ({ ...current, [collection]: v.id }))}
+                      className={`cursor-pointer border-t border-slate-100 transition-colors ${isSelected ? 'bg-blue-50/60' : 'hover:bg-slate-50'} ${isDuplicate ? 'bg-red-50/40' : ''}`}
+                    >
+                      <td className="truncate px-3 py-2 font-medium text-slate-700">{v.name || <span className="text-slate-400">Unnamed</span>}</td>
+                      <td className="px-2 py-2">
+                        <span className="inline-flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 text-slate-600">
+                          {getTypeIcon(v.type)}
+                          {v.type}
+                        </span>
+                      </td>
+                      <td className="truncate px-2 py-2 text-slate-500">
+                        {v.mappingType === 'static' ? 'Static' : (globalMatch?.name || v.value || 'Global')}
+                      </td>
+                      <td className="px-1 py-2">
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            deleteTaskVar(selectedNode.uid, collection, v.id);
+                          }}
+                          className="rounded p-1 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-500"
+                          title="Delete mapping"
+                          aria-label="Delete mapping"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="px-3 py-6 text-center text-[11px] text-slate-400">No {title.toLowerCase()} configured.</p>
+        )}
+
+        {selectedTaskVar && (
+          <div className="border-t border-slate-200 bg-slate-50/70 p-3">
+            <div className="mb-3 flex items-center justify-between">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Edit mapping</p>
+              {isInput && selectedTaskVar.mappingType === 'variable' && processVariables.find(pv => pv.name === selectedTaskVar.value) && (
+                <span className="inline-flex items-center gap-1 rounded bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-700">
+                  <Database className="h-3 w-3" />
+                  Global
+                </span>
+              )}
+            </div>
+            <div className="space-y-3">
+              <div>
+                <label className="mb-1 block text-[10px] font-bold uppercase text-slate-400">Name</label>
+                <input
+                  className={`${smallInputClassName} w-full`}
+                  value={selectedTaskVar.name}
+                  onChange={e => handleTaskVarChange(selectedNode.uid, collection, selectedTaskVar.id, 'name', e.target.value)}
+                  placeholder={namePlaceholder || (isInput ? 'Internal task name' : 'Result/source name')}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="mb-1 block text-[10px] font-bold uppercase text-slate-400">Mode</label>
+                  <select
+                    className={`${smallInputClassName} w-full`}
+                    value={selectedTaskVar.mappingType}
+                    onChange={e => handleTaskVarChange(selectedNode.uid, collection, selectedTaskVar.id, 'mappingType', e.target.value as any)}
+                  >
+                    <option value="variable">{isInput ? 'From global' : 'To global'}</option>
+                    <option value="static">Static value</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-1 block text-[10px] font-bold uppercase text-slate-400">Type</label>
+                  <select
+                    className={`${smallInputClassName} w-full`}
+                    value={selectedTaskVar.type}
+                    onChange={e => handleTaskVarChange(selectedNode.uid, collection, selectedTaskVar.id, 'type', e.target.value as any)}
+                    disabled={selectedTaskVar.mappingType === 'variable' && ((isInput && Boolean(selectedTaskVar.value)) || !isInput)}
+                  >
+                    <option value="string">String</option>
+                    <option value="number">Number</option>
+                    <option value="boolean">Boolean</option>
+                    <option value="json">JSON</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="mb-1 block text-[10px] font-bold uppercase text-slate-400">{isInput ? 'Source' : 'Target global variable'}</label>
+                {isInput && selectedTaskVar.mappingType === 'static' ? (
+                  <input
+                    className={`${smallInputClassName} w-full`}
+                    value={selectedTaskVar.value}
+                    onChange={e => handleTaskVarChange(selectedNode.uid, collection, selectedTaskVar.id, 'value', e.target.value)}
+                    placeholder="Enter static value..."
+                  />
+                ) : (
+                  <select
+                    className={`${smallInputClassName} w-full`}
+                    value={selectedTaskVar.value}
+                    onChange={e => handleTaskVarChange(selectedNode.uid, collection, selectedTaskVar.id, 'value', e.target.value)}
+                  >
+                    <option value="">Select process variable...</option>
+                    {processVariables.map(pv => (<option key={pv.id} value={pv.name || ''}>{pv.name || ''} ({pv.type})</option>))}
+                  </select>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
-      <div className="space-y-3">
-        {selectedNode?.data[collection]?.map(v => renderTaskVarItem(selectedNode.uid, collection, v, namePlaceholder))}
-        {(!selectedNode?.data[collection] || selectedNode?.data[collection]!.length === 0) && <p className="text-[10px] text-slate-400 italic text-center py-2 bg-slate-50 border border-dashed border-slate-200 rounded">No {title.toLowerCase()} configured.</p>}
+    );
+  };
+
+  const renderGlobalVariablesManager = () => (
+    <div className="overflow-hidden rounded-md border border-slate-200 bg-white">
+      <div className="border-b border-slate-200 bg-slate-50 px-3 py-3">
+        <div className="mb-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Database className="h-4 w-4 text-teal-600" />
+            <div>
+              <p className="text-xs font-semibold uppercase text-slate-600">Global Variables</p>
+              <p className="text-[10px] text-slate-400">{processVariables.length} process variables</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => addGlobalVar()}
+            className="flex h-8 w-8 items-center justify-center rounded border border-slate-200 bg-white text-teal-700 transition-colors hover:bg-teal-50"
+            title="New global variable"
+            aria-label="New global variable"
+          >
+            <Plus className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+          <input
+            value={globalVarSearch}
+            onChange={e => setGlobalVarSearch(e.target.value)}
+            className={`${smallInputClassName} w-full pl-8`}
+            placeholder="Search by name, type, or value"
+          />
+        </div>
       </div>
+
+      {processVariables.length > 0 ? (
+        <div className="max-h-52 overflow-y-auto">
+          <table className="w-full table-fixed text-left text-[11px]">
+            <thead className="sticky top-0 bg-white text-[9px] uppercase text-slate-400">
+              <tr>
+                <th className="w-[45%] px-3 py-2 font-bold">Name</th>
+                <th className="w-[24%] px-2 py-2 font-bold">Type</th>
+                <th className="w-[23%] px-2 py-2 font-bold">Default</th>
+                <th className="w-8 px-1 py-2" />
+              </tr>
+            </thead>
+            <tbody>
+              {filteredProcessVariables.map(v => {
+                const isDuplicate = validation.duplicateGlobalVars.includes(v.name || '');
+                const isSelected = selectedGlobalVar?.id === v.id;
+                return (
+                  <tr
+                    key={v.id}
+                    onClick={() => setSelectedGlobalVarId(v.id)}
+                    className={`cursor-pointer border-t border-slate-100 transition-colors ${isSelected ? 'bg-teal-50/70' : 'hover:bg-slate-50'} ${isDuplicate ? 'bg-red-50/50' : ''}`}
+                  >
+                    <td className="truncate px-3 py-2 font-medium text-slate-700">{v.name || <span className="text-slate-400">Unnamed</span>}</td>
+                    <td className="px-2 py-2">
+                      <span className="inline-flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 text-slate-600">
+                        {getTypeIcon(v.type)}
+                        {v.type}
+                      </span>
+                    </td>
+                    <td className="truncate px-2 py-2 font-mono text-[10px] text-slate-500">{v.defaultValue || '-'}</td>
+                    <td className="px-1 py-2">
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          deleteGlobalVar(v.id);
+                        }}
+                        className="rounded p-1 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-500"
+                        title="Delete variable"
+                        aria-label="Delete variable"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          {filteredProcessVariables.length === 0 && (
+            <p className="px-3 py-6 text-center text-[11px] text-slate-400">No variables match this search.</p>
+          )}
+        </div>
+      ) : (
+        <p className="px-3 py-8 text-center text-xs text-slate-400">Define global variables to share data between tasks.</p>
+      )}
+
+      {selectedGlobalVar && (
+        <div className="border-t border-slate-200 bg-slate-50/70 p-3">
+          <div className="mb-3 flex items-center justify-between">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Edit variable</p>
+            <button
+              type="button"
+              onClick={() => duplicateGlobalVar(selectedGlobalVar)}
+              className="inline-flex items-center gap-1 rounded border border-slate-200 bg-white px-2 py-1 text-[10px] font-medium text-slate-600 transition-colors hover:bg-slate-50"
+            >
+              <Copy className="h-3 w-3" />
+              Duplicate
+            </button>
+          </div>
+          <div className="space-y-3">
+            <div>
+              <label className="mb-1 block text-[10px] font-bold uppercase text-slate-400">Name</label>
+              <input
+                className={`${smallInputClassName} w-full ${validation.duplicateGlobalVars.includes(selectedGlobalVar.name || '') ? '!border-red-400' : ''}`}
+                value={selectedGlobalVar.name || ''}
+                onChange={e => handleGlobalVarChange(selectedGlobalVar.id, 'name', e.target.value)}
+                placeholder="Variable name"
+              />
+              {validation.duplicateGlobalVars.includes(selectedGlobalVar.name || '') && (
+                <p className="mt-1 flex items-center gap-1 text-[10px] font-medium text-red-500">
+                  <AlertCircle className="h-3 w-3" />
+                  Duplicate name
+                </p>
+              )}
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="mb-1 block text-[10px] font-bold uppercase text-slate-400">Type</label>
+                <select
+                  className={`${smallInputClassName} w-full`}
+                  value={selectedGlobalVar.type}
+                  onChange={e => handleGlobalVarChange(selectedGlobalVar.id, 'type', e.target.value as any)}
+                >
+                  <option value="string">String</option>
+                  <option value="number">Number</option>
+                  <option value="boolean">Boolean</option>
+                  <option value="json">JSON</option>
+                </select>
+              </div>
+              <div>
+                <label className="mb-1 block text-[10px] font-bold uppercase text-slate-400">Default value</label>
+                <input
+                  className={`${smallInputClassName} w-full`}
+                  value={selectedGlobalVar.defaultValue}
+                  onChange={e => handleGlobalVarChange(selectedGlobalVar.id, 'defaultValue', e.target.value)}
+                  placeholder="Initial value"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 
@@ -343,28 +699,7 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
           </div>
 
           <div className="border-t border-slate-100 pt-6">
-            <div className="flex items-center justify-between mb-4"><label className="text-xs font-semibold text-slate-500 uppercase">Global Variables</label><button onClick={() => addGlobalVar()} className="text-blue-600 hover:text-blue-700 transition-colors"><Plus className="w-4 h-4" /></button></div>
-            <div className="space-y-3">
-                {processVariables.map(v => {
-                  const isDuplicate = validation.duplicateGlobalVars.includes(v.name || '');
-                  return (
-                    <div key={v.id} className={`p-3 border rounded-lg space-y-2 transition-colors ${isDuplicate ? 'bg-red-50 border-red-300' : 'bg-slate-50 border-slate-200'}`}>
-                      <div className="flex gap-2">
-                        <input className={`flex-1 ${smallInputClassName} ${isDuplicate ? '!border-red-400' : ''}`} value={v.name || ''} onChange={e => handleGlobalVarChange(v.id, 'name', e.target.value)} placeholder="Variable Name" />
-                        <button onClick={() => onUpdateVariables(processVariables.filter(pv => pv.id !== v.id))} className="text-red-400 hover:text-red-600 transition-colors"><Trash2 className="w-4 h-4" /></button>
-                      </div>
-                    {isDuplicate && <p className="text-[10px] text-red-500 font-medium flex items-center gap-1"><AlertCircle className="w-3 h-3" /> Duplicate name</p>}
-                    <div className="flex gap-2">
-                      <select className={`${smallInputClassName} w-24`} value={v.type} onChange={e => handleGlobalVarChange(v.id, 'type', e.target.value as any)}>
-                        <option value="string">String</option><option value="number">Number</option><option value="boolean">Boolean</option><option value="json">JSON</option>
-                      </select>
-                      <input className={`flex-1 ${smallInputClassName}`} value={v.defaultValue} onChange={e => handleGlobalVarChange(v.id, 'defaultValue', e.target.value)} placeholder="Initial Value" />
-                    </div>
-                  </div>
-                );
-              })}
-              {processVariables.length === 0 && <p className="text-xs text-slate-400 text-center py-8">Define global variables to share data between tasks.</p>}
-            </div>
+            {renderGlobalVariablesManager()}
           </div>
         </div>
       </div>
