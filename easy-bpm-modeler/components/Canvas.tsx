@@ -56,6 +56,15 @@ const ATTACHABLE_NODE_TYPES: NodeType[] = [
   'agent-process-call',
   'call-activity'
 ];
+const SINGLE_OUTGOING_NODE_TYPES: NodeType[] = [
+  'user-task',
+  'service-task',
+  'api-task',
+  'code-task',
+  'ai-task',
+  'agent-process-call',
+  'call-activity'
+];
 
 const isBoundaryNode = (node: BpmnNode) => BOUNDARY_TYPES.includes(node.type);
 const isAttachableNode = (node: BpmnNode) => ATTACHABLE_NODE_TYPES.includes(node.type);
@@ -379,6 +388,10 @@ export const Canvas: React.FC<CanvasProps> = ({
           e.stopPropagation();
           const sourceNode = nodes.find((node) => node.uid === connectingNodeUid);
           if (sourceNode?.type === 'pool') {
+            setConnectingNodeUid(null);
+            return;
+          }
+          if (sourceNode && SINGLE_OUTGOING_NODE_TYPES.includes(sourceNode.type) && edges.some(edge => edge.source === connectingNodeUid)) {
             setConnectingNodeUid(null);
             return;
           }

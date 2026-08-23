@@ -278,6 +278,10 @@ const App: React.FC = () => {
         if (outgoing < 1) addIssue('error', `Task node ${node.id} must have at least one outgoing flow.`, { nodeUid: node.uid, nodeId: node.id });
       }
 
+      if (TASK_TYPES.includes(node.type) && outgoing > 1) {
+        addIssue('error', `Task node ${node.id} can have only one outgoing flow. Use a gateway to split the process.`, { nodeUid: node.uid, nodeId: node.id });
+      }
+
       if (node.type === 'timer-event') {
         const timeout = Number(node.data.timeoutSeconds);
         if (!Number.isFinite(timeout) || timeout <= 0) {
