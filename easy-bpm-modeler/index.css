@@ -99,35 +99,6 @@
   background: linear-gradient(135deg, #020617 0%, #0f172a 52%, #172554 100%);
 }
 
-.welcome-modeler[data-theme="light"] .bg-white\/5 {
-  background-color: rgba(255, 255, 255, 0.82) !important;
-}
-
-.welcome-modeler[data-theme="light"] .border-white\/10 {
-  border-color: rgba(203, 213, 225, 0.9) !important;
-}
-
-.welcome-modeler[data-theme="light"] .text-white {
-  color: #0f172a !important;
-}
-
-.welcome-modeler[data-theme="light"] .text-slate-300,
-.welcome-modeler[data-theme="light"] .text-slate-400 {
-  color: #475569 !important;
-}
-
-.welcome-modeler[data-theme="light"] .text-slate-500 {
-  color: #64748b !important;
-}
-
-.welcome-modeler[data-theme="light"] .bg-slate-700\/50 {
-  background-color: #e2e8f0 !important;
-}
-
-.welcome-modeler[data-theme="light"] .bg-slate-800 {
-  background-color: #ffffff !important;
-}
-
 .process-modeler[data-theme="light"] .bg-\[\#0f171d\],
 .process-modeler[data-theme="light"] .bg-\[\#121920\],
 .process-modeler[data-theme="light"] .bg-\[\#10161c\],
@@ -344,6 +315,25 @@
 .form-modeler button:hover textarea,
 .form-modeler button:hover select {
   background-color: var(--modeler-input-bg) !important;
+}
+
+.welcome-modeler input,
+.welcome-modeler textarea,
+.welcome-modeler select {
+  background-color: var(--modeler-input-bg) !important;
+  border-color: var(--modeler-input-border) !important;
+  color: var(--modeler-input-text) !important;
+  color-scheme: inherit;
+}
+
+.welcome-modeler input::placeholder,
+.welcome-modeler textarea::placeholder {
+  color: var(--modeler-placeholder) !important;
+}
+
+.welcome-modeler option {
+  background-color: var(--modeler-surface-subtle);
+  color: var(--modeler-input-text);
 }
 
 .process-modeler[data-theme="dark"] ::-webkit-scrollbar-thumb,
