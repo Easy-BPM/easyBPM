@@ -129,8 +129,17 @@ const App: React.FC = () => {
          formService.listLatest(),
          featureFlags.agenticOrchestration ? processService.listAgentProcesses() : Promise.resolve([])
        ]);
-       const loadErrors = [processesResult, formsResult, agentsResult]
-         .filter((result): result is PromiseRejectedResult => result.status === 'rejected')
+       const rejectedLoads = [processesResult, formsResult, agentsResult]
+         .filter((result): result is PromiseRejectedResult => result.status === 'rejected');
+       if (rejectedLoads.some(result => isAuthRequiredError(result.reason))) {
+         processService.clearSession();
+         setCurrentUser(null);
+         setPermissions([]);
+         setWorkspaceResources([]);
+         return;
+       }
+
+       const loadErrors = rejectedLoads
          .map(result => result.reason instanceof Error ? result.reason.message : 'Unknown load error');
 
        const processes = processesResult.status === 'fulfilled' ? processesResult.value : [];
