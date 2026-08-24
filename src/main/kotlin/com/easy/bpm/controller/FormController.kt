@@ -69,16 +69,16 @@ class FormController(
         }
     }
 
-    @GetMapping("/{id}")
-    @Operation(summary = "Get form by ID", description = "Retrieve a specific form by its ID")
-    fun getById(@PathVariable id: Long): Form? {
-        return formService.getById(id)
-    }
-
     @GetMapping("/latest-list")
     @Operation(summary = "Get latest form definitions", description = "Retrieve the latest version of each deployed form")
     fun getLatestForms(): List<Form> {
         return formService.getLatestVersions()
+    }
+
+    @GetMapping("/{id}")
+    @Operation(summary = "Get form by ID", description = "Retrieve a specific form by its ID")
+    fun getById(@PathVariable id: Long): Form? {
+        return formService.getById(id)
     }
 
     @GetMapping
