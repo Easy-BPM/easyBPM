@@ -1,4 +1,4 @@
-import { fetchWithAuth } from './processService';
+import { AuthRequiredError, fetchWithAuth } from './processService';
 import { getModelerApiBaseUrl } from '../config/runtimeConfig';
 
 const API_BASE_URL = getModelerApiBaseUrl();
@@ -22,6 +22,10 @@ export const formService = {
       body: JSON.stringify(payload)
     });
 
+    if (response.status === 401) {
+      throw new AuthRequiredError('Session expired. Please sign in again before deploying forms.');
+    }
+
     if (!response.ok) {
       const body = await response.text();
       throw new Error(`Deploy form failed (${response.status}): ${body || response.statusText}`);
@@ -30,6 +34,10 @@ export const formService = {
 
   listLatest: async (): Promise<FormDefinitionSummary[]> => {
     const response = await fetchWithAuth(`${API_BASE_URL}/forms/latest-list`);
+    if (response.status === 401) {
+      throw new AuthRequiredError('Session expired. Please sign in again before loading forms.');
+    }
+
     if (!response.ok) {
       const body = await response.text();
       throw new Error(`Load forms failed (${response.status}): ${body || response.statusText}`);
@@ -39,6 +47,10 @@ export const formService = {
 
   getById: async (id: number): Promise<FormDefinitionSummary> => {
     const response = await fetchWithAuth(`${API_BASE_URL}/forms/${id}`);
+    if (response.status === 401) {
+      throw new AuthRequiredError('Session expired. Please sign in again before opening forms.');
+    }
+
     if (!response.ok) {
       const body = await response.text();
       throw new Error(`Load form failed (${response.status}): ${body || response.statusText}`);
