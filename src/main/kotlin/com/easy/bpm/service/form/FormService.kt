@@ -41,6 +41,10 @@ class FormService(
         return formRepository.findById(id).orElse(null)
     }
 
+    fun getLatestVersions(): List<Form> {
+        return formRepository.findLatestVersions()
+    }
+
     fun getAllVersionsByFormId(formId: String): List<Form> {
         return formRepository.findByFormIdOrderByVersionAsc(formId.trim())
     }

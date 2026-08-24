@@ -1,220 +1,309 @@
 import React from 'react';
-import { Bot, Layout, FileText, Zap, Shield, User, LogOut } from 'lucide-react';
+import {
+  Bot,
+  Database,
+  FileText,
+  Import,
+  Layout,
+  Loader2,
+  LogOut,
+  Plus,
+  RefreshCw,
+  Search,
+  User,
+  Workflow
+} from 'lucide-react';
 import { ThemeMode, ThemeToggle } from './ThemeToggle';
+
+export type WorkspaceResourceKind = 'process' | 'form' | 'agent';
+
+export interface WorkspaceResource {
+  id: string;
+  kind: WorkspaceResourceKind;
+  name: string;
+  key: string;
+  version?: number;
+  updatedAt?: string;
+  description?: string | null;
+  payload?: unknown;
+}
 
 interface WelcomeScreenProps {
   onCreateProcess: () => void;
   onCreateForm: () => void;
   onCreateAgentProcess?: () => void;
   isAgenticOrchestrationEnabled?: boolean;
-  onOpenRecent?: () => void;
+  workspaceResources?: WorkspaceResource[];
+  isLoadingResources?: boolean;
+  resourceLoadError?: string | null;
+  onRefreshResources?: () => void;
+  onOpenResource?: (resource: WorkspaceResource) => void;
   currentUser?: string | null;
   onLogout?: () => void;
   theme: ThemeMode;
   onToggleTheme: () => void;
 }
 
+const tabs: { id: WorkspaceResourceKind; label: string; icon: React.ReactNode }[] = [
+  { id: 'process', label: 'Processos', icon: <Workflow className="h-4 w-4" /> },
+  { id: 'form', label: 'Formulários', icon: <FileText className="h-4 w-4" /> },
+  { id: 'agent', label: 'Agentes', icon: <Bot className="h-4 w-4" /> }
+];
+
+const kindLabel: Record<WorkspaceResourceKind, string> = {
+  process: 'Processo',
+  form: 'Formulário',
+  agent: 'Agente'
+};
+
+const formatDate = (value?: string) => {
+  if (!value) return '-';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '-';
+  return new Intl.DateTimeFormat('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  }).format(date);
+};
+
 export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
   onCreateProcess,
   onCreateForm,
   onCreateAgentProcess,
   isAgenticOrchestrationEnabled = false,
-  onOpenRecent,
+  workspaceResources = [],
+  isLoadingResources = false,
+  resourceLoadError,
+  onRefreshResources,
+  onOpenResource,
   currentUser,
   onLogout,
   theme,
   onToggleTheme
 }) => {
   const [showUserMenu, setShowUserMenu] = React.useState(false);
+  const [activeTab, setActiveTab] = React.useState<WorkspaceResourceKind>('process');
+  const [query, setQuery] = React.useState('');
+
+  const visibleTabs = tabs.filter(tab => tab.id !== 'agent' || isAgenticOrchestrationEnabled);
+  const filteredResources = workspaceResources.filter(resource => {
+    const matchesTab = resource.kind === activeTab;
+    const searchText = `${resource.name} ${resource.key} ${resource.description || ''}`.toLowerCase();
+    return matchesTab && searchText.includes(query.trim().toLowerCase());
+  });
 
   return (
-    <div className="welcome-modeler min-h-screen flex flex-col" data-theme={theme}>
-      {/* Top Navbar with User Profile */}
-      <div className="bg-white/5 backdrop-blur-sm border-b border-white/10 px-6 py-4 flex items-center justify-between">
-        <div className="flex-1">
-          <h2 className="text-white font-semibold">Easy BPM Modeler</h2>
-        </div>
-        
-        <div className="flex items-center gap-3">
-          <ThemeToggle theme={theme} onToggle={onToggleTheme} />
-          {currentUser && (
-            <div className="relative">
-            <button
-              onClick={() => setShowUserMenu(!showUserMenu)}
-              className="p-2 hover:bg-white/10 rounded-lg transition-colors text-slate-400 hover:text-white flex items-center gap-2"
-              title="User menu"
-            >
-              <User className="w-4 h-4" />
-              <span className="text-sm font-medium text-slate-300">{currentUser}</span>
-            </button>
+    <div className="welcome-modeler min-h-screen bg-slate-50 text-slate-900" data-theme={theme}>
+      <div className="border-b border-slate-200 bg-white/90 px-6 py-3 backdrop-blur-sm">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-600 text-white shadow-sm">
+              <Layout className="h-5 w-5" />
+            </div>
+            <div>
+              <h1 className="text-sm font-semibold text-slate-900">Easy BPM Modeler</h1>
+              <p className="text-xs text-slate-500">Workspace de processos, formulários e agentes</p>
+            </div>
+          </div>
 
-            {/* Dropdown Menu */}
-            {showUserMenu && (
-              <div className="absolute right-0 top-full mt-2 w-48 bg-slate-800 border border-white/10 rounded-lg shadow-xl z-50">
-                <div className="px-4 py-3 border-b border-white/10">
-                  <p className="text-xs text-slate-500">Logged in as</p>
-                  <p className="text-sm font-semibold text-white truncate">{currentUser}</p>
-                </div>
-                {onLogout && (
-                  <button
-                    onClick={() => {
-                      onLogout();
-                      setShowUserMenu(false);
-                    }}
-                    className="w-full px-4 py-2 text-left text-sm text-slate-300 hover:text-white hover:bg-white/10 transition-colors flex items-center gap-2"
-                  >
-                    <LogOut className="w-4 h-4" />
-                    Logout
-                  </button>
+          <div className="flex items-center gap-3">
+            <ThemeToggle theme={theme} onToggle={onToggleTheme} />
+            {currentUser && (
+              <div className="relative">
+                <button
+                  onClick={() => setShowUserMenu(!showUserMenu)}
+                  className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
+                  aria-label="User menu"
+                >
+                  <User className="h-4 w-4" />
+                  {currentUser}
+                </button>
+                {showUserMenu && (
+                  <div className="absolute right-0 top-full z-50 mt-2 w-48 rounded-lg border border-slate-200 bg-white shadow-xl">
+                    <div className="border-b border-slate-100 px-4 py-3">
+                      <p className="text-xs text-slate-500">Logged in as</p>
+                      <p className="truncate text-sm font-semibold text-slate-900">{currentUser}</p>
+                    </div>
+                    {onLogout && (
+                      <button
+                        onClick={() => {
+                          onLogout();
+                          setShowUserMenu(false);
+                        }}
+                        className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900"
+                      >
+                        <LogOut className="h-4 w-4" />
+                        Logout
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
             )}
-            </div>
-          )}
+          </div>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 flex items-center justify-center p-4 overflow-auto">
-      <div className="w-full max-w-6xl">
-        {/* Header */}
-        <div className="text-center mb-16">
-          <div className="flex items-center justify-center gap-3 mb-6">
-            <div className="bg-blue-600 p-3 rounded-xl shadow-lg shadow-blue-600/40 ring-4 ring-blue-600/20">
-              <Layout className="text-white" size={32} />
-            </div>
-            <h1 className="text-4xl font-bold text-white">Easy BPM Modeler</h1>
-          </div>
-          <p className="text-slate-400 text-lg">Design, deploy, and manage your business processes</p>
-        </div>
-
-        {/* Main Cards */}
-        <div className={`grid grid-cols-1 ${isAgenticOrchestrationEnabled ? 'md:grid-cols-3' : 'md:grid-cols-2'} gap-8 mb-12`}>
-          {/* Process Card */}
-          <button
-            onClick={onCreateProcess}
-            className="group relative"
-          >
-            <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 to-blue-500 rounded-2xl blur opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200"></div>
-            <div className="relative bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8 hover:bg-white/10 transition-all cursor-pointer h-full">
-              <div className="flex flex-col items-center text-center space-y-4">
-                <div className="bg-blue-500/20 p-4 rounded-xl ring-4 ring-blue-500/20">
-                  <Zap className="text-blue-400" size={40} />
-                </div>
+      <main className="mx-auto flex w-full max-w-7xl gap-6 px-6 py-8">
+        <aside className="w-72 shrink-0 space-y-4">
+          <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+            <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-500">Criar novo</p>
+            <div className="space-y-2">
+              <button onClick={onCreateProcess} className="flex w-full items-center gap-3 rounded-md border border-blue-200 bg-blue-50 px-3 py-3 text-left transition-colors hover:bg-blue-100">
+                <Workflow className="h-5 w-5 text-blue-600" />
                 <div>
-                  <h2 className="text-2xl font-bold text-white mb-2">New Process</h2>
-                  <p className="text-slate-400 text-sm">
-                    Create a new BPMN process with tasks, gateways, and workflows
-                  </p>
+                  <p className="text-sm font-semibold text-slate-900">Novo Processo</p>
+                  <p className="text-xs text-slate-500">Modelar fluxo BPMN</p>
                 </div>
-                <div className="flex gap-2 text-xs text-slate-500 flex-wrap justify-center pt-4">
-                  <span className="px-2 py-1 bg-slate-700/50 rounded">Tasks</span>
-                  <span className="px-2 py-1 bg-slate-700/50 rounded">Gateways</span>
-                  <span className="px-2 py-1 bg-slate-700/50 rounded">Variables</span>
+              </button>
+              <button onClick={onCreateForm} className="flex w-full items-center gap-3 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-3 text-left transition-colors hover:bg-emerald-100">
+                <FileText className="h-5 w-5 text-emerald-600" />
+                <div>
+                  <p className="text-sm font-semibold text-slate-900">Novo Formulário</p>
+                  <p className="text-xs text-slate-500">Campos e validações</p>
                 </div>
-              </div>
-            </div>
-          </button>
-
-          {isAgenticOrchestrationEnabled && onCreateAgentProcess && (
-            <button
-              onClick={onCreateAgentProcess}
-              className="group relative"
-            >
-              <div className="absolute -inset-0.5 bg-gradient-to-r from-cyan-600 to-blue-500 rounded-2xl blur opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200"></div>
-              <div className="relative bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8 hover:bg-white/10 transition-all cursor-pointer h-full">
-                <div className="flex flex-col items-center text-center space-y-4">
-                  <div className="bg-cyan-500/20 p-4 rounded-xl ring-4 ring-cyan-500/20">
-                    <Bot className="text-cyan-300" size={40} />
-                  </div>
+              </button>
+              {isAgenticOrchestrationEnabled && onCreateAgentProcess && (
+                <button onClick={onCreateAgentProcess} className="flex w-full items-center gap-3 rounded-md border border-cyan-200 bg-cyan-50 px-3 py-3 text-left transition-colors hover:bg-cyan-100">
+                  <Bot className="h-5 w-5 text-cyan-600" />
                   <div>
-                    <h2 className="text-2xl font-bold text-white mb-2">Agent Process</h2>
-                    <p className="text-slate-400 text-sm">
-                      Define goals, agent instructions, constraints, tools, and dynamic task boards
-                    </p>
+                    <p className="text-sm font-semibold text-slate-900">Novo Agente</p>
+                    <p className="text-xs text-slate-500">Orquestração agentic</p>
                   </div>
-                  <div className="flex gap-2 text-xs text-slate-500 flex-wrap justify-center pt-4">
-                    <span className="px-2 py-1 bg-slate-700/50 rounded">Goals</span>
-                    <span className="px-2 py-1 bg-slate-700/50 rounded">Agents</span>
-                    <span className="px-2 py-1 bg-slate-700/50 rounded">Board</span>
-                  </div>
+                </button>
+              )}
+            </div>
+          </section>
+
+          <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="mb-3 flex items-center gap-2">
+              <Database className="h-4 w-4 text-slate-500" />
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Resumo</p>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {visibleTabs.map(tab => (
+                <div key={tab.id} className="rounded-md bg-slate-50 p-2 text-center">
+                  <p className="text-lg font-semibold text-slate-900">{workspaceResources.filter(resource => resource.kind === tab.id).length}</p>
+                  <p className="text-[10px] font-medium uppercase text-slate-500">{tab.label}</p>
                 </div>
+              ))}
+            </div>
+          </section>
+        </aside>
+
+        <section className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white shadow-sm">
+          <div className="border-b border-slate-200 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-semibold text-slate-900">Recursos do banco de dados</h2>
+                <p className="text-sm text-slate-500">Abra a última versão publicada ou comece um novo recurso.</p>
               </div>
-            </button>
+              <button
+                onClick={onRefreshResources}
+                disabled={isLoadingResources}
+                className="inline-flex items-center gap-2 rounded-md border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isLoadingResources ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                Atualizar
+              </button>
+            </div>
+
+            <div className="mt-4 flex flex-wrap items-center gap-3">
+              <div className="inline-flex rounded-md border border-slate-200 bg-slate-50 p-1">
+                {visibleTabs.map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`inline-flex items-center gap-2 rounded px-3 py-1.5 text-xs font-semibold transition-colors ${activeTab === tab.id ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}
+                  >
+                    {tab.icon}
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+              <div className="relative min-w-64 flex-1">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <input
+                  value={query}
+                  onChange={event => setQuery(event.target.value)}
+                  className="w-full rounded-md border border-slate-200 px-9 py-2 text-sm outline-none transition-colors focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                  placeholder="Buscar por nome, chave ou descrição"
+                />
+              </div>
+            </div>
+          </div>
+
+          {resourceLoadError && (
+            <div className="border-b border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {resourceLoadError}
+            </div>
           )}
 
-          {/* Form Card */}
-          <button
-            onClick={onCreateForm}
-            className="group relative"
-          >
-            <div className="absolute -inset-0.5 bg-gradient-to-r from-emerald-600 to-emerald-500 rounded-2xl blur opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200"></div>
-            <div className="relative bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8 hover:bg-white/10 transition-all cursor-pointer h-full">
-              <div className="flex flex-col items-center text-center space-y-4">
-                <div className="bg-emerald-500/20 p-4 rounded-xl ring-4 ring-emerald-500/20">
-                  <FileText className="text-emerald-400" size={40} />
-                </div>
-                <div>
-                  <h2 className="text-2xl font-bold text-white mb-2">New Form</h2>
-                  <p className="text-slate-400 text-sm">
-                    Design form fields, layouts, and user input validation
-                  </p>
-                </div>
-                <div className="flex gap-2 text-xs text-slate-500 flex-wrap justify-center pt-4">
-                  <span className="px-2 py-1 bg-slate-700/50 rounded">Text Fields</span>
-                  <span className="px-2 py-1 bg-slate-700/50 rounded">Tabs</span>
-                  <span className="px-2 py-1 bg-slate-700/50 rounded">Validation</span>
-                </div>
-              </div>
-            </div>
-          </button>
-        </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+                <tr>
+                  <th className="px-4 py-3 font-semibold">Nome</th>
+                  <th className="px-4 py-3 font-semibold">Tipo</th>
+                  <th className="px-4 py-3 font-semibold">Chave</th>
+                  <th className="px-4 py-3 font-semibold">Versão</th>
+                  <th className="px-4 py-3 font-semibold">Atualizado</th>
+                  <th className="px-4 py-3 text-right font-semibold">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredResources.map(resource => (
+                  <tr key={`${resource.kind}-${resource.id}`} className="border-t border-slate-100 transition-colors hover:bg-slate-50/70">
+                    <td className="max-w-xs px-4 py-3">
+                      <p className="truncate font-semibold text-slate-900">{resource.name}</p>
+                      {resource.description && <p className="truncate text-xs text-slate-500">{resource.description}</p>}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="rounded bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600">{kindLabel[resource.kind]}</span>
+                    </td>
+                    <td className="px-4 py-3 font-mono text-xs text-slate-500">{resource.key}</td>
+                    <td className="px-4 py-3 text-slate-600">v{resource.version || 1}</td>
+                    <td className="px-4 py-3 text-slate-500">{formatDate(resource.updatedAt)}</td>
+                    <td className="px-4 py-3 text-right">
+                      <button
+                        onClick={() => onOpenResource?.(resource)}
+                        className="inline-flex items-center gap-2 rounded-md bg-slate-900 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-slate-700"
+                      >
+                        Abrir
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
 
-        {/* Features */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-          <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6">
-            <div className="flex items-start gap-4">
-              <Zap className="text-blue-400 flex-shrink-0 mt-1" size={24} />
-              <div>
-                <h3 className="text-white font-semibold mb-2">Independent Resources</h3>
-                <p className="text-slate-400 text-sm">
-                  Create, manage, and deploy processes and forms completely independently
-                </p>
+            {!isLoadingResources && filteredResources.length === 0 && (
+              <div className="flex flex-col items-center justify-center px-4 py-16 text-center">
+                <Import className="mb-3 h-8 w-8 text-slate-300" />
+                <h3 className="text-sm font-semibold text-slate-800">Nenhum recurso encontrado</h3>
+                <p className="mt-1 max-w-sm text-sm text-slate-500">Crie um novo recurso ou ajuste a busca para encontrar versões publicadas.</p>
+                <button
+                  onClick={activeTab === 'process' ? onCreateProcess : activeTab === 'form' ? onCreateForm : onCreateAgentProcess}
+                  className="mt-4 inline-flex items-center gap-2 rounded-md bg-blue-600 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-blue-500"
+                >
+                  <Plus className="h-4 w-4" />
+                  Criar {kindLabel[activeTab]}
+                </button>
               </div>
-            </div>
+            )}
+
+            {isLoadingResources && (
+              <div className="flex items-center justify-center gap-2 px-4 py-16 text-sm text-slate-500">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Carregando recursos...
+              </div>
+            )}
           </div>
-
-          <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6">
-            <div className="flex items-start gap-4">
-              <FileText className="text-emerald-400 flex-shrink-0 mt-1" size={24} />
-              <div>
-                <h3 className="text-white font-semibold mb-2">Rich Editing</h3>
-                <p className="text-slate-400 text-sm">
-                  Visual editors for processes and forms with drag-and-drop interfaces
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6">
-            <div className="flex items-start gap-4">
-              <Shield className="text-orange-400 flex-shrink-0 mt-1" size={24} />
-              <div>
-                <h3 className="text-white font-semibold mb-2">Deploy & Share</h3>
-                <p className="text-slate-400 text-sm">
-                  Export, import, and share your resources with your team
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div className="text-center text-slate-500 text-sm">
-          <p>Easy BPM · Enterprise Process Management</p>
-        </div>
-      </div>
-    </div>
+        </section>
+      </main>
     </div>
   );
 };

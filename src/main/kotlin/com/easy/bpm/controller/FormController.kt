@@ -75,6 +75,12 @@ class FormController(
         return formService.getById(id)
     }
 
+    @GetMapping("/latest-list")
+    @Operation(summary = "Get latest form definitions", description = "Retrieve the latest version of each deployed form")
+    fun getLatestForms(): List<Form> {
+        return formService.getLatestVersions()
+    }
+
     @GetMapping
     @Operation(summary = "Get all form versions", description = "Retrieve all versions of a form by formId. The name parameter is also supported for lookup by form name.")
     fun getAllVersions(

@@ -48,6 +48,7 @@ interface AgentBoardModelerProps {
   onLogout: () => void;
   theme: ThemeMode;
   onToggleTheme: () => void;
+  initialDefinition?: unknown;
 }
 
 interface AgentBoardState {
@@ -194,9 +195,10 @@ export const AgentBoardModeler: React.FC<AgentBoardModelerProps> = ({
   onBack,
   onLogout,
   theme,
-  onToggleTheme
+  onToggleTheme,
+  initialDefinition
 }) => {
-  const [agentState, setAgentState] = useState<AgentBoardState>(() => createBlankAgentState());
+  const [agentState, setAgentState] = useState<AgentBoardState>(() => initialDefinition ? normalizeImportedAgent(initialDefinition) : createBlankAgentState());
   const [isDeploying, setIsDeploying] = useState(false);
   const importInputRef = useRef<HTMLInputElement>(null);
   const {
