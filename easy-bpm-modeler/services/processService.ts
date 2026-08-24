@@ -80,13 +80,6 @@ export const fetchWithAuth = async (url: string, init?: RequestInit) => {
     }
   });
 
-  if (response.status === 401) {
-    console.warn('Easy BPM Modeler request was rejected as unauthorized.', {
-      url,
-      hasSavedSession: Boolean(session?.token)
-    });
-  }
-
   return response;
 };
 

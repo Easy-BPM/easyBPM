@@ -1,10 +1,18 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { BpmnNode, BpmnEdge, ProcessVariable, TaskVariable, ValidationIssue } from '../types';
-import { Bot, Trash2, Plus, LogIn, LogOut, Layers, Database, Hash, Type, ToggleLeft, Braces, Fingerprint, AlertCircle, FileCode, Mail, Zap, FileText, Code, Info, Brain, RotateCcw, Search, Copy } from 'lucide-react';
+import { Bot, Trash2, Plus, LogIn, LogOut, Layers, Database, Hash, Type, ToggleLeft, Braces, Fingerprint, AlertCircle, FileCode, Mail, Zap, FileText, Code, Info, Brain, RotateCcw, Search, Copy, Eye, X } from 'lucide-react';
 import { validateId } from '../utils/validation';
 import { AIProviderConfigForm } from './AIProviderConfigForm';
 import { PromptEditor } from './PromptEditor';
 import { AITuningPanel } from './AITuningPanel';
+
+interface DeployedFormOption {
+  id: string;
+  formId: string;
+  name: string;
+  version?: number;
+  schema?: Record<string, unknown>;
+}
 
 interface PropertiesPanelProps {
   selectedNodeUids: string[];
@@ -23,6 +31,10 @@ interface PropertiesPanelProps {
   onDeleteNode: (uid: string) => void;
   onDeleteEdge: (edgeId: string) => void;
   onFocusValidationIssue: (issue: ValidationIssue) => void;
+  deployedForms?: DeployedFormOption[];
+  isLoadingDeployedForms?: boolean;
+  deployedFormsError?: string | null;
+  onRefreshDeployedForms?: () => void;
   validation: {
     duplicateNodeIds: string[];
     duplicateGlobalVars: string[];
@@ -47,6 +59,10 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
   onDeleteNode,
   onDeleteEdge,
   onFocusValidationIssue,
+  deployedForms = [],
+  isLoadingDeployedForms = false,
+  deployedFormsError,
+  onRefreshDeployedForms,
   validation,
 }) => {
   const inputClassName = "w-full text-sm bg-white text-slate-800 border border-slate-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-400 focus:outline-none placeholder-slate-400 transition-colors";
@@ -57,6 +73,9 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
   const [processIdError, setProcessIdError] = useState<string | null>(null);
   const [formKeyError, setFormKeyError] = useState<string | null>(null);
   const [globalVarSearch, setGlobalVarSearch] = useState('');
+  const [formSearch, setFormSearch] = useState('');
+  const [isFormPickerOpen, setIsFormPickerOpen] = useState(false);
+  const [isFormPreviewOpen, setIsFormPreviewOpen] = useState(false);
   const [selectedGlobalVarId, setSelectedGlobalVarId] = useState<string | null>(processVariables[0]?.id || null);
   const [selectedTaskVarIdByCollection, setSelectedTaskVarIdByCollection] = useState<Record<'inputVariables' | 'outputVariables', string | null>>({
     inputVariables: null,
@@ -74,10 +93,44 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
   }, [globalVarSearch, processVariables]);
 
   const selectedGlobalVar = processVariables.find(v => v.id === selectedGlobalVarId) || processVariables[0] || null;
+  const selectedDeployedForm = selectedNode?.data.formId
+    ? deployedForms.find(form => form.formId === selectedNode.data.formId)
+    : null;
+  const filteredDeployedForms = useMemo(() => {
+    const query = formSearch.trim().toLowerCase();
+    const selectedFormId = selectedNode?.data.formId;
+    if (!query) return deployedForms.slice(0, 6);
+    return deployedForms
+      .filter(form =>
+        form.name.toLowerCase().includes(query) ||
+        form.formId.toLowerCase().includes(query)
+      )
+      .sort((a, b) => {
+        if (a.formId === selectedFormId) return -1;
+        if (b.formId === selectedFormId) return 1;
+        return a.name.localeCompare(b.name);
+      })
+      .slice(0, 8);
+  }, [deployedForms, formSearch, selectedNode?.data.formId]);
+  const selectedFormFields = useMemo(() => {
+    const schema = selectedDeployedForm?.schema;
+    const properties = schema?.properties;
+    if (!properties || typeof properties !== 'object' || Array.isArray(properties)) return [];
+    const required = Array.isArray(schema?.required) ? schema.required.map(String) : [];
+    return Object.entries(properties as Record<string, Record<string, unknown>>)
+      .map(([name, definition]) => ({
+        name,
+        type: typeof definition?.type === 'string' ? definition.type : 'field',
+        required: required.includes(name)
+      }));
+  }, [selectedDeployedForm]);
 
   useEffect(() => {
     if (selectedNode) {
       setLocalNodeId(selectedNode.id);
+      setFormSearch('');
+      setIsFormPickerOpen(false);
+      setIsFormPreviewOpen(false);
     }
   }, [selectedNode?.uid]);
 
@@ -439,20 +492,20 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
   };
 
   const renderGlobalVariablesManager = () => (
-    <div className="overflow-hidden rounded-md border border-slate-200 bg-white">
-      <div className="border-b border-slate-200 bg-slate-50 px-3 py-3">
+    <div className="overflow-hidden rounded-md border border-[var(--modeler-border)] bg-[var(--modeler-surface)]">
+      <div className="border-b border-[var(--modeler-border)] bg-[var(--modeler-surface-muted)] px-3 py-3">
         <div className="mb-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Database className="h-4 w-4 text-teal-600" />
             <div>
-              <p className="text-xs font-semibold uppercase text-slate-600">Global Variables</p>
-              <p className="text-[10px] text-slate-400">{processVariables.length} process variables</p>
+              <p className="text-xs font-semibold uppercase text-[var(--modeler-text-soft)]">Global Variables</p>
+              <p className="text-[10px] text-[var(--modeler-text-muted)]">{processVariables.length} process variables</p>
             </div>
           </div>
           <button
             type="button"
             onClick={() => addGlobalVar()}
-            className="flex h-8 w-8 items-center justify-center rounded border border-slate-200 bg-white text-teal-700 transition-colors hover:bg-teal-50"
+            className="flex h-8 w-8 items-center justify-center rounded border border-[var(--modeler-border)] bg-[var(--modeler-surface)] text-teal-500 transition-colors hover:bg-teal-500/10"
             title="New global variable"
             aria-label="New global variable"
           >
@@ -460,11 +513,11 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
           </button>
         </div>
         <div className="relative">
-          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--modeler-placeholder)]" />
           <input
             value={globalVarSearch}
             onChange={e => setGlobalVarSearch(e.target.value)}
-            className={`${smallInputClassName} w-full pl-8`}
+            className={`${smallInputClassName} modeler-variable-search w-full`}
             placeholder="Search by name, type, or value"
           />
         </div>
@@ -473,11 +526,11 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
       {processVariables.length > 0 ? (
         <div className="max-h-52 overflow-y-auto">
           <table className="w-full table-fixed text-left text-[11px]">
-            <thead className="sticky top-0 bg-white text-[9px] uppercase text-slate-400">
+            <thead className="sticky top-0 bg-[var(--modeler-surface)] text-[9px] uppercase text-[var(--modeler-text-muted)]">
               <tr>
-                <th className="w-[45%] px-3 py-2 font-bold">Name</th>
-                <th className="w-[24%] px-2 py-2 font-bold">Type</th>
-                <th className="w-[23%] px-2 py-2 font-bold">Default</th>
+                <th className="w-[42%] px-3 py-2 font-bold">Name</th>
+                <th className="w-[30%] px-2 py-2 font-bold">Type</th>
+                <th className="w-[20%] px-2 py-2 font-bold">Default</th>
                 <th className="w-8 px-1 py-2" />
               </tr>
             </thead>
@@ -489,16 +542,16 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                   <tr
                     key={v.id}
                     onClick={() => setSelectedGlobalVarId(v.id)}
-                    className={`cursor-pointer border-t border-slate-100 transition-colors ${isSelected ? 'bg-teal-50/70' : 'hover:bg-slate-50'} ${isDuplicate ? 'bg-red-50/50' : ''}`}
+                    className={`cursor-pointer border-t border-[var(--modeler-border)] transition-colors ${isSelected ? 'bg-teal-500/10' : 'hover:bg-[var(--modeler-surface-muted)]'} ${isDuplicate ? 'bg-red-500/10' : ''}`}
                   >
-                    <td className="truncate px-3 py-2 font-medium text-slate-700">{v.name || <span className="text-slate-400">Unnamed</span>}</td>
+                    <td className="truncate px-3 py-2 font-semibold text-[var(--modeler-text)]">{v.name || <span className="text-[var(--modeler-text-muted)]">Unnamed</span>}</td>
                     <td className="px-2 py-2">
-                      <span className="inline-flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 text-slate-600">
+                      <span className="inline-flex max-w-full items-center gap-1 rounded bg-[var(--modeler-surface-muted)] px-1.5 py-0.5 text-[var(--modeler-text-soft)]">
                         {getTypeIcon(v.type)}
-                        {v.type}
+                        <span className="truncate">{v.type}</span>
                       </span>
                     </td>
-                    <td className="truncate px-2 py-2 font-mono text-[10px] text-slate-500">{v.defaultValue || '-'}</td>
+                    <td className="truncate px-2 py-2 font-mono text-[10px] text-[var(--modeler-text-muted)]">{v.defaultValue || '-'}</td>
                     <td className="px-1 py-2">
                       <button
                         type="button"
@@ -506,7 +559,7 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                           event.stopPropagation();
                           deleteGlobalVar(v.id);
                         }}
-                        className="rounded p-1 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-500"
+                        className="rounded p-1 text-[var(--modeler-text-muted)] transition-colors hover:bg-red-500/10 hover:text-red-500"
                         title="Delete variable"
                         aria-label="Delete variable"
                       >
@@ -519,21 +572,21 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
             </tbody>
           </table>
           {filteredProcessVariables.length === 0 && (
-            <p className="px-3 py-6 text-center text-[11px] text-slate-400">No variables match this search.</p>
+            <p className="px-3 py-6 text-center text-[11px] text-[var(--modeler-text-muted)]">No variables match this search.</p>
           )}
         </div>
       ) : (
-        <p className="px-3 py-8 text-center text-xs text-slate-400">Define global variables to share data between tasks.</p>
+        <p className="px-3 py-8 text-center text-xs text-[var(--modeler-text-muted)]">Define global variables to share data between tasks.</p>
       )}
 
       {selectedGlobalVar && (
-        <div className="border-t border-slate-200 bg-slate-50/70 p-3">
+        <div className="border-t border-[var(--modeler-border)] bg-[var(--modeler-surface-muted)]/70 p-3">
           <div className="mb-3 flex items-center justify-between">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Edit variable</p>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--modeler-text-muted)]">Edit variable</p>
             <button
               type="button"
               onClick={() => duplicateGlobalVar(selectedGlobalVar)}
-              className="inline-flex items-center gap-1 rounded border border-slate-200 bg-white px-2 py-1 text-[10px] font-medium text-slate-600 transition-colors hover:bg-slate-50"
+              className="inline-flex items-center gap-1 rounded border border-[var(--modeler-border)] bg-[var(--modeler-surface)] px-2 py-1 text-[10px] font-medium text-[var(--modeler-text-soft)] transition-colors hover:bg-[var(--modeler-surface-muted)]"
             >
               <Copy className="h-3 w-3" />
               Duplicate
@@ -541,7 +594,7 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
           </div>
           <div className="space-y-3">
             <div>
-              <label className="mb-1 block text-[10px] font-bold uppercase text-slate-400">Name</label>
+              <label className="mb-1 block text-[10px] font-bold uppercase text-[var(--modeler-text-muted)]">Name</label>
               <input
                 className={`${smallInputClassName} w-full ${validation.duplicateGlobalVars.includes(selectedGlobalVar.name || '') ? '!border-red-400' : ''}`}
                 value={selectedGlobalVar.name || ''}
@@ -557,7 +610,7 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="mb-1 block text-[10px] font-bold uppercase text-slate-400">Type</label>
+                <label className="mb-1 block text-[10px] font-bold uppercase text-[var(--modeler-text-muted)]">Type</label>
                 <select
                   className={`${smallInputClassName} w-full`}
                   value={selectedGlobalVar.type}
@@ -570,7 +623,7 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                 </select>
               </div>
               <div>
-                <label className="mb-1 block text-[10px] font-bold uppercase text-slate-400">Default value</label>
+                <label className="mb-1 block text-[10px] font-bold uppercase text-[var(--modeler-text-muted)]">Default value</label>
                 <input
                   className={`${smallInputClassName} w-full`}
                   value={selectedGlobalVar.defaultValue}
@@ -634,7 +687,7 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
 
   if (selectedEdge) {
     return (
-      <div className="w-80 bg-white border-l border-slate-200 h-full flex flex-col z-10 overflow-hidden" style={{ boxShadow: '-1px 0 3px 0 rgba(0,0,0,0.04)' }}>
+      <div className="w-96 bg-white border-l border-slate-200 h-full flex flex-col z-10 overflow-hidden" style={{ boxShadow: '-1px 0 3px 0 rgba(0,0,0,0.04)' }}>
         <div className="px-4 py-3.5 border-b border-slate-200 flex items-center justify-between bg-white"><h2 className="text-sm font-semibold text-slate-800">Connection</h2><button onClick={() => onDeleteEdge(selectedEdge.id)} className="text-slate-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-md transition-colors"><Trash2 className="w-4 h-4" /></button></div>
         <div className="p-4 space-y-5">
           <div className="space-y-2">
@@ -662,7 +715,7 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
 
   if (selectedNodeUids.length === 0) {
     return (
-      <div className="w-80 bg-white border-l border-slate-200 h-full flex flex-col z-10 overflow-hidden" style={{ boxShadow: '-1px 0 3px 0 rgba(0,0,0,0.04)' }}>
+      <div className="w-96 bg-white border-l border-slate-200 h-full flex flex-col z-10 overflow-hidden" style={{ boxShadow: '-1px 0 3px 0 rgba(0,0,0,0.04)' }}>
         <div className="px-4 py-3.5 border-b border-slate-200 bg-white flex items-center gap-2.5"><Database className="w-4 h-4 text-slate-400" /><h2 className="text-sm font-semibold text-slate-800">Process State</h2></div>
         <div className="p-4 flex-1 overflow-y-auto space-y-6">
           {renderValidationSection(validation.issues, 'Validation Summary')}
@@ -708,7 +761,7 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
 
   if (!selectedNode || selectedNodeUids.length > 1) {
     return (
-      <div className="w-80 bg-white border-l border-slate-200 h-full flex items-center justify-center p-8 text-center text-slate-400" style={{ boxShadow: '-1px 0 3px 0 rgba(0,0,0,0.04)' }}>
+      <div className="w-96 bg-white border-l border-slate-200 h-full flex items-center justify-center p-8 text-center text-slate-400" style={{ boxShadow: '-1px 0 3px 0 rgba(0,0,0,0.04)' }}>
         <div><Layers className="w-12 h-12 mx-auto mb-4 opacity-20" /><p className="text-sm">{selectedNodeUids.length} items selected</p></div>
       </div>
     );
@@ -719,7 +772,7 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
   const nodeScopedIssues = validation.issues.filter(issue => issue.nodeUid === selectedNode.uid);
 
   return (
-    <div className="w-80 bg-white border-l border-slate-200 h-full flex flex-col z-10 overflow-hidden" style={{ boxShadow: '-1px 0 3px 0 rgba(0,0,0,0.04)' }}>
+    <div className="w-96 bg-white border-l border-slate-200 h-full flex flex-col z-10 overflow-hidden" style={{ boxShadow: '-1px 0 3px 0 rgba(0,0,0,0.04)' }}>
       <div className="px-4 py-3.5 border-b border-slate-200 flex items-center justify-between bg-white">
         <div><h2 className="text-sm font-semibold text-slate-800">Node Properties</h2><p className="text-[10px] text-slate-400 uppercase font-mono tracking-widest mt-0.5">{selectedNode.type.replace(/-/g, ' ')}</p></div>
         <button onClick={() => onDeleteNode(selectedNode.uid)} className="text-slate-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-md transition-colors"><Trash2 className="w-4 h-4" /></button>
@@ -944,23 +997,142 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4">Task Definition</label>
              <div className="space-y-4 mb-6">
                 <div>
-                  <label className="text-[10px] text-slate-400 uppercase font-bold mb-1 block flex items-center gap-1">
-                    <FileText className="w-3 h-3" /> FORM KEY
-                  </label>
-                  <input 
-                    type="text"
-                    className={`${smallInputClassName} ${formKeyError ? '!border-red-500' : ''}`}
-                    value={selectedNode.data.formId || ''} 
-                    onChange={e => {
-                      const newKey = e.target.value;
-                      onUpdateNode(selectedNode.uid, { formId: newKey });
-                      setFormKeyError(validateId(newKey));
-                    }}
-                    onBlur={() => setFormKeyError(validateId(selectedNode.data.formId || ''))}
-                    placeholder="e.g. formApproval"
-                  />
+                  <div className="mb-1 flex items-center justify-between gap-2">
+                    <label className="text-[10px] text-slate-400 uppercase font-bold flex items-center gap-1">
+                      <FileText className="w-3 h-3" /> Form
+                    </label>
+                    {onRefreshDeployedForms && (
+                      <button
+                        type="button"
+                        onClick={onRefreshDeployedForms}
+                        disabled={isLoadingDeployedForms}
+                        className="text-[10px] font-semibold text-blue-500 transition-colors hover:text-blue-400 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {isLoadingDeployedForms ? 'Loading...' : 'Refresh'}
+                      </button>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <div className="relative">
+                      <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--modeler-placeholder)]" />
+                      <input
+                        className={`${smallInputClassName} modeler-variable-search w-full ${selectedNode.data.formId ? 'pr-8' : ''} ${formKeyError ? '!border-red-500' : ''}`}
+                        value={formSearch}
+                        onFocus={() => setIsFormPickerOpen(true)}
+                        onChange={e => {
+                          setFormSearch(e.target.value);
+                          setIsFormPickerOpen(true);
+                        }}
+                        disabled={isLoadingDeployedForms}
+                        placeholder={selectedDeployedForm ? `${selectedDeployedForm.name} · ${selectedDeployedForm.formId}` : 'Search deployed forms...'}
+                      />
+                      {selectedNode.data.formId && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onUpdateNode(selectedNode.uid, { formId: '' });
+                            setFormKeyError(null);
+                            setFormSearch('');
+                            setIsFormPickerOpen(false);
+                            setIsFormPreviewOpen(false);
+                          }}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-[var(--modeler-text-muted)] transition-colors hover:bg-[var(--modeler-surface-muted)] hover:text-[var(--modeler-text)]"
+                          aria-label="Clear selected form"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      )}
+                    </div>
+                    {isFormPickerOpen && deployedForms.length > 0 && (
+                      <div className="max-h-36 overflow-y-auto rounded-md border border-[var(--modeler-border)] bg-[var(--modeler-surface)]">
+                        {filteredDeployedForms.length > 0 ? (
+                          filteredDeployedForms.map(form => {
+                            const isSelected = form.formId === selectedNode.data.formId;
+                            return (
+                              <button
+                                key={form.id}
+                                type="button"
+                                onClick={() => {
+                                  onUpdateNode(selectedNode.uid, { formId: form.formId });
+                                  setFormKeyError(validateId(form.formId));
+                                  setFormSearch('');
+                                  setIsFormPickerOpen(false);
+                                  setIsFormPreviewOpen(false);
+                                }}
+                                className={`flex w-full items-center justify-between gap-2 border-b border-[var(--modeler-border)] px-2.5 py-2 text-left text-xs transition-colors last:border-b-0 ${isSelected ? 'bg-blue-500/10 text-[var(--modeler-text)]' : 'text-[var(--modeler-text-soft)] hover:bg-[var(--modeler-surface-muted)]'}`}
+                              >
+                                <span className="min-w-0">
+                                  <span className="block truncate font-semibold">{form.name || form.formId}</span>
+                                  <span className="block truncate font-mono text-[10px] text-[var(--modeler-text-muted)]">{form.formId}</span>
+                                </span>
+                                {form.version && <span className="shrink-0 rounded bg-[var(--modeler-surface-muted)] px-1.5 py-0.5 text-[10px] font-semibold">v{form.version}</span>}
+                              </button>
+                            );
+                          })
+                        ) : (
+                          <p className="px-3 py-4 text-center text-[11px] text-[var(--modeler-text-muted)]">No forms match this search.</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  {deployedFormsError && (
+                    <p className="mt-1 text-[10px] text-amber-500 leading-tight">{deployedFormsError}</p>
+                  )}
+                  {!deployedFormsError && deployedForms.length === 0 && !isLoadingDeployedForms && (
+                    <p className="mt-1 text-[10px] text-slate-400 leading-tight">No deployed forms loaded yet. Refresh to load forms from the database.</p>
+                  )}
                   {formKeyError && <p className="text-[10px] text-red-500 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> {formKeyError}</p>}
-                  <p className="text-[10px] text-slate-400 mt-1 leading-tight">Attach the deployed form key used for versioning, not the numeric database id.</p>
+                  {selectedDeployedForm && (
+                    <div className="relative mt-2 rounded-md border border-[var(--modeler-border)] bg-[var(--modeler-surface-muted)] px-2.5 py-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="truncate text-xs font-semibold text-[var(--modeler-text)]">{selectedDeployedForm.name}</p>
+                          <p className="truncate font-mono text-[10px] text-[var(--modeler-text-muted)]">{selectedDeployedForm.formId}</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setIsFormPreviewOpen(open => !open)}
+                          className="inline-flex items-center gap-1 rounded border border-[var(--modeler-border)] bg-[var(--modeler-surface)] px-2 py-1 text-[10px] font-semibold text-[var(--modeler-text-soft)] transition-colors hover:bg-[var(--modeler-surface-muted)] hover:text-[var(--modeler-text)]"
+                        >
+                          <Eye className="h-3 w-3" />
+                          Preview
+                        </button>
+                      </div>
+                      {isFormPreviewOpen && (
+                        <div className="absolute right-0 top-full z-40 mt-2 w-80 rounded-md border border-[var(--modeler-border)] bg-[var(--modeler-surface)] p-3 text-[var(--modeler-text)] shadow-2xl">
+                          <div className="mb-3 flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-semibold">{selectedDeployedForm.name}</p>
+                              <p className="truncate font-mono text-[10px] text-[var(--modeler-text-muted)]">{selectedDeployedForm.formId}{selectedDeployedForm.version ? ` · v${selectedDeployedForm.version}` : ''}</p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setIsFormPreviewOpen(false)}
+                              className="rounded p-1 text-[var(--modeler-text-muted)] transition-colors hover:bg-[var(--modeler-surface-muted)] hover:text-[var(--modeler-text)]"
+                              aria-label="Close form preview"
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                          {selectedFormFields.length > 0 ? (
+                            <div className="max-h-64 overflow-y-auto rounded border border-[var(--modeler-border)]">
+                              {selectedFormFields.map(field => (
+                                <div key={field.name} className="flex items-center justify-between gap-3 border-b border-[var(--modeler-border)] px-2.5 py-2 text-[11px] last:border-b-0">
+                                  <span className="min-w-0 truncate font-semibold text-[var(--modeler-text-soft)]">{field.name}</span>
+                                  <span className="shrink-0 text-[var(--modeler-text-muted)]">
+                                    {field.type}{field.required ? ' · required' : ''}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="rounded border border-[var(--modeler-border)] px-3 py-4 text-center text-[11px] text-[var(--modeler-text-muted)]">No previewable fields found in this schema.</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  <p className="text-[10px] text-slate-400 mt-1 leading-tight">Focus or type to search deployed forms from the database.</p>
                 </div>
                 <div><label className="text-[10px] text-slate-400 uppercase font-bold mb-1 block">Assignee(s)</label><input className={smallInputClassName} value={selectedNode.data.assignee || ''} onChange={e => onUpdateNode(selectedNode.uid, { assignee: e.target.value })} placeholder="e.g. manager1, manager2" /></div>
                 <div><label className="text-[10px] text-slate-400 uppercase font-bold mb-1 block">Candidate Groups</label><input className={smallInputClassName} value={selectedNode.data.candidateGroups || ''} onChange={e => onUpdateNode(selectedNode.uid, { candidateGroups: e.target.value })} placeholder="e.g. FINANCE, OPERATIONS" /></div>

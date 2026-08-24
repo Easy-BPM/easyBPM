@@ -302,6 +302,10 @@
   color: var(--modeler-placeholder) !important;
 }
 
+.process-modeler .modeler-variable-search {
+  padding-left: 2rem !important;
+}
+
 .process-modeler option,
 .form-modeler option {
   background-color: var(--modeler-surface-subtle);

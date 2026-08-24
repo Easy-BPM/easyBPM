@@ -1,5 +1,8 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import {
+  AlertTriangle,
+  Download,
+  FilePlus2,
   ShieldCheck,
   User,
   Lock,
@@ -10,7 +13,6 @@ import {
 import { Palette } from './components/Palette';
 import { Canvas } from './components/Canvas';
 import { PropertiesPanel } from './components/PropertiesPanel';
-import { Toolbar } from './components/Toolbar';
 import { FormModeler } from './components/FormModeler';
 import { FormLibrary } from './components/FormLibrary';
 import { WelcomeScreen, WorkspaceResource } from './components/WelcomeScreen';
@@ -71,6 +73,7 @@ const App: React.FC = () => {
    const [isDeployingProcess, setIsDeployingProcess] = useState(false);
    const [isPropertiesPanelVisible, setIsPropertiesPanelVisible] = useState(true);
    const [processView, setProcessView] = useState<AppView>('bpmn');
+   const [isNewProcessDialogOpen, setIsNewProcessDialogOpen] = useState(false);
 
    // Form editor state
    const [formLibrary, setFormLibrary] = useState<Map<string, FormDefinition>>(new Map());
@@ -129,18 +132,19 @@ const App: React.FC = () => {
          formService.listLatest(),
          featureFlags.agenticOrchestration ? processService.listAgentProcesses() : Promise.resolve([])
        ]);
-       const rejectedLoads = [processesResult, formsResult, agentsResult]
-         .filter((result): result is PromiseRejectedResult => result.status === 'rejected');
-       if (rejectedLoads.some(result => isAuthRequiredError(result.reason))) {
-         processService.clearSession();
-         setCurrentUser(null);
-         setPermissions([]);
-         setWorkspaceResources([]);
-         return;
-       }
-
-       const loadErrors = rejectedLoads
-         .map(result => result.reason instanceof Error ? result.reason.message : 'Unknown load error');
+      const loadResults = [
+        { label: 'processes', result: processesResult },
+        { label: 'forms', result: formsResult },
+        { label: 'agents', result: agentsResult }
+      ];
+      const loadErrors = loadResults
+        .filter((item): item is { label: string; result: PromiseRejectedResult } => item.result.status === 'rejected')
+        .map(item => {
+          if (isAuthRequiredError(item.result.reason)) {
+            return `Could not load ${item.label}. Please refresh after signing in again if this keeps happening.`;
+          }
+          return item.result.reason instanceof Error ? item.result.reason.message : `Could not load ${item.label}.`;
+        });
 
        const processes = processesResult.status === 'fulfilled' ? processesResult.value : [];
        const forms = formsResult.status === 'fulfilled' ? formsResult.value : [];
@@ -189,10 +193,25 @@ const App: React.FC = () => {
    }, []);
 
    useEffect(() => {
-     if (!authLoading && currentUser && editorMode === 'welcome') {
+     if (!authLoading && currentUser && (editorMode === 'welcome' || editorMode === 'process-editor')) {
        loadWorkspaceResources();
      }
    }, [authLoading, currentUser, editorMode, loadWorkspaceResources]);
+
+   const deployedFormOptions = useMemo(() => (
+     workspaceResources
+       .filter(resource => resource.kind === 'form')
+       .map(resource => {
+         const payload = resource.payload as { schema?: Record<string, unknown> } | undefined;
+         return {
+           id: resource.id,
+           formId: resource.key,
+           name: resource.name,
+           version: resource.version,
+           schema: payload?.schema
+         };
+       })
+   ), [workspaceResources]);
 
    // Wrapper for setVariables that ALWAYS sanitizes before storing
    const setVariables = (vars: ProcessVariable[] | ((prev: ProcessVariable[]) => ProcessVariable[])) => {
@@ -861,17 +880,21 @@ const App: React.FC = () => {
     [nodes, edges, variables, processId, processName]
   );
 
+  const downloadCurrentProcessXml = () => {
+    const dataStr = "data:application/xml;charset=utf-8," + encodeURIComponent(currentProcessXml);
+    const link = document.createElement('a');
+    link.href = dataStr;
+    link.download = `${processId || 'process'}.bpmn`;
+    link.click();
+  };
+
   const handleExport = () => {
     if (!validationState.isValid) {
       toast.error(validationState.errors[0] || 'Validation failed. Resolve BPM issues before export.');
       return;
     }
 
-    const dataStr = "data:application/xml;charset=utf-8," + encodeURIComponent(currentProcessXml);
-    const link = document.createElement('a');
-    link.href = dataStr;
-    link.download = `${processId || 'process'}.bpmn`;
-    link.click();
+    downloadCurrentProcessXml();
   };
 
   const handleDeployProcess = async () => {
@@ -920,6 +943,33 @@ const App: React.FC = () => {
   const handleCreateAgentProcess = () => {
     setInitialAgentDefinition(undefined);
     setEditorMode('agent-process-editor');
+  };
+
+  const resetProcessDefinition = () => {
+    setNodes([]);
+    setEdges([]);
+    setVariables([]);
+    setProcessId(`process_${Date.now()}`);
+    setProcessName('');
+    setSelectedNodeUids([]);
+    setSelectedEdgeId(null);
+    setProcessView('bpmn');
+  };
+
+  const handleNewProcessDefinition = () => {
+    setIsNewProcessDialogOpen(true);
+  };
+
+  const handleSaveFileAndCreateProcess = () => {
+    downloadCurrentProcessXml();
+    resetProcessDefinition();
+    setIsNewProcessDialogOpen(false);
+    toast.success('Process file downloaded.');
+  };
+
+  const handleDiscardAndCreateProcess = () => {
+    resetProcessDefinition();
+    setIsNewProcessDialogOpen(false);
   };
 
   const handleBackToWelcome = () => {
@@ -1397,24 +1447,68 @@ const App: React.FC = () => {
           onSave={handleDeployProcess}
           onExport={handleExport}
           onImport={handleImport}
+          onCreateNew={handleNewProcessDefinition}
           isSaving={isDeployingProcess}
+          validationErrors={validationState.errors}
+          validationWarnings={validationState.warnings}
+          currentView={processView}
+          onViewChange={setProcessView}
           currentUser={currentUser}
           onLogout={handleLogout}
           theme={theme}
           onToggleTheme={toggleTheme}
         />
 
-        {/* Toolbar */}
-        <Toolbar 
-          onClear={() => {setNodes([]); setEdges([]); setVariables([]); setProcessId(`process_${Date.now()}`); setSelectedNodeUids([]); setSelectedEdgeId(null);}} 
-          isExportDisabled={!validationState.isValid}
-          validationErrors={validationState.errors}
-          validationWarnings={validationState.warnings}
-          currentView={processView}
-          onViewChange={setProcessView}
-          theme={theme}
-          onToggleTheme={toggleTheme}
-        />
+        {isNewProcessDialogOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 backdrop-blur-sm">
+            <div
+              className="w-full max-w-md rounded-lg border border-[var(--modeler-border)] bg-[var(--modeler-surface)] p-5 text-[var(--modeler-text)] shadow-2xl"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="new-process-dialog-title"
+            >
+              <div className="flex items-start gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-amber-500/10 text-amber-500">
+                  <AlertTriangle className="h-5 w-5" />
+                </div>
+                <div className="min-w-0">
+                  <h2 id="new-process-dialog-title" className="text-base font-semibold">
+                    Start a new process?
+                  </h2>
+                  <p className="mt-1 text-sm leading-5 text-[var(--modeler-text-muted)]">
+                    The current process definition will be cleared. Download the BPMN file first if you want to keep a local copy.
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:justify-end">
+                <button
+                  type="button"
+                  onClick={() => setIsNewProcessDialogOpen(false)}
+                  className="inline-flex min-h-10 items-center justify-center rounded-md border border-[var(--modeler-border)] bg-[var(--modeler-surface)] px-4 py-2 text-sm font-semibold text-[var(--modeler-text-soft)] transition-colors hover:bg-[var(--modeler-surface-muted)] hover:text-[var(--modeler-text)]"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveFileAndCreateProcess}
+                  className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md border border-[var(--modeler-border)] bg-[var(--modeler-surface-muted)] px-4 py-2 text-sm font-semibold text-[var(--modeler-text)] transition-colors hover:bg-[var(--modeler-border)]"
+                >
+                  <Download className="h-4 w-4" />
+                  Download & New
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDiscardAndCreateProcess}
+                  className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md border border-blue-600 bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:border-blue-500 hover:bg-blue-500"
+                >
+                  <FilePlus2 className="h-4 w-4" />
+                  Discard & New
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Canvas */}
         <div className="flex flex-1 overflow-hidden">
@@ -1430,7 +1524,7 @@ const App: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsPropertiesPanelVisible((visible) => !visible)}
-                  className="absolute right-4 top-16 z-30 flex h-9 w-9 items-center justify-center rounded-md border border-slate-200 bg-white/95 text-slate-600 shadow-sm backdrop-blur-sm transition-colors hover:bg-slate-100 hover:text-slate-900"
+                  className="absolute right-4 top-16 z-30 flex h-9 w-9 items-center justify-center rounded-md border border-[var(--modeler-border)] bg-[var(--modeler-surface)]/95 text-[var(--modeler-text-soft)] shadow-sm backdrop-blur-sm transition-colors hover:bg-[var(--modeler-surface-muted)] hover:text-[var(--modeler-text)]"
                   title={isPropertiesPanelVisible ? 'Hide properties panel' : 'Show properties panel'}
                   aria-label={isPropertiesPanelVisible ? 'Hide properties panel' : 'Show properties panel'}
                 >
@@ -1447,8 +1541,8 @@ const App: React.FC = () => {
                 />
               </>
             ) : (
-              <div className="h-full overflow-auto bg-slate-950 p-6">
-                <pre className="min-h-full whitespace-pre-wrap break-words rounded border border-slate-800 bg-slate-900 p-4 text-xs leading-5 text-slate-100">
+              <div className="h-full overflow-auto bg-[var(--modeler-bg)] p-6">
+                <pre className="min-h-full whitespace-pre-wrap break-words rounded border border-[var(--modeler-border)] bg-[var(--modeler-surface)] p-4 text-xs leading-5 text-[var(--modeler-text)]">
                   {currentProcessXml}
                 </pre>
               </div>
@@ -1472,6 +1566,10 @@ const App: React.FC = () => {
               onDeleteNode={uid => handleDeleteNodes([uid])}
               onDeleteEdge={id => setEdges(eds => eds.filter(e => e.id !== id))}
               onFocusValidationIssue={handleFocusValidationIssue}
+              deployedForms={deployedFormOptions}
+              isLoadingDeployedForms={isLoadingWorkspaceResources}
+              deployedFormsError={workspaceResourceError}
+              onRefreshDeployedForms={loadWorkspaceResources}
               validation={{
                 duplicateNodeIds: validationState.duplicateNodeIds,
                 duplicateGlobalVars: validationState.duplicateGlobalVars,

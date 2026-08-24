@@ -689,24 +689,34 @@ export const Canvas: React.FC<CanvasProps> = ({
             {node.type === 'end' && <circle r="20" filter="url(#shadow)" className="fill-[#111a21] stroke-red-500 stroke-[4px]" />}
             {['gateway', 'parallel-gateway'].includes(node.type) && <rect width="28" height="28" transform="rotate(45)" x="-14" y="-14" filter="url(#shadow)" className="fill-[#111a21] stroke-orange-500 stroke-[2px]" />}
             {isTask && <rect x={-node.width/2} y={-node.height/2} width={node.width} height={node.height} rx="6" filter="url(#shadow)" className={`fill-[#111a21] stroke-[2px] ${node.type === 'user-task' ? 'stroke-blue-500' : (node.type === 'api-task' ? 'stroke-purple-500' : (node.type === 'code-task' ? 'stroke-indigo-500' : (node.type === 'ai-task' ? 'stroke-pink-500' : (node.type === 'agent-process-call' ? 'stroke-cyan-400' : (node.type === 'call-activity' ? 'stroke-cyan-500' : 'stroke-amber-500')))))}`} />}
-            {node.type === 'user-task' && <User x={-node.width/2+8} y={-node.height/2+8} className="w-4 h-4 text-blue-600 pointer-events-none opacity-80" />}
-            {node.type === 'api-task' && <Settings x={-node.width/2+8} y={-node.height/2+8} className="w-4 h-4 text-purple-600 pointer-events-none opacity-80" />}
-            {node.type === 'service-task' && <Zap x={-node.width/2+8} y={-node.height/2+8} className="w-4 h-4 text-amber-600 pointer-events-none opacity-80" />}
-            {node.type === 'code-task' && <Code x={-node.width/2+8} y={-node.height/2+8} className="w-4 h-4 text-indigo-600 pointer-events-none opacity-80" />}
-            {node.type === 'ai-task' && <Brain x={-node.width/2+8} y={-node.height/2+8} className="w-4 h-4 text-pink-600 pointer-events-none opacity-80" />}
-            {node.type === 'agent-process-call' && <Bot x={-node.width/2+8} y={-node.height/2+8} className="w-4 h-4 text-cyan-400 pointer-events-none opacity-80" />}
-            {node.type === 'call-activity' && <Layers x={-node.width/2+8} y={-node.height/2+8} className="w-4 h-4 text-cyan-600 pointer-events-none opacity-80" />}
+            {isTask && (
+              <rect
+                x={-node.width/2 + 8}
+                y={-node.height/2 + (node.height - 24) / 2}
+                width="24"
+                height="24"
+                rx="5"
+                className="fill-slate-950/70 stroke-white/10 stroke-[1px] pointer-events-none"
+              />
+            )}
+            {node.type === 'user-task' && <User x={-node.width/2+12} y={-node.height/2 + node.height / 2 - 8} className="w-4 h-4 text-blue-500 pointer-events-none" />}
+            {node.type === 'api-task' && <Settings x={-node.width/2+12} y={-node.height/2 + node.height / 2 - 8} className="w-4 h-4 text-purple-500 pointer-events-none" />}
+            {node.type === 'service-task' && <Zap x={-node.width/2+12} y={-node.height/2 + node.height / 2 - 8} className="w-4 h-4 text-amber-500 pointer-events-none" />}
+            {node.type === 'code-task' && <Code x={-node.width/2+12} y={-node.height/2 + node.height / 2 - 8} className="w-4 h-4 text-indigo-500 pointer-events-none" />}
+            {node.type === 'ai-task' && <Brain x={-node.width/2+12} y={-node.height/2 + node.height / 2 - 8} className="w-4 h-4 text-pink-500 pointer-events-none" />}
+            {node.type === 'agent-process-call' && <Bot x={-node.width/2+12} y={-node.height/2 + node.height / 2 - 8} className="w-4 h-4 text-cyan-400 pointer-events-none" />}
+            {node.type === 'call-activity' && <Layers x={-node.width/2+12} y={-node.height/2 + node.height / 2 - 8} className="w-4 h-4 text-cyan-500 pointer-events-none" />}
             {node.type === 'gateway' && <GitFork x="-8" y="-8" className="w-4 h-4 text-orange-600 pointer-events-none opacity-80" />}
             {node.type === 'parallel-gateway' && <Plus x="-8" y="-8" className="w-4 h-4 text-orange-600 pointer-events-none opacity-80" />}
             <foreignObject 
-              x={(isTask || isBoxMessageCatch) ? -node.width/2 : -(node.width+80)/2} 
+              x={isTask ? -node.width/2 + 38 : (isBoxMessageCatch ? -node.width/2 + 30 : -(node.width+80)/2)} 
               y={(isTask || isBoxMessageCatch) ? -node.height/2 : node.height/2+1} 
-              width={(isTask || isBoxMessageCatch) ? node.width : node.width+80} 
+              width={isTask ? Math.max(36, node.width - 46) : (isBoxMessageCatch ? Math.max(36, node.width - 36) : node.width+80)} 
               height={(isTask || isBoxMessageCatch) ? node.height : 40} 
               style={{ pointerEvents: 'none' }}
             >
-                <div className="flex items-center justify-center h-full px-1 text-center">
-                  <span className={`font-medium leading-tight line-clamp-3 ${(isTask || isBoxMessageCatch) ? 'text-[11px] text-slate-100' : 'text-[10px] text-slate-200'}`}>
+                <div className={`flex h-full items-center ${isTask || isBoxMessageCatch ? 'justify-start pr-2 text-left' : 'justify-center px-1 text-center'}`}>
+                  <span className={`font-semibold leading-tight line-clamp-3 ${(isTask || isBoxMessageCatch) ? 'text-[11px] text-[var(--modeler-node-label)]' : 'text-[10px] text-[var(--modeler-text-soft)]'}`}>
                     {node.data.label}
                   </span>
                 </div>
