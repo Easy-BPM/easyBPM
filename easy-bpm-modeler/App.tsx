@@ -13,7 +13,7 @@ import { PropertiesPanel } from './components/PropertiesPanel';
 import { Toolbar } from './components/Toolbar';
 import { FormModeler } from './components/FormModeler';
 import { FormLibrary } from './components/FormLibrary';
-import { WelcomeScreen } from './components/WelcomeScreen';
+import { WelcomeScreen, WorkspaceResource } from './components/WelcomeScreen';
 import { AgentBoardModeler } from './components/AgentBoardModeler';
 import { ModelerNavbar } from './components/ModelerNavbar';
 import { ThemeMode } from './components/ThemeToggle';
@@ -21,7 +21,7 @@ import { BpmnNode, BpmnEdge, ProcessVariable, NodeType, AppView, ValidationIssue
 import { generateId, snapToGrid } from './utils/geometry';
 import { validateId } from './utils/validation';
 import { Toaster, toast } from 'sonner';
-import { isAuthRequiredError, processService, fetchWithAuth } from './services/processService';
+import { AgentProcessDefinitionSummary, isAuthRequiredError, processService, fetchWithAuth } from './services/processService';
 import { formService } from './services/formService';
 import { downloadForm, importForm, generateJsonSchema } from './utils/formUtils';
 import { bpmnXmlToProcessDefinition, isBpmnXml, processDefinitionToBpmnXml } from './utils/bpmnXml';
@@ -55,6 +55,10 @@ const App: React.FC = () => {
 
    // Navigation state
    const [editorMode, setEditorMode] = useState<EditorMode>('welcome');
+   const [workspaceResources, setWorkspaceResources] = useState<WorkspaceResource[]>([]);
+   const [isLoadingWorkspaceResources, setIsLoadingWorkspaceResources] = useState(false);
+   const [workspaceResourceError, setWorkspaceResourceError] = useState<string | null>(null);
+   const [initialAgentDefinition, setInitialAgentDefinition] = useState<unknown | undefined>(undefined);
 
    // Process editor state
    const [nodes, setNodes] = useState<BpmnNode[]>([]);
@@ -104,6 +108,72 @@ const App: React.FC = () => {
        })
        .finally(() => setAuthLoading(false));
    }, []);
+
+   const parseAgentDefinition = (definition: AgentProcessDefinitionSummary): unknown => {
+     if (typeof definition.definitionJson === 'string') {
+       try {
+         return JSON.parse(definition.definitionJson);
+       } catch {
+         return {};
+       }
+     }
+     return definition.definitionJson;
+   };
+
+   const loadWorkspaceResources = useCallback(async () => {
+     setIsLoadingWorkspaceResources(true);
+     setWorkspaceResourceError(null);
+     try {
+       const [processes, forms, agents] = await Promise.all([
+         processService.listLatestProcesses(),
+         formService.listLatest(),
+         featureFlags.agenticOrchestration ? processService.listAgentProcesses() : Promise.resolve([])
+       ]);
+
+       const processResources: WorkspaceResource[] = processes.map(process => ({
+         id: String(process.id),
+         kind: 'process',
+         name: process.processName || process.key || `Process ${process.id}`,
+         key: process.key || String(process.id),
+         version: process.version,
+         description: process.description
+       }));
+
+       const formResources: WorkspaceResource[] = forms.map(form => ({
+         id: String(form.id),
+         kind: 'form',
+         name: form.name || form.formId,
+         key: form.formId,
+         version: form.version,
+         updatedAt: form.createdAt,
+         payload: form
+       }));
+
+       const agentResources: WorkspaceResource[] = agents.map(agent => ({
+         id: String(agent.id),
+         kind: 'agent',
+         name: agent.processName || agent.key || `Agent ${agent.id}`,
+         key: agent.key || String(agent.id),
+         version: agent.version,
+         updatedAt: agent.createdAt,
+         description: agent.description,
+         payload: parseAgentDefinition(agent)
+       }));
+
+       setWorkspaceResources([...processResources, ...formResources, ...agentResources]);
+     } catch (error) {
+       const message = error instanceof Error ? error.message : 'Could not load workspace resources.';
+       setWorkspaceResourceError(message);
+     } finally {
+       setIsLoadingWorkspaceResources(false);
+     }
+   }, []);
+
+   useEffect(() => {
+     if (!authLoading && currentUser && editorMode === 'welcome') {
+       loadWorkspaceResources();
+     }
+   }, [authLoading, currentUser, editorMode, loadWorkspaceResources]);
 
    // Wrapper for setVariables that ALWAYS sanitizes before storing
    const setVariables = (vars: ProcessVariable[] | ((prev: ProcessVariable[]) => ProcessVariable[])) => {
@@ -829,12 +899,14 @@ const App: React.FC = () => {
   };
 
   const handleCreateAgentProcess = () => {
+    setInitialAgentDefinition(undefined);
     setEditorMode('agent-process-editor');
   };
 
   const handleBackToWelcome = () => {
     setEditorMode('welcome');
     setCurrentEditingForm(null);
+    setInitialAgentDefinition(undefined);
   };
 
   const handleImport = (data: any) => {
@@ -1137,6 +1209,48 @@ const App: React.FC = () => {
     setSelectedFormKey(form.formKey);
   }, []);
 
+  const handleOpenWorkspaceResource = async (resource: WorkspaceResource) => {
+    try {
+      if (resource.kind === 'process') {
+        const definition = await processService.getProcessDefinition(Number(resource.id));
+        const source = definition.definitionXml || definition.definitionJson || '';
+        if (!source) {
+          toast.error('The selected process has no stored definition.');
+          return;
+        }
+
+        if (typeof source === 'string' && isBpmnXml(source)) {
+          handleImport(source);
+        } else {
+          handleImport(typeof source === 'string' ? JSON.parse(source) : source);
+        }
+        setEditorMode('process-editor');
+        return;
+      }
+
+      if (resource.kind === 'form') {
+        const backendForm = resource.payload || await formService.getById(Number(resource.id));
+        const result = importForm(backendForm as any);
+        if (!result.success || !result.form) {
+          toast.error(result.error || 'Could not open selected form.');
+          return;
+        }
+        setFormLibrary(lib => new Map(lib).set(result.form!.formKey, result.form!));
+        setSelectedFormKey(result.form.formKey);
+        setCurrentEditingForm(result.form);
+        setEditorMode('form-editor');
+        return;
+      }
+
+      if (resource.kind === 'agent') {
+        setInitialAgentDefinition(resource.payload || {});
+        setEditorMode('agent-process-editor');
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Could not open selected resource.');
+    }
+  };
+
   const handleExportForm = () => {
     const formToExport = currentEditingForm;
     if (!formToExport) {
@@ -1236,6 +1350,11 @@ const App: React.FC = () => {
           onCreateForm={handleCreateForm}
           onCreateAgentProcess={handleCreateAgentProcess}
           isAgenticOrchestrationEnabled={featureFlags.agenticOrchestration}
+          workspaceResources={workspaceResources}
+          isLoadingResources={isLoadingWorkspaceResources}
+          resourceLoadError={workspaceResourceError}
+          onRefreshResources={loadWorkspaceResources}
+          onOpenResource={handleOpenWorkspaceResource}
           currentUser={currentUser}
           onLogout={handleLogout}
           theme={theme}
@@ -1387,6 +1506,7 @@ const App: React.FC = () => {
         onLogout={handleLogout}
         theme={theme}
         onToggleTheme={toggleTheme}
+        initialDefinition={initialAgentDefinition}
       />
     );
   }
@@ -1400,6 +1520,11 @@ const App: React.FC = () => {
         onCreateForm={handleCreateForm}
         onCreateAgentProcess={handleCreateAgentProcess}
         isAgenticOrchestrationEnabled={featureFlags.agenticOrchestration}
+        workspaceResources={workspaceResources}
+        isLoadingResources={isLoadingWorkspaceResources}
+        resourceLoadError={workspaceResourceError}
+        onRefreshResources={loadWorkspaceResources}
+        onOpenResource={handleOpenWorkspaceResource}
         theme={theme}
         onToggleTheme={toggleTheme}
       />

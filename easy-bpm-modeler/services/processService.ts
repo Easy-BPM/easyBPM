@@ -29,6 +29,30 @@ type LoginResponse = {
   permissions: string[];
 };
 
+export type ProcessDefinitionSummary = {
+  id: number;
+  key: string;
+  processName?: string | null;
+  description?: string | null;
+  version: number;
+  definitionXml?: string;
+  definitionJson?: string;
+};
+
+export type AgentProcessDefinitionSummary = {
+  id: number;
+  key: string;
+  processName?: string | null;
+  description?: string | null;
+  definitionJson: string | Record<string, unknown>;
+  version: number;
+  createdAt?: string;
+};
+
+type PageResponse<T> = {
+  content: T[];
+};
+
 let activeSession: AuthSession | null = null;
 
 const getSession = (): AuthSession | null => {
@@ -129,6 +153,28 @@ export const processService = {
     }
   },
 
+  listLatestProcesses: async (): Promise<ProcessDefinitionSummary[]> => {
+    const response = await fetchWithAuth(`${API_BASE_URL}/processes?size=50&sort=id,desc`);
+    if (response.status === 401) throw new AuthRequiredError();
+    if (!response.ok) {
+      const body = await response.text();
+      throw new Error(`Load processes failed (${response.status}): ${body || response.statusText}`);
+    }
+
+    const payload = (await response.json()) as PageResponse<ProcessDefinitionSummary> | ProcessDefinitionSummary[];
+    return Array.isArray(payload) ? payload : payload.content || [];
+  },
+
+  getProcessDefinition: async (id: number): Promise<ProcessDefinitionSummary> => {
+    const response = await fetchWithAuth(`${API_BASE_URL}/processes/definitions/${id}`);
+    if (response.status === 401) throw new AuthRequiredError();
+    if (!response.ok) {
+      const body = await response.text();
+      throw new Error(`Load process failed (${response.status}): ${body || response.statusText}`);
+    }
+    return response.json();
+  },
+
   deployAgentProcess: async (payload: unknown): Promise<void> => {
     const session = getSession();
     if (!session?.token) {
@@ -151,5 +197,15 @@ export const processService = {
       const body = await response.text();
       throw new Error(`Agent process deploy failed (${response.status}): ${body || response.statusText}`);
     }
+  },
+
+  listAgentProcesses: async (): Promise<AgentProcessDefinitionSummary[]> => {
+    const response = await fetchWithAuth(`${API_BASE_URL}/agent-processes`);
+    if (response.status === 401) throw new AuthRequiredError();
+    if (!response.ok) {
+      const body = await response.text();
+      throw new Error(`Load agent processes failed (${response.status}): ${body || response.statusText}`);
+    }
+    return response.json();
   }
 };
