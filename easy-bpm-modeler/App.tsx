@@ -15,7 +15,7 @@ import { Canvas } from './components/Canvas';
 import { PropertiesPanel } from './components/PropertiesPanel';
 import { FormModeler } from './components/FormModeler';
 import { FormLibrary } from './components/FormLibrary';
-import { WelcomeScreen, WorkspaceResource } from './components/WelcomeScreen';
+import { WelcomeScreen, WorkspaceResource, ProcessTemplateDefinition } from './components/WelcomeScreen';
 import { AgentBoardModeler } from './components/AgentBoardModeler';
 import { ModelerNavbar } from './components/ModelerNavbar';
 import { ThemeMode } from './components/ThemeToggle';
@@ -1234,6 +1234,13 @@ const App: React.FC = () => {
     setSelectedEdgeId(null);
   };
 
+  const handleLoadProcessTemplate = (definition: ProcessTemplateDefinition) => {
+    handleImport(definition);
+    setProcessView('bpmn');
+    setEditorMode('process-editor');
+    toast.success(`${definition.processName} template loaded.`);
+  };
+
   const handleUpdateNode = (uid: string, data: Partial<BpmnNode['data']>) => setNodes(nds => nds.map(n => n.uid === uid ? { ...n, data: { ...n.data, ...data } } : n));
   const handleUpdateNodeFrame = (uid: string, frame: Partial<Pick<BpmnNode, 'width' | 'height'>>) => setNodes(nds => nds.map(n => n.uid === uid ? { ...n, ...frame } : n));
   
@@ -1417,6 +1424,7 @@ const App: React.FC = () => {
         <WelcomeScreen
           onCreateProcess={handleCreateProcess}
           onCreateForm={handleCreateForm}
+          onLoadProcessTemplate={handleLoadProcessTemplate}
           onCreateAgentProcess={handleCreateAgentProcess}
           isAgenticOrchestrationEnabled={featureFlags.agenticOrchestration}
           workspaceResources={workspaceResources}
@@ -1635,6 +1643,7 @@ const App: React.FC = () => {
       <WelcomeScreen
         onCreateProcess={handleCreateProcess}
         onCreateForm={handleCreateForm}
+        onLoadProcessTemplate={handleLoadProcessTemplate}
         onCreateAgentProcess={handleCreateAgentProcess}
         isAgenticOrchestrationEnabled={featureFlags.agenticOrchestration}
         workspaceResources={workspaceResources}
