@@ -45,15 +45,15 @@ interface WelcomeScreenProps {
 }
 
 const tabs: { id: WorkspaceResourceKind; label: string; icon: React.ReactNode }[] = [
-  { id: 'process', label: 'Processos', icon: <Workflow className="h-4 w-4" /> },
-  { id: 'form', label: 'Formulários', icon: <FileText className="h-4 w-4" /> },
-  { id: 'agent', label: 'Agentes', icon: <Bot className="h-4 w-4" /> }
+  { id: 'process', label: 'Processes', icon: <Workflow className="h-4 w-4" /> },
+  { id: 'form', label: 'Forms', icon: <FileText className="h-4 w-4" /> },
+  { id: 'agent', label: 'Agents', icon: <Bot className="h-4 w-4" /> }
 ];
 
 const kindLabel: Record<WorkspaceResourceKind, string> = {
-  process: 'Processo',
-  form: 'Formulário',
-  agent: 'Agente'
+  process: 'Process',
+  form: 'Form',
+  agent: 'Agent'
 };
 
 const formatDate = (value?: string) => {
@@ -105,7 +105,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
             </div>
             <div>
               <h1 className="text-sm font-semibold text-slate-900">Easy BPM Modeler</h1>
-              <p className="text-xs text-slate-500">Workspace de processos, formulários e agentes</p>
+              <p className="text-xs text-slate-500">Process, form, and agent workspace</p>
             </div>
           </div>
 
@@ -150,28 +150,28 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
       <main className="mx-auto flex w-full max-w-7xl gap-6 px-6 py-8">
         <aside className="w-72 shrink-0 space-y-4">
           <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-            <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-500">Criar novo</p>
+            <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-500">Create new</p>
             <div className="space-y-2">
               <button onClick={onCreateProcess} className="flex w-full items-center gap-3 rounded-md border border-blue-200 bg-blue-50 px-3 py-3 text-left transition-colors hover:bg-blue-100">
                 <Workflow className="h-5 w-5 text-blue-600" />
                 <div>
-                  <p className="text-sm font-semibold text-slate-900">Novo Processo</p>
-                  <p className="text-xs text-slate-500">Modelar fluxo BPMN</p>
+                  <p className="text-sm font-semibold text-slate-900">New Process</p>
+                  <p className="text-xs text-slate-500">Model a BPMN workflow</p>
                 </div>
               </button>
               <button onClick={onCreateForm} className="flex w-full items-center gap-3 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-3 text-left transition-colors hover:bg-emerald-100">
                 <FileText className="h-5 w-5 text-emerald-600" />
                 <div>
-                  <p className="text-sm font-semibold text-slate-900">Novo Formulário</p>
-                  <p className="text-xs text-slate-500">Campos e validações</p>
+                  <p className="text-sm font-semibold text-slate-900">New Form</p>
+                  <p className="text-xs text-slate-500">Fields and validation</p>
                 </div>
               </button>
               {isAgenticOrchestrationEnabled && onCreateAgentProcess && (
                 <button onClick={onCreateAgentProcess} className="flex w-full items-center gap-3 rounded-md border border-cyan-200 bg-cyan-50 px-3 py-3 text-left transition-colors hover:bg-cyan-100">
                   <Bot className="h-5 w-5 text-cyan-600" />
                   <div>
-                    <p className="text-sm font-semibold text-slate-900">Novo Agente</p>
-                    <p className="text-xs text-slate-500">Orquestração agentic</p>
+                    <p className="text-sm font-semibold text-slate-900">New Agent</p>
+                    <p className="text-xs text-slate-500">Agentic orchestration</p>
                   </div>
                 </button>
               )}
@@ -181,7 +181,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
           <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
             <div className="mb-3 flex items-center gap-2">
               <Database className="h-4 w-4 text-slate-500" />
-              <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Resumo</p>
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Summary</p>
             </div>
             <div className="grid grid-cols-3 gap-2">
               {visibleTabs.map(tab => (
@@ -198,8 +198,8 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
           <div className="border-b border-slate-200 p-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h2 className="text-lg font-semibold text-slate-900">Recursos do banco de dados</h2>
-                <p className="text-sm text-slate-500">Abra a última versão publicada ou comece um novo recurso.</p>
+                <h2 className="text-lg font-semibold text-slate-900">Database resources</h2>
+                <p className="text-sm text-slate-500">Open the latest published version or start a new resource.</p>
               </div>
               <button
                 onClick={onRefreshResources}
@@ -207,7 +207,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
                 className="inline-flex items-center gap-2 rounded-md border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isLoadingResources ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-                Atualizar
+                Refresh
               </button>
             </div>
 
@@ -230,7 +230,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
                   value={query}
                   onChange={event => setQuery(event.target.value)}
                   className="w-full rounded-md border border-slate-200 px-9 py-2 text-sm outline-none transition-colors focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
-                  placeholder="Buscar por nome, chave ou descrição"
+                  placeholder="Search by name, key, or description"
                 />
               </div>
             </div>
@@ -246,11 +246,11 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
             <table className="w-full text-left text-sm">
               <thead className="bg-slate-50 text-xs uppercase text-slate-500">
                 <tr>
-                  <th className="px-4 py-3 font-semibold">Nome</th>
+                  <th className="px-4 py-3 font-semibold">Name</th>
                   <th className="px-4 py-3 font-semibold">Tipo</th>
-                  <th className="px-4 py-3 font-semibold">Chave</th>
-                  <th className="px-4 py-3 font-semibold">Versão</th>
-                  <th className="px-4 py-3 font-semibold">Atualizado</th>
+                  <th className="px-4 py-3 font-semibold">Key</th>
+                  <th className="px-4 py-3 font-semibold">Version</th>
+                  <th className="px-4 py-3 font-semibold">Updated</th>
                   <th className="px-4 py-3 text-right font-semibold">Ações</th>
                 </tr>
               </thead>
@@ -272,7 +272,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
                         onClick={() => onOpenResource?.(resource)}
                         className="inline-flex items-center gap-2 rounded-md bg-slate-900 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-slate-700"
                       >
-                        Abrir
+                        Open
                       </button>
                     </td>
                   </tr>
@@ -283,14 +283,14 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
             {!isLoadingResources && filteredResources.length === 0 && (
               <div className="flex flex-col items-center justify-center px-4 py-16 text-center">
                 <Import className="mb-3 h-8 w-8 text-slate-300" />
-                <h3 className="text-sm font-semibold text-slate-800">Nenhum recurso encontrado</h3>
-                <p className="mt-1 max-w-sm text-sm text-slate-500">Crie um novo recurso ou ajuste a busca para encontrar versões publicadas.</p>
+                <h3 className="text-sm font-semibold text-slate-800">No resources found</h3>
+                <p className="mt-1 max-w-sm text-sm text-slate-500">Create a new resource or adjust the search to find published versions.</p>
                 <button
                   onClick={activeTab === 'process' ? onCreateProcess : activeTab === 'form' ? onCreateForm : onCreateAgentProcess}
                   className="mt-4 inline-flex items-center gap-2 rounded-md bg-blue-600 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-blue-500"
                 >
                   <Plus className="h-4 w-4" />
-                  Criar {kindLabel[activeTab]}
+                  Create {kindLabel[activeTab]}
                 </button>
               </div>
             )}
@@ -298,7 +298,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
             {isLoadingResources && (
               <div className="flex items-center justify-center gap-2 px-4 py-16 text-sm text-slate-500">
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Carregando recursos...
+                Loading resources...
               </div>
             )}
           </div>

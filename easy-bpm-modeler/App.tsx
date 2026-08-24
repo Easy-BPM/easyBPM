@@ -124,11 +124,18 @@ const App: React.FC = () => {
      setIsLoadingWorkspaceResources(true);
      setWorkspaceResourceError(null);
      try {
-       const [processes, forms, agents] = await Promise.all([
+       const [processesResult, formsResult, agentsResult] = await Promise.allSettled([
          processService.listLatestProcesses(),
          formService.listLatest(),
          featureFlags.agenticOrchestration ? processService.listAgentProcesses() : Promise.resolve([])
        ]);
+       const loadErrors = [processesResult, formsResult, agentsResult]
+         .filter((result): result is PromiseRejectedResult => result.status === 'rejected')
+         .map(result => result.reason instanceof Error ? result.reason.message : 'Unknown load error');
+
+       const processes = processesResult.status === 'fulfilled' ? processesResult.value : [];
+       const forms = formsResult.status === 'fulfilled' ? formsResult.value : [];
+       const agents = agentsResult.status === 'fulfilled' ? agentsResult.value : [];
 
        const processResources: WorkspaceResource[] = processes.map(process => ({
          id: String(process.id),
@@ -161,6 +168,9 @@ const App: React.FC = () => {
        }));
 
        setWorkspaceResources([...processResources, ...formResources, ...agentResources]);
+       if (loadErrors.length > 0) {
+         setWorkspaceResourceError(loadErrors.join(' '));
+       }
      } catch (error) {
        const message = error instanceof Error ? error.message : 'Could not load workspace resources.';
        setWorkspaceResourceError(message);
