@@ -36,6 +36,7 @@ const START_TYPES: NodeType[] = ['start', 'message-start'];
 const END_TYPES: NodeType[] = ['end'];
 const TASK_TYPES: NodeType[] = ['user-task', 'service-task', 'api-task', 'code-task', 'ai-task', 'agent-process-call'];
 const CONTAINER_TYPES: NodeType[] = ['pool'];
+const VISUAL_NODE_TYPES: NodeType[] = ['pool', 'documentation'];
 const FORM_KEY_PATTERN = /^[A-Za-z][A-Za-z0-9_-]*$/;
 
 // Helper to safely convert values to strings, preventing "[object Object]"
@@ -255,19 +256,21 @@ const App: React.FC = () => {
       });
     };
 
-    if (nodes.length === 0) {
+    const executableNodes = nodes.filter(node => !VISUAL_NODE_TYPES.includes(node.type));
+
+    if (executableNodes.length === 0) {
       addIssue('error', 'Process must contain at least one node.');
     }
 
-    const nodeIds = nodes.map(n => n.id.trim());
+    const nodeIds = executableNodes.map(n => n.id.trim());
     const duplicateNodeIds = nodeIds.filter((id, index) => nodeIds.indexOf(id) !== index);
     Array.from(new Set(duplicateNodeIds)).forEach(duplicateId => {
-      nodes.filter(node => node.id.trim() === duplicateId).forEach(node => {
+      executableNodes.filter(node => node.id.trim() === duplicateId).forEach(node => {
         addIssue('error', `Duplicate node ID found: ${duplicateId}`, { nodeUid: node.uid, nodeId: node.id });
       });
     });
 
-    nodes.filter(n => n.id.trim() === '').forEach(node => {
+    executableNodes.filter(n => n.id.trim() === '').forEach(node => {
        addIssue('error', 'All nodes must have a non-empty element ID.', { nodeUid: node.uid, nodeId: node.id });
      });
 
@@ -335,7 +338,13 @@ const App: React.FC = () => {
         addIssue('error', `Flow ${edge.id} target node does not exist.`, { edgeId: edge.id });
         return;
       }
-      if (nodesByUid.get(edge.source)?.type === 'pool' || nodesByUid.get(edge.target)?.type === 'pool') {
+      const sourceNode = nodesByUid.get(edge.source);
+      const targetNode = nodesByUid.get(edge.target);
+      const isDocumentationAssociation = sourceNode?.type === 'documentation' || targetNode?.type === 'documentation';
+      if (isDocumentationAssociation) {
+        return;
+      }
+      if (sourceNode?.type === 'pool' || targetNode?.type === 'pool') {
         addIssue('error', `Flow ${edge.id} cannot connect to a pool/participant.`, { edgeId: edge.id });
         return;
       }
@@ -354,8 +363,8 @@ const App: React.FC = () => {
       });
     }
 
-    const startNodes = nodes.filter(node => START_TYPES.includes(node.type));
-    const endNodes = nodes.filter(node => END_TYPES.includes(node.type));
+    const startNodes = executableNodes.filter(node => START_TYPES.includes(node.type));
+    const endNodes = executableNodes.filter(node => END_TYPES.includes(node.type));
 
     if (startNodes.length === 0) addIssue('error', 'Process must have at least one start event.');
     if (endNodes.length === 0) addIssue('error', 'Process must have at least one end event.');
@@ -364,9 +373,9 @@ const App: React.FC = () => {
       const incoming = incomingByUid.get(node.uid) || 0;
       const outgoing = outgoingByUid.get(node.uid) || 0;
 
-      if (CONTAINER_TYPES.includes(node.type)) {
+      if (VISUAL_NODE_TYPES.includes(node.type)) {
         if (incoming > 0 || outgoing > 0) {
-          addIssue('error', `Pool ${node.id} is a visual participant and cannot have sequence flows.`, { nodeUid: node.uid, nodeId: node.id });
+          addIssue('error', `${node.type === 'pool' ? 'Pool' : 'Documentation note'} ${node.id} is visual documentation and cannot have sequence flows.`, { nodeUid: node.uid, nodeId: node.id });
         }
         return;
       }
@@ -479,7 +488,7 @@ const App: React.FC = () => {
           });
       }
 
-      const unreachable = nodes.filter(node => !visited.has(node.uid) && !BOUNDARY_TYPES.includes(node.type) && !CONTAINER_TYPES.includes(node.type));
+      const unreachable = nodes.filter(node => !visited.has(node.uid) && !BOUNDARY_TYPES.includes(node.type) && !VISUAL_NODE_TYPES.includes(node.type));
       unreachable.forEach(node => {
         addIssue('warning', `Unreachable node detected: ${node.id}`, { nodeUid: node.uid, nodeId: node.id });
       });
@@ -544,6 +553,8 @@ const App: React.FC = () => {
     let height = 60;
     if (type === 'pool') {
       width = 640; height = 260;
+    } else if (type === 'documentation') {
+      width = 180; height = 100;
     } else if (['start', 'end', 'gateway', 'parallel-gateway', 'timer-event', 'message-start', 'message-intermediate-throw', 'error-boundary', 'message-boundary', 'timer-boundary'].includes(type)) {
       width = 40; height = 40;
     } else {
@@ -581,7 +592,8 @@ const App: React.FC = () => {
       height,
       attachedTo,
       data: {
-        label: type === 'pool' ? 'Participant' : `New ${type.replace('-', ' ')}`,
+        label: type === 'pool' ? 'Participant' : type === 'documentation' ? 'Documentation' : `New ${type.replace('-', ' ')}`,
+        description: type === 'documentation' ? 'Add notes, requirements, or context for this area of the process.' : undefined,
         inputVariables: [],
         outputVariables: [],
       }
@@ -592,7 +604,7 @@ const App: React.FC = () => {
   };
 
   const buildExportObject = () => {
-    const typeMapping: Record<NodeType, string> = {
+    const typeMapping: Partial<Record<NodeType, string>> = {
       'start': 'StartEvent', 
       'end': 'EndEvent', 
       'user-task': 'HumanTask',
@@ -614,10 +626,13 @@ const App: React.FC = () => {
       'pool': 'Participant'
     };
 
-    const nodesData = nodes.map(node => {
+    const executableExportNodes = nodes.filter(node => !VISUAL_NODE_TYPES.includes(node.type));
+    const executableNodeUids = new Set(executableExportNodes.map(node => node.uid));
+
+    const nodesData = executableExportNodes.map(node => {
       const nextIds = edges
-        .filter(e => e.source === node.uid)
-        .map(e => nodes.find(n => n.uid === e.target)?.id)
+        .filter(e => e.source === node.uid && executableNodeUids.has(e.target))
+        .map(e => executableExportNodes.find(n => n.uid === e.target)?.id)
         .filter(Boolean);
 
       const base: any = {
@@ -866,9 +881,11 @@ const App: React.FC = () => {
          initialValue: v.defaultValue
        })),
        nodes: nodesData,
-      flows: edges.map(e => ({
-        from: nodes.find(n => n.uid === e.source)?.id, 
-        to: nodes.find(n => n.uid === e.target)?.id, 
+      flows: edges
+      .filter(e => executableNodeUids.has(e.source) && executableNodeUids.has(e.target))
+      .map(e => ({
+        from: executableExportNodes.find(n => n.uid === e.source)?.id, 
+        to: executableExportNodes.find(n => n.uid === e.target)?.id, 
         condition: e.condition || null,
         waypoints: e.waypoints && e.waypoints.length > 0 ? e.waypoints : undefined
       }))

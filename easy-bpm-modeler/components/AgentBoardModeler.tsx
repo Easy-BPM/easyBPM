@@ -1,46 +1,18 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   ArrowLeft,
-  ArrowDown,
-  ArrowUp,
   Bot,
-  Brain,
-  CheckCircle2,
-  CircleDashed,
-  Clock3,
-  Copy,
   Download,
   FilePlus2,
   FileText,
-  GitBranch,
-  History,
   Loader2,
-  Plus,
-  ShieldCheck,
-  Sparkles,
-  Trash2,
   Upload,
   UploadCloud,
-  UserCheck,
-  Wrench
 } from 'lucide-react';
 import { ThemeMode, ThemeToggle } from './ThemeToggle';
 import { isAuthRequiredError, processService } from '../services/processService';
 import { getRuntimeConfigValue } from '../config/runtimeConfig';
 import { Toaster, toast } from 'sonner';
-
-type AgentStepStatus = 'backlog' | 'ready' | 'in-progress' | 'waiting-human' | 'waiting-system' | 'completed' | 'failed';
-
-interface AgentStep {
-  id: string;
-  title: string;
-  description: string;
-  reasoning: string;
-  status: AgentStepStatus;
-  owner: string;
-  priority: 'low' | 'medium' | 'high';
-  dependencies: string;
-}
 
 interface AgentBoardModelerProps {
   currentUser: string | null;
@@ -56,40 +28,19 @@ interface AgentBoardState {
   goal: string;
   instructions: string;
   constraints: string;
-  tools: string;
-  agents: string;
-  memoryPolicy: string;
   providerId: string;
   modelName: string;
   endpoint: string;
   credentialRef: string;
   systemPrompt: string;
   promptTemplate: string;
-  allowDynamicTasks: boolean;
-  timeoutDays: number;
-  steps: AgentStep[];
 }
 
-const columns: { id: AgentStepStatus; label: string; icon: React.ReactNode }[] = [
-  { id: 'backlog', label: 'Backlog', icon: <CircleDashed className="h-4 w-4" /> },
-  { id: 'ready', label: 'Ready', icon: <Sparkles className="h-4 w-4" /> },
-  { id: 'in-progress', label: 'In Progress', icon: <Clock3 className="h-4 w-4" /> },
-  { id: 'waiting-human', label: 'Waiting Human', icon: <UserCheck className="h-4 w-4" /> },
-  { id: 'waiting-system', label: 'Waiting System', icon: <Wrench className="h-4 w-4" /> },
-  { id: 'completed', label: 'Completed', icon: <CheckCircle2 className="h-4 w-4" /> },
-  { id: 'failed', label: 'Failed', icon: <ShieldCheck className="h-4 w-4" /> }
-];
-
-const createStep = (index: number): AgentStep => ({
-  id: `step_${Date.now()}_${index}`,
-  title: 'New dynamic task',
-  description: 'Describe the task the agent or participant may perform.',
-  reasoning: 'Capture why this step exists so execution remains auditable.',
-  status: 'backlog',
-  owner: 'Planner Agent',
-  priority: 'medium',
-  dependencies: ''
-});
+interface AgentProcessTemplate {
+  title: string;
+  description: string;
+  definition: Record<string, unknown>;
+}
 
 const splitLines = (value: string) => value.split('\n').map(line => line.trim()).filter(Boolean);
 
@@ -101,6 +52,73 @@ const defaultPromptTemplate = 'Goal: {{goal}}\nInstructions: {{instructions}}\nC
 const defaultProviderEndpoint = (providerId: string) =>
   providerId === 'ollama' ? 'http://host.docker.internal:11434' : '';
 
+const agentProcessTemplates: AgentProcessTemplate[] = [
+  {
+    title: 'Customer Support Resolution',
+    description: 'Investigate customer complaints and recommend an auditable resolution.',
+    definition: {
+      resourceType: 'AgentProcess',
+      processKey: 'customer-support-resolution',
+      processName: 'Customer Support Resolution',
+      goal: 'Resolve the customer complaint while respecting refund policy and keeping the customer informed.',
+      instructions: 'Investigate the complaint, inspect available context, identify the likely root cause, decide whether a refund, replacement, escalation, or clarification is required, and return an auditable recommendation.',
+      constraints: [
+        'Refunds above 500 require manager approval.',
+        'Never promise a refund without policy evidence.',
+        'Always explain the reason for the decision.',
+        'Ask for human input when evidence is incomplete.'
+      ],
+      provider: {
+        providerId: 'ollama',
+        modelName: 'llama3.2',
+        endpoint: 'http://host.docker.internal:11434',
+        systemPrompt: 'You are an Easy BPM orchestration agent. Return concise, auditable decisions. Prefer JSON with decision, reason, requiresApproval, variables, and customerMessage.',
+        promptTemplate: 'Goal: {{goal}}\nInstructions: {{instructions}}\nConstraints:\n{{constraints}}\nInputs:\n{{inputs}}\n\nReturn a JSON decision with: decision, reason, requiresApproval, variables, customerMessage.'
+      }
+    }
+  },
+  {
+    title: 'Invoice Exception Review',
+    description: 'Review invoice mismatches and decide approve, reject, or escalate.',
+    definition: {
+      resourceType: 'AgentProcess',
+      processKey: 'invoice-exception-review',
+      processName: 'Invoice Exception Review',
+      goal: 'Analyze invoice exceptions and recommend whether the invoice should be approved, rejected, or escalated.',
+      instructions: 'Compare invoice details against purchase order, receipt, vendor history, and approval policy. Return a clear decision and rationale.',
+      constraints: [
+        'Escalate when the mismatch is above tolerance.',
+        'Do not approve invoices with missing receipt evidence.',
+        'Include the variables needed by downstream BPMN gateways.'
+      ],
+      provider: {
+        systemPrompt: defaultSystemPrompt,
+        promptTemplate: 'Goal: {{goal}}\nInstructions: {{instructions}}\nConstraints:\n{{constraints}}\nInputs:\n{{inputs}}\n\nReturn JSON with: decision, reason, requiresApproval, variables.'
+      }
+    }
+  },
+  {
+    title: 'Employee Onboarding Coordinator',
+    description: 'Coordinate onboarding decisions across HR, IT, and facilities.',
+    definition: {
+      resourceType: 'AgentProcess',
+      processKey: 'employee-onboarding-coordinator',
+      processName: 'Employee Onboarding Coordinator',
+      goal: 'Coordinate onboarding readiness and identify missing actions before the employee start date.',
+      instructions: 'Review employee profile, role, start date, equipment needs, access requirements, and pending blockers. Return readiness status and next recommended action.',
+      constraints: [
+        'Escalate missing access for roles with security-sensitive systems.',
+        'Do not mark onboarding ready when required equipment is unavailable.',
+        'Explain every blocker in business language.'
+      ],
+      provider: {
+        systemPrompt: defaultSystemPrompt,
+        promptTemplate: 'Goal: {{goal}}\nInstructions: {{instructions}}\nConstraints:\n{{constraints}}\nInputs:\n{{inputs}}\n\nReturn JSON with: readinessStatus, reason, blockers, variables.'
+      }
+    }
+  }
+];
+
 const createBlankAgentState = (): AgentBoardState => {
   const defaultProviderId = getRuntimeDefault('EASY_BPM_MODELER_DEFAULT_AI_PROVIDER', 'gemini');
   return {
@@ -108,51 +126,18 @@ const createBlankAgentState = (): AgentBoardState => {
   goal: '',
   instructions: '',
   constraints: '',
-  tools: '',
-  agents: '',
-  memoryPolicy: '',
   providerId: defaultProviderId,
   modelName: getRuntimeDefault('EASY_BPM_MODELER_DEFAULT_AI_MODEL', 'gemini-3.5-flash'),
   endpoint: defaultProviderEndpoint(defaultProviderId),
   credentialRef: getRuntimeDefault('EASY_BPM_MODELER_DEFAULT_AI_CREDENTIAL_REF', '$GEMINI_API_KEY'),
   systemPrompt: defaultSystemPrompt,
-  promptTemplate: defaultPromptTemplate,
-  allowDynamicTasks: true,
-  timeoutDays: 7,
-  steps: []
+  promptTemplate: defaultPromptTemplate
   };
 };
 
 const toMultiline = (value: unknown): string => {
   if (Array.isArray(value)) return value.map(String).join('\n');
   return typeof value === 'string' ? value : '';
-};
-
-const validStepStatuses = new Set<AgentStepStatus>(columns.map(column => column.id));
-const validPriorities = new Set<AgentStep['priority']>(['low', 'medium', 'high']);
-
-const normalizeImportedSteps = (value: unknown): AgentStep[] => {
-  if (!Array.isArray(value)) return [];
-  return value.map((item, index) => {
-    const step = item && typeof item === 'object' ? item as Record<string, unknown> : {};
-    const status = typeof step.status === 'string' && validStepStatuses.has(step.status as AgentStepStatus)
-      ? step.status as AgentStepStatus
-      : 'backlog';
-    const priority = typeof step.priority === 'string' && validPriorities.has(step.priority as AgentStep['priority'])
-      ? step.priority as AgentStep['priority']
-      : 'medium';
-
-    return {
-      id: typeof step.id === 'string' && step.id.trim() ? step.id : `step_imported_${index + 1}`,
-      title: typeof step.title === 'string' ? step.title : 'Imported task',
-      description: typeof step.description === 'string' ? step.description : '',
-      reasoning: typeof step.reasoning === 'string' ? step.reasoning : '',
-      status,
-      owner: typeof step.owner === 'string' ? step.owner : '',
-      priority,
-      dependencies: typeof step.dependencies === 'string' ? step.dependencies : ''
-    };
-  });
 };
 
 const normalizeImportedAgent = (data: unknown): AgentBoardState => {
@@ -173,9 +158,6 @@ const normalizeImportedAgent = (data: unknown): AgentBoardState => {
     goal: typeof imported.goal === 'string' ? imported.goal : '',
     instructions: typeof imported.instructions === 'string' ? imported.instructions : '',
     constraints: toMultiline(imported.constraints),
-    tools: toMultiline(imported.availableTools),
-    agents: toMultiline(imported.participants),
-    memoryPolicy: typeof imported.memoryPolicy === 'string' ? imported.memoryPolicy : '',
     providerId: typeof provider.providerId === 'string' ? provider.providerId : blank.providerId,
     modelName: typeof provider.modelName === 'string' ? provider.modelName : blank.modelName,
     endpoint: typeof provider.endpoint === 'string'
@@ -183,10 +165,7 @@ const normalizeImportedAgent = (data: unknown): AgentBoardState => {
       : defaultProviderEndpoint(typeof provider.providerId === 'string' ? provider.providerId : blank.providerId),
     credentialRef: typeof provider.credentialRef === 'string' ? provider.credentialRef : blank.credentialRef,
     systemPrompt: typeof provider.systemPrompt === 'string' ? provider.systemPrompt : blank.systemPrompt,
-    promptTemplate: typeof provider.promptTemplate === 'string' ? provider.promptTemplate : blank.promptTemplate,
-    allowDynamicTasks: typeof imported.allowDynamicTasks === 'boolean' ? imported.allowDynamicTasks : true,
-    timeoutDays: typeof imported.timeoutDays === 'number' && imported.timeoutDays > 0 ? imported.timeoutDays : 7,
-    steps: normalizeImportedSteps(imported.steps)
+    promptTemplate: typeof provider.promptTemplate === 'string' ? provider.promptTemplate : blank.promptTemplate
   };
 };
 
@@ -200,24 +179,19 @@ export const AgentBoardModeler: React.FC<AgentBoardModelerProps> = ({
 }) => {
   const [agentState, setAgentState] = useState<AgentBoardState>(() => initialDefinition ? normalizeImportedAgent(initialDefinition) : createBlankAgentState());
   const [isDeploying, setIsDeploying] = useState(false);
+  const [isTemplateBrowserOpen, setIsTemplateBrowserOpen] = useState(false);
   const importInputRef = useRef<HTMLInputElement>(null);
   const {
     processName,
     goal,
     instructions,
     constraints,
-    tools,
-    agents,
-    memoryPolicy,
     providerId,
     modelName,
     endpoint,
     credentialRef,
     systemPrompt,
     promptTemplate,
-    allowDynamicTasks,
-    timeoutDays,
-    steps
   } = agentState;
 
   const updateAgentState = (updates: Partial<AgentBoardState>) => {
@@ -231,54 +205,10 @@ export const AgentBoardModeler: React.FC<AgentBoardModelerProps> = ({
     });
   };
 
-  const boardCounts = useMemo(() => {
-    return columns.reduce<Record<AgentStepStatus, number>>((acc, column) => {
-      acc[column.id] = steps.filter(step => step.status === column.id).length;
-      return acc;
-    }, {} as Record<AgentStepStatus, number>);
-  }, [steps]);
-
-  const updateStep = (id: string, updates: Partial<AgentStep>) => {
-    updateAgentState({ steps: steps.map(step => step.id === id ? { ...step, ...updates } : step) });
-  };
-
-  const addStep = () => {
-    updateAgentState({ steps: [...steps, createStep(steps.length + 1)] });
-  };
-
-  const deleteStep = (id: string) => {
-    updateAgentState({ steps: steps.filter(item => item.id !== id) });
-  };
-
-  const duplicateStep = (id: string) => {
-    const sourceIndex = steps.findIndex(step => step.id === id);
-    if (sourceIndex < 0) return;
-
-    const source = steps[sourceIndex];
-    const duplicate: AgentStep = {
-      ...source,
-      id: `step_${Date.now()}_${sourceIndex + 2}`,
-      title: `${source.title || 'Step'} copy`
-    };
-
-    updateAgentState({
-      steps: [
-        ...steps.slice(0, sourceIndex + 1),
-        duplicate,
-        ...steps.slice(sourceIndex + 1)
-      ]
-    });
-  };
-
-  const moveStep = (id: string, direction: -1 | 1) => {
-    const currentIndex = steps.findIndex(step => step.id === id);
-    const nextIndex = currentIndex + direction;
-    if (currentIndex < 0 || nextIndex < 0 || nextIndex >= steps.length) return;
-
-    const nextSteps = [...steps];
-    const [movedStep] = nextSteps.splice(currentIndex, 1);
-    nextSteps.splice(nextIndex, 0, movedStep);
-    updateAgentState({ steps: nextSteps });
+  const loadTemplate = (template: AgentProcessTemplate) => {
+    setAgentState(normalizeImportedAgent(template.definition));
+    setIsTemplateBrowserOpen(false);
+    toast.success(`${template.title} template loaded.`);
   };
 
   const buildDefinition = () => ({
@@ -288,9 +218,6 @@ export const AgentBoardModeler: React.FC<AgentBoardModelerProps> = ({
       goal,
       instructions,
       constraints: splitLines(constraints),
-      availableTools: splitLines(tools),
-      participants: splitLines(agents),
-      memoryPolicy,
       provider: {
         providerId,
         modelName,
@@ -305,13 +232,9 @@ export const AgentBoardModeler: React.FC<AgentBoardModelerProps> = ({
           retryCount: 0
         }
       },
-      allowDynamicTasks,
-      timeoutDays,
-      boardColumns: columns.map(column => column.id),
-      steps,
       audit: {
         decisionTraceRequired: true,
-        createdFrom: 'easy-bpm-modeler-agent-plan',
+        createdFrom: 'easy-bpm-modeler-agent-definition',
           exportedAt: new Date().toISOString()
         }
     });
@@ -400,6 +323,14 @@ export const AgentBoardModeler: React.FC<AgentBoardModelerProps> = ({
           </button>
           <button
             type="button"
+            onClick={() => setIsTemplateBrowserOpen(true)}
+            className="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm transition-colors hover:bg-slate-50"
+          >
+            <FileText className="h-4 w-4" />
+            Templates
+          </button>
+          <button
+            type="button"
             onClick={() => importInputRef.current?.click()}
             className="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm transition-colors hover:bg-slate-50"
           >
@@ -445,16 +376,18 @@ export const AgentBoardModeler: React.FC<AgentBoardModelerProps> = ({
           <div className="space-y-5">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Agent Process</p>
-              <p className="mt-2 text-xs leading-relaxed text-slate-400">Goal-oriented execution where agents plan ordered work, wait, delegate, and explain decisions.</p>
+              <p className="mt-2 text-xs leading-relaxed text-slate-400">Goal-oriented AI decision block that uses process inputs, instructions, constraints and provider configuration.</p>
             </div>
             <div className="space-y-2">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Plan Status</p>
-              {columns.map(column => (
-                <div key={column.id} className="flex items-center justify-between rounded-md border border-white/[0.07] bg-white/[0.04] px-3 py-2">
-                  <span className="flex items-center gap-2 text-xs text-slate-300">{column.icon}{column.label}</span>
-                  <span className="text-xs font-semibold tabular-nums text-slate-400">{boardCounts[column.id]}</span>
-                </div>
-              ))}
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Start</p>
+              <button
+                type="button"
+                onClick={() => setIsTemplateBrowserOpen(true)}
+                className="flex w-full items-center justify-center gap-2 rounded-md border border-white/[0.08] bg-white/[0.06] px-3 py-2 text-xs font-semibold text-slate-100 transition-colors hover:bg-white/[0.1]"
+              >
+                <FileText className="h-4 w-4" />
+                Browse Templates
+              </button>
             </div>
             <div className="space-y-2">
               <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Controls</p>
@@ -467,221 +400,110 @@ export const AgentBoardModeler: React.FC<AgentBoardModelerProps> = ({
                 {isDeploying ? <Loader2 className="h-4 w-4 animate-spin" /> : <UploadCloud className="h-4 w-4" />}
                 Deploy Agent
               </button>
-              <label className="flex items-center justify-between rounded-md border border-white/[0.07] bg-white/[0.04] px-3 py-2 text-xs">
-                <span>Allow dynamic tasks</span>
-                <input
-                  type="checkbox"
-                  checked={allowDynamicTasks}
-                  onChange={event => updateAgentState({ allowDynamicTasks: event.target.checked })}
-                  className="h-4 w-4 rounded border-slate-500 text-blue-600"
-                />
-              </label>
-              <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-500">Timeout days</label>
-              <input
-                type="number"
-                min={1}
-                value={timeoutDays}
-                onChange={event => updateAgentState({ timeoutDays: Number(event.target.value) || 1 })}
-                className="w-full rounded-md border border-white/[0.08] bg-white/[0.06] px-3 py-2 text-xs text-slate-100 outline-none focus:border-blue-500"
-              />
             </div>
           </div>
         </aside>
 
-        <main className="min-w-0 flex-1 overflow-y-auto">
-          <section className="border-b border-slate-200 bg-white px-6 py-5">
-            <div className="grid gap-4 xl:grid-cols-[1.2fr_1fr_1fr]">
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Name</label>
-                <input
-                  value={processName}
-                  onChange={event => updateAgentState({ processName: event.target.value })}
-                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                />
-                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Goal</label>
-                <textarea
-                  value={goal}
-                  onChange={event => updateAgentState({ goal: event.target.value })}
-                  className="h-24 w-full resize-none rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                />
+        <main className="min-w-0 flex-1 overflow-y-auto bg-slate-100">
+          <div className="mx-auto grid w-full max-w-7xl gap-5 px-6 py-6 xl:grid-cols-[minmax(0,1fr)_380px]">
+            <section className="rounded-lg border border-slate-200 bg-white shadow-sm">
+              <div className="border-b border-slate-200 px-5 py-4">
+                <h2 className="text-sm font-semibold text-slate-900">Decision definition</h2>
+                <p className="mt-1 text-xs text-slate-500">Describe what this AI block should decide inside the BPMN process.</p>
               </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Instructions</label>
-                <textarea
-                  value={instructions}
-                  onChange={event => updateAgentState({ instructions: event.target.value })}
-                  className="h-36 w-full resize-none rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Constraints</label>
-                <textarea
-                  value={constraints}
-                  onChange={event => updateAgentState({ constraints: event.target.value })}
-                  className="h-36 w-full resize-none rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                />
-              </div>
-            </div>
-          </section>
+              <div className="space-y-4 p-5">
+                <label className="block space-y-1.5">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Name</span>
+                  <input
+                    value={processName}
+                    onChange={event => updateAgentState({ processName: event.target.value })}
+                    className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                    placeholder="Customer Support Resolution"
+                  />
+                </label>
 
-          <section className="grid gap-4 border-b border-slate-200 bg-slate-50 px-6 py-5 lg:grid-cols-3">
-            <div className="space-y-2">
-              <label className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-500"><Wrench className="h-3.5 w-3.5" />Available Tools</label>
-              <textarea value={tools} onChange={event => updateAgentState({ tools: event.target.value })} className="h-28 w-full resize-none rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500" />
-            </div>
-            <div className="space-y-2">
-              <label className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-500"><Brain className="h-3.5 w-3.5" />Agents</label>
-              <textarea value={agents} onChange={event => updateAgentState({ agents: event.target.value })} className="h-28 w-full resize-none rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500" />
-            </div>
-            <div className="space-y-2">
-              <label className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-500"><History className="h-3.5 w-3.5" />Memory and Audit</label>
-              <textarea value={memoryPolicy} onChange={event => updateAgentState({ memoryPolicy: event.target.value })} className="h-28 w-full resize-none rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500" />
-            </div>
-          </section>
+                <label className="block space-y-1.5">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Goal</span>
+                  <textarea
+                    value={goal}
+                    onChange={event => updateAgentState({ goal: event.target.value })}
+                    className="h-24 w-full resize-none rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                    placeholder="State the decision this AI block must produce."
+                  />
+                </label>
 
-          <section className="grid gap-4 border-b border-slate-200 bg-white px-6 py-5 lg:grid-cols-4">
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Provider</label>
-              <select value={providerId} onChange={event => handleProviderChange(event.target.value)} className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500">
-                <option value="openai">OpenAI</option>
-                <option value="anthropic">Anthropic</option>
-                <option value="gemini">Gemini</option>
-                <option value="azure-openai">Azure OpenAI</option>
-                <option value="ollama">Ollama</option>
-                <option value="custom-rest">Custom REST</option>
-              </select>
-            </div>
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Model</label>
-              <input value={modelName} onChange={event => updateAgentState({ modelName: event.target.value })} className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500" />
-            </div>
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Endpoint</label>
-              <input value={endpoint} onChange={event => updateAgentState({ endpoint: event.target.value })} className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500" placeholder={providerId === 'ollama' ? 'http://host.docker.internal:11434' : 'Optional provider endpoint'} />
-            </div>
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Credential Ref</label>
-              <input value={credentialRef} onChange={event => updateAgentState({ credentialRef: event.target.value })} className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-mono outline-none focus:border-blue-500" placeholder="$GEMINI_API_KEY" />
-            </div>
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">System Prompt</label>
-              <textarea value={systemPrompt} onChange={event => updateAgentState({ systemPrompt: event.target.value })} className="h-20 w-full resize-none rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500" />
-            </div>
-            <div className="space-y-2 lg:col-span-4">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Planner Prompt Template</label>
-              <textarea value={promptTemplate} onChange={event => updateAgentState({ promptTemplate: event.target.value })} className="h-24 w-full resize-none rounded-md border border-slate-300 px-3 py-2 text-sm font-mono outline-none focus:border-blue-500" />
-            </div>
-          </section>
-
-          <section className="px-6 py-5">
-            <div className="mb-4 flex items-center justify-between gap-3">
-              <div>
-                <h2 className="text-sm font-semibold text-slate-800">Execution Plan</h2>
-                <p className="text-xs text-slate-500">Order the concrete steps the agent process should plan, execute, wait on, and audit.</p>
-              </div>
-              <button
-                type="button"
-                onClick={addStep}
-                className="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50"
-              >
-                <Plus className="h-4 w-4" />
-                Step
-              </button>
-            </div>
-            <div className="space-y-3">
-              {steps.length === 0 ? (
-                <div className="flex min-h-48 flex-col items-center justify-center gap-3 rounded-md border border-dashed border-slate-300 bg-white px-4 py-8 text-center">
-                  <GitBranch className="h-8 w-8 text-slate-300" />
-                  <div>
-                    <h3 className="text-sm font-semibold text-slate-800">No planned steps yet</h3>
-                    <p className="mt-1 text-xs text-slate-500">Add the first execution step to make this agent process deployable and auditable.</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={addStep}
-                    className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-3 py-2 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-blue-500"
-                  >
-                    <Plus className="h-4 w-4" />
-                    Add Step
-                  </button>
+                <div className="grid gap-4 lg:grid-cols-2">
+                  <label className="block space-y-1.5">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Instructions</span>
+                    <textarea
+                      value={instructions}
+                      onChange={event => updateAgentState({ instructions: event.target.value })}
+                      className="h-44 w-full resize-none rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                      placeholder="Tell the AI how to evaluate the process input."
+                    />
+                  </label>
+                  <label className="block space-y-1.5">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Constraints</span>
+                    <textarea
+                      value={constraints}
+                      onChange={event => updateAgentState({ constraints: event.target.value })}
+                      className="h-44 w-full resize-none rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                      placeholder="One constraint per line."
+                    />
+                  </label>
                 </div>
-              ) : steps.map((step, index) => (
-                <article key={step.id} className="rounded-md border border-slate-200 bg-white shadow-sm">
-                  <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-4 py-3">
-                    <div className="flex min-w-0 items-center gap-3">
-                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-slate-900 text-xs font-semibold text-white tabular-nums">{index + 1}</span>
-                      <div className="min-w-0">
-                        <input
-                          value={step.title}
-                          onChange={event => updateStep(step.id, { title: event.target.value })}
-                          className="w-full min-w-64 bg-transparent text-sm font-semibold text-slate-800 outline-none"
-                        />
-                        <span className="mt-1 flex items-center gap-1 text-[10px] font-mono text-slate-400"><GitBranch className="h-3 w-3" />{step.id}</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <button type="button" onClick={() => moveStep(step.id, -1)} disabled={index === 0} className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-slate-500 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40" title="Move up" aria-label="Move step up">
-                        <ArrowUp className="h-4 w-4" />
-                      </button>
-                      <button type="button" onClick={() => moveStep(step.id, 1)} disabled={index === steps.length - 1} className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-slate-500 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40" title="Move down" aria-label="Move step down">
-                        <ArrowDown className="h-4 w-4" />
-                      </button>
-                      <button type="button" onClick={() => duplicateStep(step.id)} className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-slate-500 transition-colors hover:bg-slate-50" title="Duplicate step" aria-label="Duplicate step">
-                        <Copy className="h-4 w-4" />
-                      </button>
-                      <button type="button" onClick={() => deleteStep(step.id)} className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-slate-500 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-600" title="Delete step" aria-label="Delete step">
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
-                  <div className="grid gap-4 p-4 xl:grid-cols-[1.2fr_1fr]">
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      <label className="space-y-1 sm:col-span-2">
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Description</span>
-                        <textarea
-                          value={step.description}
-                          onChange={event => updateStep(step.id, { description: event.target.value })}
-                          className="h-24 w-full resize-none rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                        />
-                      </label>
-                      <label className="space-y-1 sm:col-span-2">
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Audit Reasoning</span>
-                        <textarea
-                          value={step.reasoning}
-                          onChange={event => updateStep(step.id, { reasoning: event.target.value })}
-                          className="h-20 w-full resize-none rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                        />
-                      </label>
-                    </div>
-                    <div className="grid content-start gap-3 sm:grid-cols-2">
-                      <label className="space-y-1">
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Status</span>
-                        <select value={step.status} onChange={event => updateStep(step.id, { status: event.target.value as AgentStepStatus })} className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500">
-                          {columns.map(option => <option key={option.id} value={option.id}>{option.label}</option>)}
-                        </select>
-                      </label>
-                      <label className="space-y-1">
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Priority</span>
-                        <select value={step.priority} onChange={event => updateStep(step.id, { priority: event.target.value as AgentStep['priority'] })} className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500">
-                          <option value="low">Low priority</option>
-                          <option value="medium">Medium priority</option>
-                          <option value="high">High priority</option>
-                        </select>
-                      </label>
-                      <label className="space-y-1">
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Owner</span>
-                        <input value={step.owner} onChange={event => updateStep(step.id, { owner: event.target.value })} className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500" />
-                      </label>
-                      <label className="space-y-1">
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Dependencies</span>
-                        <input value={step.dependencies} onChange={event => updateStep(step.id, { dependencies: event.target.value })} placeholder="Step ids or external blockers" className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500" />
-                      </label>
-                    </div>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </section>
+              </div>
+            </section>
+
+            <aside className="rounded-lg border border-slate-200 bg-white shadow-sm">
+              <div className="border-b border-slate-200 px-5 py-4">
+                <h2 className="text-sm font-semibold text-slate-900">Provider</h2>
+                <p className="mt-1 text-xs text-slate-500">Runtime AI connection used by the backend.</p>
+              </div>
+              <div className="space-y-4 p-5">
+                <label className="block space-y-1.5">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Provider</span>
+                  <select value={providerId} onChange={event => handleProviderChange(event.target.value)} className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100">
+                    <option value="openai">OpenAI</option>
+                    <option value="anthropic">Anthropic</option>
+                    <option value="gemini">Gemini</option>
+                    <option value="azure-openai">Azure OpenAI</option>
+                    <option value="ollama">Ollama</option>
+                    <option value="custom-rest">Custom REST</option>
+                  </select>
+                </label>
+                <label className="block space-y-1.5">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Model</span>
+                  <input value={modelName} onChange={event => updateAgentState({ modelName: event.target.value })} className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
+                </label>
+                <label className="block space-y-1.5">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Endpoint</span>
+                  <input value={endpoint} onChange={event => updateAgentState({ endpoint: event.target.value })} className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" placeholder={providerId === 'ollama' ? 'http://host.docker.internal:11434' : 'Optional provider endpoint'} />
+                </label>
+                <label className="block space-y-1.5">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Credential Ref</span>
+                  <input value={credentialRef} onChange={event => updateAgentState({ credentialRef: event.target.value })} className="w-full rounded-md border border-slate-300 px-3 py-2 font-mono text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" placeholder="$GEMINI_API_KEY" />
+                </label>
+              </div>
+            </aside>
+
+            <section className="rounded-lg border border-slate-200 bg-white shadow-sm xl:col-span-2">
+              <div className="border-b border-slate-200 px-5 py-4">
+                <h2 className="text-sm font-semibold text-slate-900">Prompt</h2>
+                <p className="mt-1 text-xs text-slate-500">The backend renders this template with goal, instructions, constraints and process inputs.</p>
+              </div>
+              <div className="grid gap-4 p-5 lg:grid-cols-[0.9fr_1.4fr]">
+                <label className="block space-y-1.5">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">System Prompt</span>
+                  <textarea value={systemPrompt} onChange={event => updateAgentState({ systemPrompt: event.target.value })} className="h-40 w-full resize-none rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
+                </label>
+                <label className="block space-y-1.5">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Prompt Template</span>
+                  <textarea value={promptTemplate} onChange={event => updateAgentState({ promptTemplate: event.target.value })} className="h-40 w-full resize-none rounded-md border border-slate-300 px-3 py-2 font-mono text-sm text-slate-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
+                </label>
+              </div>
+            </section>
+          </div>
 
           <section className="border-t border-slate-200 bg-white px-6 py-5">
             <div className="flex flex-col gap-3 rounded-md border border-blue-100 bg-blue-50 p-4 text-sm text-blue-900 sm:flex-row sm:items-center sm:justify-between">
@@ -702,6 +524,48 @@ export const AgentBoardModeler: React.FC<AgentBoardModelerProps> = ({
           </section>
         </main>
       </div>
+      {isTemplateBrowserOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 py-6 backdrop-blur-sm">
+          <div className="max-h-full w-full max-w-3xl overflow-hidden rounded-lg border border-[var(--modeler-border)] bg-[var(--modeler-surface)] text-[var(--modeler-text)] shadow-2xl">
+            <div className="flex items-start justify-between gap-4 border-b border-[var(--modeler-border)] px-5 py-4">
+              <div>
+                <h2 className="text-base font-semibold text-[var(--modeler-text)]">Agent Process templates</h2>
+                <p className="mt-1 text-sm text-[var(--modeler-text-muted)]">Load a focused agent definition and adapt it to your workflow.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsTemplateBrowserOpen(false)}
+                className="rounded-md border border-[var(--modeler-border)] bg-[var(--modeler-surface-muted)] px-3 py-2 text-sm font-semibold text-[var(--modeler-text-soft)] transition-colors hover:bg-[var(--modeler-border)] hover:text-[var(--modeler-text)]"
+              >
+                Close
+              </button>
+            </div>
+            <div className="grid max-h-[70vh] gap-3 overflow-y-auto p-5 sm:grid-cols-2">
+              {agentProcessTemplates.map(template => (
+                <button
+                  key={template.title}
+                  type="button"
+                  onClick={() => loadTemplate(template)}
+                  className="group flex min-h-40 flex-col items-start justify-between rounded-lg border border-[var(--modeler-border)] bg-[var(--modeler-surface-muted)] p-4 text-left transition-colors hover:border-blue-400 hover:bg-blue-500/10"
+                >
+                  <span className="flex items-start gap-3">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-blue-500/15 text-blue-400">
+                      <Bot className="h-5 w-5" />
+                    </span>
+                    <span>
+                      <span className="block text-sm font-semibold text-[var(--modeler-text)]">{template.title}</span>
+                      <span className="mt-1 block text-xs leading-5 text-[var(--modeler-text-muted)]">{template.description}</span>
+                    </span>
+                  </span>
+                  <span className="mt-5 inline-flex items-center gap-2 text-xs font-semibold text-blue-500 transition-colors group-hover:text-blue-400">
+                    Load template
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
