@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { NodeType } from '../types';
-import { Bot, Circle, User, Settings, GitFork, Plus, Mail, Zap, Clock3, Layers, Code, Brain, Rows3 } from 'lucide-react';
+import { Bot, Circle, User, Settings, GitFork, Plus, Mail, Zap, Clock3, Layers, Code, Brain, Rows3, FileText } from 'lucide-react';
 
 interface PaletteProps {
   onDragStart: (event: React.DragEvent, type: NodeType) => void;
@@ -15,6 +15,12 @@ export const Palette: React.FC<PaletteProps> = ({ onDragStart, isAgenticOrchestr
       title: 'Participants',
       items: [
         { type: 'pool', label: 'Pool / Participant', icon: <Rows3 className="w-5 h-5" />, color: 'text-sky-600' },
+      ]
+    },
+    {
+      title: 'Documentation',
+      items: [
+        { type: 'documentation', label: 'Documentation Note', icon: <FileText className="w-5 h-5" />, color: 'text-yellow-500' },
       ]
     },
     {

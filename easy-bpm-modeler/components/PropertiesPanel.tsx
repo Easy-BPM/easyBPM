@@ -780,6 +780,69 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
       <div className="p-4 flex-1 overflow-y-auto space-y-8">
         {renderValidationSection(nodeScopedIssues, 'Node Validation')}
 
+        {selectedNode.type === 'documentation' && (
+          <div className="space-y-6">
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+              <div className="mb-4 flex items-center gap-2">
+                <FileText className="h-4 w-4 text-slate-500" />
+                <label className="text-xs font-semibold uppercase tracking-wider text-slate-600">Documentation Note</label>
+              </div>
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-[10px] text-slate-400 mb-1 font-bold">TITLE</label>
+                  <input
+                    type="text"
+                    value={selectedNode.data.label}
+                    onChange={e => onUpdateNode(selectedNode.uid, { label: e.target.value })}
+                    className={inputClassName}
+                    placeholder="Documentation title"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] text-slate-400 mb-1 font-bold">NOTE</label>
+                  <textarea
+                    value={selectedNode.data.description || ''}
+                    onChange={e => onUpdateNode(selectedNode.uid, { description: e.target.value })}
+                    className={`${inputClassName} h-40 resize-none`}
+                    placeholder="Add context, assumptions, rules, or implementation notes..."
+                  />
+                </div>
+              </div>
+              <p className="mt-3 text-[10px] leading-tight text-slate-500">
+                Documentation notes are visual only. They explain the process and are not exported as executable BPMN nodes.
+              </p>
+            </div>
+
+            <div className="border-t border-slate-100 pt-6 space-y-4">
+              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider">Note Layout</label>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[10px] text-slate-400 mb-1 font-bold">WIDTH</label>
+                  <input
+                    type="number"
+                    min={120}
+                    className={inputClassName}
+                    value={selectedNode.width}
+                    onChange={e => onUpdateNodeFrame(selectedNode.uid, { width: Math.max(120, Number(e.target.value) || 120) })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] text-slate-400 mb-1 font-bold">HEIGHT</label>
+                  <input
+                    type="number"
+                    min={72}
+                    className={inputClassName}
+                    value={selectedNode.height}
+                    onChange={e => onUpdateNodeFrame(selectedNode.uid, { height: Math.max(72, Number(e.target.value) || 72) })}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {selectedNode.type !== 'documentation' && (
+        <>
         <div className="space-y-4">
           <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider">General</label>
           <div>
@@ -1412,6 +1475,8 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
               </div>
             </div>
           </div>
+        )}
+        </>
         )}
       </div>
     </div>

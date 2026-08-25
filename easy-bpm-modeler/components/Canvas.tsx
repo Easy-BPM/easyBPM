@@ -40,6 +40,8 @@ interface WaypointDragState {
 
 const POOL_MIN_WIDTH = 240;
 const POOL_MIN_HEIGHT = 140;
+const DOCUMENTATION_MIN_WIDTH = 120;
+const DOCUMENTATION_MIN_HEIGHT = 72;
 const MIN_ZOOM = 0.5;
 const MAX_ZOOM = 1.5;
 const ZOOM_STEP = 0.1;
@@ -68,6 +70,7 @@ const SINGLE_OUTGOING_NODE_TYPES: NodeType[] = [
 
 const isBoundaryNode = (node: BpmnNode) => BOUNDARY_TYPES.includes(node.type);
 const isAttachableNode = (node: BpmnNode) => ATTACHABLE_NODE_TYPES.includes(node.type);
+const isVisualNode = (node: BpmnNode) => node.type === 'pool' || node.type === 'documentation';
 const isBoundaryAttachedToNode = (boundary: BpmnNode, parent: BpmnNode) =>
   boundary.attachedTo === parent.uid || boundary.attachedTo === parent.id;
 
@@ -240,6 +243,9 @@ export const Canvas: React.FC<CanvasProps> = ({
       const dx = pos.x - resizeState.start.x;
       const dy = pos.y - resizeState.start.y;
       const initial = resizeState.initial;
+      const resizingNode = nodes.find(node => node.uid === resizeState.uid);
+      const minWidth = resizingNode?.type === 'documentation' ? DOCUMENTATION_MIN_WIDTH : POOL_MIN_WIDTH;
+      const minHeight = resizingNode?.type === 'documentation' ? DOCUMENTATION_MIN_HEIGHT : POOL_MIN_HEIGHT;
       const right = initial.x + initial.width;
       const bottom = initial.y + initial.height;
 
@@ -249,17 +255,17 @@ export const Canvas: React.FC<CanvasProps> = ({
       let height = initial.height;
 
       if (resizeState.handle.includes('e')) {
-        width = snapToGrid(Math.max(POOL_MIN_WIDTH, initial.width + dx));
+        width = snapToGrid(Math.max(minWidth, initial.width + dx));
       }
       if (resizeState.handle.includes('s')) {
-        height = snapToGrid(Math.max(POOL_MIN_HEIGHT, initial.height + dy));
+        height = snapToGrid(Math.max(minHeight, initial.height + dy));
       }
       if (resizeState.handle.includes('w')) {
-        x = snapToGrid(Math.min(initial.x + dx, right - POOL_MIN_WIDTH));
+        x = snapToGrid(Math.min(initial.x + dx, right - minWidth));
         width = right - x;
       }
       if (resizeState.handle.includes('n')) {
-        y = snapToGrid(Math.min(initial.y + dy, bottom - POOL_MIN_HEIGHT));
+        y = snapToGrid(Math.min(initial.y + dy, bottom - minHeight));
         height = bottom - y;
       }
 
@@ -387,11 +393,12 @@ export const Canvas: React.FC<CanvasProps> = ({
       if (connectingNodeUid && connectingNodeUid !== targetNode.uid) {
           e.stopPropagation();
           const sourceNode = nodes.find((node) => node.uid === connectingNodeUid);
+          const isDocumentationAssociation = sourceNode?.type === 'documentation' || targetNode.type === 'documentation';
           if (sourceNode?.type === 'pool') {
             setConnectingNodeUid(null);
             return;
           }
-          if (sourceNode && SINGLE_OUTGOING_NODE_TYPES.includes(sourceNode.type) && edges.some(edge => edge.source === connectingNodeUid)) {
+          if (!isDocumentationAssociation && sourceNode && SINGLE_OUTGOING_NODE_TYPES.includes(sourceNode.type) && edges.some(edge => edge.source === connectingNodeUid)) {
             setConnectingNodeUid(null);
             return;
           }
@@ -555,19 +562,28 @@ export const Canvas: React.FC<CanvasProps> = ({
           const target = nodes.find((n) => n.uid === edge.target);
           if (!source || !target) return null;
           const routePoints = getEdgeRoutePoints(source, target, edge.waypoints);
-          const path = getEdgePath(source, target, edge.waypoints);
+          const isDocumentationAssociation = source.type === 'documentation' || target.type === 'documentation';
+          const sourceCenter = source.type === 'documentation'
+            ? { x: source.position.x, y: source.position.y + source.height / 2 }
+            : { x: source.position.x + source.width / 2, y: source.position.y + source.height / 2 };
+          const targetCenter = target.type === 'documentation'
+            ? { x: target.position.x, y: target.position.y + target.height / 2 }
+            : { x: target.position.x + target.width / 2, y: target.position.y + target.height / 2 };
+          const path = isDocumentationAssociation
+            ? `M ${sourceCenter.x} ${sourceCenter.y} L ${targetCenter.x} ${targetCenter.y}`
+            : getEdgePath(source, target, edge.waypoints);
           const isSelected = selectedEdgeId === edge.id;
           const hasError = invalidEdgeIds.includes(edge.id);
           const hasWarning = warningEdgeIds.includes(edge.id);
           const isBoundaryEdge = source?.type?.includes('boundary');
           const labelPos = getLabelPosition(path);
-          const stroke = isSelected ? '#3b82f6' : hasError ? '#ef4444' : isBoundaryEdge ? '#ef4444' : hasWarning ? '#f59e0b' : '#94a3b8';
-          const markerId = isSelected ? 'url(#arrowhead-selected)' : isBoundaryEdge ? 'url(#arrowhead-error)' : 'url(#arrowhead)';
+          const stroke = isDocumentationAssociation ? (isSelected ? '#3b82f6' : '#64748b') : isSelected ? '#3b82f6' : hasError ? '#ef4444' : isBoundaryEdge ? '#ef4444' : hasWarning ? '#f59e0b' : '#94a3b8';
+          const markerId = isDocumentationAssociation ? undefined : isSelected ? 'url(#arrowhead-selected)' : isBoundaryEdge ? 'url(#arrowhead-error)' : 'url(#arrowhead)';
           return (
             <g key={edge.id} onClick={(e) => {e.stopPropagation(); onSelectEdge(edge.id); onSelectNodes([]);}} className="group cursor-pointer">
                 <path d={path} stroke="transparent" strokeWidth="15" fill="none" />
-              <path d={path} fill="none" stroke={stroke} strokeWidth={isSelected ? "3" : isBoundaryEdge ? "2.5" : "2"} markerEnd={markerId} strokeLinejoin="round" strokeDasharray={isBoundaryEdge ? '5,3' : (hasWarning && !isSelected ? '6 4' : undefined)} />
-                {isSelected && (
+              <path d={path} fill="none" stroke={stroke} strokeWidth={isDocumentationAssociation ? (isSelected ? "2" : "1.5") : isSelected ? "3" : isBoundaryEdge ? "2.5" : "2"} markerEnd={markerId} strokeLinejoin="round" strokeDasharray={isDocumentationAssociation ? '2 5' : isBoundaryEdge ? '5,3' : (hasWarning && !isSelected ? '6 4' : undefined)} opacity={isDocumentationAssociation && !isSelected ? 0.7 : 1} />
+                {isSelected && !isDocumentationAssociation && (
                   <g>
                     {routePoints.slice(0, -1).map((point, index) => {
                       const nextPoint = routePoints[index + 1];
@@ -616,14 +632,21 @@ export const Canvas: React.FC<CanvasProps> = ({
 
         {connectingNodeUid && (
             <line 
-                x1={nodes.find(n => n.uid === connectingNodeUid)?.position.x! + (nodes.find(n => n.uid === connectingNodeUid)?.width! / 2)}
-                y1={nodes.find(n => n.uid === connectingNodeUid)?.position.y! + (nodes.find(n => n.uid === connectingNodeUid)?.height! / 2)}
+                x1={(() => {
+                  const node = nodes.find(n => n.uid === connectingNodeUid);
+                  return node ? node.position.x + (node.type === 'documentation' ? 0 : node.width / 2) : 0;
+                })()}
+                y1={(() => {
+                  const node = nodes.find(n => n.uid === connectingNodeUid);
+                  return node ? node.position.y + node.height / 2 : 0;
+                })()}
                 x2={mousePos.x} y2={mousePos.y} stroke="#3b82f6" strokeWidth="2" strokeDasharray="5,5"
             />
         )}
 
         {nodes.filter(node => node.type !== 'pool').map((node) => {
           const isTask = node.type === 'user-task' || node.type === 'service-task' || node.type === 'api-task' || node.type === 'code-task' || node.type === 'ai-task' || node.type === 'agent-process-call' || node.type === 'call-activity';
+          const isDocumentation = node.type === 'documentation';
           const isBoxMessageCatch = node.type === 'message-intermediate-catch';
           const isMessageEvent = ['message-start', 'message-intermediate-catch', 'message-intermediate-throw'].includes(node.type);
           const isSelected = selectedNodeUids.includes(node.uid);
@@ -631,9 +654,48 @@ export const Canvas: React.FC<CanvasProps> = ({
           const hasWarning = warningNodeUids.includes(node.uid);
           return (
           <g key={node.uid} transform={`translate(${node.position.x + node.width / 2}, ${node.position.y + node.height / 2})`} onMouseDown={(e) => handleMouseDownNode(e, node)} onMouseUp={(e) => handleNodeMouseUp(e, node)} onMouseEnter={() => setHoveredNodeUid(node.uid)} onMouseLeave={() => setHoveredNodeUid(null)} className="cursor-move group">
-            {isSelected && <rect x={-node.width/2-4} y={-node.height/2-4} width={node.width+8} height={node.height+8} rx={(isTask || isBoxMessageCatch) ? 8 : (['gateway', 'parallel-gateway'].includes(node.type) ? 4 : '50%')} fill="none" stroke="#3b82f6" strokeWidth="1.5" strokeDasharray="4 2" />}
-            {!isSelected && hasError && <rect x={-node.width/2-6} y={-node.height/2-6} width={node.width+12} height={node.height+12} rx={(isTask || isBoxMessageCatch) ? 10 : (['gateway', 'parallel-gateway'].includes(node.type) ? 6 : '50%')} fill="none" stroke="#dc2626" strokeWidth="2" strokeDasharray="5 3" />}
-            {!isSelected && !hasError && hasWarning && <rect x={-node.width/2-6} y={-node.height/2-6} width={node.width+12} height={node.height+12} rx={(isTask || isBoxMessageCatch) ? 10 : (['gateway', 'parallel-gateway'].includes(node.type) ? 6 : '50%')} fill="none" stroke="#d97706" strokeWidth="2" strokeDasharray="5 3" />}
+            {isSelected && <rect x={-node.width/2-4} y={-node.height/2-4} width={node.width+8} height={node.height+8} rx={(isTask || isBoxMessageCatch || isDocumentation) ? 8 : (['gateway', 'parallel-gateway'].includes(node.type) ? 4 : '50%')} fill="none" stroke="#3b82f6" strokeWidth="1.5" strokeDasharray="4 2" />}
+            {!isSelected && hasError && <rect x={-node.width/2-6} y={-node.height/2-6} width={node.width+12} height={node.height+12} rx={(isTask || isBoxMessageCatch || isDocumentation) ? 10 : (['gateway', 'parallel-gateway'].includes(node.type) ? 6 : '50%')} fill="none" stroke="#dc2626" strokeWidth="2" strokeDasharray="5 3" />}
+            {!isSelected && !hasError && hasWarning && <rect x={-node.width/2-6} y={-node.height/2-6} width={node.width+12} height={node.height+12} rx={(isTask || isBoxMessageCatch || isDocumentation) ? 10 : (['gateway', 'parallel-gateway'].includes(node.type) ? 6 : '50%')} fill="none" stroke="#d97706" strokeWidth="2" strokeDasharray="5 3" />}
+            {isDocumentation && (
+              <g>
+                <rect
+                  x={-node.width/2}
+                  y={-node.height/2}
+                  width={node.width}
+                  height={node.height}
+                  fill="transparent"
+                  stroke="none"
+                />
+                <line
+                  x1={-node.width/2}
+                  y1={-node.height/2}
+                  x2={-node.width/2}
+                  y2={node.height/2}
+                  stroke="var(--modeler-text-muted)"
+                  strokeWidth="1.5"
+                  opacity="0.72"
+                />
+                <line
+                  x1={-node.width/2}
+                  y1={-node.height/2}
+                  x2={-node.width/2 + 14}
+                  y2={-node.height/2}
+                  stroke="var(--modeler-text-muted)"
+                  strokeWidth="1.5"
+                  opacity="0.72"
+                />
+                <line
+                  x1={-node.width/2}
+                  y1={node.height/2}
+                  x2={-node.width/2 + 14}
+                  y2={node.height/2}
+                  stroke="var(--modeler-text-muted)"
+                  strokeWidth="1.5"
+                  opacity="0.72"
+                />
+              </g>
+            )}
             {node.type === 'start' && <circle r="20" filter="url(#shadow)" className="fill-[#111a21] stroke-green-500 stroke-[2px]" />}
             {node.type === 'message-start' && (
               <g>
@@ -708,24 +770,68 @@ export const Canvas: React.FC<CanvasProps> = ({
             {node.type === 'call-activity' && <Layers x={-node.width/2+12} y={-node.height/2 + node.height / 2 - 8} className="w-4 h-4 text-cyan-500 pointer-events-none" />}
             {node.type === 'gateway' && <GitFork x="-8" y="-8" className="w-4 h-4 text-orange-600 pointer-events-none opacity-80" />}
             {node.type === 'parallel-gateway' && <Plus x="-8" y="-8" className="w-4 h-4 text-orange-600 pointer-events-none opacity-80" />}
-            <foreignObject 
-              x={isTask ? -node.width/2 + 38 : (isBoxMessageCatch ? -node.width/2 + 30 : -(node.width+80)/2)} 
-              y={(isTask || isBoxMessageCatch) ? -node.height/2 : node.height/2+1} 
-              width={isTask ? Math.max(36, node.width - 46) : (isBoxMessageCatch ? Math.max(36, node.width - 36) : node.width+80)} 
-              height={(isTask || isBoxMessageCatch) ? node.height : 40} 
+            <foreignObject
+              x={isDocumentation ? -node.width/2 + 8 : (isTask ? -node.width/2 + 38 : (isBoxMessageCatch ? -node.width/2 + 30 : -(node.width+80)/2))}
+              y={isDocumentation ? -node.height/2 + 5 : ((isTask || isBoxMessageCatch) ? -node.height/2 : node.height/2+1)}
+              width={isDocumentation ? Math.max(40, node.width - 16) : (isTask ? Math.max(36, node.width - 46) : (isBoxMessageCatch ? Math.max(36, node.width - 36) : node.width+80))}
+              height={isDocumentation ? Math.max(36, node.height - 10) : ((isTask || isBoxMessageCatch) ? node.height : 40)}
               style={{ pointerEvents: 'none' }}
             >
-                <div className={`flex h-full items-center ${isTask || isBoxMessageCatch ? 'justify-start pr-2 text-left' : 'justify-center px-1 text-center'}`}>
-                  <span className={`font-semibold leading-tight line-clamp-3 ${(isTask || isBoxMessageCatch) ? 'text-[11px] text-[var(--modeler-node-label)]' : 'text-[10px] text-[var(--modeler-text-soft)]'}`}>
-                    {node.data.label}
-                  </span>
+                <div className={`flex h-full ${isDocumentation ? 'flex-col items-start text-left' : `items-center ${isTask || isBoxMessageCatch ? 'justify-start pr-2 text-left' : 'justify-center px-1 text-center'}`}`}>
+                  {isDocumentation ? (
+                    <>
+                      <div className="text-[10px] font-semibold leading-tight text-[var(--modeler-text-soft)]">{node.data.label}</div>
+                      <div className="mt-1.5 line-clamp-4 whitespace-pre-wrap text-[9px] leading-snug text-[var(--modeler-text-muted)]">{node.data.description}</div>
+                    </>
+                  ) : (
+                    <span className={`font-semibold leading-tight line-clamp-3 ${(isTask || isBoxMessageCatch) ? 'text-[11px] text-[var(--modeler-node-label)]' : 'text-[10px] text-[var(--modeler-text-soft)]'}`}>
+                      {node.data.label}
+                    </span>
+                  )}
                 </div>
             </foreignObject>
-            <g className="opacity-0 group-hover:opacity-100 transition-opacity">
+            {!isDocumentation && <g className="opacity-0 group-hover:opacity-100 transition-opacity">
                 {[{x:0,y:-node.height/2},{x:node.width/2,y:0},{x:0,y:node.height/2},{x:-node.width/2,y:0}].map((h, i) => (
                     <circle key={i} cx={h.x} cy={h.y} r="6" className="fill-[#111a21] stroke-blue-500 stroke-2 hover:fill-blue-500 cursor-crosshair" onMouseDown={(e) => handleConnectionStart(e, node.uid)} />
                 ))}
-            </g>
+            </g>}
+            {isDocumentation && (
+              <g className={`${isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition-opacity`}>
+                {[{x: -node.width/2, y: 0}, {x: node.width/2, y: 0}].map((h, i) => (
+                  <circle
+                    key={i}
+                    cx={h.x}
+                    cy={h.y}
+                    r="4"
+                    className="fill-[var(--modeler-surface)] stroke-blue-500 stroke-[1.5px] hover:fill-blue-500 cursor-crosshair"
+                    onMouseDown={(e) => handleConnectionStart(e, node.uid)}
+                  />
+                ))}
+              </g>
+            )}
+            {isDocumentation && isSelected && ([
+              { handle: 'nw' as ResizeHandle, x: -node.width/2, y: -node.height/2, cursor: 'nwse-resize' },
+              { handle: 'ne' as ResizeHandle, x: node.width/2, y: -node.height/2, cursor: 'nesw-resize' },
+              { handle: 'e' as ResizeHandle, x: node.width/2, y: 0, cursor: 'ew-resize' },
+              { handle: 'se' as ResizeHandle, x: node.width/2, y: node.height/2, cursor: 'nwse-resize' },
+              { handle: 's' as ResizeHandle, x: 0, y: node.height/2, cursor: 'ns-resize' },
+              { handle: 'sw' as ResizeHandle, x: -node.width/2, y: node.height/2, cursor: 'nesw-resize' },
+              { handle: 'w' as ResizeHandle, x: -node.width/2, y: 0, cursor: 'ew-resize' },
+            ]).map(({ handle, x, y, cursor }) => (
+              <rect
+                key={handle}
+                x={x - 5}
+                y={y - 5}
+                width="10"
+                height="10"
+                rx="2"
+                fill="#ffffff"
+                stroke="#3b82f6"
+                strokeWidth="1.5"
+                style={{ cursor }}
+                onMouseDown={(e) => handleResizeStart(e, node, handle)}
+              />
+            ))}
             {(hasError || hasWarning) && (
               <g transform={`translate(${node.width/2 + 10}, ${-node.height/2 - 10})`}>
                 <circle r="9" fill={hasError ? '#dc2626' : '#d97706'} stroke="#ffffff" strokeWidth="2" />
