@@ -8,6 +8,8 @@ import {
   CallActivityMapping,
   DataRetentionSettings,
   Incident,
+  IncidentGroup,
+  IncidentRetryStatus,
   IncidentEvent,
   IncidentResolutionAction,
   IncidentSource,
@@ -408,6 +410,36 @@ export const adminService = {
 
     const res = await fetchWithAuth(`${API_BASE_URL}/incidents?${params.toString()}`);
     if (!res.ok) throw new Error(`Failed to fetch incidents: ${res.statusText}`);
+    return res.json();
+  },
+
+  getIncidentGroups: async (filters: {
+    status?: IncidentStatus | '';
+    source?: IncidentSource | '';
+    processDefinitionId?: number | null;
+    nodeId?: string;
+    acknowledgedBy?: string;
+    retryStatus?: IncidentRetryStatus | '';
+    occurredSince?: string;
+    minOccurrences?: number;
+    page?: number;
+    size?: number;
+  } = {}): Promise<Page<IncidentGroup>> => {
+    const params = new URLSearchParams({
+      page: String(filters.page ?? 0),
+      size: String(filters.size ?? 25)
+    });
+    if (filters.status) params.set('status', filters.status);
+    if (filters.source) params.set('source', filters.source);
+    if (filters.processDefinitionId) params.set('processDefinitionId', String(filters.processDefinitionId));
+    if (filters.nodeId) params.set('nodeId', filters.nodeId);
+    if (filters.acknowledgedBy) params.set('acknowledgedBy', filters.acknowledgedBy);
+    if (filters.retryStatus) params.set('retryStatus', filters.retryStatus);
+    if (filters.occurredSince) params.set('occurredSince', filters.occurredSince);
+    if (filters.minOccurrences) params.set('minOccurrences', String(filters.minOccurrences));
+
+    const res = await fetchWithAuth(`${API_BASE_URL}/incidents/groups?${params.toString()}`);
+    if (!res.ok) throw new Error(`Failed to fetch incident groups: ${res.statusText}`);
     return res.json();
   },
 

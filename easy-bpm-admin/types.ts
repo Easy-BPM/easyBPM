@@ -135,6 +135,7 @@ export interface BpmTask {
 export type IncidentStatus = 'OPEN' | 'ACKNOWLEDGED' | 'RESOLVED';
 export type IncidentSeverity = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 export type IncidentSource = 'PROCESS_ENGINE' | 'WORKER' | 'CODE_TASK' | 'AI_TASK' | 'MESSAGE';
+export type IncidentRetryStatus = 'NOT_ELIGIBLE' | 'RETRY_ELIGIBLE' | 'RETRY_REQUESTED' | 'RETRYING' | 'RETRY_SUCCEEDED' | 'RETRY_FAILED' | 'RETRY_EXHAUSTED';
 export type IncidentResolutionAction = 'RESOLVED_MANUALLY' | 'VARIABLE_FIXED' | 'RETRIED_SUCCESSFULLY' | 'IGNORED_KNOWN_ISSUE' | 'INSTANCE_CANCELLED';
 export type IncidentEventType = 'CREATED' | 'OCCURRED_AGAIN' | 'ACKNOWLEDGED' | 'RESOLVED' | 'REOPENED' | 'RETRY_REQUESTED';
 
@@ -158,6 +159,31 @@ export interface Incident {
   resolvedBy?: string | null;
   resolutionNote?: string | null;
   resolutionAction?: IncidentResolutionAction | null;
+}
+
+export interface IncidentGroup {
+  signature: string;
+  representativeIncidentId: number;
+  processDefinitionId?: number | null;
+  processName?: string | null;
+  source: IncidentSource;
+  nodeId?: string | null;
+  status: IncidentStatus;
+  retryStatus: IncidentRetryStatus;
+  message: string;
+  technicalDetails?: string | null;
+  occurrenceCount: number;
+  instanceCount: number;
+  firstOccurredAt: string;
+  lastOccurredAt: string;
+  retryAttemptCount: number;
+  maxRetryAttempts: number;
+  nextRetryAt?: string | null;
+  lastRetryError?: string | null;
+  acknowledgedBy?: string | null;
+  resolutionNote?: string | null;
+  sampleIncidentIds: number[];
+  sampleInstanceIds: number[];
 }
 
 export interface IncidentEvent {
