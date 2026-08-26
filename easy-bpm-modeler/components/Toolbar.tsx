@@ -1,5 +1,5 @@
 import React from 'react';
-import { Cpu, AlertTriangle } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 import { AppView } from '../types';
 import { ThemeMode, ThemeToggle } from './ThemeToggle';
 
@@ -27,11 +27,9 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   return (
     <div className="modeler-toolbar min-h-14 border-b flex items-center justify-between px-6 py-2 z-10 relative gap-3 flex-wrap">
       <div className="flex items-center space-x-3">
-        <div className="bg-blue-600 p-2 rounded-lg shadow-[0_0_24px_rgba(37,99,235,0.35)]">
-          <Cpu className="w-5 h-5 text-white" />
-        </div>
+        <img src="/easy-bpm-mark.png" className="h-9 w-9 object-contain" alt="Easy BPM" />
         <div>
-          <h1 className="text-sm font-semibold modeler-heading">Easy BPMN Modeler</h1>
+          <h1 className="text-sm font-semibold modeler-heading">Easy BPM Modeler</h1>
         </div>
       </div>
 

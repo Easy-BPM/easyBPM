@@ -10,7 +10,6 @@ import {
   Lock,
   Search,
   Settings2,
-  ShieldCheck,
   StopCircle,
   Trash2,
   User,
@@ -182,29 +181,31 @@ const LoginView: React.FC<{ onLogin: (username: string, perms: string[]) => void
   };
 
   return (
-    <div className="admin-app login-shell min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 p-4" data-theme={theme}>
+    <div className="admin-app login-shell" data-theme={theme}>
       <div className="absolute right-5 top-5">
         <ThemeToggle theme={theme} onToggle={onToggleTheme} />
       </div>
-      <div className="w-full max-w-md">
-        {/* Card */}
-        <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8 shadow-2xl">
-          <div className="flex flex-col items-center mb-8">
-            <div className="bg-blue-600 p-3 rounded-xl mb-4 shadow-lg shadow-blue-600/40 ring-4 ring-blue-600/20">
-              <ShieldCheck className="text-white" size={28} />
-            </div>
-            <h1 className="text-2xl font-bold text-white">Easy BPM Admin</h1>
-            <p className="text-slate-400 mt-1 text-sm">Sign in to your operations console</p>
+      <div className="easy-bpm-login-layout">
+        <section className="easy-bpm-login-brand" aria-label="Easy BPM">
+          <img src="/easy-bpm-mark.png" className="easy-bpm-login-brand-mark" alt="Easy BPM" />
+          <p className="easy-bpm-login-product">Operations Console</p>
+          <h1>Process orchestration<br />made <span>simple.</span></h1>
+          <p className="easy-bpm-login-tagline">Manage process instances, incidents, and operational health.</p>
+          <div className="easy-bpm-login-flow" aria-hidden="true"><span /><i /><b /><i /><span /></div>
+        </section>
+        <section className="easy-bpm-login-panel">
+          <div className="easy-bpm-login-heading">
+            <img src="/easy-bpm-mark.png" alt="" />
+            <div><p>Admin Console</p></div>
           </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="easy-bpm-login-form">
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-1.5">Username</label>
+            <label>Username</label>
             <div className="relative">
-              <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
+              <User className="easy-bpm-login-field-icon" size={17} />
               <input
                 type="text"
-                className="w-full pl-9 pr-4 py-2.5 rounded-lg border border-white/10 bg-white/5 text-white placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm"
+                className="easy-bpm-login-input"
                 placeholder="Enter admin username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
@@ -212,12 +213,12 @@ const LoginView: React.FC<{ onLogin: (username: string, perms: string[]) => void
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-1.5">Password</label>
+            <label>Password</label>
             <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
+              <Lock className="easy-bpm-login-field-icon" size={17} />
               <input
                 type="password"
-                className="w-full pl-9 pr-4 py-2.5 rounded-lg border border-white/10 bg-white/5 text-white placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm"
+                className="easy-bpm-login-input"
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -228,14 +229,14 @@ const LoginView: React.FC<{ onLogin: (username: string, perms: string[]) => void
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2.5 rounded-lg transition-colors shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2 mt-2 text-sm"
+            className="easy-bpm-login-submit"
           >
             {loading ? <Loader2 className="animate-spin" size={18} /> : 'Sign In'}
           </button>
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="easy-bpm-login-error">{error}</p>}
         </form>
-        </div>
-        <p className="text-center text-[11px] text-slate-600 mt-4">Easy BPM · Process Operations Console</p>
+        <p className="easy-bpm-login-footer">Easy BPM · Operations Console</p>
+        </section>
       </div>
     </div>
   );

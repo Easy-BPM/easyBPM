@@ -285,9 +285,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
       <div className="flex min-h-screen">
         <aside className="hidden w-72 shrink-0 border-r border-[var(--modeler-border)] bg-[var(--modeler-surface)]/80 px-5 py-6 lg:flex lg:flex-col">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-600 text-white shadow-lg shadow-blue-600/25">
-              <Layout className="h-5 w-5" />
-            </div>
+            <img src="/easy-bpm-mark.png" className="h-10 w-10 object-contain" alt="Easy BPM" />
             <div>
               <h1 className="text-sm font-semibold text-[var(--modeler-text)]">Easy BPM Modeler</h1>
               <p className="text-xs text-[var(--modeler-text-muted)]">Modeling made simple.</p>
@@ -334,9 +332,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
         <div className="min-w-0 flex-1">
           <header className="flex h-16 items-center justify-between border-b border-[var(--modeler-border)] bg-[var(--modeler-surface)]/70 px-6 backdrop-blur-sm">
             <div className="flex items-center gap-3 lg:hidden">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-600 text-white">
-                <Layout className="h-5 w-5" />
-              </div>
+              <img src="/easy-bpm-mark.png" className="h-9 w-9 object-contain" alt="Easy BPM" />
               <div>
                 <h1 className="text-sm font-semibold">Easy BPM Modeler</h1>
                 <p className="text-xs text-[var(--modeler-text-muted)]">Workspace</p>
