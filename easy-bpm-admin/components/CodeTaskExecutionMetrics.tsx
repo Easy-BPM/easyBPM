@@ -179,7 +179,7 @@ export const CodeTaskExecutionMetrics: React.FC<Props> = ({ executions, filters 
       {cards.map((card, index) => (
         <div
           key={index}
-          className={`${getBgColor(card.color)} border ${getBorderColor(card.color)} rounded-lg p-4 flex items-start justify-between`}
+          className={`code-task-metric code-task-metric-${card.color} ${getBgColor(card.color)} border ${getBorderColor(card.color)} rounded-lg p-4 flex items-start justify-between`}
         >
           <div>
             <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">

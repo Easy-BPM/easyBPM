@@ -21,6 +21,7 @@ type Props = {
   definition: WorkflowDefinition;
   nodeHistory: string[];
   currentNodes: string[];
+  expanded?: boolean;
 };
 
 type Edge = {
@@ -96,10 +97,10 @@ const nodeSizeByType = (type: string): { width: number; height: number } => {
 const getNodeSize = (node: WorkflowNode): { width: number; height: number } => {
   const fixedSize = nodeSizeByType(node.type);
   const normalized = normalizedType(node.type);
-  if (isCircularEvent(node.type) || isGateway(node.type) || normalized.includes('boundary')) {
-    return fixedSize;
+  if (isCircularEvent(node.type) || isGateway(node.type) || normalized.includes('boundary')) return fixedSize;
+  if (isParticipant(node) || isDocumentation(node)) {
+    if (node.width && node.height) return { width: node.width, height: node.height };
   }
-  if (node.width && node.height) return { width: node.width, height: node.height };
   return fixedSize;
 };
 
@@ -295,7 +296,7 @@ const renderNodeText = (
   </foreignObject>
 );
 
-export const WorkflowCanvas: React.FC<Props> = ({ definition, nodeHistory, currentNodes }) => {
+export const WorkflowCanvas: React.FC<Props> = ({ definition, nodeHistory, currentNodes, expanded = false }) => {
   const [zoom, setZoom] = useState(1);
   const rawNodes = definition.nodes ?? [];
   if (rawNodes.length === 0) {
@@ -333,16 +334,18 @@ export const WorkflowCanvas: React.FC<Props> = ({ definition, nodeHistory, curre
     { minX: Number.POSITIVE_INFINITY, minY: Number.POSITIVE_INFINITY, maxX: 0, maxY: 0 }
   );
 
-  const padding = 90;
-  const width = Math.max(740, bounds.maxX - bounds.minX + padding * 2);
-  const height = Math.max(360, bounds.maxY - bounds.minY + padding * 2);
-  const offsetX = padding - bounds.minX;
-  const offsetY = padding - bounds.minY;
+  const padding = expanded ? 120 : 90;
+  const contentWidth = bounds.maxX - bounds.minX;
+  const contentHeight = bounds.maxY - bounds.minY;
+  const width = Math.max(expanded ? 1180 : 740, contentWidth + padding * 2);
+  const height = Math.max(expanded ? 620 : 360, contentHeight + padding * 2);
+  const offsetX = padding + Math.max(0, (width - contentWidth - padding * 2) / 2) - bounds.minX;
+  const offsetY = padding + Math.max(0, (height - contentHeight - padding * 2) / 2) - bounds.minY;
   const clampZoom = (value: number) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, Number(value.toFixed(2))));
   const zoomPercent = Math.round(zoom * 100);
 
   return (
-    <div className="workflow-canvas relative w-full overflow-hidden rounded-xl border shadow-sm">
+    <div className={`workflow-canvas relative w-full overflow-hidden rounded-xl border shadow-sm ${expanded ? 'workflow-canvas-expanded' : ''}`}>
       <div className="workflow-canvas-glow pointer-events-none absolute inset-0" />
       <div className="workflow-canvas-controls absolute right-3 top-3 z-10 flex items-center gap-1 rounded-md border p-1 shadow-sm backdrop-blur-sm">
         <button
@@ -376,7 +379,7 @@ export const WorkflowCanvas: React.FC<Props> = ({ definition, nodeHistory, curre
           <RotateCcw className="h-4 w-4" />
         </button>
       </div>
-      <div className="max-h-[620px] overflow-auto">
+      <div className={expanded ? 'max-h-[calc(100vh-280px)] min-h-[620px] overflow-auto' : 'max-h-[620px] overflow-auto'}>
         <svg
           width={width * zoom}
           height={height * zoom}

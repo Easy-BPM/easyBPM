@@ -254,6 +254,7 @@ const InstanceExplorerView: React.FC<{ initialInstanceId?: number | null }> = ({
   const [workflowDefinition, setWorkflowDefinition] = useState<WorkflowDefinition | null>(null);
   const [workflowLoading, setWorkflowLoading] = useState(false);
   const [workflowError, setWorkflowError] = useState<string | null>(null);
+  const [activeInstanceTab, setActiveInstanceTab] = useState<'overview' | 'workflow'>('overview');
   const [parentInstance, setParentInstance] = useState<ProcessInstance | null>(null);
   const [childInstances, setChildInstances] = useState<ProcessInstance[]>([]);
   const [timelineEvents, setTimelineEvents] = useState<ProcessInstanceEvent[]>([]);
@@ -353,6 +354,7 @@ const InstanceExplorerView: React.FC<{ initialInstanceId?: number | null }> = ({
     try {
       const found = await adminService.findInstanceById(targetId);
       setInstance(found);
+      setActiveInstanceTab('overview');
       if (found) {
         setVariables(await adminService.getProcessVariables(found.id));
         setTimelineEvents(await adminService.getProcessTimeline(found.id));
@@ -518,6 +520,37 @@ const InstanceExplorerView: React.FC<{ initialInstanceId?: number | null }> = ({
               tone="purple"
             />
           </div>
+
+          <div className="flex items-center gap-1 border-b border-slate-200" role="tablist" aria-label="Instance details">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeInstanceTab === 'overview'}
+              onClick={() => setActiveInstanceTab('overview')}
+              className={`border-b-2 px-4 py-3 text-sm font-semibold transition-colors ${
+                activeInstanceTab === 'overview'
+                  ? 'border-blue-600 text-blue-700'
+                  : 'border-transparent text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              Overview
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeInstanceTab === 'workflow'}
+              onClick={() => setActiveInstanceTab('workflow')}
+              className={`border-b-2 px-4 py-3 text-sm font-semibold transition-colors ${
+                activeInstanceTab === 'workflow'
+                  ? 'border-blue-600 text-blue-700'
+                  : 'border-transparent text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              Workflow
+            </button>
+          </div>
+
+          <div className={activeInstanceTab === 'overview' ? 'space-y-6' : 'hidden'}>
 
           {instance.status === 'FAILED' && (
             <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 shadow-sm">
@@ -731,6 +764,9 @@ const InstanceExplorerView: React.FC<{ initialInstanceId?: number | null }> = ({
             )}
           </div>
 
+          </div>
+
+          {activeInstanceTab === 'workflow' && (
           <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4">
             <div className="flex items-center justify-between gap-3">
               <h3 className="font-semibold text-slate-800 flex items-center gap-2">
@@ -759,10 +795,14 @@ const InstanceExplorerView: React.FC<{ initialInstanceId?: number | null }> = ({
                   definition={workflowDefinition}
                   nodeHistory={effectiveNodeHistory}
                   currentNodes={instance.currentNode ?? []}
+                  expanded
                 />
               </>
             )}
           </div>
+          )}
+
+          <div className={activeInstanceTab === 'overview' ? 'space-y-6' : 'hidden'}>
 
           {/* Child Instances Inspection */}
           {childInstances.length > 0 && (
@@ -862,6 +902,8 @@ const InstanceExplorerView: React.FC<{ initialInstanceId?: number | null }> = ({
               )}
             </div>
           )}
+
+          </div>
 
         </>
       )}
