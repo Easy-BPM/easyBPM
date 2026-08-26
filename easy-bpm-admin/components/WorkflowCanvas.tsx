@@ -1,5 +1,20 @@
 import React, { useState } from 'react';
-import { Zap, Mail, Clock3, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
+import {
+  Bot,
+  Brain,
+  Clock3,
+  Code,
+  GitFork,
+  Layers,
+  Mail,
+  Plus,
+  RotateCcw,
+  Settings,
+  User,
+  Zap,
+  ZoomIn,
+  ZoomOut
+} from 'lucide-react';
 import { WorkflowDefinition, WorkflowNode } from '../types';
 
 type Props = {
@@ -13,9 +28,31 @@ type Edge = {
   to: string;
 };
 
+type NodeTone = {
+  stroke: string;
+  icon: string;
+  label: string;
+};
+
 const MIN_ZOOM = 0.5;
 const MAX_ZOOM = 1.5;
 const ZOOM_STEP = 0.1;
+
+const DEFAULT_NODE_TONE: NodeTone = {
+  stroke: '#94a3b8',
+  icon: '#64748b',
+  label: 'Task'
+};
+
+const TASK_TONES: Record<string, NodeTone> = {
+  human: { stroke: '#3b82f6', icon: '#60a5fa', label: 'Human task' },
+  service: { stroke: '#f59e0b', icon: '#f59e0b', label: 'Service task' },
+  api: { stroke: '#a855f7', icon: '#c084fc', label: 'API task' },
+  code: { stroke: '#6366f1', icon: '#818cf8', label: 'Code task' },
+  ai: { stroke: '#ec4899', icon: '#f472b6', label: 'AI task' },
+  agent: { stroke: '#22d3ee', icon: '#67e8f9', label: 'Agent process' },
+  call: { stroke: '#06b6d4', icon: '#22d3ee', label: 'Call activity' }
+};
 
 const CurrentTokenPin: React.FC<{ x: number; y: number }> = ({ x, y }) => (
   <g transform={`translate(${x}, ${y})`}>
@@ -30,7 +67,7 @@ const labelForNode = (node: WorkflowNode): string => {
   return node.id;
 };
 
-const normalizedType = (type: string): string => type.toLowerCase();
+const normalizedType = (type: string): string => type.toLowerCase().replace(/[^a-z0-9]/g, '');
 const isMessageStart = (type: string): boolean => normalizedType(type).includes('messagestart');
 const isMessageCatch = (type: string): boolean => normalizedType(type).includes('messageintermediatecatch');
 const isMessageThrow = (type: string): boolean => normalizedType(type).includes('messageintermediatethrow');
@@ -43,46 +80,27 @@ const isCircularEvent = (type: string): boolean =>
   isTimerEvent(type) ||
   isMessageThrow(type);
 
+const isGateway = (type: string): boolean => normalizedType(type).includes('gateway');
+const isDocumentation = (node: WorkflowNode): boolean => normalizedType(node.type).includes('documentation');
+
 const nodeSizeByType = (type: string): { width: number; height: number } => {
-  const normalized = type.toLowerCase();
+  const normalized = normalizedType(type);
   if (type === 'Participant' || type === 'Pool') return { width: 640, height: 260 };
   if (isCircularEvent(type)) return { width: 40, height: 40 };
-  if (normalized.includes('gateway')) return { width: 40, height: 40 };
+  if (isGateway(type)) return { width: 40, height: 40 };
   if (normalized.includes('boundary')) return { width: 30, height: 30 };
-  return { width: 120, height: 60 };
+  if (normalized.includes('documentation')) return { width: 180, height: 82 };
+  return { width: 132, height: 62 };
 };
 
 const getNodeSize = (node: WorkflowNode): { width: number; height: number } => {
   const fixedSize = nodeSizeByType(node.type);
-  const normalized = node.type.toLowerCase();
-  if (
-    isCircularEvent(node.type) ||
-    normalized.includes('gateway') ||
-    normalized.includes('boundary')
-  ) {
+  const normalized = normalizedType(node.type);
+  if (isCircularEvent(node.type) || isGateway(node.type) || normalized.includes('boundary')) {
     return fixedSize;
   }
   if (node.width && node.height) return { width: node.width, height: node.height };
   return fixedSize;
-};
-
-const getNodeStyle = (type: string, visited: boolean, current: boolean): string => {
-  const normalized = type.toLowerCase();
-  if (current) return 'fill-emerald-100 stroke-emerald-600';
-  if (visited) return 'fill-blue-50 stroke-blue-500';
-
-  if (normalized.includes('start')) return 'fill-white stroke-green-600';
-  if (normalized.includes('end')) return 'fill-white stroke-red-600';
-  if (normalized.includes('gateway')) return 'fill-white stroke-orange-600';
-  if (type === 'ErrorBoundaryEvent') return 'fill-white stroke-red-600';
-  if (type === 'MessageBoundaryEvent') return 'fill-white stroke-blue-600';
-  if (normalized.includes('timer')) return 'fill-white stroke-amber-600';
-  if (isMessageEvent(type)) return 'fill-white stroke-blue-600';
-  if (type === 'HumanTask' || type === 'UserTask' || type === 'humanTask' || type === 'userTask') return 'fill-white stroke-blue-700';
-  if (type === 'ServiceTask') return 'fill-white stroke-amber-600';
-  if (type === 'APITask') return 'fill-white stroke-purple-600';
-  if (type === 'Participant' || type === 'Pool') return 'fill-white stroke-sky-500';
-  return 'fill-white stroke-slate-400';
 };
 
 const getCenter = (node: WorkflowNode, size: { width: number; height: number }) => ({
@@ -90,7 +108,21 @@ const getCenter = (node: WorkflowNode, size: { width: number; height: number }) 
   y: (node.position?.y ?? 0) + size.height / 2
 });
 
+const getDocumentationAnchor = (node: WorkflowNode) => {
+  const size = getNodeSize(node);
+  return {
+    x: node.position?.x ?? 0,
+    y: (node.position?.y ?? 0) + size.height / 2
+  };
+};
+
 const getOrthogonalPath = (source: WorkflowNode, target: WorkflowNode): string => {
+  if (isDocumentation(source) || isDocumentation(target)) {
+    const start = isDocumentation(source) ? getDocumentationAnchor(source) : getCenter(source, getNodeSize(source));
+    const end = isDocumentation(target) ? getDocumentationAnchor(target) : getCenter(target, getNodeSize(target));
+    return `M ${start.x} ${start.y} L ${end.x} ${end.y}`;
+  }
+
   const sourceSize = getNodeSize(source);
   const targetSize = getNodeSize(target);
   const start = getCenter(source, sourceSize);
@@ -129,7 +161,7 @@ const collectEdges = (definition: WorkflowDefinition): Edge[] => {
 };
 
 const isBoundaryEvent = (node: WorkflowNode): boolean => {
-  return node.type.toLowerCase().includes('boundary') || !!node.attachedTo;
+  return normalizedType(node.type).includes('boundary') || !!node.attachedTo;
 };
 
 const isParticipant = (node: WorkflowNode): boolean => {
@@ -137,7 +169,7 @@ const isParticipant = (node: WorkflowNode): boolean => {
 };
 
 const hasDegenerateLayout = (nodes: WorkflowNode[]): boolean => {
-  const drawableNodes = nodes.filter((node) => !isParticipant(node));
+  const drawableNodes = nodes.filter((node) => !isParticipant(node) && !isDocumentation(node));
   if (drawableNodes.length <= 1) return false;
 
   const positionKeys = new Set(drawableNodes.map((node) => `${Math.round(node.position?.x ?? 0)}:${Math.round(node.position?.y ?? 0)}`));
@@ -167,7 +199,7 @@ const autoLayoutNodes = (nodes: WorkflowNode[], edges: Edge[]): WorkflowNode[] =
 
   const levels = new Map<string, number>();
   const queue = nodes
-    .filter((node) => !isParticipant(node) && (incoming.get(node.id) ?? 0) === 0)
+    .filter((node) => !isParticipant(node) && !isDocumentation(node) && (incoming.get(node.id) ?? 0) === 0)
     .map((node) => node.id);
 
   if (queue.length === 0 && nodes[0]) queue.push(nodes[0].id);
@@ -184,13 +216,13 @@ const autoLayoutNodes = (nodes: WorkflowNode[], edges: Edge[]): WorkflowNode[] =
   }
 
   nodes.forEach((node) => {
-    if (!levels.has(node.id) && !isParticipant(node)) {
+    if (!levels.has(node.id) && !isParticipant(node) && !isDocumentation(node)) {
       levels.set(node.id, levels.size);
     }
   });
 
   const rowsByLevel = new Map<number, WorkflowNode[]>();
-  nodes.filter((node) => !isParticipant(node) && !isBoundaryEvent(node)).forEach((node) => {
+  nodes.filter((node) => !isParticipant(node) && !isBoundaryEvent(node) && !isDocumentation(node)).forEach((node) => {
     const level = levels.get(node.id) ?? 0;
     rowsByLevel.set(level, [...(rowsByLevel.get(level) ?? []), node]);
   });
@@ -207,7 +239,7 @@ const autoLayoutNodes = (nodes: WorkflowNode[], edges: Edge[]): WorkflowNode[] =
   });
 
   return nodes.map((node) => {
-    if (isParticipant(node)) return node;
+    if (isParticipant(node) || isDocumentation(node)) return node;
     if (isBoundaryEvent(node) && node.attachedTo) {
       const parentPosition = positions.get(node.attachedTo);
       if (parentPosition) {
@@ -218,6 +250,50 @@ const autoLayoutNodes = (nodes: WorkflowNode[], edges: Edge[]): WorkflowNode[] =
     return { ...node, position: positions.get(node.id) ?? node.position ?? { x: 100, y: 120 } };
   });
 };
+
+const taskToneForType = (type: string): NodeTone => {
+  const normalized = normalizedType(type);
+  if (normalized.includes('human') || normalized.includes('user')) return TASK_TONES.human;
+  if (normalized.includes('api')) return TASK_TONES.api;
+  if (normalized.includes('code')) return TASK_TONES.code;
+  if (normalized.includes('aitask') || normalized === 'ai') return TASK_TONES.ai;
+  if (normalized.includes('agent')) return TASK_TONES.agent;
+  if (normalized.includes('callactivity')) return TASK_TONES.call;
+  if (normalized.includes('service')) return TASK_TONES.service;
+  return DEFAULT_NODE_TONE;
+};
+
+const taskIconForType = (type: string, color: string) => {
+  const normalized = normalizedType(type);
+  const className = 'h-4 w-4 pointer-events-none';
+  if (normalized.includes('human') || normalized.includes('user')) return <User className={className} color={color} />;
+  if (normalized.includes('api')) return <Settings className={className} color={color} />;
+  if (normalized.includes('code')) return <Code className={className} color={color} />;
+  if (normalized.includes('aitask') || normalized === 'ai') return <Brain className={className} color={color} />;
+  if (normalized.includes('agent')) return <Bot className={className} color={color} />;
+  if (normalized.includes('callactivity')) return <Layers className={className} color={color} />;
+  return <Zap className={className} color={color} />;
+};
+
+const renderNodeText = (
+  node: WorkflowNode,
+  options: { x: number; y: number; width: number; height: number; task?: boolean; documentation?: boolean }
+) => (
+  <foreignObject x={options.x} y={options.y} width={options.width} height={options.height} style={{ pointerEvents: 'none' }}>
+    <div
+      className={`workflow-node-copy ${options.task ? 'workflow-node-copy-task' : ''} ${options.documentation ? 'workflow-node-copy-documentation' : ''}`}
+      title={`${labelForNode(node)} (${node.id})`}
+    >
+      <div className="workflow-node-label">{labelForNode(node)}</div>
+      {!options.documentation && node.name && node.name.trim().length > 0 && (
+        <div className="workflow-node-id">{node.id}</div>
+      )}
+      {options.documentation && (
+        <div className="workflow-node-id">{String(node.config?.description ?? node.id ?? '')}</div>
+      )}
+    </div>
+  </foreignObject>
+);
 
 export const WorkflowCanvas: React.FC<Props> = ({ definition, nodeHistory, currentNodes }) => {
   const [zoom, setZoom] = useState(1);
@@ -237,11 +313,10 @@ export const WorkflowCanvas: React.FC<Props> = ({ definition, nodeHistory, curre
   }
 
   const nodeById = new Map(nodes.map((n) => [n.id, n]));
-  
-  // Separate regular nodes and boundary events
   const poolNodes = nodes.filter(isParticipant);
-  const regularNodes = nodes.filter(n => !isBoundaryEvent(n) && !isParticipant(n));
-  const boundaryNodes = nodes.filter(n => isBoundaryEvent(n));
+  const regularNodes = nodes.filter((node) => !isBoundaryEvent(node) && !isParticipant(node) && !isDocumentation(node));
+  const boundaryNodes = nodes.filter((node) => isBoundaryEvent(node) && !isDocumentation(node));
+  const documentationNodes = nodes.filter(isDocumentation);
 
   const bounds = nodes.reduce(
     (acc, node) => {
@@ -258,32 +333,33 @@ export const WorkflowCanvas: React.FC<Props> = ({ definition, nodeHistory, curre
     { minX: Number.POSITIVE_INFINITY, minY: Number.POSITIVE_INFINITY, maxX: 0, maxY: 0 }
   );
 
-  const padding = 80;
-  const width = Math.max(700, bounds.maxX - bounds.minX + padding * 2);
-  const height = Math.max(320, bounds.maxY - bounds.minY + padding * 2);
+  const padding = 90;
+  const width = Math.max(740, bounds.maxX - bounds.minX + padding * 2);
+  const height = Math.max(360, bounds.maxY - bounds.minY + padding * 2);
   const offsetX = padding - bounds.minX;
   const offsetY = padding - bounds.minY;
   const clampZoom = (value: number) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, Number(value.toFixed(2))));
   const zoomPercent = Math.round(zoom * 100);
 
   return (
-    <div className="relative w-full rounded-xl border border-slate-200 bg-slate-50">
-      <div className="absolute right-3 top-3 z-10 flex items-center gap-1 rounded-md border border-slate-200 bg-white/95 p-1 shadow-sm backdrop-blur-sm">
+    <div className="workflow-canvas relative w-full overflow-hidden rounded-xl border shadow-sm">
+      <div className="workflow-canvas-glow pointer-events-none absolute inset-0" />
+      <div className="workflow-canvas-controls absolute right-3 top-3 z-10 flex items-center gap-1 rounded-md border p-1 shadow-sm backdrop-blur-sm">
         <button
           type="button"
           onClick={() => setZoom((current) => clampZoom(current - ZOOM_STEP))}
-          className="flex h-8 w-8 items-center justify-center rounded text-slate-600 hover:bg-slate-100 hover:text-slate-900 disabled:opacity-40"
+          className="flex h-8 w-8 items-center justify-center rounded disabled:opacity-40"
           disabled={zoom <= MIN_ZOOM}
           title="Zoom out"
           aria-label="Zoom out"
         >
           <ZoomOut className="h-4 w-4" />
         </button>
-        <span className="w-12 text-center text-xs font-semibold tabular-nums text-slate-600">{zoomPercent}%</span>
+        <span className="w-12 text-center text-xs font-semibold tabular-nums">{zoomPercent}%</span>
         <button
           type="button"
           onClick={() => setZoom((current) => clampZoom(current + ZOOM_STEP))}
-          className="flex h-8 w-8 items-center justify-center rounded text-slate-600 hover:bg-slate-100 hover:text-slate-900 disabled:opacity-40"
+          className="flex h-8 w-8 items-center justify-center rounded disabled:opacity-40"
           disabled={zoom >= MAX_ZOOM}
           title="Zoom in"
           aria-label="Zoom in"
@@ -293,7 +369,7 @@ export const WorkflowCanvas: React.FC<Props> = ({ definition, nodeHistory, curre
         <button
           type="button"
           onClick={() => setZoom(1)}
-          className="flex h-8 w-8 items-center justify-center rounded text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+          className="flex h-8 w-8 items-center justify-center rounded"
           title="Reset zoom"
           aria-label="Reset zoom"
         >
@@ -301,314 +377,240 @@ export const WorkflowCanvas: React.FC<Props> = ({ definition, nodeHistory, curre
         </button>
       </div>
       <div className="max-h-[620px] overflow-auto">
-      <svg width={width * zoom} height={height * zoom} className="block min-w-full">
-        <defs>
-          {/* Standard flow arrow (inactive) */}
-          <marker id="wf-arrow" markerWidth="12" markerHeight="12" refX="11" refY="6" orient="auto" markerUnits="strokeWidth">
-            <path d="M 0 0 L 12 6 L 0 12 Z" fill="#64748b" stroke="none" />
-          </marker>
-          {/* Active flow arrow (visited) */}
-          <marker id="wf-arrow-active" markerWidth="12" markerHeight="12" refX="11" refY="6" orient="auto" markerUnits="strokeWidth">
-            <path d="M 0 0 L 12 6 L 0 12 Z" fill="#2563eb" stroke="none" />
-          </marker>
-          {/* Boundary event exception arrow */}
-          <marker id="wf-arrow-boundary" markerWidth="12" markerHeight="12" refX="11" refY="6" orient="auto" markerUnits="strokeWidth">
-            <path d="M 0 0 L 12 6 L 0 12 Z" fill="#dc2626" stroke="none" />
-          </marker>
-        </defs>
+        <svg
+          width={width * zoom}
+          height={height * zoom}
+          className="block min-w-full"
+          style={{
+            backgroundImage: 'radial-gradient(circle, var(--workflow-canvas-grid) 1px, transparent 1.2px)',
+            backgroundSize: `${24 * zoom}px ${24 * zoom}px`
+          }}
+        >
+          <defs>
+            <marker id="wf-arrow" markerWidth="12" markerHeight="12" refX="11" refY="6" orient="auto" markerUnits="strokeWidth">
+              <path d="M 0 0 L 12 6 L 0 12 Z" fill="#64748b" stroke="none" />
+            </marker>
+            <marker id="wf-arrow-active" markerWidth="12" markerHeight="12" refX="11" refY="6" orient="auto" markerUnits="strokeWidth">
+              <path d="M 0 0 L 12 6 L 0 12 Z" fill="#2563eb" stroke="none" />
+            </marker>
+            <marker id="wf-arrow-boundary" markerWidth="12" markerHeight="12" refX="11" refY="6" orient="auto" markerUnits="strokeWidth">
+              <path d="M 0 0 L 12 6 L 0 12 Z" fill="#dc2626" stroke="none" />
+            </marker>
+            <filter id="wf-shadow" x="-50%" y="-50%" width="200%" height="200%">
+              <feDropShadow dx="0" dy="4" stdDeviation="6" floodColor="#020617" floodOpacity="0.28" />
+            </filter>
+          </defs>
 
-        <g transform={`scale(${zoom})`}>
-        {/* Draw BPMN participants/pools behind the executable process path */}
-        {poolNodes.map((node) => {
-          const size = getNodeSize(node);
-          const x = (node.position?.x ?? 0) + offsetX;
-          const y = (node.position?.y ?? 0) + offsetY;
+          <g transform={`scale(${zoom})`}>
+            {poolNodes.map((node) => {
+              const size = getNodeSize(node);
+              const x = (node.position?.x ?? 0) + offsetX;
+              const y = (node.position?.y ?? 0) + offsetY;
 
-          return (
-            <g key={node.id}>
-              <rect x={x} y={y} width={size.width} height={size.height} rx={8} className="fill-white stroke-sky-500 stroke-[2] opacity-80" />
-              <rect x={x} y={y} width={44} height={size.height} rx={8} className="fill-blue-50 stroke-sky-500 stroke-[1.5]" />
-              <line x1={x + 44} y1={y} x2={x + 44} y2={y + size.height} className="stroke-sky-500 stroke-[1.5]" />
-              <line x1={x + 44} y1={y + size.height / 2} x2={x + size.width} y2={y + size.height / 2} className="stroke-sky-500/40 stroke-[1]" strokeDasharray="6 4" />
-              <text
-                transform={`translate(${x + 22}, ${y + size.height / 2}) rotate(-90)`}
-                textAnchor="middle"
-                className="fill-sky-700 text-[12px] font-semibold"
-              >
-                {labelForNode(node)}
-              </text>
-              <text x={x + 56} y={y + 22} className="fill-slate-500 text-[10px] font-mono">
-                {node.id}
-              </text>
-            </g>
-          );
-        })}
+              return (
+                <g key={node.id}>
+                  <rect x={x} y={y} width={size.width} height={size.height} rx={8} className="workflow-pool-fill" />
+                  <rect x={x} y={y} width={44} height={size.height} rx={8} className="workflow-pool-lane" />
+                  <line x1={x + 44} y1={y} x2={x + 44} y2={y + size.height} className="workflow-pool-line" />
+                  <line x1={x + 44} y1={y + size.height / 2} x2={x + size.width} y2={y + size.height / 2} className="workflow-pool-divider" strokeDasharray="6 4" />
+                  <text transform={`translate(${x + 22}, ${y + size.height / 2}) rotate(-90)`} textAnchor="middle" className="workflow-pool-label">
+                    {labelForNode(node)}
+                  </text>
+                </g>
+              );
+            })}
 
-        {/* Draw regular edges and boundary event exception arrows */}
-        {edges.map((edge) => {
-          const source = nodeById.get(edge.from);
-          const target = nodeById.get(edge.to);
-          if (!source || !target) return null;
-          if (isParticipant(source) || isParticipant(target)) return null;
+            {edges.map((edge) => {
+              const source = nodeById.get(edge.from);
+              const target = nodeById.get(edge.to);
+              if (!source || !target) return null;
+              if (isParticipant(source) || isParticipant(target)) return null;
+              if (isBoundaryEvent(target)) return null;
 
-          // Skip edges TO boundary events (they're drawn separately in the boundary connection section)
-          if (isBoundaryEvent(target)) return null;
+              const edgeKey = `${edge.from}::${edge.to}`;
+              const isVisitedEdge = visitedEdges.has(edgeKey);
+              const isBoundaryEdge = isBoundaryEvent(source);
+              const isDocumentationEdge = isDocumentation(source) || isDocumentation(target);
+              const path = getOrthogonalPath(
+                { ...source, position: { x: (source.position?.x ?? 0) + offsetX, y: (source.position?.y ?? 0) + offsetY } },
+                { ...target, position: { x: (target.position?.x ?? 0) + offsetX, y: (target.position?.y ?? 0) + offsetY } }
+              );
 
-          const edgeKey = `${edge.from}::${edge.to}`;
-          const isVisitedEdge = visitedEdges.has(edgeKey);
-          const isBoundaryEdge = isBoundaryEvent(source);
-          const path = getOrthogonalPath(
-            { ...source, position: { x: (source.position?.x ?? 0) + offsetX, y: (source.position?.y ?? 0) + offsetY } },
-            { ...target, position: { x: (target.position?.x ?? 0) + offsetX, y: (target.position?.y ?? 0) + offsetY } }
-          );
-
-          return (
-            <path
-              key={edgeKey}
-              d={path}
-              fill="none"
-              stroke={isVisitedEdge ? '#2563eb' : isBoundaryEdge ? '#dc2626' : '#94a3b8'}
-              strokeWidth={isVisitedEdge ? '3' : '2'}
-              markerEnd={isVisitedEdge ? 'url(#wf-arrow-active)' : isBoundaryEdge ? 'url(#wf-arrow-boundary)' : 'url(#wf-arrow)'}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeDasharray={isBoundaryEdge ? '4,3' : undefined}
-              vectorEffect="non-scaling-stroke"
-            />
-          );
-        })}
-
-        {/* Draw boundary event connections */}
-        {boundaryNodes.map((boundaryNode) => {
-          if (!boundaryNode.attachedTo) return null;
-          
-          const parentNode = nodeById.get(boundaryNode.attachedTo);
-          if (!parentNode) return null;
-
-          const parentSize = getNodeSize(parentNode);
-          const boundarySize = getNodeSize(boundaryNode);
-          
-          // Create offsetted node copies for path calculation
-          const parentOffsetted = {
-            ...parentNode,
-            position: {
-              x: (parentNode.position?.x ?? 0) + offsetX,
-              y: (parentNode.position?.y ?? 0) + offsetY
-            }
-          };
-          const boundaryOffsetted = {
-            ...boundaryNode,
-            position: {
-              x: (boundaryNode.position?.x ?? 0) + offsetX,
-              y: (boundaryNode.position?.y ?? 0) + offsetY
-            }
-          };
-
-          const parentCenter = getCenter(parentOffsetted, parentSize);
-          const boundaryCenter = getCenter(boundaryOffsetted, boundarySize);
-
-          return (
-            <path
-              key={`boundary-${boundaryNode.id}`}
-              d={`M ${parentCenter.x} ${parentCenter.y} L ${boundaryCenter.x} ${boundaryCenter.y}`}
-              fill="none"
-              stroke="#dc2626"
-              strokeWidth="1.5"
-              strokeDasharray="4,3"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              markerEnd="url(#wf-arrow-boundary)"
-              vectorEffect="non-scaling-stroke"
-            />
-          );
-        })}
-
-        {/* Draw regular nodes */}
-        {regularNodes.map((node) => {
-          const size = getNodeSize(node);
-          const x = (node.position?.x ?? 0) + offsetX;
-          const y = (node.position?.y ?? 0) + offsetY;
-          const visited = visitedSet.has(node.id);
-          const current = currentSet.has(node.id);
-          const className = getNodeStyle(node.type, visited, current);
-
-          const typeKey = normalizedType(node.type);
-          if (isCircularEvent(node.type)) {
-            const centerX = x + size.width / 2;
-            const centerY = y + size.height / 2;
-            const isEnd = typeKey.includes('end');
-            const isTimer = isTimerEvent(node.type);
-            const isMessage = isMessageEvent(node.type);
-
-            return (
-              <g key={node.id}>
-                <circle
-                  cx={centerX}
-                  cy={centerY}
-                  r={size.width / 2}
-                  className={`${className} ${isEnd ? 'stroke-[4]' : 'stroke-[3]'}`}
+              return (
+                <path
+                  key={edgeKey}
+                  d={path}
+                  fill="none"
+                  stroke={isDocumentationEdge ? 'var(--workflow-doc-line)' : isVisitedEdge ? '#2563eb' : isBoundaryEdge ? '#dc2626' : 'var(--workflow-edge)'}
+                  strokeWidth={isDocumentationEdge ? '1.5' : isVisitedEdge ? '3' : '2'}
+                  markerEnd={isDocumentationEdge ? undefined : isVisitedEdge ? 'url(#wf-arrow-active)' : isBoundaryEdge ? 'url(#wf-arrow-boundary)' : 'url(#wf-arrow)'}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeDasharray={isDocumentationEdge ? '2 5' : isBoundaryEdge ? '4,3' : undefined}
+                  opacity={isDocumentationEdge ? '0.72' : '1'}
+                  vectorEffect="non-scaling-stroke"
                 />
-                {isTimer && (
-                  <>
-                    <circle cx={centerX} cy={centerY} r={size.width / 2 - 4} className="fill-none stroke-amber-500 stroke-[1.5]" />
-                    <g transform={`translate(${centerX - 8}, ${centerY - 8})`}>
-                      <Clock3 className="h-4 w-4 text-amber-600 pointer-events-none" />
-                    </g>
-                  </>
-                )}
-                {isMessage && (
-                  <g transform={`translate(${centerX - 8}, ${centerY - 8})`}>
-                    <Mail className={`h-4 w-4 pointer-events-none ${isMessageStart(node.type) ? 'text-green-600' : 'text-blue-600'}`} />
+              );
+            })}
+
+            {boundaryNodes.map((boundaryNode) => {
+              if (!boundaryNode.attachedTo) return null;
+              const parentNode = nodeById.get(boundaryNode.attachedTo);
+              if (!parentNode) return null;
+
+              const parentSize = getNodeSize(parentNode);
+              const boundarySize = getNodeSize(boundaryNode);
+              const parentOffsetted = {
+                ...parentNode,
+                position: {
+                  x: (parentNode.position?.x ?? 0) + offsetX,
+                  y: (parentNode.position?.y ?? 0) + offsetY
+                }
+              };
+              const boundaryOffsetted = {
+                ...boundaryNode,
+                position: {
+                  x: (boundaryNode.position?.x ?? 0) + offsetX,
+                  y: (boundaryNode.position?.y ?? 0) + offsetY
+                }
+              };
+
+              const parentCenter = getCenter(parentOffsetted, parentSize);
+              const boundaryCenter = getCenter(boundaryOffsetted, boundarySize);
+
+              return (
+                <path
+                  key={`boundary-${boundaryNode.id}`}
+                  d={`M ${parentCenter.x} ${parentCenter.y} L ${boundaryCenter.x} ${boundaryCenter.y}`}
+                  fill="none"
+                  stroke="#dc2626"
+                  strokeWidth="1.5"
+                  strokeDasharray="4,3"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  markerEnd="url(#wf-arrow-boundary)"
+                  vectorEffect="non-scaling-stroke"
+                />
+              );
+            })}
+
+            {documentationNodes.map((node) => {
+              const size = getNodeSize(node);
+              const x = (node.position?.x ?? 0) + offsetX;
+              const y = (node.position?.y ?? 0) + offsetY;
+
+              return (
+                <g key={node.id}>
+                  <rect x={x} y={y} width={size.width} height={size.height} fill="transparent" stroke="none" />
+                  <line x1={x} y1={y} x2={x} y2={y + size.height} className="workflow-doc-bracket" />
+                  <line x1={x} y1={y} x2={x + 14} y2={y} className="workflow-doc-bracket" />
+                  <line x1={x} y1={y + size.height} x2={x + 14} y2={y + size.height} className="workflow-doc-bracket" />
+                  {renderNodeText(node, { x: x + 8, y: y + 5, width: Math.max(40, size.width - 16), height: Math.max(36, size.height - 10), documentation: true })}
+                </g>
+              );
+            })}
+
+            {regularNodes.map((node) => {
+              const size = getNodeSize(node);
+              const x = (node.position?.x ?? 0) + offsetX;
+              const y = (node.position?.y ?? 0) + offsetY;
+              const visited = visitedSet.has(node.id);
+              const current = currentSet.has(node.id);
+              const typeKey = normalizedType(node.type);
+
+              if (isCircularEvent(node.type)) {
+                const centerX = x + size.width / 2;
+                const centerY = y + size.height / 2;
+                const isEnd = typeKey.includes('end');
+                const isTimer = isTimerEvent(node.type);
+                const isMessage = isMessageEvent(node.type);
+                const stroke = isEnd ? '#ef4444' : isTimer ? '#f59e0b' : isMessage ? '#3b82f6' : '#22c55e';
+
+                return (
+                  <g key={node.id}>
+                    <circle cx={centerX} cy={centerY} r={size.width / 2} fill="var(--workflow-node-fill)" stroke={current ? '#10b981' : stroke} strokeWidth={isEnd ? 4 : 2.5} filter="url(#wf-shadow)" />
+                    {visited && !current && <circle cx={centerX} cy={centerY} r={size.width / 2 + 5} className="workflow-visited-ring" />}
+                    {isTimer && <Clock3 x={centerX - 8} y={centerY - 8} className="h-4 w-4 pointer-events-none" color="#f59e0b" />}
+                    {isMessage && <Mail x={centerX - 8} y={centerY - 8} className="h-4 w-4 pointer-events-none" color={isMessageStart(node.type) ? '#22c55e' : '#60a5fa'} />}
+                    <text x={centerX} y={y + size.height + 22} textAnchor="middle" className="workflow-floating-label">
+                      {labelForNode(node)}
+                    </text>
+                    {current && <CurrentTokenPin x={x + size.width + 8} y={y - 4} />}
                   </g>
-                )}
-                <text
-                  x={centerX}
-                  y={y + size.height + 22}
-                  textAnchor="middle"
-                  className="fill-slate-700 text-xs font-medium"
-                >
-                  {labelForNode(node)}
-                </text>
-                {node.name && node.name.trim().length > 0 && (
-                  <text
-                    x={centerX}
-                    y={y + size.height + 36}
-                    textAnchor="middle"
-                    className="fill-slate-500 text-[10px] font-mono"
-                  >
-                    {node.id}
+                );
+              }
+
+              if (isGateway(node.type)) {
+                return (
+                  <g key={node.id}>
+                    <rect x={x + 8} y={y + 8} width={size.width - 16} height={size.height - 16} transform={`rotate(45 ${x + size.width / 2} ${y + size.height / 2})`} fill="var(--workflow-node-fill)" stroke={current ? '#10b981' : '#f97316'} strokeWidth="2.5" filter="url(#wf-shadow)" />
+                    {typeKey.includes('parallel') ? (
+                      <Plus x={x + size.width / 2 - 8} y={y + size.height / 2 - 8} className="h-4 w-4 pointer-events-none" color="#fb923c" />
+                    ) : (
+                      <GitFork x={x + size.width / 2 - 8} y={y + size.height / 2 - 8} className="h-4 w-4 pointer-events-none" color="#fb923c" />
+                    )}
+                    {visited && !current && <rect x={x + 3} y={y + 3} width={size.width - 6} height={size.height - 6} rx="4" className="workflow-visited-ring" />}
+                    <text x={x + size.width / 2} y={y + size.height + 22} textAnchor="middle" className="workflow-floating-label">
+                      {labelForNode(node)}
+                    </text>
+                    {current && <CurrentTokenPin x={x + size.width + 8} y={y - 4} />}
+                  </g>
+                );
+              }
+
+              const tone = taskToneForType(node.type);
+              const isMessageBox = isMessageCatch(node.type);
+
+              return (
+                <g key={node.id}>
+                  <rect
+                    x={x}
+                    y={y}
+                    width={size.width}
+                    height={size.height}
+                    rx={6}
+                    fill="var(--workflow-node-fill)"
+                    stroke={current ? '#10b981' : tone.stroke}
+                    strokeWidth="2.5"
+                    filter="url(#wf-shadow)"
+                  />
+                  {visited && !current && <rect x={x - 5} y={y - 5} width={size.width + 10} height={size.height + 10} rx={10} className="workflow-visited-ring" />}
+                  <rect x={x + 8} y={y + (size.height - 24) / 2} width="24" height="24" rx="5" className="workflow-icon-chip" />
+                  <g transform={`translate(${x + 12}, ${y + size.height / 2 - 8})`}>
+                    {isMessageBox ? <Mail className="h-4 w-4 pointer-events-none" color="#60a5fa" /> : taskIconForType(node.type, tone.icon)}
+                  </g>
+                  {renderNodeText(node, { x: x + 38, y, width: Math.max(36, size.width - 46), height: size.height, task: true })}
+                  {current && <CurrentTokenPin x={x + size.width + 8} y={y - 4} />}
+                </g>
+              );
+            })}
+
+            {boundaryNodes.map((node) => {
+              const size = getNodeSize(node);
+              const x = (node.position?.x ?? 0) + offsetX;
+              const y = (node.position?.y ?? 0) + offsetY;
+              const current = currentSet.has(node.id);
+              const cx = x + size.width / 2;
+              const cy = y + size.height / 2;
+              const radius = size.width / 2;
+              const normalized = normalizedType(node.type);
+              const stroke = normalized.includes('message') ? '#3b82f6' : normalized.includes('timer') ? '#f59e0b' : '#ef4444';
+
+              return (
+                <g key={node.id}>
+                  <circle cx={cx} cy={cy} r={radius} fill="var(--workflow-node-fill)" stroke={current ? '#10b981' : stroke} strokeWidth="2" strokeDasharray="3,2" filter="url(#wf-shadow)" />
+                  {normalized.includes('message') && <Mail x={cx - 7} y={cy - 7} className="h-3.5 w-3.5 pointer-events-none" color="#60a5fa" />}
+                  {normalized.includes('timer') && <Clock3 x={cx - 7} y={cy - 7} className="h-3.5 w-3.5 pointer-events-none" color="#f59e0b" />}
+                  {!normalized.includes('message') && !normalized.includes('timer') && <Zap x={cx - 7} y={cy - 7} className="h-3.5 w-3.5 pointer-events-none" color="#ef4444" fill="#ef4444" />}
+                  <text x={cx} y={y + size.height + 18} textAnchor="middle" className="workflow-floating-label workflow-floating-label-small">
+                    {labelForNode(node)}
                   </text>
-                )}
-                {current && <CurrentTokenPin x={x + size.width + 8} y={y - 4} />}
-              </g>
-            );
-          }
-
-          if (typeKey.includes('gateway')) {
-            return (
-              <g key={node.id}>
-                <rect
-                  x={x + 8}
-                  y={y + 8}
-                  width={size.width - 16}
-                  height={size.height - 16}
-                  transform={`rotate(45 ${x + size.width / 2} ${y + size.height / 2})`}
-                  className={`${className} stroke-[3]`}
-                />
-                <text
-                  x={x + size.width / 2}
-                  y={y + size.height + 22}
-                  textAnchor="middle"
-                  className="fill-slate-700 text-xs font-medium"
-                >
-                  {labelForNode(node)}
-                </text>
-                {node.name && node.name.trim().length > 0 && (
-                  <text
-                    x={x + size.width / 2}
-                    y={y + size.height + 36}
-                    textAnchor="middle"
-                    className="fill-slate-500 text-[10px] font-mono"
-                  >
-                    {node.id}
-                  </text>
-                )}
-                {current && <CurrentTokenPin x={x + size.width + 8} y={y - 4} />}
-              </g>
-            );
-          }
-
-          const isMessageBox = isMessageCatch(node.type);
-          return (
-            <g key={node.id}>
-              <rect x={x} y={y} width={size.width} height={size.height} rx={8} className={`${className} stroke-[3]`} />
-              {isMessageBox && (
-                <g transform={`translate(${x + 9}, ${y + 9})`}>
-                  <Mail className="h-4 w-4 text-blue-600 pointer-events-none" />
+                  {current && <CurrentTokenPin x={cx + radius + 4} y={cy - 4} />}
                 </g>
-              )}
-              <text
-                x={x + size.width / 2}
-                y={y + size.height / 2 - 8}
-                textAnchor="middle"
-                className="fill-slate-800 text-xs font-semibold"
-              >
-                {labelForNode(node)}
-              </text>
-              <text
-                x={x + size.width / 2}
-                y={y + size.height / 2 + 2}
-                textAnchor="middle"
-                className="fill-slate-500 text-[10px] font-mono"
-              >
-                {node.id}
-              </text>
-              {current && <CurrentTokenPin x={x + size.width + 8} y={y - 4} />}
-            </g>
-          );
-        })}
-
-        {/* Draw boundary event nodes */}
-        {boundaryNodes.map((node) => {
-          const size = getNodeSize(node);
-          const x = (node.position?.x ?? 0) + offsetX;
-          const y = (node.position?.y ?? 0) + offsetY;
-          const visited = visitedSet.has(node.id);
-          const current = currentSet.has(node.id);
-          const className = getNodeStyle(node.type, visited, current);
-          const cx = x + size.width / 2;
-          const cy = y + size.height / 2;
-          const radius = size.width / 2;
-
-          return (
-            <g key={node.id}>
-              <circle cx={cx} cy={cy} r={radius} className={`${className} stroke-[2.5]`} />
-              
-              {/* Error boundary event - lightning bolt */}
-              {node.type === 'ErrorBoundaryEvent' && (
-                <g transform={`translate(${cx - 7}, ${cy - 7})`}>
-                  <Zap className="w-3.5 h-3.5 text-red-600 fill-current pointer-events-none" />
-                </g>
-              )}
-              
-              {/* Message boundary event - envelope */}
-              {node.type === 'MessageBoundaryEvent' && (
-                <g transform={`translate(${cx - 7}, ${cy - 7})`}>
-                  <Mail className="w-3.5 h-3.5 text-blue-500 pointer-events-none" />
-                </g>
-              )}
-              
-              {/* Timer boundary event - clock */}
-              {node.type.toLowerCase().includes('boundary') && node.type.toLowerCase().includes('timer') && (
-                <g transform={`translate(${cx - 7}, ${cy - 7})`}>
-                  <Clock3 className="w-3.5 h-3.5 text-amber-600 pointer-events-none" />
-                </g>
-              )}
-              
-              <text
-                x={cx}
-                y={y + size.height + 18}
-                textAnchor="middle"
-                className="fill-slate-700 text-[10px] font-medium"
-              >
-                {labelForNode(node)}
-              </text>
-              {node.name && node.name.trim().length > 0 && (
-                <text
-                  x={cx}
-                  y={y + size.height + 28}
-                  textAnchor="middle"
-                  className="fill-slate-500 text-[9px] font-mono"
-                >
-                  {node.id}
-                </text>
-              )}
-              {current && <CurrentTokenPin x={cx + radius + 4} y={cy - 4} />}
-            </g>
-          );
-        })}
-        </g>
-      </svg>
+              );
+            })}
+          </g>
+        </svg>
       </div>
     </div>
   );
