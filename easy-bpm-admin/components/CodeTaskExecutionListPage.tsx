@@ -106,7 +106,7 @@ export const CodeTaskExecutionListPage: React.FC = () => {
   const hasFilters = Object.values(filters).some(v => v !== undefined);
 
   return (
-    <div className="space-y-6">
+    <div className="code-task-executions space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
