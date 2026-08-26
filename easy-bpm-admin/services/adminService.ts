@@ -32,6 +32,75 @@ import {
 const API_BASE_URL = (import.meta.env.EASY_BPM_ADMIN_API_BASE_URL as string | undefined) ?? 'http://localhost:8080';
 const USE_MOCK = false;
 const AUTH_STORAGE_KEY = 'easybpm_admin_auth';
+let incidentGroupsEndpointAvailable: boolean | undefined;
+
+type IncidentGroupFilters = {
+  status?: IncidentStatus | '';
+  source?: IncidentSource | '';
+  processDefinitionId?: number | null;
+  nodeId?: string;
+  acknowledgedBy?: string;
+  retryStatus?: IncidentRetryStatus | '';
+  occurredSince?: string;
+  minOccurrences?: number;
+  page?: number;
+  size?: number;
+};
+
+const groupLegacyIncidents = (incidents: Incident[], filters: IncidentGroupFilters): Page<IncidentGroup> => {
+  const groups = new Map<string, Incident[]>();
+  incidents.forEach((incident) => {
+    const signature = [incident.source, incident.processInstanceId, incident.nodeId ?? '', incident.message].join('|');
+    const entries = groups.get(signature) ?? [];
+    entries.push(incident);
+    groups.set(signature, entries);
+  });
+
+  const grouped = [...groups.entries()].map(([signature, entries]): IncidentGroup => {
+    const newest = [...entries].sort((left, right) => new Date(right.lastOccurredAt).getTime() - new Date(left.lastOccurredAt).getTime())[0];
+    const occurrenceCount = entries.reduce((total, incident) => total + (incident.occurrenceCount || 1), 0);
+    const retryStatus: IncidentRetryStatus = newest.source === 'WORKER' && newest.status === 'OPEN' ? 'RETRY_ELIGIBLE' : 'NOT_ELIGIBLE';
+    return {
+      signature,
+      representativeIncidentId: newest.id,
+      processDefinitionId: null,
+      processName: `Process instance #${newest.processInstanceId}`,
+      source: newest.source,
+      nodeId: newest.nodeId,
+      status: newest.status,
+      retryStatus,
+      message: newest.message,
+      technicalDetails: newest.technicalDetails,
+      occurrenceCount,
+      instanceCount: new Set(entries.map((incident) => incident.processInstanceId)).size,
+      firstOccurredAt: entries.reduce((first, incident) => first < incident.createdAt ? first : incident.createdAt, newest.createdAt),
+      lastOccurredAt: newest.lastOccurredAt,
+      retryAttemptCount: 0,
+      maxRetryAttempts: 0,
+      acknowledgedBy: newest.acknowledgedBy,
+      resolutionNote: newest.resolutionNote,
+      sampleIncidentIds: entries.slice(0, 5).map((incident) => incident.id),
+      sampleInstanceIds: [...new Set(entries.map((incident) => incident.processInstanceId))].slice(0, 5)
+    };
+  }).filter((group) => {
+    if (filters.nodeId && group.nodeId !== filters.nodeId) return false;
+    if (filters.acknowledgedBy && group.acknowledgedBy !== filters.acknowledgedBy) return false;
+    if (filters.occurredSince && new Date(group.lastOccurredAt) < new Date(filters.occurredSince)) return false;
+    if (filters.minOccurrences && group.occurrenceCount < filters.minOccurrences) return false;
+    if (filters.retryStatus && group.retryStatus !== filters.retryStatus) return false;
+    return true;
+  }).sort((left, right) => new Date(right.lastOccurredAt).getTime() - new Date(left.lastOccurredAt).getTime());
+
+  const size = filters.size ?? 25;
+  const page = filters.page ?? 0;
+  return {
+    content: grouped.slice(page * size, (page + 1) * size),
+    totalPages: Math.max(1, Math.ceil(grouped.length / size)),
+    totalElements: grouped.length,
+    size,
+    number: page
+  };
+};
 
 const MOCK_INSTANCES: ProcessInstance[] = [
   {
@@ -103,21 +172,22 @@ const readSession = (): AuthSession | null => {
   }
 };
 
-const authHeaders = (): HeadersInit => {
-  const session = readSession();
-  return session?.token ? { Authorization: `Bearer ${session.token}` } : {};
-};
-
 const fetchWithAuth = async (url: string, init?: RequestInit): Promise<Response> => {
+  const session = readSession();
+  const authorization = session?.token ? { Authorization: `Bearer ${session.token}` } : {};
   const response = await fetch(url, {
     ...init,
     headers: {
       ...(init?.headers ?? {}),
-      ...authHeaders()
+      ...authorization
     }
   });
 
   if (response.status === 401) {
+    console.warn(
+      `Easy BPM Admin request was rejected as unauthorized. ` +
+        `url=${url} hasSavedSession=${Boolean(session?.token)} hasAuthorizationHeader=${Boolean(session?.token)}`
+    );
     localStorage.removeItem(AUTH_STORAGE_KEY);
     window.dispatchEvent(new Event('easybpm-admin-auth-expired'));
   }
@@ -413,18 +483,7 @@ export const adminService = {
     return res.json();
   },
 
-  getIncidentGroups: async (filters: {
-    status?: IncidentStatus | '';
-    source?: IncidentSource | '';
-    processDefinitionId?: number | null;
-    nodeId?: string;
-    acknowledgedBy?: string;
-    retryStatus?: IncidentRetryStatus | '';
-    occurredSince?: string;
-    minOccurrences?: number;
-    page?: number;
-    size?: number;
-  } = {}): Promise<Page<IncidentGroup>> => {
+  getIncidentGroups: async (filters: IncidentGroupFilters = {}): Promise<Page<IncidentGroup>> => {
     const params = new URLSearchParams({
       page: String(filters.page ?? 0),
       size: String(filters.size ?? 25)
@@ -438,8 +497,27 @@ export const adminService = {
     if (filters.occurredSince) params.set('occurredSince', filters.occurredSince);
     if (filters.minOccurrences) params.set('minOccurrences', String(filters.minOccurrences));
 
+    const loadLegacyGroups = async (): Promise<Page<IncidentGroup>> => {
+      const incidents = await adminService.getIncidents({
+        status: filters.status,
+        source: filters.source,
+        page: 0,
+        size: 500
+      });
+      return groupLegacyIncidents(incidents.content, filters);
+    };
+
+    if (incidentGroupsEndpointAvailable === false) {
+      return loadLegacyGroups();
+    }
+
     const res = await fetchWithAuth(`${API_BASE_URL}/incidents/groups?${params.toString()}`);
+    if (res.status === 400 || res.status === 404) {
+      incidentGroupsEndpointAvailable = false;
+      return loadLegacyGroups();
+    }
     if (!res.ok) throw new Error(`Failed to fetch incident groups: ${res.statusText}`);
+    incidentGroupsEndpointAvailable = true;
     return res.json();
   },
 

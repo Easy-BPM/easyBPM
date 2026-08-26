@@ -161,6 +161,39 @@
   fill: var(--app-text-muted) !important;
 }
 
+.incident-group-row {
+  transition: background-color 0.15s ease;
+}
+
+.incident-group-row:hover {
+  background-color: #f8fafc;
+}
+
+.incident-group-row.is-selected {
+  background-color: #eaf2ff;
+  box-shadow: inset 3px 0 0 #2563eb;
+}
+
+.admin-app[data-theme="dark"] .incident-group-row:hover {
+  background-color: #182532;
+}
+
+.admin-app[data-theme="dark"] .incident-group-row.is-selected {
+  background-color: #173a63;
+  box-shadow: inset 3px 0 0 #60a5fa;
+}
+
+.admin-app[data-theme="dark"] .incident-group-row.is-selected .text-slate-900,
+.admin-app[data-theme="dark"] .incident-group-row.is-selected .text-slate-800,
+.admin-app[data-theme="dark"] .incident-group-row.is-selected .text-slate-700 {
+  color: #f8fafc !important;
+}
+
+.admin-app[data-theme="dark"] .incident-group-row.is-selected .text-slate-600,
+.admin-app[data-theme="dark"] .incident-group-row.is-selected .text-slate-500 {
+  color: #cbd5e1 !important;
+}
+
 .admin-app.login-shell[data-theme="light"] .bg-white\/5 {
   background-color: rgba(255, 255, 255, 0.82) !important;
 }
