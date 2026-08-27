@@ -199,20 +199,6 @@ const LoginView: React.FC<{ onLogin: (username: string, perms: string[]) => void
               <p className="mt-4 text-sm leading-6 text-slate-300">Govern process instances, incidents, deployments and operational health from a focused workspace.</p>
             </div>
           </div>
-          <div className="grid grid-cols-3 border border-white/10 text-xs text-slate-300">
-            <div className="border-r border-white/10 p-4">
-              <p className="text-lg font-semibold text-white">Ops</p>
-              <p className="mt-1">Monitor</p>
-            </div>
-            <div className="border-r border-white/10 p-4">
-              <p className="text-lg font-semibold text-white">BPMN</p>
-              <p className="mt-1">Trace</p>
-            </div>
-            <div className="p-4">
-              <p className="text-lg font-semibold text-white">SLA</p>
-              <p className="mt-1">Resolve</p>
-            </div>
-          </div>
         </section>
 
         <section className="login-form-panel flex items-center bg-[var(--app-surface)] p-6 sm:p-10">

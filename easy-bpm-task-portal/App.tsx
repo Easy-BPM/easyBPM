@@ -300,20 +300,6 @@ const LoginView: React.FC<{ onLogin: (username: string) => void; theme: ThemeMod
               <p className="mt-4 text-sm leading-6 text-slate-300">Open assigned work, start approved processes and keep execution moving with a clear operational inbox.</p>
             </div>
           </div>
-          <div className="grid grid-cols-3 border border-white/10 text-xs text-slate-300">
-            <div className="border-r border-white/10 p-4">
-              <p className="text-lg font-semibold text-white">Inbox</p>
-              <p className="mt-1">Act</p>
-            </div>
-            <div className="border-r border-white/10 p-4">
-              <p className="text-lg font-semibold text-white">Forms</p>
-              <p className="mt-1">Submit</p>
-            </div>
-            <div className="p-4">
-              <p className="text-lg font-semibold text-white">Flow</p>
-              <p className="mt-1">Track</p>
-            </div>
-          </div>
         </section>
 
         <section className="login-form-panel flex items-center bg-[var(--app-surface)] p-6 sm:p-10">
