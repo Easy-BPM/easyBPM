@@ -17,6 +17,7 @@ import { FormLibrary } from './components/FormLibrary';
 import { WelcomeScreen, WorkspaceResource, ProcessTemplateDefinition } from './components/WelcomeScreen';
 import { AgentBoardModeler } from './components/AgentBoardModeler';
 import { ModelerNavbar } from './components/ModelerNavbar';
+import { EasyBpmLogoMark } from './components/EasyBpmLogoMark';
 import { ThemeMode, ThemeToggle } from './components/ThemeToggle';
 import { BpmnNode, BpmnEdge, ProcessVariable, NodeType, AppView, ValidationIssue, ValidationSummary, FormDefinition, Position } from './types';
 import { generateId, snapToGrid } from './utils/geometry';
@@ -1673,12 +1674,6 @@ const App: React.FC = () => {
     </div>
   );
 };
-
-const EasyBpmLogoMark: React.FC<{ className?: string }> = ({ className = 'h-8 w-8' }) => (
-  <div className={`${className} flex items-center justify-center rounded-lg bg-blue-600 text-white shadow-lg shadow-blue-600/30`}>
-    <span className="text-lg font-black leading-none tracking-[-0.12em]">E</span>
-  </div>
-);
 
 const ModelerLoginView: React.FC<{
   onLogin: (username: string, permissions: string[]) => void;

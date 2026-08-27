@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { LayoutDashboard, CheckSquare, PlayCircle, LogOut, Zap } from 'lucide-react';
+import { LayoutDashboard, CheckSquare, PlayCircle, LogOut } from 'lucide-react';
 import { ThemeMode, ThemeToggle } from './ThemeToggle';
 
 interface SidebarProps {
@@ -24,9 +24,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onChangeView, cur
       {/* Brand header */}
       <div className="px-5 py-5 border-b border-slate-800/80">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center flex-shrink-0 shadow-lg shadow-blue-600/30">
-            <Zap size={16} className="text-white" />
-          </div>
+          <img src="/easy-bpm-logo.png" alt="Easy BPM" className="h-8 w-8 flex-shrink-0 rounded-md object-cover shadow-lg shadow-blue-600/30" />
           <div>
             <h1 className="text-sm font-bold tracking-tight text-white leading-none">Easy BPM</h1>
             <p className="text-[10px] text-slate-500 mt-0.5 leading-none">Task Portal</p>
