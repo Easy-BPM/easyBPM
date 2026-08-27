@@ -1714,20 +1714,6 @@ const ModelerLoginView: React.FC<{
               <p className="mt-4 text-sm leading-6 text-slate-300">Design BPMN flows, forms and agent process definitions with a precise modeling workspace.</p>
             </div>
           </div>
-          <div className="grid grid-cols-3 border border-white/10 text-xs text-slate-300">
-            <div className="border-r border-white/10 p-4">
-              <p className="text-lg font-semibold text-white">BPMN</p>
-              <p className="mt-1">Model</p>
-            </div>
-            <div className="border-r border-white/10 p-4">
-              <p className="text-lg font-semibold text-white">Forms</p>
-              <p className="mt-1">Build</p>
-            </div>
-            <div className="p-4">
-              <p className="text-lg font-semibold text-white">Agents</p>
-              <p className="mt-1">Deploy</p>
-            </div>
-          </div>
         </section>
 
         <section className="login-form-panel flex items-center bg-[var(--modeler-surface)] p-6 sm:p-10">
