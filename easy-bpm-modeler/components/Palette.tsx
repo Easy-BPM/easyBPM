@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { NodeType } from '../types';
 import { Bot, Circle, User, Settings, GitFork, Plus, Mail, Zap, Clock3, Layers, Code, Brain, Rows3, FileText } from 'lucide-react';
+import { EasyBpmLogoMark } from './EasyBpmLogoMark';
 
 interface PaletteProps {
   onDragStart: (event: React.DragEvent, type: NodeType) => void;
@@ -146,9 +147,7 @@ export const Palette: React.FC<PaletteProps> = ({ onDragStart, isAgenticOrchestr
   return (
     <div className="w-20 bg-[#121920] border-r border-[#25313d] flex flex-col h-full z-10 shadow-[1px_0_0_rgba(255,255,255,0.04)]">
       <div className="p-3 border-b border-[#25313d] bg-[#121920] flex justify-center">
-        <div className="flex h-9 w-9 items-center justify-center rounded-md border border-white/[0.07] bg-white/[0.04] text-[11px] font-bold uppercase text-slate-300" aria-label="Components">
-          BPM
-        </div>
+        <EasyBpmLogoMark className="h-9 w-9" alt="Components" />
       </div>
       <div className="p-2 space-y-4 overflow-y-auto flex-1">
         {groups.map((group) => (

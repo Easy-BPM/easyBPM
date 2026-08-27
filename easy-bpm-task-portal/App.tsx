@@ -14,7 +14,6 @@ import {
   Lock,
   User,
   Save,
-  ShieldCheck,
   Plus,
   Trash2,
   AlertCircle,
@@ -291,9 +290,11 @@ const LoginView: React.FC<{ onLogin: (username: string) => void; theme: ThemeMod
         {/* Card */}
         <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8 shadow-2xl">
           <div className="flex flex-col items-center mb-8">
-            <div className="bg-blue-600 p-3 rounded-xl mb-4 shadow-lg shadow-blue-600/40 ring-4 ring-blue-600/20">
-              <ShieldCheck className="text-white" size={28} />
-            </div>
+            <img
+              src="/easy-bpm-logo.png"
+              alt="Easy BPM"
+              className="mb-4 h-14 w-14 rounded-xl object-cover shadow-lg shadow-blue-600/40 ring-4 ring-blue-600/20"
+            />
             <h1 className="text-2xl font-bold text-white">Easy BPM Task Portal</h1>
             <p className="text-slate-400 mt-1 text-sm">Sign in to open your work inbox</p>
           </div>

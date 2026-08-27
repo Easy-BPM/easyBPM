@@ -16,6 +16,7 @@ import {
   User,
   Workflow
 } from 'lucide-react';
+import { EasyBpmLogoMark } from './EasyBpmLogoMark';
 import { ThemeMode, ThemeToggle } from './ThemeToggle';
 
 export type WorkspaceResourceKind = 'process' | 'form' | 'agent';
@@ -236,12 +237,6 @@ const formatDate = (value?: string) => {
     minute: '2-digit'
   }).format(date);
 };
-
-const EasyBpmLogoMark: React.FC<{ className?: string }> = ({ className = 'h-10 w-10' }) => (
-  <div className={`${className} flex items-center justify-center rounded-lg bg-blue-600 text-white shadow-lg shadow-blue-600/25`}>
-    <span className="text-lg font-black leading-none tracking-[-0.12em]">E</span>
-  </div>
-);
 
 export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
   onCreateProcess,
