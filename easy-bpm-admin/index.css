@@ -1,52 +1,57 @@
 .admin-app {
-  --app-bg: #f8fafc;
+  --app-bg: #f4f4f4;
   --app-surface: #ffffff;
-  --app-surface-muted: #f1f5f9;
-  --app-surface-soft: #f8fafc;
-  --app-border: #e2e8f0;
-  --app-border-strong: #cbd5e1;
-  --app-text: #0f172a;
-  --app-text-soft: #334155;
-  --app-text-muted: #64748b;
+  --app-surface-muted: #eeeeee;
+  --app-surface-soft: #fafafa;
+  --app-border: #d6d6d6;
+  --app-border-strong: #a8a8a8;
+  --app-text: #161616;
+  --app-text-soft: #393939;
+  --app-text-muted: #6f6f6f;
+  --app-accent: #0f62fe;
+  --app-accent-hover: #0043ce;
+  --app-success: #24a148;
+  --app-warning: #f1c21b;
+  --app-danger: #da1e28;
   --app-input-bg: #ffffff;
-  --app-input-border: #cbd5e1;
-  --app-input-text: #0f172a;
-  --app-placeholder: #94a3b8;
+  --app-input-border: #8d8d8d;
+  --app-input-text: #161616;
+  --app-placeholder: #8d8d8d;
   color-scheme: light;
   background: var(--app-bg);
   color: var(--app-text);
 }
 
 .admin-app[data-theme="dark"] {
-  --app-bg: #0f171d;
-  --app-surface: #121920;
-  --app-surface-muted: #1a2430;
-  --app-surface-soft: #101820;
-  --app-border: #25313d;
-  --app-border-strong: #2d3a47;
-  --app-text: #e5edf5;
-  --app-text-soft: #cbd5e1;
-  --app-text-muted: #94a3b8;
-  --app-input-bg: #0f171d;
-  --app-input-border: #2d3a47;
-  --app-input-text: #e5edf5;
-  --app-placeholder: #718096;
+  --app-bg: #262626;
+  --app-surface: #161616;
+  --app-surface-muted: #262626;
+  --app-surface-soft: #1f1f1f;
+  --app-border: #393939;
+  --app-border-strong: #525252;
+  --app-text: #f4f4f4;
+  --app-text-soft: #e0e0e0;
+  --app-text-muted: #a8a8a8;
+  --app-input-bg: #262626;
+  --app-input-border: #6f6f6f;
+  --app-input-text: #f4f4f4;
+  --app-placeholder: #8d8d8d;
   color-scheme: dark;
 }
 
 .login-shell[data-theme="light"] {
-  background: linear-gradient(135deg, #f8fafc 0%, #eef6ff 52%, #e8f5f0 100%) !important;
+  background: #f4f4f4 !important;
 }
 
 .login-shell[data-theme="dark"] {
-  background: linear-gradient(135deg, #020617 0%, #0f172a 52%, #172554 100%) !important;
+  background: #161616 !important;
 }
 
 .theme-toggle {
   align-items: center;
   background-color: var(--app-surface-muted);
   border: 1px solid var(--app-border);
-  border-radius: 999px;
+  border-radius: 4px;
   color: var(--app-text-soft);
   display: inline-flex;
   flex: 0 0 auto;
@@ -57,36 +62,152 @@
 }
 
 .theme-toggle:hover {
-  background-color: color-mix(in srgb, var(--app-text) 8%, transparent);
+  background-color: color-mix(in srgb, var(--app-text) 10%, transparent);
   color: var(--app-text);
 }
 
 .admin-app[data-theme="light"] .app-sidebar {
-  background-color: #ffffff !important;
-  border-color: var(--app-border) !important;
-  color: var(--app-text) !important;
+  background-color: #161616 !important;
+  border-color: #393939 !important;
+  color: #f4f4f4 !important;
 }
 
 .admin-app[data-theme="light"] .app-sidebar .text-white,
 .admin-app[data-theme="light"] .app-sidebar .text-slate-200 {
-  color: var(--app-text) !important;
+  color: #f4f4f4 !important;
 }
 
 .admin-app[data-theme="light"] .app-sidebar .text-slate-400,
 .admin-app[data-theme="light"] .app-sidebar .text-slate-500,
 .admin-app[data-theme="light"] .app-sidebar .text-slate-600 {
-  color: var(--app-text-muted) !important;
+  color: #a8a8a8 !important;
 }
 
 .admin-app[data-theme="light"] .app-sidebar .border-slate-800,
 .admin-app[data-theme="light"] .app-sidebar .border-slate-800\/80 {
-  border-color: var(--app-border) !important;
+  border-color: #393939 !important;
 }
 
 .admin-app[data-theme="light"] .app-sidebar .hover\:bg-slate-800\/50:hover,
 .admin-app[data-theme="light"] .app-sidebar .hover\:bg-slate-800\/60:hover,
 .admin-app[data-theme="light"] .app-sidebar .hover\:bg-slate-800:hover {
-  background-color: #f1f5f9 !important;
+  background-color: #262626 !important;
+}
+
+.admin-app .bg-slate-50,
+.admin-app .bg-slate-100 {
+  background-color: var(--app-bg) !important;
+}
+
+.admin-app .bg-white,
+.admin-app .bg-white\/5 {
+  background-color: var(--app-surface) !important;
+}
+
+.admin-app .bg-slate-200 {
+  background-color: var(--app-surface-muted) !important;
+}
+
+.admin-app .border-slate-100,
+.admin-app .border-slate-200,
+.admin-app .border-slate-300,
+.admin-app .border-white\/10 {
+  border-color: var(--app-border) !important;
+}
+
+.admin-app .text-slate-900,
+.admin-app .text-slate-800,
+.admin-app .text-slate-700,
+.admin-app.login-shell .text-white {
+  color: var(--app-text) !important;
+}
+
+.admin-app .text-slate-600,
+.admin-app .text-slate-500,
+.admin-app .text-slate-400,
+.admin-app.login-shell .text-slate-300,
+.admin-app.login-shell .text-slate-400,
+.admin-app.login-shell .text-slate-500 {
+  color: var(--app-text-muted) !important;
+}
+
+.admin-app .rounded-2xl,
+.admin-app .rounded-xl,
+.admin-app .rounded-lg {
+  border-radius: 4px !important;
+}
+
+.admin-app .shadow-2xl,
+.admin-app .shadow-xl,
+.admin-app .shadow-lg,
+.admin-app .shadow-md,
+.admin-app .shadow-sm {
+  box-shadow: 0 1px 0 rgba(22, 22, 22, 0.08) !important;
+}
+
+.admin-app .bg-blue-600 {
+  background-color: var(--app-accent) !important;
+}
+
+.admin-app .bg-blue-600,
+.admin-app .bg-blue-600 .text-white,
+.admin-app button.bg-blue-600 {
+  color: #ffffff !important;
+}
+
+.admin-app .hover\:bg-blue-500:hover,
+.admin-app .hover\:bg-blue-700:hover {
+  background-color: var(--app-accent-hover) !important;
+}
+
+.admin-app .text-blue-600,
+.admin-app .text-blue-700,
+.admin-app .text-indigo-600,
+.admin-app .text-purple-600 {
+  color: var(--app-accent) !important;
+}
+
+.admin-app .bg-blue-50,
+.admin-app .bg-indigo-50,
+.admin-app .bg-purple-50 {
+  background-color: #edf5ff !important;
+}
+
+.admin-app .border-blue-200,
+.admin-app .border-indigo-100,
+.admin-app .border-indigo-200,
+.admin-app .border-purple-200 {
+  border-color: #78a9ff !important;
+}
+
+.admin-app input,
+.admin-app textarea,
+.admin-app select {
+  background-color: var(--app-input-bg);
+  border-color: var(--app-input-border);
+  color: var(--app-input-text);
+  border-radius: 4px !important;
+}
+
+.admin-app input:focus,
+.admin-app textarea:focus,
+.admin-app select:focus {
+  border-color: var(--app-accent) !important;
+  box-shadow: 0 0 0 1px var(--app-accent) !important;
+}
+
+.admin-app button {
+  border-radius: 4px !important;
+}
+
+.admin-app table thead {
+  background-color: #f4f4f4 !important;
+  color: #525252 !important;
+}
+
+.admin-app[data-theme="dark"] table thead {
+  background-color: #262626 !important;
+  color: #c6c6c6 !important;
 }
 
 .admin-app[data-theme="dark"] .bg-white,
@@ -213,40 +334,39 @@
 }
 
 .workflow-canvas {
-  --workflow-canvas-bg: #f8fbff;
-  --workflow-canvas-grid: rgba(59, 130, 246, 0.24);
-  --workflow-edge: #94a3b8;
-  --workflow-doc-line: #64748b;
-  --workflow-node-fill: #111a21;
-  --workflow-node-label: #f8fafc;
-  --workflow-node-id: #94a3b8;
-  --workflow-floating-label: #334155;
-  --workflow-control-bg: rgba(255, 255, 255, 0.94);
-  --workflow-control-border: #dbe5f0;
-  --workflow-control-text: #475569;
-  --workflow-control-hover: #eef4fb;
-  --workflow-pool-bg: rgba(255, 255, 255, 0.68);
-  --workflow-pool-lane-bg: rgba(219, 234, 254, 0.72);
-  --workflow-pool-stroke: #38bdf8;
+  --workflow-canvas-bg: #ffffff;
+  --workflow-canvas-grid: rgba(141, 141, 141, 0.28);
+  --workflow-edge: #525252;
+  --workflow-doc-line: #6f6f6f;
+  --workflow-node-fill: #ffffff;
+  --workflow-node-label: #161616;
+  --workflow-node-id: #6f6f6f;
+  --workflow-floating-label: #393939;
+  --workflow-control-bg: rgba(255, 255, 255, 0.96);
+  --workflow-control-border: #d6d6d6;
+  --workflow-control-text: #393939;
+  --workflow-control-hover: #e8f0ff;
+  --workflow-pool-bg: rgba(244, 244, 244, 0.72);
+  --workflow-pool-lane-bg: rgba(237, 245, 255, 0.72);
+  --workflow-pool-stroke: #0f62fe;
   background:
-    radial-gradient(circle at 52% 18%, rgba(37, 99, 235, 0.08), transparent 40%),
     var(--workflow-canvas-bg);
   border-color: var(--app-border);
 }
 
 .admin-app[data-theme="dark"] .workflow-canvas {
-  --workflow-canvas-bg: #0b141c;
-  --workflow-canvas-grid: rgba(96, 165, 250, 0.22);
-  --workflow-edge: #62748b;
-  --workflow-doc-line: #94a3b8;
+  --workflow-canvas-bg: #161616;
+  --workflow-canvas-grid: rgba(111, 111, 111, 0.28);
+  --workflow-edge: #a8a8a8;
+  --workflow-doc-line: #a8a8a8;
   --workflow-floating-label: #cbd5e1;
-  --workflow-control-bg: rgba(18, 25, 32, 0.92);
-  --workflow-control-border: #25313d;
+  --workflow-control-bg: rgba(38, 38, 38, 0.94);
+  --workflow-control-border: #393939;
   --workflow-control-text: #cbd5e1;
-  --workflow-control-hover: #1a2430;
-  --workflow-pool-bg: rgba(18, 25, 32, 0.62);
-  --workflow-pool-lane-bg: rgba(37, 99, 235, 0.12);
-  --workflow-pool-stroke: #38bdf8;
+  --workflow-control-hover: #393939;
+  --workflow-pool-bg: rgba(38, 38, 38, 0.72);
+  --workflow-pool-lane-bg: rgba(15, 98, 254, 0.12);
+  --workflow-pool-stroke: #78a9ff;
 }
 
 .admin-app[data-theme="dark"] .code-task-metric {

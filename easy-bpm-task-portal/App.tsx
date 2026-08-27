@@ -255,7 +255,7 @@ const App: React.FC = () => {
         theme={theme}
         onToggleTheme={toggleTheme}
       />
-      <main className="flex-1 p-8 overflow-y-auto h-screen">
+      <main className="flex-1 p-6 overflow-y-auto h-screen">
         <div className="max-w-5xl mx-auto">{renderView()}</div>
       </main>
     </div>
@@ -283,19 +283,18 @@ const LoginView: React.FC<{ onLogin: (username: string) => void; theme: ThemeMod
   };
 
   return (
-    <div className="task-portal-app login-shell min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 p-4" data-theme={theme}>
+    <div className="task-portal-app login-shell min-h-screen flex items-center justify-center p-4" data-theme={theme}>
       <div className="absolute right-5 top-5">
         <ThemeToggle theme={theme} onToggle={onToggleTheme} />
       </div>
       <div className="w-full max-w-md">
-        {/* Card */}
-        <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8 shadow-2xl">
-          <div className="flex flex-col items-center mb-8">
-            <div className="bg-blue-600 p-3 rounded-xl mb-4 shadow-lg shadow-blue-600/40 ring-4 ring-blue-600/20">
-              <ShieldCheck className="text-white" size={28} />
+        <div className="bg-white border border-slate-200 rounded p-7 shadow-sm">
+          <div className="mb-7">
+            <div className="bg-blue-600 h-9 w-9 rounded flex items-center justify-center mb-4">
+              <ShieldCheck className="text-white" size={20} />
             </div>
-            <h1 className="text-2xl font-bold text-white">Easy BPM Task Portal</h1>
-            <p className="text-slate-400 mt-1 text-sm">Sign in to open your work inbox</p>
+            <h1 className="text-xl font-semibold text-white">Easy BPM Task Portal</h1>
+            <p className="text-slate-400 mt-1 text-sm">Task execution workspace</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -305,7 +304,7 @@ const LoginView: React.FC<{ onLogin: (username: string) => void; theme: ThemeMod
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
                 <input
                   type="text"
-                  className="w-full pl-9 pr-4 py-2.5 rounded-lg border border-white/10 bg-white/5 text-white placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm"
+                  className="w-full pl-9 pr-4 py-2.5 rounded border border-white/10 bg-white/5 text-white placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm"
                   placeholder="Enter username"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
@@ -318,7 +317,7 @@ const LoginView: React.FC<{ onLogin: (username: string) => void; theme: ThemeMod
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
                 <input
                   type="password"
-                  className="w-full pl-9 pr-4 py-2.5 rounded-lg border border-white/10 bg-white/5 text-white placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm"
+                  className="w-full pl-9 pr-4 py-2.5 rounded border border-white/10 bg-white/5 text-white placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm"
                   placeholder="Optional"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -329,7 +328,7 @@ const LoginView: React.FC<{ onLogin: (username: string) => void; theme: ThemeMod
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2.5 rounded-lg transition-colors shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2 mt-2 text-sm"
+              className="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2.5 rounded transition-colors flex items-center justify-center gap-2 mt-2 text-sm"
             >
               {loading ? <Loader2 className="animate-spin" size={18} /> : 'Sign In'}
             </button>

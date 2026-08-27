@@ -1,52 +1,57 @@
 .task-portal-app {
-  --app-bg: #f8fafc;
+  --app-bg: #f4f4f4;
   --app-surface: #ffffff;
-  --app-surface-muted: #f1f5f9;
-  --app-surface-soft: #f8fafc;
-  --app-border: #e2e8f0;
-  --app-border-strong: #cbd5e1;
-  --app-text: #0f172a;
-  --app-text-soft: #334155;
-  --app-text-muted: #64748b;
+  --app-surface-muted: #eeeeee;
+  --app-surface-soft: #fafafa;
+  --app-border: #d6d6d6;
+  --app-border-strong: #a8a8a8;
+  --app-text: #161616;
+  --app-text-soft: #393939;
+  --app-text-muted: #6f6f6f;
+  --app-accent: #0f62fe;
+  --app-accent-hover: #0043ce;
+  --app-success: #24a148;
+  --app-warning: #f1c21b;
+  --app-danger: #da1e28;
   --app-input-bg: #ffffff;
-  --app-input-border: #cbd5e1;
-  --app-input-text: #0f172a;
-  --app-placeholder: #94a3b8;
+  --app-input-border: #8d8d8d;
+  --app-input-text: #161616;
+  --app-placeholder: #8d8d8d;
   color-scheme: light;
   background: var(--app-bg);
   color: var(--app-text);
 }
 
 .task-portal-app[data-theme="dark"] {
-  --app-bg: #0f171d;
-  --app-surface: #121920;
-  --app-surface-muted: #1a2430;
-  --app-surface-soft: #101820;
-  --app-border: #25313d;
-  --app-border-strong: #2d3a47;
-  --app-text: #e5edf5;
-  --app-text-soft: #cbd5e1;
-  --app-text-muted: #94a3b8;
-  --app-input-bg: #0f171d;
-  --app-input-border: #2d3a47;
-  --app-input-text: #e5edf5;
-  --app-placeholder: #718096;
+  --app-bg: #262626;
+  --app-surface: #161616;
+  --app-surface-muted: #262626;
+  --app-surface-soft: #1f1f1f;
+  --app-border: #393939;
+  --app-border-strong: #525252;
+  --app-text: #f4f4f4;
+  --app-text-soft: #e0e0e0;
+  --app-text-muted: #a8a8a8;
+  --app-input-bg: #262626;
+  --app-input-border: #6f6f6f;
+  --app-input-text: #f4f4f4;
+  --app-placeholder: #8d8d8d;
   color-scheme: dark;
 }
 
 .login-shell[data-theme="light"] {
-  background: linear-gradient(135deg, #f8fafc 0%, #eef6ff 52%, #e8f5f0 100%) !important;
+  background: #f4f4f4 !important;
 }
 
 .login-shell[data-theme="dark"] {
-  background: linear-gradient(135deg, #020617 0%, #0f172a 52%, #172554 100%) !important;
+  background: #161616 !important;
 }
 
 .theme-toggle {
   align-items: center;
   background-color: var(--app-surface-muted);
   border: 1px solid var(--app-border);
-  border-radius: 999px;
+  border-radius: 4px;
   color: var(--app-text-soft);
   display: inline-flex;
   flex: 0 0 auto;
@@ -62,31 +67,148 @@
 }
 
 .task-portal-app[data-theme="light"] .app-sidebar {
-  background-color: #ffffff !important;
-  border-color: var(--app-border) !important;
-  color: var(--app-text) !important;
+  background-color: #161616 !important;
+  border-color: #393939 !important;
+  color: #f4f4f4 !important;
 }
 
 .task-portal-app[data-theme="light"] .app-sidebar .text-white,
 .task-portal-app[data-theme="light"] .app-sidebar .text-slate-200 {
-  color: var(--app-text) !important;
+  color: #f4f4f4 !important;
 }
 
 .task-portal-app[data-theme="light"] .app-sidebar .text-slate-400,
 .task-portal-app[data-theme="light"] .app-sidebar .text-slate-500,
 .task-portal-app[data-theme="light"] .app-sidebar .text-slate-600 {
-  color: var(--app-text-muted) !important;
+  color: #a8a8a8 !important;
 }
 
 .task-portal-app[data-theme="light"] .app-sidebar .border-slate-800,
 .task-portal-app[data-theme="light"] .app-sidebar .border-slate-800\/80 {
-  border-color: var(--app-border) !important;
+  border-color: #393939 !important;
 }
 
 .task-portal-app[data-theme="light"] .app-sidebar .hover\:bg-slate-800\/50:hover,
 .task-portal-app[data-theme="light"] .app-sidebar .hover\:bg-slate-800\/60:hover,
 .task-portal-app[data-theme="light"] .app-sidebar .hover\:bg-slate-800:hover {
-  background-color: #f1f5f9 !important;
+  background-color: #262626 !important;
+}
+
+.task-portal-app .bg-slate-50,
+.task-portal-app .bg-slate-100 {
+  background-color: var(--app-bg) !important;
+}
+
+.task-portal-app .bg-white,
+.task-portal-app .bg-white\/5 {
+  background-color: var(--app-surface) !important;
+}
+
+.task-portal-app .bg-slate-200 {
+  background-color: var(--app-surface-muted) !important;
+}
+
+.task-portal-app .border-slate-100,
+.task-portal-app .border-slate-200,
+.task-portal-app .border-slate-300,
+.task-portal-app .border-white\/10 {
+  border-color: var(--app-border) !important;
+}
+
+.task-portal-app .text-slate-900,
+.task-portal-app .text-slate-800,
+.task-portal-app .text-slate-700,
+.task-portal-app.login-shell .text-white {
+  color: var(--app-text) !important;
+}
+
+.task-portal-app .text-slate-600,
+.task-portal-app .text-slate-500,
+.task-portal-app .text-slate-400,
+.task-portal-app.login-shell .text-slate-300,
+.task-portal-app.login-shell .text-slate-400,
+.task-portal-app.login-shell .text-slate-500 {
+  color: var(--app-text-muted) !important;
+}
+
+.task-portal-app .rounded-2xl,
+.task-portal-app .rounded-xl,
+.task-portal-app .rounded-lg,
+.task-portal-app .rounded-full {
+  border-radius: 4px !important;
+}
+
+.task-portal-app .shadow-2xl,
+.task-portal-app .shadow-xl,
+.task-portal-app .shadow-lg,
+.task-portal-app .shadow-md,
+.task-portal-app .shadow-sm {
+  box-shadow: 0 1px 0 rgba(22, 22, 22, 0.08) !important;
+}
+
+.task-portal-app .bg-blue-600 {
+  background-color: var(--app-accent) !important;
+}
+
+.task-portal-app .bg-blue-600,
+.task-portal-app .bg-blue-600 .text-white,
+.task-portal-app button.bg-blue-600 {
+  color: #ffffff !important;
+}
+
+.task-portal-app .hover\:bg-blue-500:hover,
+.task-portal-app .hover\:bg-blue-700:hover {
+  background-color: var(--app-accent-hover) !important;
+}
+
+.task-portal-app .text-blue-600,
+.task-portal-app .text-blue-700,
+.task-portal-app .text-indigo-600,
+.task-portal-app .text-purple-600 {
+  color: var(--app-accent) !important;
+}
+
+.task-portal-app .bg-blue-50,
+.task-portal-app .bg-indigo-50,
+.task-portal-app .bg-purple-50 {
+  background-color: #edf5ff !important;
+}
+
+.task-portal-app .border-blue-200,
+.task-portal-app .border-indigo-100,
+.task-portal-app .border-indigo-200,
+.task-portal-app .border-purple-200 {
+  border-color: #78a9ff !important;
+}
+
+.task-portal-app input,
+.task-portal-app textarea,
+.task-portal-app select {
+  background-color: var(--app-input-bg);
+  border-color: var(--app-input-border);
+  color: var(--app-input-text);
+  border-radius: 4px !important;
+}
+
+.task-portal-app input:focus,
+.task-portal-app textarea:focus,
+.task-portal-app select:focus {
+  border-color: var(--app-accent) !important;
+  box-shadow: 0 0 0 1px var(--app-accent) !important;
+}
+
+.task-portal-app button {
+  border-radius: 4px !important;
+}
+
+.task-portal-app table thead {
+  background-color: #f4f4f4 !important;
+  color: #525252 !important;
+}
+
+.task-portal-app[data-theme="dark"] table thead {
+  background-color: #262626 !important;
+  color: #c6c6c6 !important;
 }
 
 .task-portal-app[data-theme="dark"] .bg-white,
