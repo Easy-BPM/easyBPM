@@ -404,6 +404,18 @@
   fill: var(--modeler-node-label) !important;
 }
 
+.process-modeler[data-theme="light"] :is(.bg-blue-600, .bg-emerald-600, .bg-violet-600, .bg-cyan-600),
+.form-modeler[data-theme="light"] :is(.bg-blue-600, .bg-emerald-600, .bg-violet-600, .bg-cyan-600),
+.welcome-modeler[data-theme="light"] :is(.bg-blue-600, .bg-emerald-600, .bg-violet-600, .bg-cyan-600) {
+  color: #ffffff !important;
+}
+
+.process-modeler[data-theme="light"] :is(.bg-blue-600, .bg-emerald-600, .bg-violet-600, .bg-cyan-600) :is(.text-white, .text-slate-100, .text-slate-200, svg, span, div, p),
+.form-modeler[data-theme="light"] :is(.bg-blue-600, .bg-emerald-600, .bg-violet-600, .bg-cyan-600) :is(.text-white, .text-slate-100, .text-slate-200, svg, span, div, p),
+.welcome-modeler[data-theme="light"] :is(.bg-blue-600, .bg-emerald-600, .bg-violet-600, .bg-cyan-600) :is(.text-white, .text-slate-100, .text-slate-200, svg, span, div, p) {
+  color: #ffffff !important;
+}
+
 .process-modeler[data-theme="dark"] .bg-slate-100\/50,
 .form-modeler[data-theme="dark"] .bg-slate-100\/50 {
   background-color: var(--modeler-bg) !important;
