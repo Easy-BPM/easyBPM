@@ -3,7 +3,6 @@ import {
   AlertTriangle,
   Download,
   FilePlus2,
-  ShieldCheck,
   User,
   Lock,
   Loader2,
@@ -18,7 +17,7 @@ import { FormLibrary } from './components/FormLibrary';
 import { WelcomeScreen, WorkspaceResource, ProcessTemplateDefinition } from './components/WelcomeScreen';
 import { AgentBoardModeler } from './components/AgentBoardModeler';
 import { ModelerNavbar } from './components/ModelerNavbar';
-import { ThemeMode } from './components/ThemeToggle';
+import { ThemeMode, ThemeToggle } from './components/ThemeToggle';
 import { BpmnNode, BpmnEdge, ProcessVariable, NodeType, AppView, ValidationIssue, ValidationSummary, FormDefinition, Position } from './types';
 import { generateId, snapToGrid } from './utils/geometry';
 import { validateId } from './utils/validation';
@@ -1418,7 +1417,7 @@ const App: React.FC = () => {
     return <ModelerLoginView onLogin={(username, perms) => {
       setCurrentUser(username);
       setPermissions(perms);
-    }} />;
+    }} theme={theme} onToggleTheme={toggleTheme} />;
   }
 
   if (!permissions.includes('ACCESS_BPM_MODELER')) {
@@ -1675,7 +1674,17 @@ const App: React.FC = () => {
   );
 };
 
-const ModelerLoginView: React.FC<{ onLogin: (username: string, permissions: string[]) => void }> = ({ onLogin }) => {
+const EasyBpmLogoMark: React.FC<{ className?: string }> = ({ className = 'h-8 w-8' }) => (
+  <div className={`${className} flex items-center justify-center rounded-lg bg-blue-600 text-white shadow-lg shadow-blue-600/30`}>
+    <span className="text-lg font-black leading-none tracking-[-0.12em]">E</span>
+  </div>
+);
+
+const ModelerLoginView: React.FC<{
+  onLogin: (username: string, permissions: string[]) => void;
+  theme: ThemeMode;
+  onToggleTheme: () => void;
+}> = ({ onLogin, theme, onToggleTheme }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -1696,14 +1705,15 @@ const ModelerLoginView: React.FC<{ onLogin: (username: string, permissions: stri
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 p-4">
+    <div className="welcome-modeler login-shell min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 p-4" data-theme={theme}>
+      <div className="absolute right-5 top-5">
+        <ThemeToggle theme={theme} onToggle={onToggleTheme} />
+      </div>
       <div className="w-full max-w-md">
         {/* Card */}
         <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8 shadow-2xl">
           <div className="flex flex-col items-center mb-8">
-            <div className="bg-blue-600 p-3 rounded-xl mb-4 shadow-lg shadow-blue-600/40 ring-4 ring-blue-600/20">
-              <ShieldCheck className="text-white" size={28} />
-            </div>
+            <EasyBpmLogoMark className="mb-4 h-12 w-12" />
             <h1 className="text-2xl font-bold text-white">Easy BPM Modeler</h1>
             <p className="text-slate-400 mt-1 text-sm">Sign in to design and deploy processes</p>
           </div>

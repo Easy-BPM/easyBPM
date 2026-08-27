@@ -7,7 +7,6 @@ import {
   FileText,
   HelpCircle,
   Home,
-  Layout,
   Lightbulb,
   Loader2,
   LogOut,
@@ -237,6 +236,12 @@ const formatDate = (value?: string) => {
   }).format(date);
 };
 
+const EasyBpmLogoMark: React.FC<{ className?: string }> = ({ className = 'h-10 w-10' }) => (
+  <div className={`${className} flex items-center justify-center rounded-lg bg-blue-600 text-white shadow-lg shadow-blue-600/25`}>
+    <span className="text-lg font-black leading-none tracking-[-0.12em]">E</span>
+  </div>
+);
+
 export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
   onCreateProcess,
   onCreateForm,
@@ -285,9 +290,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
       <div className="flex min-h-screen">
         <aside className="hidden w-72 shrink-0 border-r border-[var(--modeler-border)] bg-[var(--modeler-surface)]/80 px-5 py-6 lg:flex lg:flex-col">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-600 text-white shadow-lg shadow-blue-600/25">
-              <Layout className="h-5 w-5" />
-            </div>
+            <EasyBpmLogoMark />
             <div>
               <h1 className="text-sm font-semibold text-[var(--modeler-text)]">Easy BPM Modeler</h1>
               <p className="text-xs text-[var(--modeler-text-muted)]">Modeling made simple.</p>
@@ -334,9 +337,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
         <div className="min-w-0 flex-1">
           <header className="flex h-16 items-center justify-between border-b border-[var(--modeler-border)] bg-[var(--modeler-surface)]/70 px-6 backdrop-blur-sm">
             <div className="flex items-center gap-3 lg:hidden">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-600 text-white">
-                <Layout className="h-5 w-5" />
-              </div>
+              <EasyBpmLogoMark className="h-9 w-9" />
               <div>
                 <h1 className="text-sm font-semibold">Easy BPM Modeler</h1>
                 <p className="text-xs text-[var(--modeler-text-muted)]">Workspace</p>
