@@ -50,6 +50,7 @@ export interface ProcessTemplateDefinition {
     from: string;
     to: string;
     condition?: string | null;
+    waypoints?: Array<{ x: number; y: number }>;
   }>;
 }
 
@@ -118,19 +119,19 @@ const templates: Array<{
         { name: 'approved', type: 'boolean', initialValue: 'false' }
       ],
       nodes: [
-        { id: 'start_event', type: 'StartEvent', name: 'Start', position: { x: 80, y: 180 } },
-        { id: 'submit_request', type: 'HumanTask', name: 'Submit Request', position: { x: 220, y: 160 }, config: { candidateGroups: 'REQUESTERS' } },
-        { id: 'review_request', type: 'HumanTask', name: 'Review Request', position: { x: 420, y: 160 }, config: { candidateGroups: 'MANAGERS' } },
-        { id: 'approval_decision', type: 'ExclusiveGateway', name: 'Approved?', position: { x: 640, y: 170 } },
-        { id: 'approved_end', type: 'EndEvent', name: 'Approved', position: { x: 820, y: 100 } },
-        { id: 'rejected_end', type: 'EndEvent', name: 'Rejected', position: { x: 820, y: 250 } }
+        { id: 'start_event', type: 'StartEvent', name: 'Start', position: { x: 80, y: 200 } },
+        { id: 'submit_request', type: 'HumanTask', name: 'Submit Request', position: { x: 220, y: 190 }, config: { candidateGroups: 'REQUESTERS' } },
+        { id: 'review_request', type: 'HumanTask', name: 'Review Request', position: { x: 420, y: 190 }, config: { candidateGroups: 'MANAGERS' } },
+        { id: 'approval_decision', type: 'ExclusiveGateway', name: 'Approved?', position: { x: 640, y: 200 } },
+        { id: 'approved_end', type: 'EndEvent', name: 'Approved', position: { x: 840, y: 120 } },
+        { id: 'rejected_end', type: 'EndEvent', name: 'Rejected', position: { x: 840, y: 280 } }
       ],
       flows: [
         { from: 'start_event', to: 'submit_request' },
         { from: 'submit_request', to: 'review_request' },
         { from: 'review_request', to: 'approval_decision' },
-        { from: 'approval_decision', to: 'approved_end', condition: '${approved} == true' },
-        { from: 'approval_decision', to: 'rejected_end', condition: '${approved} == false' }
+        { from: 'approval_decision', to: 'approved_end', condition: '${approved} == true', waypoints: [{ x: 740, y: 220 }, { x: 740, y: 140 }] },
+        { from: 'approval_decision', to: 'rejected_end', condition: '${approved} == false', waypoints: [{ x: 740, y: 220 }, { x: 740, y: 300 }] }
       ]
     }
   },
@@ -147,21 +148,21 @@ const templates: Array<{
         { name: 'approved', type: 'boolean', initialValue: 'false' }
       ],
       nodes: [
-        { id: 'start_event', type: 'StartEvent', name: 'Start', position: { x: 80, y: 180 } },
-        { id: 'create_purchase_request', type: 'HumanTask', name: 'Create Purchase Request', position: { x: 220, y: 160 }, config: { candidateGroups: 'REQUESTERS' } },
-        { id: 'manager_approval', type: 'HumanTask', name: 'Manager Approval', position: { x: 460, y: 160 }, config: { candidateGroups: 'MANAGERS' } },
-        { id: 'approval_decision', type: 'ExclusiveGateway', name: 'Approved?', position: { x: 690, y: 170 } },
-        { id: 'create_purchase_order', type: 'ServiceTask', name: 'Create Purchase Order', position: { x: 860, y: 100 } },
-        { id: 'approved_end', type: 'EndEvent', name: 'Completed', position: { x: 1080, y: 110 } },
-        { id: 'rejected_end', type: 'EndEvent', name: 'Rejected', position: { x: 880, y: 260 } }
+        { id: 'start_event', type: 'StartEvent', name: 'Start', position: { x: 80, y: 200 } },
+        { id: 'create_purchase_request', type: 'HumanTask', name: 'Create Purchase Request', position: { x: 220, y: 190 }, config: { candidateGroups: 'REQUESTERS' } },
+        { id: 'manager_approval', type: 'HumanTask', name: 'Manager Approval', position: { x: 470, y: 190 }, config: { candidateGroups: 'MANAGERS' } },
+        { id: 'approval_decision', type: 'ExclusiveGateway', name: 'Approved?', position: { x: 700, y: 200 } },
+        { id: 'create_purchase_order', type: 'ServiceTask', name: 'Create Purchase Order', position: { x: 880, y: 110 } },
+        { id: 'approved_end', type: 'EndEvent', name: 'Completed', position: { x: 1100, y: 120 } },
+        { id: 'rejected_end', type: 'EndEvent', name: 'Rejected', position: { x: 880, y: 280 } }
       ],
       flows: [
         { from: 'start_event', to: 'create_purchase_request' },
         { from: 'create_purchase_request', to: 'manager_approval' },
         { from: 'manager_approval', to: 'approval_decision' },
-        { from: 'approval_decision', to: 'create_purchase_order', condition: '${approved} == true' },
+        { from: 'approval_decision', to: 'create_purchase_order', condition: '${approved} == true', waypoints: [{ x: 800, y: 220 }, { x: 800, y: 140 }] },
         { from: 'create_purchase_order', to: 'approved_end' },
-        { from: 'approval_decision', to: 'rejected_end', condition: '${approved} == false' }
+        { from: 'approval_decision', to: 'rejected_end', condition: '${approved} == false', waypoints: [{ x: 800, y: 220 }, { x: 800, y: 300 }] }
       ]
     }
   },
@@ -177,12 +178,12 @@ const templates: Array<{
         { name: 'equipmentReady', type: 'boolean', initialValue: 'false' }
       ],
       nodes: [
-        { id: 'start_event', type: 'StartEvent', name: 'Start', position: { x: 80, y: 180 } },
-        { id: 'collect_employee_details', type: 'HumanTask', name: 'Collect Employee Details', position: { x: 220, y: 160 }, config: { candidateGroups: 'HR' } },
-        { id: 'setup_accounts', type: 'ServiceTask', name: 'Set Up Accounts', position: { x: 470, y: 160 } },
-        { id: 'prepare_equipment', type: 'HumanTask', name: 'Prepare Equipment', position: { x: 690, y: 160 }, config: { candidateGroups: 'IT' } },
-        { id: 'orientation_session', type: 'HumanTask', name: 'Orientation Session', position: { x: 920, y: 160 }, config: { candidateGroups: 'HR' } },
-        { id: 'end_event', type: 'EndEvent', name: 'Completed', position: { x: 1160, y: 170 } }
+        { id: 'start_event', type: 'StartEvent', name: 'Start', position: { x: 80, y: 200 } },
+        { id: 'collect_employee_details', type: 'HumanTask', name: 'Collect Employee Details', position: { x: 220, y: 190 }, config: { candidateGroups: 'HR' } },
+        { id: 'setup_accounts', type: 'ServiceTask', name: 'Set Up Accounts', position: { x: 470, y: 190 } },
+        { id: 'prepare_equipment', type: 'HumanTask', name: 'Prepare Equipment', position: { x: 700, y: 190 }, config: { candidateGroups: 'IT' } },
+        { id: 'orientation_session', type: 'HumanTask', name: 'Orientation Session', position: { x: 930, y: 190 }, config: { candidateGroups: 'HR' } },
+        { id: 'end_event', type: 'EndEvent', name: 'Completed', position: { x: 1170, y: 200 } }
       ],
       flows: [
         { from: 'start_event', to: 'collect_employee_details' },
@@ -206,19 +207,19 @@ const templates: Array<{
         { name: 'approved', type: 'boolean', initialValue: 'false' }
       ],
       nodes: [
-        { id: 'start_event', type: 'StartEvent', name: 'Start', position: { x: 80, y: 180 } },
-        { id: 'submit_leave_request', type: 'HumanTask', name: 'Submit Leave Request', position: { x: 220, y: 160 }, config: { candidateGroups: 'EMPLOYEES' } },
-        { id: 'review_leave_request', type: 'HumanTask', name: 'Review Leave Request', position: { x: 470, y: 160 }, config: { candidateGroups: 'MANAGERS' } },
-        { id: 'approval_decision', type: 'ExclusiveGateway', name: 'Approved?', position: { x: 700, y: 170 } },
-        { id: 'approved_end', type: 'EndEvent', name: 'Approved', position: { x: 900, y: 100 } },
-        { id: 'rejected_end', type: 'EndEvent', name: 'Rejected', position: { x: 900, y: 250 } }
+        { id: 'start_event', type: 'StartEvent', name: 'Start', position: { x: 80, y: 200 } },
+        { id: 'submit_leave_request', type: 'HumanTask', name: 'Submit Leave Request', position: { x: 220, y: 190 }, config: { candidateGroups: 'EMPLOYEES' } },
+        { id: 'review_leave_request', type: 'HumanTask', name: 'Review Leave Request', position: { x: 470, y: 190 }, config: { candidateGroups: 'MANAGERS' } },
+        { id: 'approval_decision', type: 'ExclusiveGateway', name: 'Approved?', position: { x: 700, y: 200 } },
+        { id: 'approved_end', type: 'EndEvent', name: 'Approved', position: { x: 920, y: 120 } },
+        { id: 'rejected_end', type: 'EndEvent', name: 'Rejected', position: { x: 920, y: 280 } }
       ],
       flows: [
         { from: 'start_event', to: 'submit_leave_request' },
         { from: 'submit_leave_request', to: 'review_leave_request' },
         { from: 'review_leave_request', to: 'approval_decision' },
-        { from: 'approval_decision', to: 'approved_end', condition: '${approved} == true' },
-        { from: 'approval_decision', to: 'rejected_end', condition: '${approved} == false' }
+        { from: 'approval_decision', to: 'approved_end', condition: '${approved} == true', waypoints: [{ x: 820, y: 220 }, { x: 820, y: 140 }] },
+        { from: 'approval_decision', to: 'rejected_end', condition: '${approved} == false', waypoints: [{ x: 820, y: 220 }, { x: 820, y: 300 }] }
       ]
     }
   }
