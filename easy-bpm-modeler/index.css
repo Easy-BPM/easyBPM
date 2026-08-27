@@ -1,24 +1,29 @@
 .process-modeler,
 .form-modeler,
 .welcome-modeler {
-  --modeler-bg: #f8fafc;
+  --modeler-bg: #f4f4f4;
   --modeler-surface: #ffffff;
-  --modeler-surface-muted: #f1f5f9;
-  --modeler-surface-subtle: #f8fafc;
-  --modeler-border: #dbe3ec;
-  --modeler-border-strong: #cbd5e1;
-  --modeler-text: #0f172a;
-  --modeler-text-soft: #334155;
-  --modeler-text-muted: #64748b;
+  --modeler-surface-muted: #eeeeee;
+  --modeler-surface-subtle: #fafafa;
+  --modeler-border: #d6d6d6;
+  --modeler-border-strong: #a8a8a8;
+  --modeler-text: #161616;
+  --modeler-text-soft: #393939;
+  --modeler-text-muted: #6f6f6f;
+  --modeler-accent: #0f62fe;
+  --modeler-accent-hover: #0043ce;
+  --modeler-success: #24a148;
+  --modeler-warning: #f1c21b;
+  --modeler-danger: #da1e28;
   --modeler-input-bg: #ffffff;
-  --modeler-input-border: #cbd5e1;
-  --modeler-input-text: #0f172a;
-  --modeler-placeholder: #94a3b8;
+  --modeler-input-border: #8d8d8d;
+  --modeler-input-text: #161616;
+  --modeler-placeholder: #8d8d8d;
   --modeler-canvas-bg: #eef4fb;
   --modeler-canvas-grid: rgba(71, 85, 105, 0.22);
   --modeler-node-fill: #ffffff;
   --modeler-node-label: #0f172a;
-  --modeler-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+  --modeler-shadow: 0 1px 0 rgba(22, 22, 22, 0.08);
   color-scheme: light;
   background: var(--modeler-bg);
   color: var(--modeler-text);
@@ -27,19 +32,19 @@
 .process-modeler[data-theme="dark"],
 .form-modeler[data-theme="dark"],
 .welcome-modeler[data-theme="dark"] {
-  --modeler-bg: #0f171d;
-  --modeler-surface: #121920;
-  --modeler-surface-muted: #1a2430;
-  --modeler-surface-subtle: #101820;
-  --modeler-border: #25313d;
-  --modeler-border-strong: #2d3a47;
-  --modeler-text: #e5edf5;
-  --modeler-text-soft: #cbd5e1;
-  --modeler-text-muted: #94a3b8;
-  --modeler-input-bg: #0f171d;
-  --modeler-input-border: #2d3a47;
-  --modeler-input-text: #e5edf5;
-  --modeler-placeholder: #718096;
+  --modeler-bg: #262626;
+  --modeler-surface: #161616;
+  --modeler-surface-muted: #262626;
+  --modeler-surface-subtle: #1f1f1f;
+  --modeler-border: #393939;
+  --modeler-border-strong: #525252;
+  --modeler-text: #f4f4f4;
+  --modeler-text-soft: #e0e0e0;
+  --modeler-text-muted: #a8a8a8;
+  --modeler-input-bg: #262626;
+  --modeler-input-border: #6f6f6f;
+  --modeler-input-text: #f4f4f4;
+  --modeler-placeholder: #8d8d8d;
   --modeler-canvas-bg: #0f171d;
   --modeler-canvas-grid: rgba(148, 163, 184, 0.26);
   --modeler-node-fill: #111a21;
@@ -54,6 +59,11 @@
   background-color: var(--modeler-surface);
   border-color: var(--modeler-border);
   box-shadow: var(--modeler-shadow);
+}
+
+.process-modeler .modeler-navbar,
+.form-modeler .modeler-navbar {
+  backdrop-filter: none;
 }
 
 .modeler-heading {
@@ -78,11 +88,180 @@
   color: var(--modeler-text);
 }
 
+.process-modeler button,
+.form-modeler button,
+.welcome-modeler button {
+  border-radius: 4px !important;
+}
+
+.process-modeler .rounded-2xl,
+.process-modeler .rounded-xl,
+.process-modeler .rounded-lg,
+.form-modeler .rounded-2xl,
+.form-modeler .rounded-xl,
+.form-modeler .rounded-lg,
+.welcome-modeler .rounded-2xl,
+.welcome-modeler .rounded-xl,
+.welcome-modeler .rounded-lg {
+  border-radius: 4px !important;
+}
+
+.process-modeler .shadow-2xl,
+.process-modeler .shadow-xl,
+.process-modeler .shadow-lg,
+.process-modeler .shadow-md,
+.process-modeler .shadow-sm,
+.form-modeler .shadow-2xl,
+.form-modeler .shadow-xl,
+.form-modeler .shadow-lg,
+.form-modeler .shadow-md,
+.form-modeler .shadow-sm,
+.welcome-modeler .shadow-2xl,
+.welcome-modeler .shadow-xl,
+.welcome-modeler .shadow-lg,
+.welcome-modeler .shadow-md,
+.welcome-modeler .shadow-sm {
+  box-shadow: var(--modeler-shadow) !important;
+}
+
+.process-modeler :where(.modeler-navbar, .modeler-toolbar, aside, section, article, dialog, [role="dialog"]) .bg-white,
+.form-modeler .bg-white,
+.welcome-modeler .bg-white {
+  background-color: var(--modeler-surface) !important;
+}
+
+.process-modeler :where(.modeler-navbar, .modeler-toolbar, aside, section, article, dialog, [role="dialog"]) .bg-slate-50,
+.process-modeler :where(.modeler-navbar, .modeler-toolbar, aside, section, article, dialog, [role="dialog"]) .bg-slate-100,
+.form-modeler .bg-slate-50,
+.form-modeler .bg-slate-100,
+.welcome-modeler .bg-slate-50,
+.welcome-modeler .bg-slate-100 {
+  background-color: var(--modeler-surface-muted) !important;
+}
+
+.process-modeler :where(.modeler-navbar, .modeler-toolbar, aside, section, article, dialog, [role="dialog"]) .border-slate-100,
+.process-modeler :where(.modeler-navbar, .modeler-toolbar, aside, section, article, dialog, [role="dialog"]) .border-slate-200,
+.process-modeler :where(.modeler-navbar, .modeler-toolbar, aside, section, article, dialog, [role="dialog"]) .border-slate-300,
+.form-modeler .border-slate-100,
+.form-modeler .border-slate-200,
+.form-modeler .border-slate-300,
+.welcome-modeler .border-slate-100,
+.welcome-modeler .border-slate-200,
+.welcome-modeler .border-slate-300 {
+  border-color: var(--modeler-border) !important;
+}
+
+.process-modeler :where(.modeler-navbar, .modeler-toolbar, aside, section, article, dialog, [role="dialog"]) .text-slate-900,
+.process-modeler :where(.modeler-navbar, .modeler-toolbar, aside, section, article, dialog, [role="dialog"]) .text-slate-800,
+.process-modeler :where(.modeler-navbar, .modeler-toolbar, aside, section, article, dialog, [role="dialog"]) .text-slate-700,
+.form-modeler .text-slate-900,
+.form-modeler .text-slate-800,
+.form-modeler .text-slate-700,
+.welcome-modeler .text-slate-900,
+.welcome-modeler .text-slate-800,
+.welcome-modeler .text-slate-700 {
+  color: var(--modeler-text) !important;
+}
+
+.process-modeler :where(.modeler-navbar, .modeler-toolbar, aside, section, article, dialog, [role="dialog"]) .text-slate-600,
+.process-modeler :where(.modeler-navbar, .modeler-toolbar, aside, section, article, dialog, [role="dialog"]) .text-slate-500,
+.process-modeler :where(.modeler-navbar, .modeler-toolbar, aside, section, article, dialog, [role="dialog"]) .text-slate-400,
+.form-modeler .text-slate-600,
+.form-modeler .text-slate-500,
+.form-modeler .text-slate-400,
+.welcome-modeler .text-slate-600,
+.welcome-modeler .text-slate-500,
+.welcome-modeler .text-slate-400 {
+  color: var(--modeler-text-muted) !important;
+}
+
+.process-modeler .bg-blue-600,
+.form-modeler .bg-blue-600,
+.welcome-modeler .bg-blue-600 {
+  background-color: var(--modeler-accent) !important;
+  color: #ffffff !important;
+}
+
+.process-modeler .hover\:bg-blue-500:hover,
+.process-modeler .hover\:bg-blue-700:hover,
+.form-modeler .hover\:bg-blue-500:hover,
+.form-modeler .hover\:bg-blue-700:hover,
+.welcome-modeler .hover\:bg-blue-500:hover,
+.welcome-modeler .hover\:bg-blue-700:hover {
+  background-color: var(--modeler-accent-hover) !important;
+}
+
+.process-modeler :where(.modeler-navbar, .modeler-toolbar, aside, section, article, dialog, [role="dialog"]) .text-blue-600,
+.process-modeler :where(.modeler-navbar, .modeler-toolbar, aside, section, article, dialog, [role="dialog"]) .text-blue-700,
+.process-modeler :where(.modeler-navbar, .modeler-toolbar, aside, section, article, dialog, [role="dialog"]) .text-indigo-600,
+.process-modeler :where(.modeler-navbar, .modeler-toolbar, aside, section, article, dialog, [role="dialog"]) .text-purple-600,
+.process-modeler :where(.modeler-navbar, .modeler-toolbar, aside, section, article, dialog, [role="dialog"]) .text-pink-600,
+.form-modeler .text-blue-600,
+.form-modeler .text-blue-700,
+.form-modeler .text-indigo-600,
+.form-modeler .text-purple-600,
+.form-modeler .text-pink-600,
+.welcome-modeler .text-blue-600,
+.welcome-modeler .text-blue-700,
+.welcome-modeler .text-indigo-600,
+.welcome-modeler .text-purple-600,
+.welcome-modeler .text-pink-600 {
+  color: var(--modeler-accent) !important;
+}
+
+.process-modeler :where(.modeler-navbar, .modeler-toolbar, aside, section, article, dialog, [role="dialog"]) .bg-blue-50,
+.process-modeler :where(.modeler-navbar, .modeler-toolbar, aside, section, article, dialog, [role="dialog"]) .bg-blue-50\/30,
+.process-modeler :where(.modeler-navbar, .modeler-toolbar, aside, section, article, dialog, [role="dialog"]) .bg-indigo-50,
+.process-modeler :where(.modeler-navbar, .modeler-toolbar, aside, section, article, dialog, [role="dialog"]) .bg-purple-50,
+.process-modeler :where(.modeler-navbar, .modeler-toolbar, aside, section, article, dialog, [role="dialog"]) .bg-pink-50,
+.form-modeler .bg-blue-50,
+.form-modeler .bg-blue-50\/30,
+.form-modeler .bg-blue-50\/40,
+.form-modeler .bg-indigo-50,
+.form-modeler .bg-purple-50,
+.form-modeler .bg-pink-50,
+.welcome-modeler .bg-blue-50,
+.welcome-modeler .bg-indigo-50,
+.welcome-modeler .bg-purple-50,
+.welcome-modeler .bg-pink-50 {
+  background-color: #edf5ff !important;
+}
+
+.process-modeler :where(.modeler-navbar, .modeler-toolbar, aside, section, article, dialog, [role="dialog"]) .border-blue-200,
+.process-modeler :where(.modeler-navbar, .modeler-toolbar, aside, section, article, dialog, [role="dialog"]) .border-blue-300,
+.process-modeler :where(.modeler-navbar, .modeler-toolbar, aside, section, article, dialog, [role="dialog"]) .border-indigo-100,
+.process-modeler :where(.modeler-navbar, .modeler-toolbar, aside, section, article, dialog, [role="dialog"]) .border-indigo-200,
+.process-modeler :where(.modeler-navbar, .modeler-toolbar, aside, section, article, dialog, [role="dialog"]) .border-purple-200,
+.process-modeler :where(.modeler-navbar, .modeler-toolbar, aside, section, article, dialog, [role="dialog"]) .border-pink-200,
+.process-modeler :where(.modeler-navbar, .modeler-toolbar, aside, section, article, dialog, [role="dialog"]) .border-pink-300,
+.form-modeler .border-blue-200,
+.form-modeler .border-blue-300,
+.form-modeler .border-indigo-100,
+.form-modeler .border-indigo-200,
+.form-modeler .border-purple-200,
+.form-modeler .border-pink-200,
+.form-modeler .border-pink-300,
+.welcome-modeler .border-blue-200,
+.welcome-modeler .border-blue-300,
+.welcome-modeler .border-indigo-100,
+.welcome-modeler .border-indigo-200,
+.welcome-modeler .border-purple-200,
+.welcome-modeler .border-pink-200,
+.welcome-modeler .border-pink-300 {
+  border-color: #78a9ff !important;
+}
+
+.process-modeler .bg-gradient-to-br,
+.form-modeler .bg-gradient-to-br,
+.welcome-modeler .bg-gradient-to-br {
+  background-image: none !important;
+}
+
 .theme-toggle {
   align-items: center;
   background-color: var(--modeler-surface-muted);
   border: 1px solid var(--modeler-border);
-  border-radius: 999px;
+  border-radius: 4px;
   color: var(--modeler-text-soft);
   display: inline-flex;
   height: 32px;
@@ -92,11 +271,11 @@
 }
 
 .welcome-modeler[data-theme="light"] {
-  background: linear-gradient(135deg, #f8fafc 0%, #eef6ff 52%, #e8f5f0 100%);
+  background: #f4f4f4;
 }
 
 .welcome-modeler[data-theme="dark"] {
-  background: linear-gradient(135deg, #020617 0%, #0f172a 52%, #172554 100%);
+  background: #161616;
 }
 
 .process-modeler[data-theme="light"] .bg-\[\#0f171d\],
@@ -163,7 +342,7 @@
 
 .process-modeler[data-theme="dark"] .bg-slate-100\/50,
 .form-modeler[data-theme="dark"] .bg-slate-100\/50 {
-  background-color: #0f171d !important;
+  background-color: var(--modeler-bg) !important;
 }
 
 .process-modeler[data-theme="dark"] .bg-white,
@@ -172,7 +351,7 @@
 .form-modeler[data-theme="dark"] .bg-white,
 .form-modeler[data-theme="dark"] .bg-slate-50,
 .form-modeler[data-theme="dark"] .bg-slate-100 {
-  background-color: #121920 !important;
+  background-color: var(--modeler-surface) !important;
 }
 
 .process-modeler[data-theme="dark"] .bg-blue-50\/30,
@@ -216,7 +395,7 @@
 .form-modeler[data-theme="dark"] .border-slate-100,
 .form-modeler[data-theme="dark"] .border-slate-200,
 .form-modeler[data-theme="dark"] .border-slate-300 {
-  border-color: #25313d !important;
+  border-color: var(--modeler-border) !important;
 }
 
 .process-modeler[data-theme="dark"] .border-blue-200,
@@ -253,19 +432,19 @@
 .form-modeler[data-theme="dark"] .text-slate-900,
 .form-modeler[data-theme="dark"] .text-slate-800,
 .form-modeler[data-theme="dark"] .text-slate-700 {
-  color: #e5edf5 !important;
+  color: var(--modeler-text) !important;
 }
 
 .process-modeler[data-theme="dark"] .text-slate-600,
 .process-modeler[data-theme="dark"] .text-slate-500,
 .form-modeler[data-theme="dark"] .text-slate-600,
 .form-modeler[data-theme="dark"] .text-slate-500 {
-  color: #94a3b8 !important;
+  color: var(--modeler-text-muted) !important;
 }
 
 .process-modeler[data-theme="dark"] .text-slate-400,
 .form-modeler[data-theme="dark"] .text-slate-400 {
-  color: #7f8ea3 !important;
+  color: var(--modeler-text-muted) !important;
 }
 
 .process-modeler input,
@@ -280,6 +459,20 @@
   border-radius: 4px !important;
   font-size: 12px !important;
   line-height: 1.25rem !important;
+}
+
+.process-modeler input:focus,
+.process-modeler textarea:focus,
+.process-modeler select:focus,
+.form-modeler input:focus,
+.form-modeler textarea:focus,
+.form-modeler select:focus,
+.welcome-modeler input:focus,
+.welcome-modeler textarea:focus,
+.welcome-modeler select:focus {
+  border-color: var(--modeler-accent) !important;
+  box-shadow: 0 0 0 1px var(--modeler-accent) !important;
+  outline: none !important;
 }
 
 .process-modeler input,
@@ -342,17 +535,17 @@
 
 .process-modeler[data-theme="dark"] ::-webkit-scrollbar-thumb,
 .form-modeler[data-theme="dark"] ::-webkit-scrollbar-thumb {
-  background: #334155;
+  background: #525252;
 }
 
 .process-modeler[data-theme="dark"] ::-webkit-scrollbar-thumb:hover,
 .form-modeler[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+  background: #6f6f6f;
 }
 
 .form-modeler .rounded-xl,
 .form-modeler .rounded-lg {
-  border-radius: 6px !important;
+  border-radius: 4px !important;
 }
 
 .form-modeler .rounded-md {
@@ -376,9 +569,9 @@
 }
 
 .form-modeler[data-theme="dark"] .bg-slate-900\/40 {
-  background-color: rgba(2, 6, 23, 0.72) !important;
+  background-color: rgba(22, 22, 22, 0.82) !important;
 }
 
 .form-modeler .opacity-40 {
-  color: #94a3b8;
+  color: var(--modeler-text-muted);
 }
