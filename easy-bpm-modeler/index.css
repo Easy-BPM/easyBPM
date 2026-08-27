@@ -286,6 +286,37 @@
   background: linear-gradient(135deg, #020617 0%, #0f172a 52%, #172554 100%) !important;
 }
 
+.welcome-modeler.login-shell {
+  align-items: center;
+  background:
+    linear-gradient(90deg, rgba(15, 98, 254, 0.08) 0 1px, transparent 1px),
+    linear-gradient(rgba(15, 98, 254, 0.06) 0 1px, transparent 1px),
+    var(--modeler-bg) !important;
+  background-size: 48px 48px;
+  display: flex;
+}
+
+.welcome-modeler.login-shell .login-layout {
+  border-radius: 0 !important;
+}
+
+.welcome-modeler.login-shell .login-brand-panel {
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.06) 0 1px, transparent 1px),
+    linear-gradient(rgba(255, 255, 255, 0.04) 0 1px, transparent 1px),
+    #161616;
+  background-size: 40px 40px;
+  min-height: 640px;
+}
+
+.welcome-modeler.login-shell[data-theme="dark"] {
+  background:
+    linear-gradient(90deg, rgba(120, 160, 255, 0.08) 0 1px, transparent 1px),
+    linear-gradient(rgba(120, 160, 255, 0.06) 0 1px, transparent 1px),
+    var(--modeler-bg) !important;
+  background-size: 48px 48px;
+}
+
 .welcome-modeler.login-shell[data-theme="light"] .bg-white\/5 {
   background-color: rgba(255, 255, 255, 0.82) !important;
 }
@@ -340,6 +371,24 @@
 
 .welcome-modeler.login-shell .shadow-lg {
   box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3), 0 4px 6px -4px rgba(37, 99, 235, 0.3) !important;
+}
+
+.welcome-modeler.login-shell .login-brand-panel,
+.welcome-modeler.login-shell .login-brand-panel .text-white {
+  color: #ffffff !important;
+}
+
+.welcome-modeler.login-shell .login-brand-panel .text-slate-300 {
+  color: #cbd5e1 !important;
+}
+
+.welcome-modeler.login-shell .login-brand-panel .text-blue-300 {
+  color: #93c5fd !important;
+}
+
+.welcome-modeler.login-shell .login-form-panel .bg-blue-600,
+.welcome-modeler.login-shell .login-form-panel .bg-blue-600 :is(svg, span) {
+  color: #ffffff !important;
 }
 
 .process-modeler[data-theme="light"] .bg-\[\#0f171d\],
