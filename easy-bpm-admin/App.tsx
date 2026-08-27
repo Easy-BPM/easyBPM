@@ -181,22 +181,55 @@ const LoginView: React.FC<{ onLogin: (username: string, perms: string[]) => void
   };
 
   return (
-    <div className="admin-app login-shell min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 p-4" data-theme={theme}>
-      <div className="absolute right-5 top-5">
+    <div className="admin-app login-shell min-h-screen p-4" data-theme={theme}>
+      <div className="absolute right-5 top-5 z-10">
         <ThemeToggle theme={theme} onToggle={onToggleTheme} />
       </div>
-      <div className="w-full max-w-md">
-        {/* Card */}
-        <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8 shadow-2xl">
-          <div className="flex flex-col items-center mb-8">
+      <div className="login-layout mx-auto grid min-h-[calc(100vh-2rem)] w-full max-w-5xl overflow-hidden border border-[var(--app-border)] bg-[var(--app-surface)] shadow-2xl lg:grid-cols-[1fr_420px]">
+        <section className="login-brand-panel hidden flex-col justify-between bg-[#161616] p-10 text-white lg:flex">
+          <div>
             <img
               src="/easy-bpm-logo.png"
               alt="Easy BPM"
-              className="mb-4 h-14 w-14 rounded-xl object-cover shadow-lg shadow-blue-600/40 ring-4 ring-blue-600/20"
+              className="h-14 w-14 rounded-md object-cover shadow-lg shadow-blue-600/30"
             />
-            <h1 className="text-2xl font-bold text-white">Easy BPM Admin</h1>
-            <p className="text-slate-400 mt-1 text-sm">Sign in to your operations console</p>
+            <div className="mt-10 max-w-md">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-300">Operations console</p>
+              <h1 className="mt-4 text-4xl font-semibold leading-tight text-white">Easy BPM Admin</h1>
+              <p className="mt-4 text-sm leading-6 text-slate-300">Govern process instances, incidents, deployments and operational health from a focused workspace.</p>
+            </div>
           </div>
+          <div className="grid grid-cols-3 border border-white/10 text-xs text-slate-300">
+            <div className="border-r border-white/10 p-4">
+              <p className="text-lg font-semibold text-white">Ops</p>
+              <p className="mt-1">Monitor</p>
+            </div>
+            <div className="border-r border-white/10 p-4">
+              <p className="text-lg font-semibold text-white">BPMN</p>
+              <p className="mt-1">Trace</p>
+            </div>
+            <div className="p-4">
+              <p className="text-lg font-semibold text-white">SLA</p>
+              <p className="mt-1">Resolve</p>
+            </div>
+          </div>
+        </section>
+
+        <section className="login-form-panel flex items-center bg-[var(--app-surface)] p-6 sm:p-10">
+          <div className="w-full">
+            <div className="mb-8 flex items-center gap-3 lg:hidden">
+              <img src="/easy-bpm-logo.png" alt="Easy BPM" className="h-11 w-11 rounded-md object-cover shadow-lg shadow-blue-600/25" />
+              <div>
+                <h1 className="text-xl font-semibold text-[var(--app-text)]">Easy BPM Admin</h1>
+                <p className="text-sm text-[var(--app-text-muted)]">Operations console</p>
+              </div>
+            </div>
+
+            <div className="mb-8">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--app-text-muted)]">Sign in</p>
+              <h2 className="mt-3 text-2xl font-semibold text-[var(--app-text)]">Access your workspace</h2>
+              <p className="mt-2 text-sm text-[var(--app-text-muted)]">Use your Easy BPM credentials.</p>
+            </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -235,8 +268,8 @@ const LoginView: React.FC<{ onLogin: (username: string, perms: string[]) => void
           </button>
           {error && <p className="text-sm text-red-600">{error}</p>}
         </form>
-        </div>
-        <p className="text-center text-[11px] text-slate-600 mt-4">Easy BPM · Process Operations Console</p>
+          </div>
+        </section>
       </div>
     </div>
   );

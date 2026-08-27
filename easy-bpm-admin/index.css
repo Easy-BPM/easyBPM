@@ -47,6 +47,37 @@
   background: linear-gradient(135deg, #020617 0%, #0f172a 52%, #172554 100%) !important;
 }
 
+.admin-app.login-shell {
+  align-items: center;
+  background:
+    linear-gradient(90deg, rgba(15, 98, 254, 0.08) 0 1px, transparent 1px),
+    linear-gradient(rgba(15, 98, 254, 0.06) 0 1px, transparent 1px),
+    var(--app-bg) !important;
+  background-size: 48px 48px;
+  display: flex;
+}
+
+.admin-app.login-shell .login-layout {
+  border-radius: 0 !important;
+}
+
+.admin-app.login-shell .login-brand-panel {
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.06) 0 1px, transparent 1px),
+    linear-gradient(rgba(255, 255, 255, 0.04) 0 1px, transparent 1px),
+    #161616;
+  background-size: 40px 40px;
+  min-height: 640px;
+}
+
+.admin-app.login-shell[data-theme="dark"] {
+  background:
+    linear-gradient(90deg, rgba(120, 160, 255, 0.08) 0 1px, transparent 1px),
+    linear-gradient(rgba(120, 160, 255, 0.06) 0 1px, transparent 1px),
+    var(--app-bg) !important;
+  background-size: 48px 48px;
+}
+
 .theme-toggle {
   align-items: center;
   background-color: var(--app-surface-muted);
@@ -372,6 +403,24 @@
 
 .admin-app.login-shell .shadow-lg {
   box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3), 0 4px 6px -4px rgba(37, 99, 235, 0.3) !important;
+}
+
+.admin-app.login-shell .login-brand-panel,
+.admin-app.login-shell .login-brand-panel .text-white {
+  color: #ffffff !important;
+}
+
+.admin-app.login-shell .login-brand-panel .text-slate-300 {
+  color: #cbd5e1 !important;
+}
+
+.admin-app.login-shell .login-brand-panel .text-blue-300 {
+  color: #93c5fd !important;
+}
+
+.admin-app.login-shell .login-form-panel .bg-blue-600,
+.admin-app.login-shell .login-form-panel .bg-blue-600 :is(svg, span) {
+  color: #ffffff !important;
 }
 
 .workflow-canvas {
