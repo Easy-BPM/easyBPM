@@ -40,11 +40,11 @@
 }
 
 .login-shell[data-theme="light"] {
-  background: #f4f4f4 !important;
+  background: linear-gradient(135deg, #f8fafc 0%, #eef6ff 52%, #e8f5f0 100%) !important;
 }
 
 .login-shell[data-theme="dark"] {
-  background: #161616 !important;
+  background: linear-gradient(135deg, #020617 0%, #0f172a 52%, #172554 100%) !important;
 }
 
 .theme-toggle {
@@ -307,4 +307,45 @@
 .task-portal-app.login-shell[data-theme="light"] .text-slate-400,
 .task-portal-app.login-shell[data-theme="light"] .text-slate-500 {
   color: var(--app-text-muted) !important;
+}
+
+.task-portal-app.login-shell[data-theme="dark"] .bg-white\/5 {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+.task-portal-app.login-shell[data-theme="dark"] .border-white\/10 {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.task-portal-app.login-shell[data-theme="dark"] .text-white {
+  color: #ffffff !important;
+}
+
+.task-portal-app.login-shell[data-theme="dark"] .text-slate-300 {
+  color: #cbd5e1 !important;
+}
+
+.task-portal-app.login-shell[data-theme="dark"] .text-slate-400,
+.task-portal-app.login-shell[data-theme="dark"] .text-slate-500 {
+  color: #94a3b8 !important;
+}
+
+.task-portal-app.login-shell .rounded-2xl {
+  border-radius: 1rem !important;
+}
+
+.task-portal-app.login-shell .rounded-xl {
+  border-radius: 0.75rem !important;
+}
+
+.task-portal-app.login-shell .rounded-lg {
+  border-radius: 0.5rem !important;
+}
+
+.task-portal-app.login-shell .shadow-2xl {
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
+}
+
+.task-portal-app.login-shell .shadow-lg {
+  box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3), 0 4px 6px -4px rgba(37, 99, 235, 0.3) !important;
 }
