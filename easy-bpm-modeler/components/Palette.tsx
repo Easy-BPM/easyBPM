@@ -144,19 +144,17 @@ export const Palette: React.FC<PaletteProps> = ({ onDragStart, isAgenticOrchestr
   ];
 
   return (
-    <div className="w-36 bg-[#121920] border-r border-[#25313d] flex flex-col h-full z-10 shadow-[1px_0_0_rgba(255,255,255,0.04)]">
-      <div className="px-3 py-2 border-b border-[#25313d] bg-[#121920] flex justify-center">
-        <div className="flex h-9 w-full items-center justify-center rounded-md border border-white/[0.07] bg-white/[0.04] text-[11px] font-bold uppercase text-slate-300" aria-label="Components">
+    <div className="w-20 bg-[#121920] border-r border-[#25313d] flex flex-col h-full z-10 shadow-[1px_0_0_rgba(255,255,255,0.04)]">
+      <div className="p-3 border-b border-[#25313d] bg-[#121920] flex justify-center">
+        <div className="flex h-9 w-9 items-center justify-center rounded-md border border-white/[0.07] bg-white/[0.04] text-[11px] font-bold uppercase text-slate-300" aria-label="Components">
           BPM
         </div>
       </div>
-      <div className="px-2 py-2 space-y-3 overflow-y-auto flex-1">
+      <div className="p-2 space-y-4 overflow-y-auto flex-1">
         {groups.map((group) => (
-          <div key={group.title} className="space-y-1.5">
-            <div className="px-1 text-[9px] font-bold uppercase tracking-wider text-slate-500">
-              {group.title}
-            </div>
-            <div className="grid grid-cols-2 gap-1.5">
+          <div key={group.title} className="space-y-2">
+            <div className="mx-auto h-px w-8 bg-white/[0.08]" aria-label={group.title} />
+            <div className="grid grid-cols-1 gap-1.5">
               {group.items.map((item) => (
                 <div
                   key={item.type}
@@ -165,8 +163,7 @@ export const Palette: React.FC<PaletteProps> = ({ onDragStart, isAgenticOrchestr
                   onMouseEnter={() => setHoveredLabel(item.label)}
                   onFocus={() => setHoveredLabel(item.label)}
                   aria-label={item.label}
-                  title={item.label}
-                  className="relative flex h-11 w-full items-center justify-center bg-white/[0.04] border border-white/[0.07] rounded-md cursor-grab hover:border-blue-500/70 hover:bg-white/[0.07] hover:shadow-[0_0_0_1px_rgba(59,130,246,0.18)] transition-all group"
+                  className="relative mx-auto flex h-10 w-10 items-center justify-center bg-white/[0.04] border border-white/[0.07] rounded-md cursor-grab hover:border-blue-500/70 hover:bg-white/[0.07] hover:shadow-[0_0_0_1px_rgba(59,130,246,0.18)] transition-all group"
                 >
                   <div className={`${item.color} group-hover:scale-110 transition-transform flex-shrink-0`}>
                     {item.icon}
@@ -179,7 +176,7 @@ export const Palette: React.FC<PaletteProps> = ({ onDragStart, isAgenticOrchestr
       </div>
       
       <div className="border-t border-[#25313d] bg-black/10 p-2">
-        <div className="flex min-h-10 items-center justify-center rounded-md border border-white/[0.07] bg-white/[0.04] px-2 py-1 text-center text-[10px] font-semibold leading-tight text-slate-300">
+        <div className="flex min-h-10 items-center justify-center rounded-md border border-white/[0.07] bg-white/[0.04] px-1.5 py-1 text-center text-[10px] font-semibold leading-tight text-slate-300">
           {hoveredLabel}
         </div>
       </div>
