@@ -171,6 +171,32 @@ For longer runs, use `--duration-seconds`. To save the raw result payload, use `
 
 Use `host.docker.internal` when the worker runs in Docker and needs to call the mock API running on the host. Use `http://localhost:19090/mock-api` when the worker runs directly on the same machine as the script.
 
+## Docker Compose Authentication Options
+
+Run the default stack with local EasyBPM username/password authentication:
+
+```bash
+docker compose up -d
+```
+
+Run the stack with local Keycloak/OIDC authentication:
+
+```bash
+export EASYBPM_KEYCLOAK_ADMIN="local-admin"
+export EASYBPM_KEYCLOAK_ADMIN_PASSWORD="<choose-a-local-password>"
+docker compose -f docker-compose.yml -f docker-compose.keycloak.yml up -d
+```
+
+PowerShell:
+
+```powershell
+$env:EASYBPM_KEYCLOAK_ADMIN="local-admin"
+$env:EASYBPM_KEYCLOAK_ADMIN_PASSWORD="<choose-a-local-password>"
+docker compose -f docker-compose.yml -f docker-compose.keycloak.yml up -d
+```
+
+The Keycloak option imports the `easybpm` realm from `deploy/keycloak/easybpm-realm.json`, exposes Keycloak at `http://localhost:8081`, and configures the backend to map Keycloak roles/groups to EasyBPM permissions. Create local development users in Keycloak and assign `easybpm-user`, `easybpm-modeler`, or `easybpm-admin` as needed.
+
 Example local Docker results from higher-volume runs:
 
 | Setup | Mock API latency | Submitted | Completed | Throughput | p95 latency |
