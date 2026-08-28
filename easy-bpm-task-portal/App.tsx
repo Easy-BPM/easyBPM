@@ -282,50 +282,30 @@ const LoginView: React.FC<{ onLogin: (username: string) => void; theme: ThemeMod
   };
 
   return (
-    <div className="task-portal-app login-shell min-h-screen p-4" data-theme={theme}>
+    <div className="task-portal-app login-shell min-h-screen flex items-center justify-center p-4" data-theme={theme}>
       <div className="absolute right-5 top-5 z-10">
         <ThemeToggle theme={theme} onToggle={onToggleTheme} />
       </div>
-      <div className="login-layout mx-auto grid min-h-[calc(100vh-2rem)] w-full max-w-5xl overflow-hidden border border-[var(--app-border)] bg-[var(--app-surface)] shadow-2xl lg:grid-cols-[1fr_420px]">
-        <section className="login-brand-panel hidden flex-col justify-between bg-[#161616] p-10 text-white lg:flex">
-          <div>
-            <img
-              src="/easy-bpm-logo.png"
-              alt="Easy BPM"
-              className="h-14 w-14 rounded-md object-cover shadow-lg shadow-blue-600/30"
-            />
-            <div className="mt-10 max-w-md">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-300">Task execution</p>
-              <h1 className="mt-4 text-4xl font-semibold leading-tight text-white">Easy BPM Task Portal</h1>
-              <p className="mt-4 text-sm leading-6 text-slate-300">Open assigned work, start approved processes and keep execution moving with a clear operational inbox.</p>
-            </div>
-          </div>
-        </section>
-
-        <section className="login-form-panel flex items-center bg-[var(--app-surface)] p-6 sm:p-10">
-          <div className="w-full">
-            <div className="mb-8 flex items-center gap-3 lg:hidden">
-              <img src="/easy-bpm-logo.png" alt="Easy BPM" className="h-11 w-11 rounded-md object-cover shadow-lg shadow-blue-600/25" />
-              <div>
-                <h1 className="text-xl font-semibold text-[var(--app-text)]">Easy BPM Task Portal</h1>
-                <p className="text-sm text-[var(--app-text-muted)]">Task execution</p>
-              </div>
-            </div>
-
-            <div className="mb-8">
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--app-text-muted)]">Sign in</p>
-              <h2 className="mt-3 text-2xl font-semibold text-[var(--app-text)]">Open your work queue</h2>
-              <p className="mt-2 text-sm text-[var(--app-text-muted)]">Use your Easy BPM credentials.</p>
-            </div>
+      <div className="login-card w-full max-w-md border border-[var(--app-border)] bg-[var(--app-surface)] p-8 shadow-2xl">
+        <div className="mb-8 flex flex-col items-center text-center">
+          <img
+            src="/easy-bpm-logo.png"
+            alt="Easy BPM"
+            className="mb-5 h-14 w-14 rounded-md object-cover shadow-lg shadow-blue-600/25"
+          />
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--app-text-muted)]">Task execution</p>
+          <h1 className="mt-3 text-2xl font-semibold text-[var(--app-text)]">Easy BPM Task Portal</h1>
+          <p className="mt-2 text-sm text-[var(--app-text-muted)]">Sign in to your workspace.</p>
+        </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">Username</label>
+              <label className="mb-1.5 block text-sm font-medium text-[var(--app-text-soft)]">Username</label>
               <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--app-text-muted)]" size={16} />
                 <input
                   type="text"
-                  className="w-full pl-9 pr-4 py-2.5 rounded-lg border border-white/10 bg-white/5 text-white placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm"
+                  className="w-full border border-[var(--app-input-border)] bg-[var(--app-input-bg)] py-2.5 pl-9 pr-4 text-sm text-[var(--app-input-text)] placeholder-[var(--app-placeholder)] outline-none transition-colors focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
                   placeholder="Enter username"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
@@ -333,12 +313,12 @@ const LoginView: React.FC<{ onLogin: (username: string) => void; theme: ThemeMod
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">Password</label>
+              <label className="mb-1.5 block text-sm font-medium text-[var(--app-text-soft)]">Password</label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--app-text-muted)]" size={16} />
                 <input
                   type="password"
-                  className="w-full pl-9 pr-4 py-2.5 rounded-lg border border-white/10 bg-white/5 text-white placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm"
+                  className="w-full border border-[var(--app-input-border)] bg-[var(--app-input-bg)] py-2.5 pl-9 pr-4 text-sm text-[var(--app-input-text)] placeholder-[var(--app-placeholder)] outline-none transition-colors focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
                   placeholder="Optional"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -349,13 +329,11 @@ const LoginView: React.FC<{ onLogin: (username: string) => void; theme: ThemeMod
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2.5 rounded-lg transition-colors shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2 mt-2 text-sm"
+              className="mt-2 flex w-full items-center justify-center gap-2 bg-blue-600 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-600/20 transition-colors hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-70"
             >
               {loading ? <Loader2 className="animate-spin" size={18} /> : 'Sign In'}
             </button>
           </form>
-          </div>
-        </section>
       </div>
     </div>
   );

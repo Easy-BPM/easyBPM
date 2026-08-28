@@ -296,17 +296,8 @@
   display: flex;
 }
 
-.welcome-modeler.login-shell .login-layout {
+.welcome-modeler.login-shell .login-card {
   border-radius: 0 !important;
-}
-
-.welcome-modeler.login-shell .login-brand-panel {
-  background:
-    linear-gradient(90deg, rgba(255, 255, 255, 0.06) 0 1px, transparent 1px),
-    linear-gradient(rgba(255, 255, 255, 0.04) 0 1px, transparent 1px),
-    #161616;
-  background-size: 40px 40px;
-  min-height: 640px;
 }
 
 .welcome-modeler.login-shell[data-theme="dark"] {
@@ -373,22 +364,14 @@
   box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3), 0 4px 6px -4px rgba(37, 99, 235, 0.3) !important;
 }
 
-.welcome-modeler.login-shell .login-brand-panel,
-.welcome-modeler.login-shell .login-brand-panel .text-white {
+.welcome-modeler.login-shell .login-card .bg-blue-600,
+.welcome-modeler.login-shell .login-card .bg-blue-600 :is(svg, span) {
   color: #ffffff !important;
 }
 
-.welcome-modeler.login-shell .login-brand-panel .text-slate-300 {
-  color: #cbd5e1 !important;
-}
-
-.welcome-modeler.login-shell .login-brand-panel .text-blue-300 {
-  color: #93c5fd !important;
-}
-
-.welcome-modeler.login-shell .login-form-panel .bg-blue-600,
-.welcome-modeler.login-shell .login-form-panel .bg-blue-600 :is(svg, span) {
-  color: #ffffff !important;
+.welcome-modeler.login-shell .login-card input,
+.welcome-modeler.login-shell .login-card button {
+  border-radius: 0 !important;
 }
 
 .process-modeler[data-theme="light"] .bg-\[\#0f171d\],
