@@ -2,5 +2,5 @@ apiVersion: v2
 name: easybpm
 description: EasyBPM backend, worker, and web applications
 type: application
-version: 0.1.0-beta.2
+version: 0.1.1-beta.2
 appVersion: "0.1.1-beta.1"
