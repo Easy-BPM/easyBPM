@@ -513,7 +513,7 @@ export const adminService = {
     }
 
     const res = await fetchWithAuth(`${API_BASE_URL}/incidents/groups?${params.toString()}`, undefined, { expireOnUnauthorized: false });
-    if (res.status === 400 || res.status === 404 || res.status === 405) {
+    if (res.status === 400 || res.status === 401 || res.status === 404 || res.status === 405) {
       incidentGroupsEndpointAvailable = false;
       return loadLegacyGroups();
     }
