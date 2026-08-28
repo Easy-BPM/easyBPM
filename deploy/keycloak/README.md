@@ -85,7 +85,8 @@ The Keycloak compose override sets these backend values:
 
 ```powershell
 $env:EASYBPM_AUTHENTICATION_PROVIDER="keycloak"
-$env:EASYBPM_OIDC_ISSUER_URI="http://host.docker.internal:8081/realms/easybpm"
+$env:EASYBPM_OIDC_ISSUER_URI="http://localhost:8081/realms/easybpm"
+$env:EASYBPM_OIDC_JWK_SET_URI="http://keycloak:8080/realms/easybpm/protocol/openid-connect/certs"
 $env:EASYBPM_OIDC_CLIENT_ID="easybpm"
 $env:EASYBPM_OIDC_AUDIENCE="easybpm"
 ```

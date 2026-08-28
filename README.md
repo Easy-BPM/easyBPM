@@ -195,7 +195,7 @@ $env:EASYBPM_KEYCLOAK_ADMIN_PASSWORD="<choose-a-local-password>"
 docker compose -f docker-compose.yml -f docker-compose.keycloak.yml up -d
 ```
 
-The Keycloak option imports the `easybpm` realm from `deploy/keycloak/easybpm-realm.json`, exposes Keycloak at `http://localhost:8081`, and configures the backend to map Keycloak roles/groups to EasyBPM permissions. Create local development users in Keycloak and assign `easybpm-user`, `easybpm-modeler`, or `easybpm-admin` as needed.
+The Keycloak option imports the `easybpm` realm from `deploy/keycloak/easybpm-realm.json`, exposes Keycloak at `http://localhost:8081`, and configures the backend to map Keycloak roles/groups to EasyBPM permissions. The public issuer stays on `localhost` for browser login, while the backend reads signing keys through the internal Docker service name. Create local development users in Keycloak and assign `easybpm-user`, `easybpm-modeler`, or `easybpm-admin` as needed.
 
 Example local Docker results from higher-volume runs:
 
