@@ -56,6 +56,37 @@ class AgentProcessService(
         val tools = definitionJson.get("availableTools")
         if (tools != null) {
             require(tools.isArray) { "'availableTools' must be an array" }
+            tools.forEachIndexed { index, tool ->
+                require(tool.isTextual || tool.isObject) { "'availableTools[$index]' must be a string or an object" }
+                if (tool.isObject) {
+                    val type = tool.get("type")?.asText()?.trim().orEmpty()
+                    require(type in setOf("api-call", "code-task")) {
+                        "'availableTools[$index].type' must be 'api-call' or 'code-task'"
+                    }
+                    val name = tool.get("name")?.asText()?.trim()
+                    require(!name.isNullOrEmpty()) { "'availableTools[$index].name' is required" }
+                    when (type) {
+                        "api-call" -> {
+                            val url = tool.get("url")?.asText()?.trim()
+                            require(!url.isNullOrEmpty()) { "'availableTools[$index].url' is required for API tools" }
+                            val method = tool.get("method")?.asText()?.trim()?.uppercase() ?: "GET"
+                            require(method in setOf("GET", "POST", "PUT", "DELETE")) {
+                                "'availableTools[$index].method' must be GET, POST, PUT, or DELETE"
+                            }
+                        }
+                        "code-task" -> {
+                            val className = tool.get("className")?.asText()?.trim()
+                            val methodName = tool.get("methodName")?.asText()?.trim()
+                            require(!className.isNullOrEmpty()) {
+                                "'availableTools[$index].className' is required for code task tools"
+                            }
+                            require(!methodName.isNullOrEmpty()) {
+                                "'availableTools[$index].methodName' is required for code task tools"
+                            }
+                        }
+                    }
+                }
+            }
         }
         val provider = definitionJson.get("provider")
         if (provider != null) {
