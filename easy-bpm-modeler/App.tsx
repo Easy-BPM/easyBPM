@@ -95,22 +95,26 @@ const App: React.FC = () => {
    const toggleTheme = () => setTheme(current => current === 'dark' ? 'light' : 'dark');
 
    useEffect(() => {
-     const session = processService.getSession();
-     if (!session) {
-       setAuthLoading(false);
-       return;
-     }
+     const loadSession = async () => {
+       try {
+         const oidcSession = await processService.completeOidcLoginIfPresent();
+         const session = oidcSession ?? processService.getSession();
+         if (!session) return;
 
-     setCurrentUser(session.username);
-     setPermissions(session.permissions);
-     processService.me()
-       .then(me => setPermissions(me.permissions))
-       .catch(() => {
+         setCurrentUser(session.username);
+         setPermissions(session.permissions);
+         const me = await processService.me();
+         setPermissions(me.permissions);
+       } catch {
          processService.clearSession();
          setCurrentUser(null);
          setPermissions([]);
-       })
-       .finally(() => setAuthLoading(false));
+       } finally {
+         setAuthLoading(false);
+       }
+     };
+
+     void loadSession();
    }, []);
 
    const parseAgentDefinition = (definition: AgentProcessDefinitionSummary): unknown => {
@@ -1405,9 +1409,11 @@ const App: React.FC = () => {
   }, [selectedNodeUids, handleDeleteNodes]);
 
   const handleLogout = () => {
+    const logoutUrl = processService.buildLogoutUrl();
     processService.clearSession();
     setCurrentUser(null);
     setPermissions([]);
+    if (logoutUrl) window.location.assign(logoutUrl);
   };
 
   if (authLoading) {
@@ -1683,7 +1689,14 @@ const ModelerLoginView: React.FC<{
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [oidcEnabled, setOidcEnabled] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    processService.authConfig()
+      .then((config) => setOidcEnabled(Boolean(config.oidc)))
+      .catch(() => setOidcEnabled(false));
+  }, []);
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -1695,6 +1708,17 @@ const ModelerLoginView: React.FC<{
     } catch (e) {
       setError((e as Error).message);
     } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleOidcLogin = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      await processService.startOidcLogin();
+    } catch (e) {
+      setError((e as Error).message);
       setLoading(false);
     }
   };
@@ -1711,6 +1735,18 @@ const ModelerLoginView: React.FC<{
           <h1 className="mt-3 text-2xl font-semibold text-[var(--modeler-text)]">Easy BPM Modeler</h1>
           <p className="mt-2 text-sm text-[var(--modeler-text-muted)]">Sign in to your workspace.</p>
         </div>
+
+          {oidcEnabled && (
+            <button
+              type="button"
+              onClick={handleOidcLogin}
+              disabled={loading}
+              className="mb-4 flex w-full items-center justify-center gap-2 border border-[var(--modeler-input-border)] bg-[var(--modeler-input-bg)] py-2.5 text-sm font-semibold text-[var(--modeler-text)] transition-colors hover:border-blue-500 hover:text-blue-500 disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              {loading ? <Loader2 className="animate-spin" size={18} /> : <Lock size={16} />}
+              Sign in with Keycloak
+            </button>
+          )}
 
           <form onSubmit={submit} className="space-y-4">
             <div>

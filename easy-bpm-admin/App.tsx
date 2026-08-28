@@ -48,22 +48,26 @@ const App: React.FC = () => {
   const toggleTheme = () => setTheme((current) => current === 'dark' ? 'light' : 'dark');
 
   useEffect(() => {
-    const session = adminService.getSession();
-    if (!session) {
-      setAuthLoading(false);
-      return;
-    }
+    const loadSession = async () => {
+      try {
+        const oidcSession = await adminService.completeOidcLoginIfPresent();
+        const session = oidcSession ?? adminService.getSession();
+        if (!session) return;
 
-    setCurrentUser(session.username);
-    setPermissions(session.permissions);
-    adminService.me()
-      .then(me => setPermissions(me.permissions))
-      .catch(() => {
+        setCurrentUser(session.username);
+        setPermissions(session.permissions);
+        const me = await adminService.me();
+        setPermissions(me.permissions);
+      } catch {
         adminService.clearSession();
         setCurrentUser(null);
         setPermissions([]);
-      })
-      .finally(() => setAuthLoading(false));
+      } finally {
+        setAuthLoading(false);
+      }
+    };
+
+    void loadSession();
   }, []);
 
   useEffect(() => {
@@ -84,10 +88,12 @@ const App: React.FC = () => {
   };
 
   const handleLogout = () => {
+    const logoutUrl = adminService.buildLogoutUrl();
     adminService.clearSession();
     setCurrentUser(null);
     setPermissions([]);
     setCurrentView('dashboard');
+    if (logoutUrl) window.location.assign(logoutUrl);
   };
 
   if (authLoading) {
@@ -163,7 +169,14 @@ const LoginView: React.FC<{ onLogin: (username: string, perms: string[]) => void
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [oidcEnabled, setOidcEnabled] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    adminService.authConfig()
+      .then((config) => setOidcEnabled(Boolean(config.oidc)))
+      .catch(() => setOidcEnabled(false));
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -176,6 +189,17 @@ const LoginView: React.FC<{ onLogin: (username: string, perms: string[]) => void
     } catch (e) {
       setError((e as Error).message);
     } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleOidcLogin = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      await adminService.startOidcLogin();
+    } catch (e) {
+      setError((e as Error).message);
       setLoading(false);
     }
   };
@@ -196,6 +220,18 @@ const LoginView: React.FC<{ onLogin: (username: string, perms: string[]) => void
           <h1 className="mt-3 text-2xl font-semibold text-[var(--app-text)]">Easy BPM Admin</h1>
           <p className="mt-2 text-sm text-[var(--app-text-muted)]">Sign in to your workspace.</p>
         </div>
+
+        {oidcEnabled && (
+          <button
+            type="button"
+            onClick={handleOidcLogin}
+            disabled={loading}
+            className="mb-4 flex w-full items-center justify-center gap-2 border border-[var(--app-input-border)] bg-[var(--app-input-bg)] py-2.5 text-sm font-semibold text-[var(--app-text)] transition-colors hover:border-blue-500 hover:text-blue-600 disabled:cursor-not-allowed disabled:opacity-70"
+          >
+            {loading ? <Loader2 className="animate-spin" size={18} /> : <Lock size={16} />}
+            Sign in with Keycloak
+          </button>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>

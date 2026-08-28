@@ -279,7 +279,12 @@ export interface AuthLoginResponse {
 }
 
 export interface AuthCurrentUser {
+  id?: number;
   username: string;
+  email?: string | null;
+  displayName?: string | null;
+  identityProvider?: string | null;
+  externalIdentityId?: string | null;
   groups: string[];
   permissions: string[];
 }
@@ -289,6 +294,20 @@ export interface AuthSession {
   username: string;
   groups: string[];
   permissions: string[];
+  identityProvider?: string | null;
+  idToken?: string;
+  oidcLogoutEndpoint?: string;
+}
+
+export interface AuthProviderConfig {
+  provider: 'local' | 'oidc' | 'keycloak' | string;
+  oidc?: {
+    issuerUri: string;
+    clientId: string;
+    authorizationEndpoint: string;
+    tokenEndpoint: string;
+    logoutEndpoint: string;
+  } | null;
 }
 
 export interface AdminUser {
