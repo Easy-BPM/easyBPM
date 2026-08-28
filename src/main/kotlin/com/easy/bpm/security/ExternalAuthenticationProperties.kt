@@ -23,6 +23,7 @@ class ExternalAuthenticationProperties {
 
     class Oidc {
         var issuerUri: String = ""
+        var jwkSetUri: String = ""
         var clientId: String = "easybpm"
         var audience: String = ""
         var groupClaim: String = "groups"

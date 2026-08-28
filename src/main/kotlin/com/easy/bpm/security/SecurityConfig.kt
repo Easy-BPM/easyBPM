@@ -100,7 +100,12 @@ class SecurityConfig(
         require(issuerUri.isNotEmpty()) {
             "easybpm.authentication.oidc.issuer-uri is required when OIDC authentication is enabled"
         }
-        val decoder = JwtDecoders.fromIssuerLocation(issuerUri) as NimbusJwtDecoder
+        val jwkSetUri = authenticationProperties.oidc.jwkSetUri.trim()
+        val decoder = if (jwkSetUri.isBlank()) {
+            JwtDecoders.fromIssuerLocation(issuerUri) as NimbusJwtDecoder
+        } else {
+            NimbusJwtDecoder.withJwkSetUri(jwkSetUri).build()
+        }
         val issuerValidator = JwtValidators.createDefaultWithIssuer(issuerUri)
         val audience = authenticationProperties.oidc.audience.trim()
         if (audience.isBlank()) {

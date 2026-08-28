@@ -75,6 +75,7 @@ easybpm:
       default-permission-codes: ${EASYBPM_AUTHENTICATION_USER_PROVISIONING_DEFAULT_PERMISSION_CODES:ACCESS_PROCESS_PORTAL}
     oidc:
       issuer-uri: ${EASYBPM_OIDC_ISSUER_URI:}
+      jwk-set-uri: ${EASYBPM_OIDC_JWK_SET_URI:}
       client-id: ${EASYBPM_OIDC_CLIENT_ID:easybpm}
       audience: ${EASYBPM_OIDC_AUDIENCE:}
       group-claim: ${EASYBPM_OIDC_GROUP_CLAIM:groups}
