@@ -25,7 +25,13 @@ class AppUserDetailsService(
             passwordValue = user.passwordHash,
             enabledValue = user.enabled,
             groups = groupCodes,
-            permissionCodes = permissionsFromGroups + directPermissions
+            permissionCodes = permissionsFromGroups + directPermissions,
+            identityProvider = user.identityProvider,
+            externalIdentityId = user.externalIdentityId,
+            email = user.email,
+            displayName = listOfNotNull(user.firstName, user.lastName).joinToString(" ").takeIf { it.isNotBlank() }
+                ?: user.email
+                ?: user.username
         )
     }
 }

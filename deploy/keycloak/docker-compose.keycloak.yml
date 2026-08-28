@@ -1,0 +1,16 @@
+services:
+  keycloak:
+    image: quay.io/keycloak/keycloak:25.0
+    container_name: Easy_BPM_Keycloak
+    command: start-dev --import-realm
+    environment:
+      KEYCLOAK_ADMIN: ${EASYBPM_KEYCLOAK_ADMIN:?Set EASYBPM_KEYCLOAK_ADMIN for local Keycloak}
+      KEYCLOAK_ADMIN_PASSWORD: ${EASYBPM_KEYCLOAK_ADMIN_PASSWORD:?Set EASYBPM_KEYCLOAK_ADMIN_PASSWORD for local Keycloak}
+    ports:
+      - "127.0.0.1:8081:8080"
+    volumes:
+      - ./easybpm-realm.json:/opt/keycloak/data/import/easybpm-realm.json:ro
+      - keycloak_data:/opt/keycloak/data
+
+volumes:
+  keycloak_data:

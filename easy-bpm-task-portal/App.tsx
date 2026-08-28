@@ -173,22 +173,26 @@ const App: React.FC = () => {
   const toggleTheme = () => setTheme((current) => current === 'dark' ? 'light' : 'dark');
 
   useEffect(() => {
-    const session = bpmService.getSession();
-    if (!session?.username) {
-      setAuthLoading(false);
-      return;
-    }
+    const loadSession = async () => {
+      try {
+        const oidcSession = await bpmService.completeOidcLoginIfPresent();
+        const session = oidcSession ?? bpmService.getSession();
+        if (!session?.username) return;
 
-    setCurrentUser(session.username);
-    bpmService.me()
-      .then((me) => setCurrentUser(me.username))
-      .catch(() => {
+        setCurrentUser(session.username);
+        const me = await bpmService.me();
+        setCurrentUser(me.username);
+      } catch {
         bpmService.clearSession();
         setCurrentUser(null);
         setCurrentView('inbox');
         setSelectedTaskId(null);
-      })
-      .finally(() => setAuthLoading(false));
+      } finally {
+        setAuthLoading(false);
+      }
+    };
+
+    void loadSession();
   }, []);
 
   useEffect(() => {
@@ -208,10 +212,12 @@ const App: React.FC = () => {
   };
 
   const handleLogout = () => {
+    const logoutUrl = bpmService.buildLogoutUrl();
     bpmService.clearSession();
     setCurrentUser(null);
     setCurrentView('inbox');
     setSelectedTaskId(null);
+    if (logoutUrl) window.location.assign(logoutUrl);
   };
 
   const navigateToTask = (taskId: number) => {
@@ -265,6 +271,13 @@ const LoginView: React.FC<{ onLogin: (username: string) => void; theme: ThemeMod
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [oidcEnabled, setOidcEnabled] = useState(false);
+
+  useEffect(() => {
+    bpmService.authConfig()
+      .then((config) => setOidcEnabled(Boolean(config.oidc)))
+      .catch(() => setOidcEnabled(false));
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -277,6 +290,16 @@ const LoginView: React.FC<{ onLogin: (username: string) => void; theme: ThemeMod
     } catch (error) {
       console.error(error);
     } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleOidcLogin = async () => {
+    setLoading(true);
+    try {
+      await bpmService.startOidcLogin();
+    } catch (error) {
+      console.error(error);
       setLoading(false);
     }
   };
@@ -297,6 +320,18 @@ const LoginView: React.FC<{ onLogin: (username: string) => void; theme: ThemeMod
           <h1 className="mt-3 text-2xl font-semibold text-[var(--app-text)]">Easy BPM Task Portal</h1>
           <p className="mt-2 text-sm text-[var(--app-text-muted)]">Sign in to your workspace.</p>
         </div>
+
+          {oidcEnabled && (
+            <button
+              type="button"
+              onClick={handleOidcLogin}
+              disabled={loading}
+              className="mb-4 flex w-full items-center justify-center gap-2 border border-[var(--app-input-border)] bg-[var(--app-input-bg)] py-2.5 text-sm font-semibold text-[var(--app-text)] transition-colors hover:border-blue-500 hover:text-blue-600 disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              {loading ? <Loader2 className="animate-spin" size={18} /> : <Lock size={16} />}
+              Sign in with Keycloak
+            </button>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>

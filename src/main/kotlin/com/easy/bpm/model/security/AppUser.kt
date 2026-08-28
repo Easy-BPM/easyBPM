@@ -19,6 +19,21 @@ data class AppUser(
     @Column(nullable = false)
     var enabled: Boolean = true,
 
+    @Column(name = "identity_provider", nullable = false, length = 50)
+    var identityProvider: String = "LOCAL",
+
+    @Column(name = "external_identity_id", length = 200)
+    var externalIdentityId: String? = null,
+
+    @Column(length = 255)
+    var email: String? = null,
+
+    @Column(name = "first_name", length = 100)
+    var firstName: String? = null,
+
+    @Column(name = "last_name", length = 100)
+    var lastName: String? = null,
+
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
         name = "app_user_group",

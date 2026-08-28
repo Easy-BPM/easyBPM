@@ -10,7 +10,11 @@ data class AuthenticatedUser(
     private val passwordValue: String,
     private val enabledValue: Boolean,
     val groups: Set<String>,
-    val permissionCodes: Set<String>
+    val permissionCodes: Set<String>,
+    val identityProvider: String = "LOCAL",
+    val externalIdentityId: String? = null,
+    val email: String? = null,
+    val displayName: String? = null
 ) : UserDetails {
 
     override fun getAuthorities(): Collection<GrantedAuthority> =
