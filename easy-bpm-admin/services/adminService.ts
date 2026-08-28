@@ -172,9 +172,10 @@ const readSession = (): AuthSession | null => {
   }
 };
 
-const fetchWithAuth = async (url: string, init?: RequestInit): Promise<Response> => {
+const fetchWithAuth = async (url: string, init?: RequestInit, options: { expireOnUnauthorized?: boolean } = {}): Promise<Response> => {
   const session = readSession();
   const authorization = session?.token ? { Authorization: `Bearer ${session.token}` } : {};
+  const expireOnUnauthorized = options.expireOnUnauthorized ?? true;
   const response = await fetch(url, {
     ...init,
     headers: {
@@ -183,7 +184,7 @@ const fetchWithAuth = async (url: string, init?: RequestInit): Promise<Response>
     }
   });
 
-  if (response.status === 401) {
+  if (response.status === 401 && expireOnUnauthorized) {
     console.warn(
       `Easy BPM Admin request was rejected as unauthorized. ` +
         `url=${url} hasSavedSession=${Boolean(session?.token)} hasAuthorizationHeader=${Boolean(session?.token)}`
@@ -478,8 +479,8 @@ export const adminService = {
     if (filters.source) params.set('source', filters.source);
     if (filters.processInstanceId) params.set('processInstanceId', String(filters.processInstanceId));
 
-    const res = await fetchWithAuth(`${API_BASE_URL}/incidents?${params.toString()}`);
-    if (!res.ok) throw new Error(`Failed to fetch incidents: ${res.statusText}`);
+    const res = await fetchWithAuth(`${API_BASE_URL}/incidents?${params.toString()}`, undefined, { expireOnUnauthorized: false });
+    if (!res.ok) throw await errorFromResponse(res, 'Failed to fetch incidents');
     return res.json();
   },
 
@@ -511,12 +512,12 @@ export const adminService = {
       return loadLegacyGroups();
     }
 
-    const res = await fetchWithAuth(`${API_BASE_URL}/incidents/groups?${params.toString()}`);
-    if (res.status === 400 || res.status === 404) {
+    const res = await fetchWithAuth(`${API_BASE_URL}/incidents/groups?${params.toString()}`, undefined, { expireOnUnauthorized: false });
+    if (res.status === 400 || res.status === 404 || res.status === 405) {
       incidentGroupsEndpointAvailable = false;
       return loadLegacyGroups();
     }
-    if (!res.ok) throw new Error(`Failed to fetch incident groups: ${res.statusText}`);
+    if (!res.ok) throw await errorFromResponse(res, 'Failed to fetch incident groups');
     incidentGroupsEndpointAvailable = true;
     return res.json();
   },
@@ -565,14 +566,14 @@ export const adminService = {
   },
 
   getIncidentSummary: async (): Promise<IncidentSummary> => {
-    const res = await fetchWithAuth(`${API_BASE_URL}/incidents/summary`);
-    if (!res.ok) throw new Error(`Failed to fetch incident summary: ${res.statusText}`);
+    const res = await fetchWithAuth(`${API_BASE_URL}/incidents/summary`, undefined, { expireOnUnauthorized: false });
+    if (!res.ok) throw await errorFromResponse(res, 'Failed to fetch incident summary');
     return res.json();
   },
 
   getIncidentEvents: async (incidentId: number): Promise<IncidentEvent[]> => {
-    const res = await fetchWithAuth(`${API_BASE_URL}/incidents/${incidentId}/events`);
-    if (!res.ok) throw new Error(`Failed to fetch incident events: ${res.statusText}`);
+    const res = await fetchWithAuth(`${API_BASE_URL}/incidents/${incidentId}/events`, undefined, { expireOnUnauthorized: false });
+    if (!res.ok) throw await errorFromResponse(res, 'Failed to fetch incident events');
     return res.json();
   },
 
