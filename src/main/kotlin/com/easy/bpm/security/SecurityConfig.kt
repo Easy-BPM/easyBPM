@@ -17,6 +17,14 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.http.SessionCreationPolicy
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
 import org.springframework.security.crypto.password.PasswordEncoder
+import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator
+import org.springframework.security.oauth2.core.OAuth2Error
+import org.springframework.security.oauth2.core.OAuth2TokenValidator
+import org.springframework.security.oauth2.core.OAuth2TokenValidatorResult
+import org.springframework.security.oauth2.jwt.Jwt
+import org.springframework.security.oauth2.jwt.JwtDecoders
+import org.springframework.security.oauth2.jwt.JwtValidators
+import org.springframework.security.oauth2.jwt.NimbusJwtDecoder
 import org.springframework.security.web.SecurityFilterChain
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter
 
@@ -25,6 +33,8 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 class SecurityConfig(
     private val userDetailsService: AppUserDetailsService,
     private val jwtAuthenticationFilter: JwtAuthenticationFilter,
+    private val oidcJwtAuthenticationConverter: OidcJwtAuthenticationConverter,
+    private val authenticationProperties: ExternalAuthenticationProperties,
     @Value("\${easybpm.security.enabled:true}") private val securityEnabled: Boolean
 ) {
 
@@ -68,11 +78,53 @@ class SecurityConfig(
                 it.requestMatchers("/processes/**").hasAnyAuthority(AppPermissions.ACCESS_BPM_ADMIN, AppPermissions.ACCESS_PROCESS_PORTAL, AppPermissions.ACCESS_BPM_MODELER)
                 it.anyRequest().authenticated()
             }
-            .authenticationProvider(authenticationProvider())
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter::class.java)
+
+        if (authenticationProperties.isOidcEnabled()) {
+            http.oauth2ResourceServer { oauth2 ->
+                oauth2.jwt { jwt ->
+                    jwt.decoder(oidcJwtDecoder())
+                    jwt.jwtAuthenticationConverter(oidcJwtAuthenticationConverter)
+                }
+            }
+        } else {
+            http
+                .authenticationProvider(authenticationProvider())
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter::class.java)
+        }
 
         return http.build()
     }
+
+    private fun oidcJwtDecoder(): NimbusJwtDecoder {
+        val issuerUri = authenticationProperties.oidc.issuerUri.trim()
+        require(issuerUri.isNotEmpty()) {
+            "easybpm.authentication.oidc.issuer-uri is required when OIDC authentication is enabled"
+        }
+        val decoder = JwtDecoders.fromIssuerLocation(issuerUri) as NimbusJwtDecoder
+        val issuerValidator = JwtValidators.createDefaultWithIssuer(issuerUri)
+        val audience = authenticationProperties.oidc.audience.trim()
+        if (audience.isBlank()) {
+            decoder.setJwtValidator(issuerValidator)
+        } else {
+            decoder.setJwtValidator(DelegatingOAuth2TokenValidator(issuerValidator, audienceValidator(audience)))
+        }
+        return decoder
+    }
+
+    private fun audienceValidator(audience: String): OAuth2TokenValidator<Jwt> =
+        OAuth2TokenValidator { jwt ->
+            if (jwt.audience.contains(audience)) {
+                OAuth2TokenValidatorResult.success()
+            } else {
+                OAuth2TokenValidatorResult.failure(
+                    OAuth2Error(
+                        "invalid_token",
+                        "The required audience '$audience' is missing",
+                        null
+                    )
+                )
+            }
+        }
 
     @Bean
     fun authenticationProvider(): DaoAuthenticationProvider {

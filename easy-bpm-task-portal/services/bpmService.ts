@@ -1,8 +1,10 @@
-import { Task, TaskStatus, ProcessDefinition, CompleteTaskPayload, Page, Form, AuthLoginResponse, AuthSession, DocumentMetadata, TaskSearchFilter } from '../types';
+import { Task, TaskStatus, ProcessDefinition, CompleteTaskPayload, Page, Form, AuthLoginResponse, AuthSession, DocumentMetadata, TaskSearchFilter, AuthCurrentUser, AuthProviderConfig } from '../types';
 
 const API_BASE_URL = (import.meta.env.EASY_BPM_TASK_PORTAL_API_BASE_URL || 'http://localhost:8080').replace(/\/$/, '');
 const USE_MOCK = false;
 const AUTH_STORAGE_KEY = 'easybpm_portal_auth';
+const OIDC_STATE_KEY = 'easybpm_portal_oidc_state';
+const OIDC_VERIFIER_KEY = 'easybpm_portal_oidc_verifier';
 
 const MOCK_PROCESSES: ProcessDefinition[] = [
   { id: 'proc-1', key: 'hiring-process', name: 'Employee Hiring', description: 'Standard onboarding workflow for new hires', version: 1 },
@@ -126,11 +128,119 @@ const fetchWithAuth = async (url: string, init?: RequestInit): Promise<Response>
   return response;
 };
 
+const base64UrlEncode = (bytes: Uint8Array): string =>
+  btoa(String.fromCharCode(...bytes))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+
+const randomBase64Url = (byteLength: number): string => {
+  const bytes = new Uint8Array(byteLength);
+  crypto.getRandomValues(bytes);
+  return base64UrlEncode(bytes);
+};
+
+const sha256Base64Url = async (value: string): Promise<string> => {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value));
+  return base64UrlEncode(new Uint8Array(digest));
+};
+
+const buildSessionFromMe = (token: string, me: AuthCurrentUser, idToken?: string, logoutEndpoint?: string): AuthSession => ({
+  token,
+  username: me.username,
+  groups: me.groups,
+  permissions: me.permissions,
+  identityProvider: me.identityProvider,
+  idToken,
+  oidcLogoutEndpoint: logoutEndpoint
+});
+
 export const bpmService = {
   getSession: (): AuthSession | null => getSession(),
 
   clearSession: (): void => {
     localStorage.removeItem(AUTH_STORAGE_KEY);
+  },
+
+  authConfig: async (): Promise<AuthProviderConfig> => {
+    const response = await fetch(`${API_BASE_URL}/auth/config`);
+    await assertOk(response, 'Get auth configuration');
+    return response.json();
+  },
+
+  startOidcLogin: async (): Promise<void> => {
+    const config = await bpmService.authConfig();
+    if (!config.oidc) throw new Error('OIDC login is not configured.');
+
+    const state = randomBase64Url(24);
+    const verifier = randomBase64Url(64);
+    const challenge = await sha256Base64Url(verifier);
+    localStorage.setItem(OIDC_STATE_KEY, state);
+    localStorage.setItem(OIDC_VERIFIER_KEY, verifier);
+
+    const params = new URLSearchParams({
+      client_id: config.oidc.clientId,
+      redirect_uri: window.location.origin + window.location.pathname,
+      response_type: 'code',
+      scope: 'openid profile email',
+      state,
+      code_challenge: challenge,
+      code_challenge_method: 'S256'
+    });
+
+    window.location.assign(`${config.oidc.authorizationEndpoint}?${params.toString()}`);
+  },
+
+  completeOidcLoginIfPresent: async (): Promise<AuthSession | null> => {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
+    const state = params.get('state');
+    if (!code) return null;
+
+    const expectedState = localStorage.getItem(OIDC_STATE_KEY);
+    const verifier = localStorage.getItem(OIDC_VERIFIER_KEY);
+    localStorage.removeItem(OIDC_STATE_KEY);
+    localStorage.removeItem(OIDC_VERIFIER_KEY);
+    if (!state || state !== expectedState || !verifier) {
+      throw new Error('OIDC login state is invalid.');
+    }
+
+    const config = await bpmService.authConfig();
+    if (!config.oidc) throw new Error('OIDC login is not configured.');
+
+    const tokenResponse = await fetch(config.oidc.tokenEndpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        grant_type: 'authorization_code',
+        client_id: config.oidc.clientId,
+        code,
+        redirect_uri: window.location.origin + window.location.pathname,
+        code_verifier: verifier
+      })
+    });
+    await assertOk(tokenResponse, 'OIDC token exchange');
+    const tokenPayload = await tokenResponse.json() as { access_token: string; id_token?: string };
+
+    const meResponse = await fetch(`${API_BASE_URL}/auth/me`, {
+      headers: { Authorization: `Bearer ${tokenPayload.access_token}` }
+    });
+    await assertOk(meResponse, 'Get current OIDC user');
+    const me = await meResponse.json() as AuthCurrentUser;
+    const session = buildSessionFromMe(tokenPayload.access_token, me, tokenPayload.id_token, config.oidc.logoutEndpoint);
+    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(session));
+    window.history.replaceState({}, document.title, window.location.pathname);
+    return session;
+  },
+
+  buildLogoutUrl: (): string | null => {
+    const session = getSession();
+    if (!session?.oidcLogoutEndpoint) return null;
+    const params = new URLSearchParams({
+      post_logout_redirect_uri: window.location.origin + window.location.pathname
+    });
+    if (session.idToken) params.set('id_token_hint', session.idToken);
+    return `${session.oidcLogoutEndpoint}?${params.toString()}`;
   },
 
   login: async (username: string, password: string): Promise<AuthSession> => {
@@ -159,7 +269,7 @@ export const bpmService = {
     return session;
   },
 
-  me: async (): Promise<{ username: string; groups: string[]; permissions: string[] }> => {
+  me: async (): Promise<AuthCurrentUser> => {
     const response = await fetchWithAuth(`${API_BASE_URL}/auth/me`);
     await assertOk(response, 'Get current user');
     return response.json();

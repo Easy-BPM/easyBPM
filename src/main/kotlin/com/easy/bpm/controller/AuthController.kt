@@ -1,5 +1,6 @@
 package com.easy.bpm.controller
 
+import com.easy.bpm.dto.security.AuthProviderConfigResponse
 import com.easy.bpm.dto.security.CurrentUserResponse
 import com.easy.bpm.dto.security.LoginRequest
 import com.easy.bpm.dto.security.LoginResponse
@@ -18,6 +19,9 @@ class AuthController(
 
     @PostMapping("/login")
     fun login(@RequestBody request: LoginRequest): LoginResponse = authService.login(request)
+
+    @GetMapping("/config")
+    fun config(): AuthProviderConfigResponse = authService.config()
 
     @GetMapping("/me")
     fun me(): CurrentUserResponse = authService.me()
