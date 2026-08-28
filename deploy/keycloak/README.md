@@ -67,21 +67,29 @@ Both return the local Easy BPM user, mapped identity provider, groups and permis
 
 ## Local Keycloak
 
-Start the optional local Keycloak compose file with explicit local admin credentials:
+The main compose file keeps local EasyBPM username/password authentication as the default:
+
+```powershell
+docker compose up -d
+```
+
+Start the full stack with local Keycloak/OIDC enabled:
 
 ```powershell
 $env:EASYBPM_KEYCLOAK_ADMIN="local-admin"
 $env:EASYBPM_KEYCLOAK_ADMIN_PASSWORD="<choose-a-local-password>"
-docker compose -f deploy/keycloak/docker-compose.keycloak.yml up -d
+docker compose -f docker-compose.yml -f docker-compose.keycloak.yml up -d
 ```
 
-Then run Easy BPM with:
+The Keycloak compose override sets these backend values:
 
 ```powershell
 $env:EASYBPM_AUTHENTICATION_PROVIDER="keycloak"
-$env:EASYBPM_OIDC_ISSUER_URI="http://localhost:8081/realms/easybpm"
+$env:EASYBPM_OIDC_ISSUER_URI="http://host.docker.internal:8081/realms/easybpm"
 $env:EASYBPM_OIDC_CLIENT_ID="easybpm"
 $env:EASYBPM_OIDC_AUDIENCE="easybpm"
 ```
+
+The separate `deploy/keycloak/docker-compose.keycloak.yml` remains available when you only want to run Keycloak next to a backend started outside Docker.
 
 Create local development users in Keycloak and assign realm roles/groups as needed.
