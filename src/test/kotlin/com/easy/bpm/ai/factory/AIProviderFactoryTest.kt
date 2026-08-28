@@ -143,15 +143,15 @@ class AIProviderFactoryTest {
     }
     
     @Test
-    fun `test validate OpenAI config with invalid model`() {
+    fun `test validate OpenAI config with an arbitrary model name`() {
         val config = AIProviderConfigDto(
             providerId = "openai",
-            modelName = "invalid-model"
+            modelName = "gpt-5.4-mini"
         )
         
         val result = factory.validateConfig("openai", config)
-        assertTrue(!result.valid)
-        assertTrue(result.errors.isNotEmpty())
+        assertTrue(result.valid)
+        assertTrue(result.errors.isEmpty())
     }
     
     @Test

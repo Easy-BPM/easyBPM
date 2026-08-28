@@ -62,7 +62,7 @@ class OpenAIProvider(
             configFields = mapOf(
                 "model" to ConfigFieldMetadata(
                     name = "model",
-                    type = "select",
+                    type = "string",
                     required = true,
                     defaultValue = DEFAULT_MODEL,
                     options = listOf("gpt-4", "gpt-4-turbo-preview", "gpt-3.5-turbo", "gpt-3.5-turbo-16k")
@@ -84,10 +84,8 @@ class OpenAIProvider(
             val errors = mutableListOf<String>()
             val warnings = mutableListOf<String>()
             
-            // Model validation
-            val validModels = listOf("gpt-4", "gpt-4-turbo-preview", "gpt-3.5-turbo", "gpt-3.5-turbo-16k")
-            if (!validModels.contains(config.modelName)) {
-                errors.add("Invalid OpenAI model: ${config.modelName}. Valid: $validModels")
+            if (config.modelName.isBlank()) {
+                errors.add("OpenAI model name is required")
             }
             
             // Endpoint validation (if custom)

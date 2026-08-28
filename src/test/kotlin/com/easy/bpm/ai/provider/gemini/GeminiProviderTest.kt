@@ -45,16 +45,29 @@ class GeminiProviderTest {
     }
 
     @Test
-    fun `test validate config with invalid model`() {
+    fun `test validate config with a current model identifier`() {
         val config = AIProviderConfigDto(
             providerId = "gemini",
-            modelName = "gemini-pro"
+            modelName = "gemini-3.1-pro-preview"
+        )
+
+        val result = GeminiProvider.validateConfig(config)
+
+        assertTrue(result.valid)
+        assertTrue(result.errors.isEmpty())
+    }
+
+    @Test
+    fun `test validate config requires a model name`() {
+        val config = AIProviderConfigDto(
+            providerId = "gemini",
+            modelName = ""
         )
 
         val result = GeminiProvider.validateConfig(config)
 
         assertFalse(result.valid)
-        assertTrue(result.errors.any { it.contains("Invalid Gemini model") })
+        assertTrue(result.errors.any { it.contains("model name is required") })
     }
 
     @Test
@@ -94,7 +107,7 @@ class GeminiProviderTest {
 
         val modelField = metadata.configFields["model"]
         assertNotNull(modelField)
-        assertEquals("select", modelField.type)
+        assertEquals("string", modelField.type)
         assertTrue(modelField.required)
         assertTrue(modelField.options.contains("gemini-3.5-flash"))
     }

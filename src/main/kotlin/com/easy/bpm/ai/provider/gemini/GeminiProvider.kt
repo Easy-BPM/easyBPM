@@ -58,7 +58,7 @@ class GeminiProvider(
             configFields = mapOf(
                 "model" to ConfigFieldMetadata(
                     name = "model",
-                    type = "select",
+                    type = "string",
                     required = true,
                     defaultValue = DEFAULT_MODEL,
                     options = supportedModels
@@ -77,8 +77,8 @@ class GeminiProvider(
             val errors = mutableListOf<String>()
             val warnings = mutableListOf<String>()
 
-            if (!supportedModels.contains(config.modelName)) {
-                errors.add("Invalid Gemini model: ${config.modelName}. Valid: $supportedModels")
+            if (config.modelName.isBlank()) {
+                errors.add("Gemini model name is required")
             }
 
             if (!config.endpoint.isNullOrBlank()) {

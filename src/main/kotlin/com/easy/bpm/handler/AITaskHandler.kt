@@ -74,13 +74,13 @@ class AITaskHandler(
                     "INVALID_CONFIG"
                 )
 
-            val providerId = config.get("providerId")?.asText()
+            val providerId = config.get("providerId")?.asText()?.trim()?.takeIf { it.isNotEmpty() }
                 ?: throw AITaskExecutionException(
                     "AI Task $nodeId missing providerId",
                     "INVALID_CONFIG"
                 )
 
-            val modelName = config.get("modelName")?.asText()
+            val modelName = config.get("modelName")?.asText()?.trim()?.takeIf { it.isNotEmpty() }
                 ?: throw AITaskExecutionException(
                     "AI Task $nodeId missing modelName",
                     "INVALID_CONFIG"

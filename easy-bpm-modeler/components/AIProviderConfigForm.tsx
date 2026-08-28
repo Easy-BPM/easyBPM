@@ -33,34 +33,29 @@ export const AIProviderConfigForm: React.FC<AIProviderConfigFormProps> = ({
   const [validationError, setValidationError] = useState<string | null>(null);
 
   // Provider metadata (statically defined for now)
-  const providers: Record<string, { label: string; models: string[]; defaultModel: string; supportsCustomEndpoint: boolean }> = {
+  const providers: Record<string, { label: string; defaultModel: string; supportsCustomEndpoint: boolean }> = {
     openai: {
       label: 'OpenAI (GPT)',
-      models: ['gpt-4', 'gpt-4-turbo-preview', 'gpt-3.5-turbo', 'gpt-3.5-turbo-16k'],
       defaultModel: 'gpt-3.5-turbo',
       supportsCustomEndpoint: true,
     },
     anthropic: {
       label: 'Anthropic (Claude)',
-      models: ['claude-3-opus', 'claude-3-sonnet', 'claude-3-haiku'],
       defaultModel: 'claude-3-sonnet',
       supportsCustomEndpoint: false,
     },
     gemini: {
       label: 'Google Gemini',
-      models: ['gemini-3.5-flash', 'gemini-3-flash', 'gemini-3.1-flash-lite', 'gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-flash-latest'],
       defaultModel: 'gemini-3.5-flash',
       supportsCustomEndpoint: false,
     },
     ollama: {
       label: 'Ollama (Local)',
-      models: ['llama3.2', 'llama3.1', 'mistral', 'qwen2.5', 'phi3'],
       defaultModel: 'llama3.2',
       supportsCustomEndpoint: true,
     },
     'azure-openai': {
       label: 'Azure OpenAI',
-      models: ['gpt-4', 'gpt-35-turbo'],
       defaultModel: 'gpt-35-turbo',
       supportsCustomEndpoint: true,
     },
@@ -115,19 +110,19 @@ export const AIProviderConfigForm: React.FC<AIProviderConfigFormProps> = ({
         <p className="text-xs text-gray-600 mt-1">Select the AI provider to use</p>
       </div>
 
-      {/* Model Selection */}
+      {/* Model Configuration */}
       <div>
-        <label className="block text-sm font-semibold text-gray-700 mb-1.5">Model / Engine</label>
-        <select
+        <label className="block text-sm font-semibold text-gray-700 mb-1.5">Model</label>
+        <input
+          type="text"
           value={modelName}
           onChange={e => onModelChange(e.target.value)}
+          placeholder="Enter a model identifier"
+          autoComplete="off"
+          spellCheck={false}
           className="w-full px-3 py-2 border border-pink-300 rounded-lg bg-white text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
-        >
-          {currentProvider.models.map(model => (
-            <option key={model} value={model}>{model}</option>
-          ))}
-        </select>
-        <p className="text-xs text-gray-600 mt-1">Choose the model variant for this provider</p>
+        />
+        <p className="text-xs text-gray-600 mt-1">Enter the provider model or deployment name.</p>
       </div>
 
       {/* Credential Selection */}

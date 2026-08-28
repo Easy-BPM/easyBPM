@@ -301,7 +301,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
                 onClick={item.onClick}
                 className={`flex w-full items-center gap-3 rounded-md px-4 py-3 text-left text-sm font-semibold transition-colors ${
                   item.active
-                    ? 'bg-blue-600/20 text-blue-300'
+                    ? 'bg-blue-600 text-white shadow-sm shadow-blue-600/25'
                     : 'text-[var(--modeler-text-soft)] hover:bg-[var(--modeler-surface-muted)] hover:text-[var(--modeler-text)]'
                 }`}
               >

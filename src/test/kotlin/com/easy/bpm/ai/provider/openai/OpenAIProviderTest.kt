@@ -57,15 +57,27 @@ class OpenAIProviderTest {
     }
     
     @Test
-    fun `test validate config with invalid model`() {
+    fun `test validate config with a current model identifier`() {
         val config = AIProviderConfigDto(
             providerId = "openai",
-            modelName = "invalid-model"
+            modelName = "gpt-5.4-mini"
         )
         
         val result = OpenAIProvider.validateConfig(config)
+        assertTrue(result.valid)
+        assertTrue(result.errors.isEmpty())
+    }
+
+    @Test
+    fun `test validate config requires a model name`() {
+        val config = AIProviderConfigDto(
+            providerId = "openai",
+            modelName = ""
+        )
+
+        val result = OpenAIProvider.validateConfig(config)
         assertFalse(result.valid)
-        assertTrue(result.errors.any { it.contains("Invalid OpenAI model") })
+        assertTrue(result.errors.any { it.contains("model name is required") })
     }
     
     @Test
@@ -131,7 +143,7 @@ class OpenAIProviderTest {
         
         val modelField = metadata.configFields["model"]
         assertNotNull(modelField)
-        assertEquals("select", modelField.type)
+        assertEquals("string", modelField.type)
         assertTrue(modelField.required)
         assertTrue(modelField.options.isNotEmpty())
     }

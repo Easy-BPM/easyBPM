@@ -88,6 +88,46 @@
   color: var(--modeler-text);
 }
 
+.ai-tuning-slider {
+  appearance: none;
+  border-radius: 999px;
+  height: 6px;
+  outline: none;
+}
+
+.ai-tuning-slider::-webkit-slider-runnable-track {
+  background: transparent;
+  border-radius: 999px;
+  height: 6px;
+}
+
+.ai-tuning-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  background: #db2777;
+  border: 2px solid #ffffff;
+  border-radius: 999px;
+  box-shadow: 0 0 0 1px rgba(190, 24, 93, 0.45);
+  height: 16px;
+  margin-top: -5px;
+  width: 16px;
+}
+
+.ai-tuning-slider::-moz-range-track {
+  background: transparent;
+  border-radius: 999px;
+  height: 6px;
+}
+
+.ai-tuning-slider::-moz-range-thumb {
+  background: #db2777;
+  border: 2px solid #ffffff;
+  border-radius: 999px;
+  box-shadow: 0 0 0 1px rgba(190, 24, 93, 0.45);
+  height: 12px;
+  width: 12px;
+}
+
 .process-modeler button,
 .form-modeler button,
 .welcome-modeler button {

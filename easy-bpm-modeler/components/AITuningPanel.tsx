@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { ChevronDown, HelpCircle } from 'lucide-react';
 
 interface AITuningParams {
   temperature?: number;
@@ -17,47 +16,84 @@ interface AITuningPanelProps {
   onTuningParamsChange: (params: AITuningParams) => void;
 }
 
+type TuningParameterKey = keyof AITuningParams;
+
+const defaultTuningParams: Required<AITuningParams> = {
+  temperature: 0.7,
+  topP: 1.0,
+  maxTokens: 2000,
+  frequencyPenalty: 0,
+  presencePenalty: 0,
+  retryCount: 0,
+  backoffMultiplier: 2.0,
+  initialDelayMs: 1000,
+};
+
+const quickPresets = {
+  Accurate: { temperature: 0.2, topP: 0.9, maxTokens: 500 },
+  Balanced: { temperature: 0.7, topP: 1.0, maxTokens: 2000 },
+  Creative: { temperature: 1.5, topP: 0.95, maxTokens: 3000 },
+} as const;
+
 /**
  * AI Tuning Parameters Configuration Panel (BETA)
  * Allows fine-tuning of AI model behavior (temperature, penalties, tokens, etc.)
  */
 export const AITuningPanel: React.FC<AITuningPanelProps> = ({
-  tuningParams = {
-    temperature: 0.7,
-    topP: 1.0,
-    maxTokens: 2000,
-    frequencyPenalty: 0,
-    presencePenalty: 0,
-    retryCount: 0,
-    backoffMultiplier: 2.0,
-    initialDelayMs: 1000,
-  },
+  tuningParams,
   onTuningParamsChange,
 }) => {
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const params = { ...defaultTuningParams, ...tuningParams };
 
-  const updateParam = (key: keyof AITuningParams, value: any) => {
+  const applyQuickPreset = (preset: keyof typeof quickPresets) => {
     onTuningParamsChange({
-      ...tuningParams,
-      [key]: value,
+      ...params,
+      ...quickPresets[preset],
+    });
+  };
+
+  const isQuickPresetActive = (preset: keyof typeof quickPresets) => {
+    const values = quickPresets[preset];
+    return Object.entries(values).every(([parameter, value]) => (
+      params[parameter as keyof typeof values] === value
+    ));
+  };
+
+  const updateParam = (parameter: TuningParameterKey, value: number) => {
+    onTuningParamsChange({
+      ...params,
+      [parameter]: value,
     });
   };
 
   const ParameterSlider: React.FC<{
     label: string;
-    key: keyof AITuningParams;
+    parameter: TuningParameterKey;
     min: number;
     max: number;
     step: number;
     value: number;
     description: string;
-  }> = ({ label, key, min, max, step, value, description }) => (
-    <div className="space-y-1">
+  }> = ({ label, parameter, min, max, step, value, description }) => {
+    const percentage = Math.min(100, Math.max(0, ((value - min) / (max - min)) * 100));
+
+    return <div className="space-y-1.5">
       <div className="flex items-center justify-between">
         <label className="text-xs font-semibold text-gray-700">{label}</label>
-        <span className="text-xs font-mono font-semibold text-pink-600 bg-pink-50 px-2 py-0.5 rounded">
-          {typeof value === 'number' ? value.toFixed(2) : value}
-        </span>
+        <input
+          type="number"
+          min={min}
+          max={max}
+          step={step}
+          value={value}
+          onChange={event => {
+            const nextValue = Number(event.target.value);
+            if (Number.isFinite(nextValue)) updateParam(parameter, nextValue);
+          }}
+          className="w-20 rounded border border-pink-300 bg-white px-2 py-0.5 text-right text-xs font-mono font-semibold text-pink-700 outline-none focus:border-pink-500 focus:ring-2 focus:ring-pink-100"
+          aria-label={`${label} value`}
+        />
       </div>
       <input
         type="range"
@@ -65,30 +101,33 @@ export const AITuningPanel: React.FC<AITuningPanelProps> = ({
         max={max}
         step={step}
         value={value}
-        onChange={e => updateParam(key, parseFloat(e.target.value))}
-        className="w-full h-2 bg-pink-200 rounded-lg appearance-none cursor-pointer accent-pink-600"
+        onChange={event => updateParam(parameter, Number(event.target.value))}
+        className="ai-tuning-slider w-full cursor-pointer"
+        style={{ background: `linear-gradient(to right, #db2777 0%, #db2777 ${percentage}%, #fbcfe8 ${percentage}%, #fbcfe8 100%)` }}
       />
       <p className="text-xs text-gray-600">{description}</p>
-    </div>
-  );
+    </div>;
+  };
 
   const ParameterInput: React.FC<{
     label: string;
-    key: keyof AITuningParams;
-    type: string;
+    parameter: TuningParameterKey;
     min?: number;
     max?: number;
     value: number | string;
     description: string;
-  }> = ({ label, key, type, min, max, value, description }) => (
+  }> = ({ label, parameter, min, max, value, description }) => (
     <div className="space-y-1">
       <label className="text-xs font-semibold text-gray-700">{label}</label>
       <input
-        type={type}
+        type="number"
         min={min}
         max={max}
         value={value}
-        onChange={e => updateParam(key, type === 'number' ? parseInt(e.target.value) : e.target.value)}
+        onChange={event => {
+          const nextValue = Number(event.target.value);
+          if (Number.isFinite(nextValue)) updateParam(parameter, nextValue);
+        }}
         className="w-full px-2 py-1.5 border border-pink-300 rounded-lg bg-white text-gray-800 text-xs focus:outline-none focus:ring-2 focus:ring-pink-500"
       />
       <p className="text-xs text-gray-600">{description}</p>
@@ -112,31 +151,30 @@ export const AITuningPanel: React.FC<AITuningPanelProps> = ({
 
           <ParameterSlider
             label="Temperature"
-            key="temperature"
+            parameter="temperature"
             min={0}
             max={2}
             step={0.1}
-            value={tuningParams.temperature || 0.7}
+            value={params.temperature}
             description="Controls randomness (0=deterministic, 2=very random). Default: 0.7"
           />
 
           <ParameterSlider
             label="Top P"
-            key="topP"
+            parameter="topP"
             min={0}
             max={1}
             step={0.05}
-            value={tuningParams.topP || 1.0}
+            value={params.topP}
             description="Nucleus sampling (0-1). Default: 1.0 (disabled)"
           />
 
           <ParameterInput
             label="Max Tokens"
-            key="maxTokens"
-            type="number"
+            parameter="maxTokens"
             min={1}
             max={4000}
-            value={tuningParams.maxTokens || 2000}
+            value={params.maxTokens}
             description="Maximum output length in tokens. Default: 2000"
           />
         </div>
@@ -147,27 +185,28 @@ export const AITuningPanel: React.FC<AITuningPanelProps> = ({
 
           <ParameterSlider
             label="Frequency Penalty"
-            key="frequencyPenalty"
+            parameter="frequencyPenalty"
             min={-2}
             max={2}
             step={0.1}
-            value={tuningParams.frequencyPenalty || 0}
+            value={params.frequencyPenalty}
             description="Reduces repeated tokens based on frequency (-2 to 2). Default: 0"
           />
 
           <ParameterSlider
             label="Presence Penalty"
-            key="presencePenalty"
+            parameter="presencePenalty"
             min={-2}
             max={2}
             step={0.1}
-            value={tuningParams.presencePenalty || 0}
+            value={params.presencePenalty}
             description="Reduces repeated tokens based on presence (-2 to 2). Default: 0"
           />
         </div>
 
         {/* Advanced Settings */}
         <button
+          type="button"
           onClick={() => setShowAdvanced(!showAdvanced)}
           className="w-full text-left px-3 py-2 bg-white border border-pink-200 rounded-lg text-xs font-semibold text-pink-600 hover:bg-pink-50 transition-colors flex items-center gap-2"
         >
@@ -180,31 +219,28 @@ export const AITuningPanel: React.FC<AITuningPanelProps> = ({
 
             <ParameterInput
               label="Retry Count"
-              key="retryCount"
-              type="number"
+              parameter="retryCount"
               min={0}
               max={5}
-              value={tuningParams.retryCount || 0}
+              value={params.retryCount}
               description="Number of retries on transient failure (0-5)"
             />
 
             <ParameterInput
               label="Backoff Multiplier"
-              key="backoffMultiplier"
-              type="number"
+              parameter="backoffMultiplier"
               min={1}
               max={10}
-              value={tuningParams.backoffMultiplier || 2}
+              value={params.backoffMultiplier}
               description="Exponential backoff multiplier (e.g., 2.0 = double wait time)"
             />
 
             <ParameterInput
               label="Initial Delay (ms)"
-              key="initialDelayMs"
-              type="number"
+              parameter="initialDelayMs"
               min={100}
               max={10000}
-              value={tuningParams.initialDelayMs || 1000}
+              value={params.initialDelayMs}
               description="Initial retry delay in milliseconds"
             />
           </div>
@@ -215,24 +251,21 @@ export const AITuningPanel: React.FC<AITuningPanelProps> = ({
       <div className="bg-blue-50 border border-blue-300 rounded-lg p-3 space-y-2">
         <p className="text-xs font-semibold text-blue-700">⚡ Quick Presets</p>
         <div className="grid grid-cols-3 gap-2">
-          <button
-            onClick={() => onTuningParamsChange({ ...tuningParams, temperature: 0.2, topP: 0.9, maxTokens: 500 })}
-            className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-semibold rounded hover:bg-blue-200"
-          >
-            Accurate
-          </button>
-          <button
-            onClick={() => onTuningParamsChange({ ...tuningParams, temperature: 0.7, topP: 1.0, maxTokens: 2000 })}
-            className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-semibold rounded hover:bg-blue-200"
-          >
-            Balanced
-          </button>
-          <button
-            onClick={() => onTuningParamsChange({ ...tuningParams, temperature: 1.5, topP: 0.95, maxTokens: 3000 })}
-            className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-semibold rounded hover:bg-blue-200"
-          >
-            Creative
-          </button>
+          {(Object.keys(quickPresets) as Array<keyof typeof quickPresets>).map((preset) => (
+            <button
+              key={preset}
+              type="button"
+              onClick={() => applyQuickPreset(preset)}
+              aria-pressed={isQuickPresetActive(preset)}
+              className={`px-2 py-1 text-xs font-semibold rounded transition-colors ${
+                isQuickPresetActive(preset)
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+              }`}
+            >
+              {preset}
+            </button>
+          ))}
         </div>
       </div>
 
