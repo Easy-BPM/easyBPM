@@ -12,8 +12,12 @@ import org.springframework.web.filter.OncePerRequestFilter
 @Component
 class JwtAuthenticationFilter(
     private val jwtService: JwtService,
-    private val userDetailsService: AppUserDetailsService
+    private val userDetailsService: AppUserDetailsService,
+    private val authenticationProperties: ExternalAuthenticationProperties
 ) : OncePerRequestFilter() {
+
+    override fun shouldNotFilter(request: HttpServletRequest): Boolean =
+        authenticationProperties.isOidcEnabled()
 
     override fun doFilterInternal(
         request: HttpServletRequest,
