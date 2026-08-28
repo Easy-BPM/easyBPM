@@ -2,12 +2,17 @@ import React, { useRef, useState } from 'react';
 import {
   ArrowLeft,
   Bot,
+  Braces,
+  Code2,
   Download,
   FilePlus2,
   FileText,
+  Globe2,
   Loader2,
+  Trash2,
   Upload,
   UploadCloud,
+  Wrench,
 } from 'lucide-react';
 import { ThemeMode, ThemeToggle } from './ThemeToggle';
 import { isAuthRequiredError, processService } from '../services/processService';
@@ -28,12 +33,36 @@ interface AgentBoardState {
   goal: string;
   instructions: string;
   constraints: string;
+  availableTools: AgentTool[];
   providerId: string;
   modelName: string;
   endpoint: string;
   credentialRef: string;
   systemPrompt: string;
   promptTemplate: string;
+}
+
+type AgentToolKind = 'api-call' | 'code-task';
+type AgentToolAuthType = 'none' | 'bearer' | 'basic' | 'apikey';
+
+interface AgentTool {
+  id: string;
+  name: string;
+  description: string;
+  type: AgentToolKind;
+  inputSchema: string;
+  outputSchema: string;
+  url?: string;
+  method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
+  authType?: AgentToolAuthType;
+  authRef?: string;
+  authIn?: 'header' | 'query';
+  authKey?: string;
+  headers?: string;
+  bodyTemplate?: string;
+  jarId?: string;
+  className?: string;
+  methodName?: string;
 }
 
 interface AgentProcessTemplate {
@@ -48,9 +77,14 @@ const getRuntimeDefault = (key: string, fallback: string) =>
   getRuntimeConfigValue(key) ?? (import.meta.env[key] as string | undefined) ?? fallback;
 
 const defaultSystemPrompt = 'You are an Easy BPM orchestration agent. Return concise, auditable decisions as JSON when possible.';
-const defaultPromptTemplate = 'Goal: {{goal}}\nInstructions: {{instructions}}\nConstraints: {{constraints}}\nInputs: {{inputs}}\n\nDecide the next orchestration outcome and explain the reason.';
+const defaultPromptTemplate = 'Goal: {{goal}}\nInstructions: {{instructions}}\nConstraints: {{constraints}}\nAvailable tools: {{tools}}\nInputs: {{inputs}}\n\nDecide the next orchestration outcome and explain the reason. When a tool is needed, include the intended tool call and arguments in the JSON response.';
 const defaultProviderEndpoint = (providerId: string) =>
   providerId === 'ollama' ? 'http://host.docker.internal:11434' : '';
+const createToolId = () => Math.random().toString(36).slice(2, 10);
+const defaultApiInputSchema = '{\n  "type": "object",\n  "properties": {}\n}';
+const defaultApiOutputSchema = '{\n  "type": "object",\n  "properties": {}\n}';
+const defaultCodeInputSchema = '{\n  "type": "object",\n  "properties": {}\n}';
+const defaultCodeOutputSchema = '{\n  "type": "object",\n  "properties": {}\n}';
 
 const agentProcessTemplates: AgentProcessTemplate[] = [
   {
@@ -67,6 +101,58 @@ const agentProcessTemplates: AgentProcessTemplate[] = [
         'Never promise a refund without policy evidence.',
         'Always explain the reason for the decision.',
         'Ask for human input when evidence is incomplete.'
+      ],
+      availableTools: [
+        {
+          id: 'crm_lookup',
+          name: 'CRM Lookup',
+          type: 'api-call',
+          description: 'Look up customer account, order history, and previous tickets.',
+          url: 'https://crm.example.com/customers/{{customerId}}',
+          method: 'GET',
+          auth: {
+            type: 'bearer',
+            ref: 'CRM_API_TOKEN'
+          },
+          inputSchema: {
+            type: 'object',
+            properties: {
+              customerId: { type: 'string' }
+            },
+            required: ['customerId']
+          },
+          outputSchema: {
+            type: 'object',
+            properties: {
+              tier: { type: 'string' },
+              previousTickets: { type: 'array' }
+            }
+          }
+        },
+        {
+          id: 'refund_policy_check',
+          name: 'Refund Policy Check',
+          type: 'code-task',
+          description: 'Evaluate refund rules using an uploaded Java policy service.',
+          jarId: 'policy-service',
+          className: 'com.easy.bpm.policy.RefundPolicyService',
+          methodName: 'evaluateRefund',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              refundAmount: { type: 'number' },
+              customerTier: { type: 'string' }
+            }
+          },
+          outputSchema: {
+            type: 'object',
+            properties: {
+              approved: { type: 'boolean' },
+              requiresApproval: { type: 'boolean' },
+              reason: { type: 'string' }
+            }
+          }
+        }
       ],
       provider: {
         providerId: 'ollama',
@@ -126,6 +212,7 @@ const createBlankAgentState = (): AgentBoardState => {
   goal: '',
   instructions: '',
   constraints: '',
+  availableTools: [],
   providerId: defaultProviderId,
   modelName: getRuntimeDefault('EASY_BPM_MODELER_DEFAULT_AI_MODEL', 'gemini-3.5-flash'),
   endpoint: defaultProviderEndpoint(defaultProviderId),
@@ -138,6 +225,106 @@ const createBlankAgentState = (): AgentBoardState => {
 const toMultiline = (value: unknown): string => {
   if (Array.isArray(value)) return value.map(String).join('\n');
   return typeof value === 'string' ? value : '';
+};
+
+const stringifyJsonLike = (value: unknown, fallback: string): string => {
+  if (value === undefined || value === null || value === '') return fallback;
+  if (typeof value === 'string') return value;
+  return JSON.stringify(value, null, 2);
+};
+
+const normalizeTool = (tool: unknown, index: number): AgentTool | null => {
+  if (typeof tool === 'string') {
+    return {
+      id: tool.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_') || `tool_${index + 1}`,
+      name: tool,
+      description: '',
+      type: 'api-call',
+      method: 'GET',
+      authType: 'none',
+      inputSchema: defaultApiInputSchema,
+      outputSchema: defaultApiOutputSchema
+    };
+  }
+  if (!tool || typeof tool !== 'object') return null;
+
+  const raw = tool as Record<string, any>;
+  const auth = raw.auth && typeof raw.auth === 'object' ? raw.auth : {};
+  const type = raw.type === 'code-task' || raw.type === 'codeTask' ? 'code-task' : 'api-call';
+  const fallbackInput = type === 'code-task' ? defaultCodeInputSchema : defaultApiInputSchema;
+  const fallbackOutput = type === 'code-task' ? defaultCodeOutputSchema : defaultApiOutputSchema;
+
+  return {
+    id: typeof raw.id === 'string' && raw.id.trim() ? raw.id : createToolId(),
+    name: typeof raw.name === 'string' ? raw.name : `Tool ${index + 1}`,
+    description: typeof raw.description === 'string' ? raw.description : '',
+    type,
+    inputSchema: stringifyJsonLike(raw.inputSchema, fallbackInput),
+    outputSchema: stringifyJsonLike(raw.outputSchema, fallbackOutput),
+    url: typeof raw.url === 'string' ? raw.url : '',
+    method: ['GET', 'POST', 'PUT', 'DELETE'].includes(raw.method) ? raw.method : 'GET',
+    authType: ['none', 'bearer', 'basic', 'apikey'].includes(auth.type || raw.authType) ? (auth.type || raw.authType) : 'none',
+    authRef: typeof auth.ref === 'string' ? auth.ref : (typeof raw.authRef === 'string' ? raw.authRef : ''),
+    authIn: ['header', 'query'].includes(auth.in || raw.authIn) ? (auth.in || raw.authIn) : 'header',
+    authKey: typeof auth.key === 'string' ? auth.key : (typeof raw.authKey === 'string' ? raw.authKey : 'X-API-Key'),
+    headers: stringifyJsonLike(raw.headers, ''),
+    bodyTemplate: stringifyJsonLike(raw.bodyTemplate ?? raw.body, ''),
+    jarId: raw.jarId !== undefined && raw.jarId !== null ? String(raw.jarId) : '',
+    className: typeof raw.className === 'string' ? raw.className : '',
+    methodName: typeof raw.methodName === 'string' ? raw.methodName : ''
+  };
+};
+
+const normalizeTools = (value: unknown): AgentTool[] => {
+  if (!Array.isArray(value)) return [];
+  return value.map(normalizeTool).filter((tool): tool is AgentTool => Boolean(tool));
+};
+
+const parseJsonField = (value: string): unknown => {
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  try {
+    return JSON.parse(trimmed);
+  } catch {
+    return trimmed;
+  }
+};
+
+const serializeTool = (tool: AgentTool) => {
+  const common = {
+    id: tool.id,
+    name: tool.name.trim() || tool.id,
+    type: tool.type,
+    description: tool.description.trim(),
+    inputSchema: parseJsonField(tool.inputSchema) ?? {},
+    outputSchema: parseJsonField(tool.outputSchema) ?? {}
+  };
+
+  if (tool.type === 'code-task') {
+    return {
+      ...common,
+      jarId: tool.jarId?.trim() || undefined,
+      className: tool.className?.trim() || undefined,
+      methodName: tool.methodName?.trim() || undefined
+    };
+  }
+
+  const authType = tool.authType || 'none';
+  return {
+    ...common,
+    url: tool.url?.trim() || '',
+    method: tool.method || 'GET',
+    auth: authType === 'none'
+      ? { type: 'none' }
+      : {
+          type: authType,
+          ref: tool.authRef?.trim() || undefined,
+          in: authType === 'apikey' ? (tool.authIn || 'header') : undefined,
+          key: authType === 'apikey' ? (tool.authKey?.trim() || 'X-API-Key') : undefined
+        },
+    headers: parseJsonField(tool.headers || ''),
+    bodyTemplate: parseJsonField(tool.bodyTemplate || '')
+  };
 };
 
 const normalizeImportedAgent = (data: unknown): AgentBoardState => {
@@ -158,6 +345,7 @@ const normalizeImportedAgent = (data: unknown): AgentBoardState => {
     goal: typeof imported.goal === 'string' ? imported.goal : '',
     instructions: typeof imported.instructions === 'string' ? imported.instructions : '',
     constraints: toMultiline(imported.constraints),
+    availableTools: normalizeTools(imported.availableTools),
     providerId: typeof provider.providerId === 'string' ? provider.providerId : blank.providerId,
     modelName: typeof provider.modelName === 'string' ? provider.modelName : blank.modelName,
     endpoint: typeof provider.endpoint === 'string'
@@ -186,6 +374,7 @@ export const AgentBoardModeler: React.FC<AgentBoardModelerProps> = ({
     goal,
     instructions,
     constraints,
+    availableTools,
     providerId,
     modelName,
     endpoint,
@@ -205,6 +394,32 @@ export const AgentBoardModeler: React.FC<AgentBoardModelerProps> = ({
     });
   };
 
+  const addTool = (type: AgentToolKind) => {
+    const nextTool: AgentTool = {
+      id: createToolId(),
+      name: type === 'api-call' ? 'New API tool' : 'New Code Task tool',
+      description: '',
+      type,
+      method: 'GET',
+      authType: 'none',
+      authIn: 'header',
+      authKey: 'X-API-Key',
+      inputSchema: type === 'api-call' ? defaultApiInputSchema : defaultCodeInputSchema,
+      outputSchema: type === 'api-call' ? defaultApiOutputSchema : defaultCodeOutputSchema
+    };
+    updateAgentState({ availableTools: [...availableTools, nextTool] });
+  };
+
+  const updateTool = (toolId: string, updates: Partial<AgentTool>) => {
+    updateAgentState({
+      availableTools: availableTools.map(tool => tool.id === toolId ? { ...tool, ...updates } : tool)
+    });
+  };
+
+  const deleteTool = (toolId: string) => {
+    updateAgentState({ availableTools: availableTools.filter(tool => tool.id !== toolId) });
+  };
+
   const loadTemplate = (template: AgentProcessTemplate) => {
     setAgentState(normalizeImportedAgent(template.definition));
     setIsTemplateBrowserOpen(false);
@@ -218,6 +433,7 @@ export const AgentBoardModeler: React.FC<AgentBoardModelerProps> = ({
       goal,
       instructions,
       constraints: splitLines(constraints),
+      availableTools: availableTools.map(serializeTool),
       provider: {
         providerId,
         modelName,
@@ -271,6 +487,15 @@ export const AgentBoardModeler: React.FC<AgentBoardModelerProps> = ({
   const deployDefinition = async () => {
     if (!goal.trim()) {
       toast.error('Agent Process goal is required.');
+      return;
+    }
+    const invalidTool = availableTools.find(tool => {
+      if (!tool.name.trim()) return true;
+      if (tool.type === 'api-call') return !tool.url?.trim();
+      return !tool.className?.trim() || !tool.methodName?.trim();
+    });
+    if (invalidTool) {
+      toast.error('Every agent tool needs a name and its required runtime fields.');
       return;
     }
 
@@ -406,7 +631,7 @@ export const AgentBoardModeler: React.FC<AgentBoardModelerProps> = ({
 
         <main className="min-w-0 flex-1 overflow-y-auto bg-slate-100">
           <div className="mx-auto grid w-full max-w-7xl gap-5 px-6 py-6 xl:grid-cols-[minmax(0,1fr)_380px]">
-            <section className="rounded-lg border border-slate-200 bg-white shadow-sm">
+            <section className="rounded-lg border border-slate-200 bg-white shadow-sm xl:order-1">
               <div className="border-b border-slate-200 px-5 py-4">
                 <h2 className="text-sm font-semibold text-slate-900">Decision definition</h2>
                 <p className="mt-1 text-xs text-slate-500">Describe what this AI block should decide inside the BPMN process.</p>
@@ -455,7 +680,157 @@ export const AgentBoardModeler: React.FC<AgentBoardModelerProps> = ({
               </div>
             </section>
 
-            <aside className="rounded-lg border border-slate-200 bg-white shadow-sm">
+            <section className="rounded-lg border border-slate-200 bg-white shadow-sm xl:order-3 xl:col-span-2">
+              <div className="flex flex-col gap-3 border-b border-slate-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h2 className="text-sm font-semibold text-slate-900">Agent tools</h2>
+                  <p className="mt-1 text-xs text-slate-500">Configure the systems this agent may call while deciding the next action.</p>
+                </div>
+                <div className="flex shrink-0 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => addTool('api-call')}
+                    className="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm transition-colors hover:bg-slate-50"
+                  >
+                    <Globe2 className="h-4 w-4" />
+                    API Call
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => addTool('code-task')}
+                    className="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm transition-colors hover:bg-slate-50"
+                  >
+                    <Code2 className="h-4 w-4" />
+                    Code Task
+                  </button>
+                </div>
+              </div>
+              <div className="space-y-4 p-5">
+                {availableTools.length === 0 ? (
+                  <div className="flex min-h-28 items-center justify-center rounded-md border border-dashed border-slate-300 bg-slate-50 px-4 text-center">
+                    <div>
+                      <Wrench className="mx-auto h-5 w-5 text-slate-400" />
+                      <p className="mt-2 text-sm font-semibold text-slate-700">No tools configured</p>
+                      <p className="mt-1 text-xs text-slate-500">Add API calls or Java code tasks that the agent can consider during orchestration.</p>
+                    </div>
+                  </div>
+                ) : (
+                  availableTools.map((tool, index) => (
+                    <div key={tool.id} className="rounded-md border border-slate-200 bg-slate-50">
+                      <div className="flex flex-col gap-3 border-b border-slate-200 bg-white px-4 py-3 lg:flex-row lg:items-center">
+                        <div className="flex min-w-0 flex-1 items-center gap-3">
+                          <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-md ${tool.type === 'api-call' ? 'bg-emerald-50 text-emerald-600' : 'bg-indigo-50 text-indigo-600'}`}>
+                            {tool.type === 'api-call' ? <Globe2 className="h-4 w-4" /> : <Code2 className="h-4 w-4" />}
+                          </span>
+                          <div className="grid min-w-0 flex-1 gap-2 md:grid-cols-[0.8fr_1.2fr]">
+                            <input value={tool.name} onChange={event => updateTool(tool.id, { name: event.target.value })} className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" placeholder={`Tool ${index + 1}`} />
+                            <input value={tool.description} onChange={event => updateTool(tool.id, { description: event.target.value })} className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" placeholder="What this tool is allowed to do" />
+                          </div>
+                        </div>
+                        <div className="flex shrink-0 items-center gap-2">
+                          <select
+                            value={tool.type}
+                            onChange={event => updateTool(tool.id, {
+                              type: event.target.value as AgentToolKind,
+                              inputSchema: event.target.value === 'api-call' ? defaultApiInputSchema : defaultCodeInputSchema,
+                              outputSchema: event.target.value === 'api-call' ? defaultApiOutputSchema : defaultCodeOutputSchema
+                            })}
+                            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                          >
+                            <option value="api-call">API Call</option>
+                            <option value="code-task">Code Task</option>
+                          </select>
+                          <button type="button" onClick={() => deleteTool(tool.id)} className="flex h-9 w-9 items-center justify-center rounded-md border border-red-100 bg-white text-red-500 transition-colors hover:bg-red-50" title="Delete tool" aria-label="Delete tool">
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="space-y-4 p-4">
+                        {tool.type === 'api-call' ? (
+                          <>
+                            <div className="grid gap-3 lg:grid-cols-[120px_minmax(0,1fr)]">
+                              <label className="block space-y-1.5">
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Method</span>
+                                <select value={tool.method || 'GET'} onChange={event => updateTool(tool.id, { method: event.target.value as AgentTool['method'] })} className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100">
+                                  <option>GET</option><option>POST</option><option>PUT</option><option>DELETE</option>
+                                </select>
+                              </label>
+                              <label className="block space-y-1.5">
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">URL</span>
+                                <input value={tool.url || ''} onChange={event => updateTool(tool.id, { url: event.target.value })} className="w-full rounded-md border border-slate-300 px-3 py-2 font-mono text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" placeholder="https://api.example.com/resource/{{id}}" />
+                              </label>
+                            </div>
+                            <div className="grid gap-3 md:grid-cols-3">
+                              <label className="block space-y-1.5">
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Auth Type</span>
+                                <select value={tool.authType || 'none'} onChange={event => updateTool(tool.id, { authType: event.target.value as AgentToolAuthType })} className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100">
+                                  <option value="none">None</option><option value="bearer">Bearer</option><option value="basic">Basic</option><option value="apikey">API Key</option>
+                                </select>
+                              </label>
+                              {(tool.authType || 'none') !== 'none' && (
+                                <label className="block space-y-1.5">
+                                  <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Auth Ref</span>
+                                  <input value={tool.authRef || ''} onChange={event => updateTool(tool.id, { authRef: event.target.value })} className="w-full rounded-md border border-slate-300 px-3 py-2 font-mono text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" placeholder="CRM_API_TOKEN" />
+                                </label>
+                              )}
+                              {(tool.authType || 'none') === 'apikey' && (
+                                <label className="block space-y-1.5">
+                                  <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">API Key</span>
+                                  <div className="grid grid-cols-[100px_minmax(0,1fr)] gap-2">
+                                    <select value={tool.authIn || 'header'} onChange={event => updateTool(tool.id, { authIn: event.target.value as 'header' | 'query' })} className="rounded-md border border-slate-300 bg-white px-2 py-2 text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100">
+                                      <option value="header">Header</option><option value="query">Query</option>
+                                    </select>
+                                    <input value={tool.authKey || 'X-API-Key'} onChange={event => updateTool(tool.id, { authKey: event.target.value })} className="min-w-0 rounded-md border border-slate-300 px-3 py-2 font-mono text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" placeholder="X-API-Key" />
+                                  </div>
+                                </label>
+                              )}
+                            </div>
+                            <div className="grid gap-3 lg:grid-cols-2">
+                              <label className="block space-y-1.5">
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Headers JSON</span>
+                                <textarea value={tool.headers || ''} onChange={event => updateTool(tool.id, { headers: event.target.value })} className="h-24 w-full resize-none rounded-md border border-slate-300 px-3 py-2 font-mono text-xs text-slate-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" placeholder='{ "Accept": "application/json" }' />
+                              </label>
+                              <label className="block space-y-1.5">
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Body Template</span>
+                                <textarea value={tool.bodyTemplate || ''} onChange={event => updateTool(tool.id, { bodyTemplate: event.target.value })} className="h-24 w-full resize-none rounded-md border border-slate-300 px-3 py-2 font-mono text-xs text-slate-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" placeholder='{ "caseId": "{{caseId}}" }' />
+                              </label>
+                            </div>
+                          </>
+                        ) : (
+                          <div className="grid gap-3 md:grid-cols-3">
+                            <label className="block space-y-1.5">
+                              <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Jar ID</span>
+                              <input value={tool.jarId || ''} onChange={event => updateTool(tool.id, { jarId: event.target.value })} className="w-full rounded-md border border-slate-300 px-3 py-2 font-mono text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" placeholder="42 or policy-service" />
+                            </label>
+                            <label className="block space-y-1.5">
+                              <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Java Class</span>
+                              <input value={tool.className || ''} onChange={event => updateTool(tool.id, { className: event.target.value })} className="w-full rounded-md border border-slate-300 px-3 py-2 font-mono text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" placeholder="com.example.PolicyService" />
+                            </label>
+                            <label className="block space-y-1.5">
+                              <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Method</span>
+                              <input value={tool.methodName || ''} onChange={event => updateTool(tool.id, { methodName: event.target.value })} className="w-full rounded-md border border-slate-300 px-3 py-2 font-mono text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" placeholder="evaluate" />
+                            </label>
+                          </div>
+                        )}
+                        <div className="grid gap-3 lg:grid-cols-2">
+                          <label className="block space-y-1.5">
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-slate-500"><Braces className="h-3 w-3" />Input Schema</span>
+                            <textarea value={tool.inputSchema} onChange={event => updateTool(tool.id, { inputSchema: event.target.value })} className="h-32 w-full resize-none rounded-md border border-slate-300 px-3 py-2 font-mono text-xs text-slate-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
+                          </label>
+                          <label className="block space-y-1.5">
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-slate-500"><Braces className="h-3 w-3" />Output Schema</span>
+                            <textarea value={tool.outputSchema} onChange={event => updateTool(tool.id, { outputSchema: event.target.value })} className="h-32 w-full resize-none rounded-md border border-slate-300 px-3 py-2 font-mono text-xs text-slate-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </section>
+
+            <aside className="rounded-lg border border-slate-200 bg-white shadow-sm xl:order-2">
               <div className="border-b border-slate-200 px-5 py-4">
                 <h2 className="text-sm font-semibold text-slate-900">Provider</h2>
                 <p className="mt-1 text-xs text-slate-500">Runtime AI connection used by the backend.</p>
@@ -487,7 +862,7 @@ export const AgentBoardModeler: React.FC<AgentBoardModelerProps> = ({
               </div>
             </aside>
 
-            <section className="rounded-lg border border-slate-200 bg-white shadow-sm xl:col-span-2">
+            <section className="rounded-lg border border-slate-200 bg-white shadow-sm xl:order-4 xl:col-span-2">
               <div className="border-b border-slate-200 px-5 py-4">
                 <h2 className="text-sm font-semibold text-slate-900">Prompt</h2>
                 <p className="mt-1 text-xs text-slate-500">The backend renders this template with goal, instructions, constraints and process inputs.</p>
@@ -509,7 +884,7 @@ export const AgentBoardModeler: React.FC<AgentBoardModelerProps> = ({
             <div className="flex flex-col gap-3 rounded-md border border-blue-100 bg-blue-50 p-4 text-sm text-blue-900 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-start gap-3">
                 <FileText className="mt-0.5 h-4 w-4 shrink-0" />
-                <p>This feature-flagged modeler resource deploys an Agent Process definition. Provider tokens stay outside the modeler: use a credential reference resolved by the backend.</p>
+                <p>This feature-flagged modeler resource deploys an Agent Process definition. Provider and tool credentials stay outside the modeler: use credential references resolved by the backend.</p>
               </div>
               <button
                 type="button"
