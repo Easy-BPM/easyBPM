@@ -260,12 +260,12 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
     const isDuplicate = v.name !== '' && currentList.filter(item => item.name === v.name).length > 1;
 
     return (
-      <div key={v.id} className={`p-3 border rounded-md shadow-sm space-y-3 transition-all ${isVariable ? 'bg-blue-50/30 border-blue-200' : 'bg-white border-slate-200'} ${isDuplicate ? 'border-red-400 bg-red-50/20' : ''}`}>
+      <div key={v.id} className={`p-3 border rounded-md shadow-sm space-y-3 transition-all ${isVariable ? 'bg-blue-500/10 border-blue-500/30' : 'bg-[var(--modeler-surface)] border-[var(--modeler-border)]'} ${isDuplicate ? 'border-red-400 bg-red-500/10' : ''}`}>
         <div className="flex gap-2 items-center">
-          <div className={`flex-1 flex items-center gap-1.5 px-2 py-1 rounded border transition-colors ${isDuplicate ? 'bg-red-50 border-red-300' : 'bg-slate-100 border-slate-200'}`}>
+          <div className={`flex-1 flex items-center gap-1.5 px-2 py-1 rounded border transition-colors ${isDuplicate ? 'bg-red-500/10 border-red-400/60' : 'bg-[var(--modeler-surface-muted)] border-[var(--modeler-border)]'}`}>
             {getTypeIcon(v.type)}
             <input 
-              className="bg-transparent border-none focus:ring-0 text-xs font-semibold text-slate-700 w-full placeholder-slate-400" 
+              className="bg-transparent border-none focus:ring-0 text-xs font-semibold text-[var(--modeler-text)] w-full placeholder:text-[var(--modeler-placeholder)]"
               value={v.name} 
               onChange={e => handleTaskVarChange(nodeUid, collection, v.id, 'name', e.target.value)} 
               placeholder={namePlaceholder || (isInput ? "Internal Task Name" : "Source (Result/Static)")}
@@ -285,7 +285,7 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
         
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <label className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">
+            <label className="text-[9px] font-bold text-[var(--modeler-text-muted)] uppercase tracking-tighter">
               {isInput ? 'Source' : 'Target Global Variable'}
             </label>
             {isOutput && (
@@ -299,8 +299,8 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
           </div>
           
           <div className="flex items-center gap-2">
-            <select 
-              className="text-[10px] bg-slate-100 border border-slate-200 rounded px-1.5 py-0.5 text-slate-600 focus:ring-0" 
+              <select
+              className="text-[10px] bg-[var(--modeler-input-bg)] border border-[var(--modeler-input-border)] rounded px-1.5 py-0.5 text-[var(--modeler-input-text)] focus:ring-0"
               value={v.mappingType} 
               onChange={e => handleTaskVarChange(nodeUid, collection, v.id, 'mappingType', e.target.value as any)}
             >
@@ -308,7 +308,7 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
               <option value="static">Static Value</option>
             </select>
             {!isVariable && (
-              <select className="text-[10px] bg-slate-100 border border-slate-200 rounded px-1.5 py-0.5 text-slate-600 focus:ring-0" value={v.type} onChange={e => handleTaskVarChange(nodeUid, collection, v.id, 'type', e.target.value as any)}>
+              <select className="text-[10px] bg-[var(--modeler-input-bg)] border border-[var(--modeler-input-border)] rounded px-1.5 py-0.5 text-[var(--modeler-input-text)] focus:ring-0" value={v.type} onChange={e => handleTaskVarChange(nodeUid, collection, v.id, 'type', e.target.value as any)}>
                 <option value="string">String</option><option value="number">Number</option><option value="boolean">Boolean</option><option value="json">JSON</option>
               </select>
             )}
@@ -347,19 +347,19 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
     const selectedTaskVar = variables.find(v => v.id === selectedTaskVarId) || variables[0] || null;
 
     return (
-      <div className="mt-4 overflow-hidden rounded-md border border-slate-200 bg-white">
-        <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-3 py-2">
-          <div className="flex items-center gap-2 text-slate-700">
-            <span className="rounded bg-white p-1 shadow-sm">{icon}</span>
+      <div className="mt-4 overflow-hidden rounded-md border border-[var(--modeler-border)] bg-[var(--modeler-surface)]">
+        <div className="flex items-center justify-between border-b border-[var(--modeler-border)] bg-[var(--modeler-surface-muted)] px-3 py-2">
+          <div className="flex items-center gap-2 text-[var(--modeler-text-soft)]">
+            <span className="rounded bg-[var(--modeler-surface)] p-1 shadow-sm">{icon}</span>
             <div>
               <p className="text-[11px] font-bold uppercase tracking-tight">{title}</p>
-              <p className="text-[10px] text-slate-400">{variables.length} mappings</p>
+              <p className="text-[10px] text-[var(--modeler-text-muted)]">{variables.length} mappings</p>
             </div>
           </div>
           <button
             type="button"
             onClick={() => addTaskVar(collection)}
-            className="flex h-7 w-7 items-center justify-center rounded border border-slate-200 bg-white text-blue-600 transition-colors hover:bg-blue-50"
+            className="flex h-7 w-7 items-center justify-center rounded border border-[var(--modeler-border)] bg-[var(--modeler-surface)] text-blue-500 transition-colors hover:bg-blue-500/10"
             title="Add variable mapping"
             aria-label="Add variable mapping"
           >
@@ -370,7 +370,7 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
         {variables.length > 0 ? (
           <div className="max-h-40 overflow-y-auto">
             <table className="w-full table-fixed text-left text-[11px]">
-              <thead className="sticky top-0 bg-white text-[9px] uppercase text-slate-400">
+              <thead className="sticky top-0 bg-[var(--modeler-surface)] text-[9px] uppercase text-[var(--modeler-text-muted)]">
                 <tr>
                   <th className="w-[42%] px-3 py-2 font-bold">Name</th>
                   <th className="w-[24%] px-2 py-2 font-bold">Type</th>
@@ -387,16 +387,16 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                     <tr
                       key={v.id}
                       onClick={() => setSelectedTaskVarIdByCollection(current => ({ ...current, [collection]: v.id }))}
-                      className={`cursor-pointer border-t border-slate-100 transition-colors ${isSelected ? 'bg-blue-50/60' : 'hover:bg-slate-50'} ${isDuplicate ? 'bg-red-50/40' : ''}`}
+                      className={`cursor-pointer border-t border-[var(--modeler-border)] transition-colors ${isSelected ? 'bg-blue-500/15' : 'hover:bg-[var(--modeler-surface-muted)]'} ${isDuplicate ? 'bg-red-500/10' : ''}`}
                     >
-                      <td className="truncate px-3 py-2 font-medium text-slate-700">{v.name || <span className="text-slate-400">Unnamed</span>}</td>
+                      <td className="truncate px-3 py-2 font-medium text-[var(--modeler-text)]">{v.name || <span className="text-[var(--modeler-text-muted)]">Unnamed</span>}</td>
                       <td className="px-2 py-2">
-                        <span className="inline-flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 text-slate-600">
+                        <span className="inline-flex items-center gap-1 rounded bg-[var(--modeler-surface-muted)] px-1.5 py-0.5 text-[var(--modeler-text-soft)]">
                           {getTypeIcon(v.type)}
                           {v.type}
                         </span>
                       </td>
-                      <td className="truncate px-2 py-2 text-slate-500">
+                      <td className="truncate px-2 py-2 text-[var(--modeler-text-muted)]">
                         {v.mappingType === 'static' ? 'Static' : (globalMatch?.name || v.value || 'Global')}
                       </td>
                       <td className="px-1 py-2">
@@ -406,7 +406,7 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                             event.stopPropagation();
                             deleteTaskVar(selectedNode.uid, collection, v.id);
                           }}
-                          className="rounded p-1 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-500"
+                          className="rounded p-1 text-[var(--modeler-text-muted)] transition-colors hover:bg-red-500/10 hover:text-red-500"
                           title="Delete mapping"
                           aria-label="Delete mapping"
                         >
@@ -420,13 +420,13 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
             </table>
           </div>
         ) : (
-          <p className="px-3 py-6 text-center text-[11px] text-slate-400">No {title.toLowerCase()} configured.</p>
+          <p className="px-3 py-6 text-center text-[11px] text-[var(--modeler-text-muted)]">No {title.toLowerCase()} configured.</p>
         )}
 
         {selectedTaskVar && (
-          <div className="border-t border-slate-200 bg-slate-50/70 p-3">
+          <div className="border-t border-[var(--modeler-border)] bg-[var(--modeler-surface-muted)] p-3">
             <div className="mb-3 flex items-center justify-between">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Edit mapping</p>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--modeler-text-muted)]">Edit mapping</p>
               {isInput && selectedTaskVar.mappingType === 'variable' && processVariables.find(pv => pv.name === selectedTaskVar.value) && (
                 <span className="inline-flex items-center gap-1 rounded bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-700">
                   <Database className="h-3 w-3" />
@@ -436,7 +436,7 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
             </div>
             <div className="space-y-3">
               <div>
-                <label className="mb-1 block text-[10px] font-bold uppercase text-slate-400">Name</label>
+                <label className="mb-1 block text-[10px] font-bold uppercase text-[var(--modeler-text-muted)]">Name</label>
                 <input
                   className={`${smallInputClassName} w-full`}
                   value={selectedTaskVar.name}
@@ -446,7 +446,7 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="mb-1 block text-[10px] font-bold uppercase text-slate-400">Mode</label>
+                  <label className="mb-1 block text-[10px] font-bold uppercase text-[var(--modeler-text-muted)]">Mode</label>
                   <select
                     className={`${smallInputClassName} w-full`}
                     value={selectedTaskVar.mappingType}
@@ -457,7 +457,7 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                   </select>
                 </div>
                 <div>
-                  <label className="mb-1 block text-[10px] font-bold uppercase text-slate-400">Type</label>
+                  <label className="mb-1 block text-[10px] font-bold uppercase text-[var(--modeler-text-muted)]">Type</label>
                   <select
                     className={`${smallInputClassName} w-full`}
                     value={selectedTaskVar.type}
@@ -472,7 +472,7 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                 </div>
               </div>
               <div>
-                <label className="mb-1 block text-[10px] font-bold uppercase text-slate-400">{isInput ? 'Source' : 'Target global variable'}</label>
+                <label className="mb-1 block text-[10px] font-bold uppercase text-[var(--modeler-text-muted)]">{isInput ? 'Source' : 'Target global variable'}</label>
                 {isInput && selectedTaskVar.mappingType === 'static' ? (
                   <input
                     className={`${smallInputClassName} w-full`}
