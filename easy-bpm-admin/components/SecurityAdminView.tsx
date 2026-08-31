@@ -6,13 +6,25 @@ const ALL_PERMISSIONS = [
   'ACCESS_BPM_ADMIN',
   'ACCESS_PROCESS_PORTAL',
   'ACCESS_BPM_MODELER',
+  'VIEW_USERS',
   'MANAGE_USERS',
+  'VIEW_GROUPS',
   'MANAGE_GROUPS',
   'MANAGE_PERMISSIONS'
 ];
 
-export const SecurityAdminView: React.FC = () => {
-  const [tab, setTab] = useState<'users' | 'groups'>('users');
+type SecurityAdminViewProps = {
+  permissions: string[];
+};
+
+export const SecurityAdminView: React.FC<SecurityAdminViewProps> = ({ permissions }) => {
+  const canReadUsers = permissions.includes('VIEW_USERS') || permissions.includes('MANAGE_USERS');
+  const canManageUsers = permissions.includes('MANAGE_USERS');
+  const canReadGroups = permissions.includes('VIEW_GROUPS') || permissions.includes('MANAGE_GROUPS');
+  const canManageGroups = permissions.includes('MANAGE_GROUPS');
+  const canManageGroupMembership = canManageGroups && canReadUsers;
+  const canUseSecurity = canReadUsers || canManageUsers || canReadGroups || canManageGroups;
+  const [tab, setTab] = useState<'users' | 'groups'>(canReadUsers ? 'users' : 'groups');
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [groups, setGroups] = useState<AdminGroup[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -43,7 +55,10 @@ export const SecurityAdminView: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const [u, g] = await Promise.all([adminService.getUsers(), adminService.getGroups()]);
+      const [u, g] = await Promise.all([
+        canReadUsers ? adminService.getUsers() : Promise.resolve([]),
+        canReadGroups ? adminService.getGroups() : Promise.resolve([])
+      ]);
       setUsers(u);
       setGroups(g);
     } catch (e) {
@@ -55,9 +70,10 @@ export const SecurityAdminView: React.FC = () => {
 
   useEffect(() => {
     void load();
-  }, []);
+  }, [canReadUsers, canReadGroups]);
 
   const createUser = async () => {
+    if (!canManageUsers) return;
     try {
       await adminService.createUser({
         username: newUser.username,
@@ -74,6 +90,7 @@ export const SecurityAdminView: React.FC = () => {
   };
 
   const toggleUserEnabled = async (user: AdminUser) => {
+    if (!canManageUsers) return;
     try {
       const matchingGroupIds = groups
         .filter(group => user.groups.includes(group.code))
@@ -91,6 +108,7 @@ export const SecurityAdminView: React.FC = () => {
   };
 
   const removeUser = async (id: number) => {
+    if (!canManageUsers) return;
     try {
       await adminService.deleteUser(id);
       await load();
@@ -100,6 +118,7 @@ export const SecurityAdminView: React.FC = () => {
   };
 
   const resetPassword = async (id: number) => {
+    if (!canManageUsers) return;
     const password = window.prompt('Enter new password');
     if (!password) return;
     try {
@@ -110,6 +129,7 @@ export const SecurityAdminView: React.FC = () => {
   };
 
   const createGroup = async () => {
+    if (!canManageGroups) return;
     try {
       await adminService.createGroup(newGroup);
       setNewGroup({ code: '', name: '', permissionCodes: [] });
@@ -120,6 +140,7 @@ export const SecurityAdminView: React.FC = () => {
   };
 
   const startEditGroup = (group: AdminGroup) => {
+    if (!canManageGroups) return;
     setEditingGroup(group);
     setEditingGroupName(group.name);
     setEditingGroupPermissionCodes(group.permissions);
@@ -149,6 +170,7 @@ export const SecurityAdminView: React.FC = () => {
   };
 
   const startManageGroupUsers = async (groupId: number) => {
+    if (!canManageGroups && !canReadGroups) return;
     setSelectedGroupId(groupId);
     try {
       const groupUsers = await adminService.getGroupUsers(groupId);
@@ -160,6 +182,7 @@ export const SecurityAdminView: React.FC = () => {
 
   const saveGroupUsers = async () => {
     if (selectedGroupId == null) return;
+    if (!canManageGroups) return;
     try {
       await adminService.updateGroupUsers(selectedGroupId, selectedGroupUserIds);
       await load();
@@ -173,6 +196,7 @@ export const SecurityAdminView: React.FC = () => {
   };
 
   const startEditUserAccess = (user: AdminUser) => {
+    if (!canManageUsers) return;
     setEditingUser(user);
     setEditingGroupIds(
       groups
@@ -207,6 +231,7 @@ export const SecurityAdminView: React.FC = () => {
   };
 
   const removeGroup = async (id: number) => {
+    if (!canManageGroups) return;
     try {
       await adminService.deleteGroup(id);
       await load();
@@ -235,6 +260,14 @@ export const SecurityAdminView: React.FC = () => {
 
   if (loading) return <p className="text-slate-500">Loading security administration...</p>;
 
+  if (!canUseSecurity) {
+    return (
+      <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+        Your account can open the Admin area, but it does not have Keycloak roles to read or manage Easy BPM users and groups.
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -243,25 +276,25 @@ export const SecurityAdminView: React.FC = () => {
       </div>
 
       <div className="inline-flex rounded-lg border border-slate-200 bg-white p-1">
-        <button
+        {canReadUsers && <button
           onClick={() => setTab('users')}
           className={`px-4 py-2 rounded-md text-sm ${tab === 'users' ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
         >
           Users
-        </button>
-        <button
+        </button>}
+        {canReadGroups && <button
           onClick={() => setTab('groups')}
           className={`px-4 py-2 rounded-md text-sm ${tab === 'groups' ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
         >
           Groups
-        </button>
+        </button>}
       </div>
 
       {error && <div className="rounded-lg border border-red-200 bg-red-50 text-red-700 px-3 py-2 text-sm">{error}</div>}
 
       {tab === 'users' && (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-3">
+        {canManageUsers && <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-3">
           <h3 className="font-semibold text-slate-700">Create User</h3>
           <input className="w-full border rounded px-3 py-2" placeholder="Username" value={newUser.username} onChange={e => setNewUser(prev => ({ ...prev, username: e.target.value }))} />
           <input className="w-full border rounded px-3 py-2" placeholder="Password" type="password" value={newUser.password} onChange={e => setNewUser(prev => ({ ...prev, password: e.target.value }))} />
@@ -295,7 +328,7 @@ export const SecurityAdminView: React.FC = () => {
             ))}
           </select>
           <button onClick={createUser} className="bg-emerald-600 text-white px-4 py-2 rounded">Create User</button>
-        </div>
+        </div>}
 
         <div className="bg-white border border-slate-200 rounded-xl p-4">
           <div className="flex items-center justify-between gap-3 mb-3">
@@ -313,14 +346,14 @@ export const SecurityAdminView: React.FC = () => {
                 <div className="font-medium">{user.username} {!user.enabled && <span className="text-red-600">(disabled)</span>}</div>
                 <div className="text-xs text-slate-500">Groups: {user.groups.join(', ') || '-'}</div>
                 <div className="text-xs text-slate-500">Direct permissions: {user.permissions.join(', ') || '-'}</div>
-                <div className="mt-2 flex gap-2">
+                {canManageUsers && <div className="mt-2 flex gap-2">
                   <button onClick={() => toggleUserEnabled(user)} className="text-xs px-2 py-1 border rounded">
                     {user.enabled ? 'Disable' : 'Enable'}
                   </button>
                   <button onClick={() => startEditUserAccess(user)} className="text-xs px-2 py-1 border rounded">Edit Access</button>
                   <button onClick={() => resetPassword(user.id)} className="text-xs px-2 py-1 border rounded">Reset Password</button>
                   <button onClick={() => removeUser(user.id)} className="text-xs px-2 py-1 border rounded text-red-600 border-red-200">Delete</button>
-                </div>
+                </div>}
               </div>
             ))}
             {filteredUsers.length === 0 && (
@@ -400,7 +433,7 @@ export const SecurityAdminView: React.FC = () => {
 
       {tab === 'groups' && (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-3">
+        {canManageGroups && <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-3">
           <h3 className="font-semibold text-slate-700">Create Group</h3>
           <input className="w-full border rounded px-3 py-2" placeholder="Code (e.g. OPS)" value={newGroup.code} onChange={e => setNewGroup(prev => ({ ...prev, code: e.target.value }))} />
           <input className="w-full border rounded px-3 py-2" placeholder="Name" value={newGroup.name} onChange={e => setNewGroup(prev => ({ ...prev, name: e.target.value }))} />
@@ -418,7 +451,7 @@ export const SecurityAdminView: React.FC = () => {
             ))}
           </select>
           <button onClick={createGroup} className="bg-blue-600 text-white px-4 py-2 rounded">Create Group</button>
-        </div>
+        </div>}
 
         <div className="bg-white border border-slate-200 rounded-xl p-4">
           <div className="flex items-center justify-between gap-3 mb-3">
@@ -436,9 +469,14 @@ export const SecurityAdminView: React.FC = () => {
                 <div className="font-medium">{group.code} - {group.name}</div>
                 <div className="text-xs text-slate-500">Permissions: {group.permissions.join(', ') || 'No permissions'}</div>
                 <div className="mt-2 flex gap-2">
+                  {canManageGroups && (
+                    <>
                   <button onClick={() => startEditGroup(group)} className="text-xs px-2 py-1 border rounded">Update</button>
-                  <button onClick={() => startManageGroupUsers(group.id)} className="text-xs px-2 py-1 border rounded">Manage Users</button>
+                  {canManageGroupMembership && <button onClick={() => startManageGroupUsers(group.id)} className="text-xs px-2 py-1 border rounded">Manage Users</button>}
                   <button onClick={() => removeGroup(group.id)} className="text-xs px-2 py-1 border rounded text-red-600 border-red-200">Delete</button>
+                    </>
+                  )}
+                  {!canManageGroups && canReadUsers && <button onClick={() => startManageGroupUsers(group.id)} className="text-xs px-2 py-1 border rounded">View Users</button>}
                 </div>
               </div>
             ))}
@@ -517,7 +555,7 @@ export const SecurityAdminView: React.FC = () => {
               })}
             </div>
             <div className="mt-4 flex gap-2">
-              <button onClick={saveGroupUsers} className="bg-emerald-600 text-white px-4 py-2 rounded">Save Membership</button>
+              {canManageGroupMembership && <button onClick={saveGroupUsers} className="bg-emerald-600 text-white px-4 py-2 rounded">Save Membership</button>}
               <button onClick={() => setSelectedGroupId(null)} className="px-4 py-2 border rounded">Close</button>
             </div>
           </div>

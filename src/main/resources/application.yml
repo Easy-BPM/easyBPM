@@ -87,6 +87,11 @@ easybpm:
         easybpm-admin: ACCESS_BPM_ADMIN
         easybpm-modeler: ACCESS_BPM_MODELER
         easybpm-user: ACCESS_PROCESS_PORTAL
+        easybpm-admin-users-read: VIEW_USERS
+        easybpm-admin-users-manage: MANAGE_USERS
+        easybpm-admin-groups-read: VIEW_GROUPS
+        easybpm-admin-groups-manage: MANAGE_GROUPS
+        easybpm-admin-permissions-manage: MANAGE_PERMISSIONS
   test-data:
     enabled: ${EASY_BPM_TEST_DATA:${EASY_BPM_SERVER_TEST_DATA_ENABLED:false}}
     qa-resource-path: ${EASY_BPM_TEST_DATA_QA_RESOURCE_PATH:modeler-qa/qa-processes}

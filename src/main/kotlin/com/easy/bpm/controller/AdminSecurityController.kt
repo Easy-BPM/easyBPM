@@ -15,7 +15,7 @@ class AdminSecurityController(
 ) {
 
     @GetMapping("/users")
-    @PreAuthorize("hasAuthority('MANAGE_USERS')")
+    @PreAuthorize("hasAnyAuthority('VIEW_USERS', 'MANAGE_USERS')")
     fun listUsers(): List<UserResponse> = adminSecurityService.listUsers()
 
     @PostMapping("/users")
@@ -52,7 +52,7 @@ class AdminSecurityController(
     }
 
     @GetMapping("/groups")
-    @PreAuthorize("hasAuthority('MANAGE_GROUPS')")
+    @PreAuthorize("hasAnyAuthority('VIEW_GROUPS', 'MANAGE_GROUPS')")
     fun listGroups(): List<GroupResponse> = adminSecurityService.listGroups()
 
     @PostMapping("/groups")
@@ -72,7 +72,7 @@ class AdminSecurityController(
     }
 
     @GetMapping("/groups/{id}/users")
-    @PreAuthorize("hasAuthority('MANAGE_GROUPS')")
+    @PreAuthorize("hasAnyAuthority('VIEW_GROUPS', 'MANAGE_GROUPS')")
     fun getGroupUsers(@PathVariable id: Long): List<UserResponse> = adminSecurityService.getGroupUsers(id)
 
     @PutMapping("/groups/{id}/users")

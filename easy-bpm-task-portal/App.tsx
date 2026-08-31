@@ -177,7 +177,12 @@ const App: React.FC = () => {
       try {
         const oidcSession = await bpmService.completeOidcLoginIfPresent();
         const session = oidcSession ?? bpmService.getSession();
-        if (!session?.username) return;
+        if (!session?.username) {
+          if (await bpmService.shouldAutoStartOidcLogin()) {
+            await bpmService.startOidcLogin();
+          }
+          return;
+        }
 
         setCurrentUser(session.username);
         const me = await bpmService.me();
@@ -213,6 +218,7 @@ const App: React.FC = () => {
 
   const handleLogout = () => {
     const logoutUrl = bpmService.buildLogoutUrl();
+    if (logoutUrl) bpmService.markOidcAutoLoginSuppressed();
     bpmService.clearSession();
     setCurrentUser(null);
     setCurrentView('inbox');
@@ -272,11 +278,33 @@ const LoginView: React.FC<{ onLogin: (username: string) => void; theme: ThemeMod
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [oidcEnabled, setOidcEnabled] = useState(false);
+  const autoLoginStarted = React.useRef(false);
 
   useEffect(() => {
+    let cancelled = false;
+
     bpmService.authConfig()
-      .then((config) => setOidcEnabled(Boolean(config.oidc)))
-      .catch(() => setOidcEnabled(false));
+      .then(async (config) => {
+        if (cancelled) return;
+        const enabled = Boolean(config.oidc);
+        setOidcEnabled(enabled);
+        if (!enabled || autoLoginStarted.current) return;
+        if (bpmService.isOidcAutoLoginSuppressed()) return;
+        autoLoginStarted.current = true;
+        setLoading(true);
+        await bpmService.startOidcLogin();
+      })
+      .catch((error) => {
+        console.error(error);
+        if (!cancelled) {
+          setOidcEnabled(false);
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {

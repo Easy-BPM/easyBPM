@@ -13,7 +13,9 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ currentView, onChangeView, currentUser, permissions, onLogout, theme, onToggleTheme }) => {
-  const canManageSecurity = permissions.includes('MANAGE_USERS') || permissions.includes('MANAGE_GROUPS');
+  const canManageSecurity = permissions.some(permission =>
+    ['VIEW_USERS', 'MANAGE_USERS', 'VIEW_GROUPS', 'MANAGE_GROUPS', 'MANAGE_PERMISSIONS'].includes(permission)
+  );
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'instances', label: 'Instance Search', icon: Search },

@@ -35,6 +35,7 @@ const USE_MOCK = false;
 const AUTH_STORAGE_KEY = 'easybpm_admin_auth';
 const OIDC_STATE_KEY = 'easybpm_admin_oidc_state';
 const OIDC_VERIFIER_KEY = 'easybpm_admin_oidc_verifier';
+const OIDC_AUTO_LOGIN_SUPPRESS_KEY = 'easybpm_admin_oidc_auto_login_suppressed';
 let incidentGroupsEndpointAvailable: boolean | undefined;
 
 type IncidentGroupFilters = {
@@ -255,6 +256,21 @@ export const adminService = {
     const response = await fetch(`${API_BASE_URL}/auth/config`);
     if (!response.ok) throw await errorFromResponse(response, 'Failed to load auth configuration');
     return response.json();
+  },
+
+  markOidcAutoLoginSuppressed: (): void => {
+    sessionStorage.setItem(OIDC_AUTO_LOGIN_SUPPRESS_KEY, 'true');
+  },
+
+  isOidcAutoLoginSuppressed: (): boolean => {
+    return sessionStorage.getItem(OIDC_AUTO_LOGIN_SUPPRESS_KEY) === 'true';
+  },
+
+  shouldAutoStartOidcLogin: async (): Promise<boolean> => {
+    if (adminService.isOidcAutoLoginSuppressed()) return false;
+
+    const config = await adminService.authConfig();
+    return Boolean(config.oidc);
   },
 
   startOidcLogin: async (): Promise<void> => {

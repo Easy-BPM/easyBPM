@@ -5,6 +5,7 @@ const USE_MOCK = false;
 const AUTH_STORAGE_KEY = 'easybpm_portal_auth';
 const OIDC_STATE_KEY = 'easybpm_portal_oidc_state';
 const OIDC_VERIFIER_KEY = 'easybpm_portal_oidc_verifier';
+const OIDC_AUTO_LOGIN_SUPPRESS_KEY = 'easybpm_portal_oidc_auto_login_suppressed';
 
 const MOCK_PROCESSES: ProcessDefinition[] = [
   { id: 'proc-1', key: 'hiring-process', name: 'Employee Hiring', description: 'Standard onboarding workflow for new hires', version: 1 },
@@ -166,6 +167,21 @@ export const bpmService = {
     const response = await fetch(`${API_BASE_URL}/auth/config`);
     await assertOk(response, 'Get auth configuration');
     return response.json();
+  },
+
+  markOidcAutoLoginSuppressed: (): void => {
+    sessionStorage.setItem(OIDC_AUTO_LOGIN_SUPPRESS_KEY, 'true');
+  },
+
+  isOidcAutoLoginSuppressed: (): boolean => {
+    return sessionStorage.getItem(OIDC_AUTO_LOGIN_SUPPRESS_KEY) === 'true';
+  },
+
+  shouldAutoStartOidcLogin: async (): Promise<boolean> => {
+    if (bpmService.isOidcAutoLoginSuppressed()) return false;
+
+    const config = await bpmService.authConfig();
+    return Boolean(config.oidc);
   },
 
   startOidcLogin: async (): Promise<void> => {
