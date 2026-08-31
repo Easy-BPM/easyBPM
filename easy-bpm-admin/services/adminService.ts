@@ -1,5 +1,6 @@
 import {
   AdminGroup,
+  AdminSecret,
   AdminUser,
   AuthCurrentUser,
   AuthLoginResponse,
@@ -26,7 +27,9 @@ import {
   MaintenanceCleanupSummary,
   PurgeCompletedInstancesPayload,
   PurgeCompletedTasksPayload,
+  CreateAdminSecretPayload,
   UpdateDataRetentionSettingsPayload,
+  UpdateAdminSecretPayload,
   VariableAssignmentPayload
 } from '../types';
 
@@ -862,5 +865,36 @@ export const adminService = {
     });
     if (!res.ok) throw new Error(`Failed to update group users: ${res.statusText}`);
     return res.json();
+  },
+
+  getSecrets: async (): Promise<AdminSecret[]> => {
+    const res = await fetchWithAuth(`${API_BASE_URL}/admin/secrets`);
+    if (!res.ok) throw await errorFromResponse(res, 'Failed to fetch secrets');
+    return res.json();
+  },
+
+  createSecret: async (payload: CreateAdminSecretPayload): Promise<AdminSecret> => {
+    const res = await fetchWithAuth(`${API_BASE_URL}/admin/secrets`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) throw await errorFromResponse(res, 'Failed to create secret');
+    return res.json();
+  },
+
+  updateSecret: async (id: string, payload: UpdateAdminSecretPayload): Promise<AdminSecret> => {
+    const res = await fetchWithAuth(`${API_BASE_URL}/admin/secrets/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) throw await errorFromResponse(res, 'Failed to update secret');
+    return res.json();
+  },
+
+  deleteSecret: async (id: string): Promise<void> => {
+    const res = await fetchWithAuth(`${API_BASE_URL}/admin/secrets/${id}`, { method: 'DELETE' });
+    if (!res.ok) throw await errorFromResponse(res, 'Failed to delete secret');
   }
 };

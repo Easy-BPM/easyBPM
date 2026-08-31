@@ -23,7 +23,7 @@ import { BpmnNode, BpmnEdge, ProcessVariable, NodeType, AppView, ValidationIssue
 import { generateId, snapToGrid } from './utils/geometry';
 import { validateId } from './utils/validation';
 import { Toaster, toast } from 'sonner';
-import { AgentProcessDefinitionSummary, isAuthRequiredError, processService, fetchWithAuth } from './services/processService';
+import { AgentProcessDefinitionSummary, AvailableCredential, isAuthRequiredError, processService, fetchWithAuth } from './services/processService';
 import { formService } from './services/formService';
 import { downloadForm, importForm, generateJsonSchema } from './utils/formUtils';
 import { bpmnXmlToProcessDefinition, isBpmnXml, processDefinitionToBpmnXml } from './utils/bpmnXml';
@@ -59,6 +59,7 @@ const App: React.FC = () => {
    // Navigation state
    const [editorMode, setEditorMode] = useState<EditorMode>('welcome');
    const [workspaceResources, setWorkspaceResources] = useState<WorkspaceResource[]>([]);
+   const [availableCredentials, setAvailableCredentials] = useState<AvailableCredential[]>([]);
    const [isLoadingWorkspaceResources, setIsLoadingWorkspaceResources] = useState(false);
    const [workspaceResourceError, setWorkspaceResourceError] = useState<string | null>(null);
    const [initialAgentDefinition, setInitialAgentDefinition] = useState<unknown | undefined>(undefined);
@@ -137,15 +138,17 @@ const App: React.FC = () => {
      setIsLoadingWorkspaceResources(true);
      setWorkspaceResourceError(null);
      try {
-       const [processesResult, formsResult, agentsResult] = await Promise.allSettled([
+       const [processesResult, formsResult, agentsResult, credentialsResult] = await Promise.allSettled([
          processService.listLatestProcesses(),
          formService.listLatest(),
-         featureFlags.agenticOrchestration ? processService.listAgentProcesses() : Promise.resolve([])
+         featureFlags.agenticOrchestration ? processService.listAgentProcesses() : Promise.resolve([]),
+         processService.listAvailableCredentials()
        ]);
       const loadResults = [
         { label: 'processes', result: processesResult },
         { label: 'forms', result: formsResult },
-        { label: 'agents', result: agentsResult }
+        { label: 'agents', result: agentsResult },
+        { label: 'secrets', result: credentialsResult }
       ];
       const loadErrors = loadResults
         .filter((item): item is { label: string; result: PromiseRejectedResult } => item.result.status === 'rejected')
@@ -159,6 +162,7 @@ const App: React.FC = () => {
        const processes = processesResult.status === 'fulfilled' ? processesResult.value : [];
        const forms = formsResult.status === 'fulfilled' ? formsResult.value : [];
        const agents = agentsResult.status === 'fulfilled' ? agentsResult.value : [];
+       const credentials = credentialsResult.status === 'fulfilled' ? credentialsResult.value : [];
 
        const processResources: WorkspaceResource[] = processes.map(process => ({
          id: String(process.id),
@@ -191,6 +195,7 @@ const App: React.FC = () => {
        }));
 
        setWorkspaceResources([...processResources, ...formResources, ...agentResources]);
+       setAvailableCredentials(credentials);
        if (loadErrors.length > 0) {
          setWorkspaceResourceError(loadErrors.join(' '));
        }
@@ -1607,6 +1612,7 @@ const App: React.FC = () => {
               isLoadingDeployedForms={isLoadingWorkspaceResources}
               deployedFormsError={workspaceResourceError}
               onRefreshDeployedForms={loadWorkspaceResources}
+              availableCredentials={availableCredentials}
               validation={{
                 duplicateNodeIds: validationState.duplicateNodeIds,
                 duplicateGlobalVars: validationState.duplicateGlobalVars,
@@ -1661,6 +1667,7 @@ const App: React.FC = () => {
         theme={theme}
         onToggleTheme={toggleTheme}
         initialDefinition={initialAgentDefinition}
+        availableCredentials={availableCredentials}
       />
     );
   }

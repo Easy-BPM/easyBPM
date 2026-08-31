@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   ArrowLeft,
   Bot,
@@ -15,7 +15,7 @@ import {
   Wrench,
 } from 'lucide-react';
 import { ThemeMode, ThemeToggle } from './ThemeToggle';
-import { isAuthRequiredError, processService } from '../services/processService';
+import { AvailableCredential, isAuthRequiredError, processService } from '../services/processService';
 import { getRuntimeConfigValue } from '../config/runtimeConfig';
 import { Toaster, toast } from 'sonner';
 
@@ -26,6 +26,7 @@ interface AgentBoardModelerProps {
   theme: ThemeMode;
   onToggleTheme: () => void;
   initialDefinition?: unknown;
+  availableCredentials?: AvailableCredential[];
 }
 
 interface AgentBoardState {
@@ -363,11 +364,13 @@ export const AgentBoardModeler: React.FC<AgentBoardModelerProps> = ({
   onLogout,
   theme,
   onToggleTheme,
-  initialDefinition
+  initialDefinition,
+  availableCredentials = []
 }) => {
   const [agentState, setAgentState] = useState<AgentBoardState>(() => initialDefinition ? normalizeImportedAgent(initialDefinition) : createBlankAgentState());
   const [isDeploying, setIsDeploying] = useState(false);
   const [isTemplateBrowserOpen, setIsTemplateBrowserOpen] = useState(false);
+  const [credentials, setCredentials] = useState<AvailableCredential[]>(availableCredentials);
   const importInputRef = useRef<HTMLInputElement>(null);
   const {
     processName,
@@ -382,6 +385,20 @@ export const AgentBoardModeler: React.FC<AgentBoardModelerProps> = ({
     systemPrompt,
     promptTemplate,
   } = agentState;
+
+  useEffect(() => {
+    setCredentials(availableCredentials);
+  }, [availableCredentials]);
+
+  useEffect(() => {
+    if (availableCredentials.length > 0) return;
+    processService.listAvailableCredentials()
+      .then(setCredentials)
+      .catch(() => setCredentials([]));
+  }, [availableCredentials.length]);
+
+  const secretsForProvider = credentials.filter(secret => secret.providerId === providerId || secret.providerId === 'custom-api');
+  const apiSecrets = credentials.filter(secret => secret.providerId === 'custom-api' || secret.credentialType === 'API_KEY' || secret.credentialType === 'BEARER');
 
   const updateAgentState = (updates: Partial<AgentBoardState>) => {
     setAgentState(current => ({ ...current, ...updates }));
@@ -771,6 +788,14 @@ export const AgentBoardModeler: React.FC<AgentBoardModelerProps> = ({
                               {(tool.authType || 'none') !== 'none' && (
                                 <label className="block space-y-1.5">
                                   <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Auth Ref</span>
+                                  {apiSecrets.length > 0 && (
+                                    <select value={tool.authRef || ''} onChange={event => updateTool(tool.id, { authRef: event.target.value })} className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100">
+                                      <option value="">Select a workspace secret</option>
+                                      {apiSecrets.map(secret => (
+                                        <option key={secret.id} value={secret.reference}>{secret.name} - {secret.maskedToken}</option>
+                                      ))}
+                                    </select>
+                                  )}
                                   <input value={tool.authRef || ''} onChange={event => updateTool(tool.id, { authRef: event.target.value })} className="w-full rounded-md border border-slate-300 px-3 py-2 font-mono text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" placeholder="CRM_API_TOKEN" />
                                 </label>
                               )}
@@ -857,6 +882,14 @@ export const AgentBoardModeler: React.FC<AgentBoardModelerProps> = ({
                 </label>
                 <label className="block space-y-1.5">
                   <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Credential Ref</span>
+                  {secretsForProvider.length > 0 && (
+                    <select value={credentialRef} onChange={event => updateAgentState({ credentialRef: event.target.value })} className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100">
+                      <option value="">Select a workspace secret</option>
+                      {secretsForProvider.map(secret => (
+                        <option key={secret.id} value={secret.reference}>{secret.name} - {secret.maskedToken}</option>
+                      ))}
+                    </select>
+                  )}
                   <input value={credentialRef} onChange={event => updateAgentState({ credentialRef: event.target.value })} className="w-full rounded-md border border-slate-300 px-3 py-2 font-mono text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" placeholder="$GEMINI_API_KEY" />
                 </label>
               </div>

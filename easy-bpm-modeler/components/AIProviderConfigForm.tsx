@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { AlertCircle, ChevronDown } from 'lucide-react';
+import { AvailableCredential } from '../services/processService';
 
 interface AIProviderConfigFormProps {
   providerId?: string;
@@ -11,7 +12,7 @@ interface AIProviderConfigFormProps {
   onModelChange: (modelName: string) => void;
   onCredentialChange: (credentialId: string) => void;
   onEndpointChange: (endpoint: string) => void;
-  availableCredentials: Array<{ id: string; providerId: string; maskedToken: string }>;
+  availableCredentials: AvailableCredential[];
 }
 
 /**
@@ -62,7 +63,7 @@ export const AIProviderConfigForm: React.FC<AIProviderConfigFormProps> = ({
   };
 
   const currentProvider = providers[providerId] || providers.openai;
-  const credentialsForProvider = availableCredentials.filter(c => c.providerId === providerId);
+  const credentialsForProvider = availableCredentials.filter(c => c.providerId === providerId || c.providerId === 'custom-api');
 
   const handleProviderChange = (newProviderId: string) => {
     onProviderChange(newProviderId);
@@ -136,16 +137,16 @@ export const AIProviderConfigForm: React.FC<AIProviderConfigFormProps> = ({
           >
             <option value="">-- Select credential --</option>
             {credentialsForProvider.map(cred => (
-              <option key={cred.id} value={cred.id}>{cred.maskedToken}</option>
+              <option key={cred.id} value={cred.id}>{cred.name} - {cred.maskedToken}</option>
             ))}
           </select>
         ) : (
           <div className="p-3 bg-yellow-50 border border-yellow-300 rounded text-yellow-700 text-sm">
-            <p className="font-semibold">No credentials stored for {currentProvider.label}</p>
-            <p className="text-xs mt-1">You can use environment variables with $ENV_VAR syntax in the prompt editor.</p>
+            <p className="font-semibold">No secrets stored for {currentProvider.label}</p>
+            <p className="text-xs mt-1">Add workspace secrets in BPM Admin, or use $ENV_VAR syntax for runtime environment variables.</p>
           </div>
         )}
-        <p className="text-xs text-gray-600 mt-1">API key or token for authentication</p>
+        <p className="text-xs text-gray-600 mt-1">Encrypted workspace secret used by the backend at runtime.</p>
       </div>
 
       {/* Custom Endpoint (for OpenAI/Azure/Ollama) */}

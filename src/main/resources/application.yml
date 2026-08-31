@@ -92,6 +92,8 @@ easybpm:
         easybpm-admin-groups-read: VIEW_GROUPS
         easybpm-admin-groups-manage: MANAGE_GROUPS
         easybpm-admin-permissions-manage: MANAGE_PERMISSIONS
+        easybpm-admin-secrets-read: VIEW_SECRETS
+        easybpm-admin-secrets-manage: MANAGE_SECRETS
   test-data:
     enabled: ${EASY_BPM_TEST_DATA:${EASY_BPM_SERVER_TEST_DATA_ENABLED:false}}
     qa-resource-path: ${EASY_BPM_TEST_DATA_QA_RESOURCE_PATH:modeler-qa/qa-processes}

@@ -67,7 +67,7 @@ class CredentialVaultTest {
         )
         
         // Mock repository behavior
-        `when`(credentialRepository.findByProviderIdAndOwnerId("openai", "user123"))
+        `when`(credentialRepository.findByOwnerIdAndSecretName("user123", "openai"))
             .thenReturn(Optional.empty())
         `when`(credentialRepository.save(any())).thenAnswer { invocation ->
             invocation.arguments[0] as AICredential
@@ -85,7 +85,7 @@ class CredentialVaultTest {
     }
     
     @Test
-    fun `test store credential fails if already exists for provider`() {
+    fun `test store credential fails if already exists for name`() {
         val request = AICredentialCreateRequestDto(
             providerId = "openai",
             credentialType = "API_KEY",
@@ -99,7 +99,7 @@ class CredentialVaultTest {
             ownerId = "user123"
         )
         
-        `when`(credentialRepository.findByProviderIdAndOwnerId("openai", "user123"))
+        `when`(credentialRepository.findByOwnerIdAndSecretName("user123", "openai"))
             .thenReturn(Optional.of(existingCred))
         
         assertThrows<IllegalArgumentException> {
@@ -151,10 +151,44 @@ class CredentialVaultTest {
     }
 
     @Test
+    fun `test resolve workspace secret by name`() {
+        val credential = AICredential(
+            id = "cred-workspace",
+            providerId = "openai",
+            secretName = "OPENAI_PROD",
+            credentialType = "API_KEY",
+            encryptedToken = vault.encrypt("sk-workspace-secret"),
+            ownerId = CredentialVault.WORKSPACE_OWNER_ID
+        )
+
+        `when`(credentialRepository.findByIdAndOwnerId("OPENAI_PROD", "user123"))
+            .thenReturn(Optional.empty())
+        `when`(credentialRepository.findByIdAndOwnerId("OPENAI_PROD", CredentialVault.WORKSPACE_OWNER_ID))
+            .thenReturn(Optional.empty())
+        `when`(credentialRepository.findByOwnerIdAndSecretName("user123", "OPENAI_PROD"))
+            .thenReturn(Optional.empty())
+        `when`(credentialRepository.findByOwnerIdAndSecretName(CredentialVault.WORKSPACE_OWNER_ID, "OPENAI_PROD"))
+            .thenReturn(Optional.of(credential))
+        `when`(credentialRepository.findByIdAndOwnerId("cred-workspace", CredentialVault.WORKSPACE_OWNER_ID))
+            .thenReturn(Optional.of(credential))
+        `when`(credentialRepository.save(any())).thenReturn(credential)
+
+        val resolved = vault.resolveCredentialRef("@secret:OPENAI_PROD", "user123")
+
+        assertEquals("sk-workspace-secret", resolved)
+    }
+
+    @Test
     fun `test missing credential reference returns safe error`() {
         val rawSecret = "THISLOOKSLIKEARAWSECRET1234567890VALUE"
 
         `when`(credentialRepository.findByIdAndOwnerId(rawSecret, "user123"))
+            .thenReturn(Optional.empty())
+        `when`(credentialRepository.findByIdAndOwnerId(rawSecret, CredentialVault.WORKSPACE_OWNER_ID))
+            .thenReturn(Optional.empty())
+        `when`(credentialRepository.findByOwnerIdAndSecretName("user123", rawSecret))
+            .thenReturn(Optional.empty())
+        `when`(credentialRepository.findByOwnerIdAndSecretName(CredentialVault.WORKSPACE_OWNER_ID, rawSecret))
             .thenReturn(Optional.empty())
 
         val error = assertThrows<IllegalArgumentException> {
@@ -209,6 +243,30 @@ class CredentialVaultTest {
         
         assertEquals(2, dtos.size)
         assertTrue(dtos.all { it.maskedToken.contains("***") })  // All masked
+    }
+
+    @Test
+    fun `test list available credentials includes workspace secrets masked`() {
+        val workspaceSecret = AICredential(
+            id = "cred-workspace",
+            providerId = "custom-api",
+            secretName = "CRM_API_TOKEN",
+            credentialType = "BEARER",
+            encryptedToken = vault.encrypt("crm-secret-token"),
+            ownerId = CredentialVault.WORKSPACE_OWNER_ID
+        )
+
+        `when`(credentialRepository.findByOwnerIdAndIsActiveOrderByCreatedAtDesc("user123", true))
+            .thenReturn(emptyList())
+        `when`(credentialRepository.findByOwnerIdAndIsActiveOrderByCreatedAtDesc(CredentialVault.WORKSPACE_OWNER_ID, true))
+            .thenReturn(listOf(workspaceSecret))
+
+        val dtos = vault.listAvailableCredentials("user123")
+
+        assertEquals(1, dtos.size)
+        assertEquals("CRM_API_TOKEN", dtos.first().name)
+        assertEquals("@secret:CRM_API_TOKEN", dtos.first().reference)
+        assertTrue(dtos.first().maskedToken.contains("***"))
     }
     
     @Test

@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertTriangle, Database, LayoutDashboard, Workflow, Search, LogOut, Code2, UserRoundCheck } from 'lucide-react';
+import { AlertTriangle, Database, KeyRound, LayoutDashboard, Workflow, Search, LogOut, Code2, UserRoundCheck } from 'lucide-react';
 import { ThemeMode, ThemeToggle } from './ThemeToggle';
 
 interface SidebarProps {
@@ -16,6 +16,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onChangeView, cur
   const canManageSecurity = permissions.some(permission =>
     ['VIEW_USERS', 'MANAGE_USERS', 'VIEW_GROUPS', 'MANAGE_GROUPS', 'MANAGE_PERMISSIONS'].includes(permission)
   );
+  const canViewSecrets = permissions.some(permission => ['VIEW_SECRETS', 'MANAGE_SECRETS'].includes(permission));
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'instances', label: 'Instance Search', icon: Search },
@@ -23,6 +24,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onChangeView, cur
     { id: 'incidents', label: 'Incidents', icon: AlertTriangle },
     { id: 'workflows', label: 'Deployed Workflows', icon: Workflow },
     { id: 'code-tasks', label: 'Code Task Executions', icon: Code2 },
+    ...(canViewSecrets ? [{ id: 'secrets', label: 'Secrets', icon: KeyRound }] : []),
     { id: 'maintenance', label: 'Maintenance', icon: Database },
     ...(canManageSecurity ? [{ id: 'security-admin', label: 'Security', icon: LayoutDashboard }] : [])
   ];

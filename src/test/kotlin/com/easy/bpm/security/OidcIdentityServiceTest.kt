@@ -39,7 +39,8 @@ class OidcIdentityServiceTest : FunSpec({
                 "easybpm-user" to AppPermissions.ACCESS_PROCESS_PORTAL,
                 "easybpm-admin-users-manage" to AppPermissions.MANAGE_USERS,
                 "easybpm-admin-groups-manage" to AppPermissions.MANAGE_GROUPS,
-                "easybpm-admin-permissions-manage" to AppPermissions.MANAGE_PERMISSIONS
+                "easybpm-admin-permissions-manage" to AppPermissions.MANAGE_PERMISSIONS,
+                "easybpm-admin-secrets-manage" to AppPermissions.MANAGE_SECRETS
             )
         }
         service = OidcIdentityService(appUserRepository, userGroupRepository, permissionRepository, properties)

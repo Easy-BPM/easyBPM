@@ -12,7 +12,7 @@ import java.util.*
 @Table(
     name = "ai_credentials",
     uniqueConstraints = [
-        UniqueConstraint(columnNames = arrayOf("provider_id", "owner_id"), name = "uk_ai_creds_provider_owner")
+        UniqueConstraint(columnNames = arrayOf("owner_id", "secret_name"), name = "uk_ai_creds_owner_secret_name")
     ],
     indexes = [
         Index(name = "idx_ai_creds_owner", columnList = "owner_id"),
@@ -26,12 +26,15 @@ data class AICredential(
     
     @Column(name = "provider_id", nullable = false, length = 50)
     val providerId: String,                                      // 'openai', 'anthropic', 'gemini', etc.
+
+    @Column(name = "secret_name", nullable = false, length = 100)
+    var secretName: String = providerId,                          // Stable reference shown in Admin/Modeler
     
     @Column(name = "credential_type", nullable = false, length = 20)
-    val credentialType: String,                                  // API_KEY, BEARER, BASIC_AUTH
+    var credentialType: String,                                  // API_KEY, BEARER, BASIC_AUTH
     
     @Column(name = "encrypted_token", nullable = false, length = 2048)
-    val encryptedToken: String,                                  // Encrypted at rest
+    var encryptedToken: String,                                  // Encrypted at rest
     
     @Column(name = "owner_id", nullable = false, length = 100)
     val ownerId: String,                                         // User ID (from security context)
@@ -68,7 +71,8 @@ data class AICredential(
      * Check if credential is accessible to a given user with a role.
      */
     fun isAccessibleBy(userId: String, userRole: String): Boolean {
-        return this.ownerId == userId && this.isActive && 
+        val hasOwnerAccess = this.ownerId == userId || this.ownerId == "__workspace__"
+        return hasOwnerAccess && this.isActive &&
                (this.permissions.isEmpty() || this.permissions.contains(userRole))
     }
     
@@ -87,9 +91,11 @@ data class AICredential(
  */
 data class AICredentialSummary(
     val id: String,
+    val name: String,
     val providerId: String,
     val credentialType: String,
     val maskedToken: String,                         // Last 4 chars visible: "sk-***...hfaX"
+    val reference: String,
     val createdAt: LocalDateTime,
     val lastUsedAt: LocalDateTime? = null,
     val description: String? = null

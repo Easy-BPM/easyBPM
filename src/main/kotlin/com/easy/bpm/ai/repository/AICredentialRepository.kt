@@ -17,11 +17,15 @@ interface AICredentialRepository : JpaRepository<AICredential, String> {
      * Find credential by provider and owner (unique constraint).
      */
     fun findByProviderIdAndOwnerId(providerId: String, ownerId: String): Optional<AICredential>
+
+    fun findByOwnerIdAndSecretName(ownerId: String, secretName: String): Optional<AICredential>
     
     /**
      * Find all credentials for a user.
      */
     fun findByOwnerIdOrderByCreatedAtDesc(ownerId: String): List<AICredential>
+
+    fun findByOwnerIdAndIsActiveOrderByCreatedAtDesc(ownerId: String, isActive: Boolean): List<AICredential>
     
     /**
      * Find credential by ID, with owner verification (security check).

@@ -5,6 +5,7 @@ import { validateId } from '../utils/validation';
 import { AIProviderConfigForm } from './AIProviderConfigForm';
 import { PromptEditor } from './PromptEditor';
 import { AITuningPanel } from './AITuningPanel';
+import { AvailableCredential } from '../services/processService';
 
 interface DeployedFormOption {
   id: string;
@@ -35,6 +36,7 @@ interface PropertiesPanelProps {
   isLoadingDeployedForms?: boolean;
   deployedFormsError?: string | null;
   onRefreshDeployedForms?: () => void;
+  availableCredentials?: AvailableCredential[];
   validation: {
     duplicateNodeIds: string[];
     duplicateGlobalVars: string[];
@@ -63,6 +65,7 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
   isLoadingDeployedForms = false,
   deployedFormsError,
   onRefreshDeployedForms,
+  availableCredentials = [],
   validation,
 }) => {
   const inputClassName = "w-full text-sm bg-white text-slate-800 border border-slate-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-400 focus:outline-none placeholder-slate-400 transition-colors";
@@ -96,6 +99,10 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
   const selectedDeployedForm = selectedNode?.data.formId
     ? deployedForms.find(form => form.formId === selectedNode.data.formId)
     : null;
+  const apiSecrets = useMemo(
+    () => availableCredentials.filter(secret => secret.providerId === 'custom-api' || secret.credentialType === 'API_KEY' || secret.credentialType === 'BEARER'),
+    [availableCredentials]
+  );
   const filteredDeployedForms = useMemo(() => {
     const query = formSearch.trim().toLowerCase();
     const selectedFormId = selectedNode?.data.formId;
@@ -1231,6 +1238,18 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                 {(selectedNode.data.apiAuthType || 'none') !== 'none' && (
                   <div>
                     <label className="text-[10px] text-slate-400 uppercase font-bold mb-1 block">Auth Ref</label>
+                    {apiSecrets.length > 0 && (
+                      <select
+                        className={`${inputClassName} mb-2`}
+                        value={selectedNode.data.apiAuthRef || ''}
+                        onChange={e => onUpdateNode(selectedNode.uid, { apiAuthRef: e.target.value })}
+                      >
+                        <option value="">Select a workspace secret</option>
+                        {apiSecrets.map(secret => (
+                          <option key={secret.id} value={secret.reference}>{secret.name} - {secret.maskedToken}</option>
+                        ))}
+                      </select>
+                    )}
                     <input
                       className={`${inputClassName} font-mono`}
                       value={selectedNode.data.apiAuthRef || ''}
@@ -1427,7 +1446,7 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                 credentialId={selectedNode.data.aiCredentialId}
                 credentialRefName={selectedNode.data.aiCredentialRefName}
                 endpoint={selectedNode.data.aiEndpoint}
-                availableCredentials={[]} // Will be enhanced with backend data later
+                availableCredentials={availableCredentials}
                 onProviderChange={(id) => onUpdateNode(selectedNode.uid, { aiProviderId: id })}
                 onModelChange={(model) => onUpdateNode(selectedNode.uid, { aiModelName: model })}
                 onCredentialChange={(id) => onUpdateNode(selectedNode.uid, { aiCredentialId: id })}

@@ -324,3 +324,35 @@ export interface AdminGroup {
   name: string;
   permissions: string[];
 }
+
+export interface AdminSecret {
+  id: string;
+  name: string;
+  providerId: string;
+  credentialType: string;
+  maskedToken: string;
+  reference: string;
+  description?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  lastUsedAt?: string | null;
+  permissions: string[];
+}
+
+export interface CreateAdminSecretPayload {
+  name: string;
+  providerId: string;
+  credentialType: string;
+  token: string;
+  description?: string;
+  permissions?: string[];
+}
+
+export interface UpdateAdminSecretPayload {
+  name?: string;
+  providerId?: string;
+  credentialType?: string;
+  token?: string;
+  description?: string;
+  permissions?: string[];
+}
