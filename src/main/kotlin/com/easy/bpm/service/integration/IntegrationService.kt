@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.springframework.stereotype.Service
 import org.springframework.web.client.RestTemplate
+import java.net.URI
 
 @Service
 class IntegrationService(
@@ -32,6 +33,7 @@ class IntegrationService(
         // 🔎 Variáveis do processo para preencher o corpo
         val vars = processVariableRepository.findByProcessInstanceId(instance.id)
             .associate { it.name to it.value }
+        val resolvedUrl = renderTemplate(url, vars, nodeId)
 
         // 🔑 Corpo pode vir direto do config ou ser todo o mapa de variáveis
         val body: Any? = if (config.has("body")) {
@@ -41,19 +43,23 @@ class IntegrationService(
         }
 
         val entity = org.springframework.http.HttpEntity(body, headers)
+        val requestUri = URI.create(resolvedUrl)
 
         val response: Map<*, *>? = when (method) {
-            "POST" -> restTemplate.postForEntity(url, entity, Map::class.java).body
-            "PUT" -> restTemplate.exchange(url, org.springframework.http.HttpMethod.PUT, entity, Map::class.java).body
-            "DELETE" -> restTemplate.exchange(url, org.springframework.http.HttpMethod.DELETE, entity, Map::class.java).body
-            "GET" -> restTemplate.exchange(url, org.springframework.http.HttpMethod.GET, entity, Map::class.java).body
+            "POST" -> restTemplate.postForEntity(requestUri, entity, Map::class.java).body
+            "PUT" -> restTemplate.exchange(requestUri, org.springframework.http.HttpMethod.PUT, entity, Map::class.java).body
+            "DELETE" -> restTemplate.exchange(requestUri, org.springframework.http.HttpMethod.DELETE, entity, Map::class.java).body
+            "GET" -> restTemplate.exchange(requestUri, org.springframework.http.HttpMethod.GET, entity, Map::class.java).body
             else -> throw IllegalArgumentException("Unsupported method $method")
         }
 
         // ✅ Save or update output variables in process
-        val outputs = (response as? Map<String, Any>)?.mapValues { it.value.toString() } ?: emptyMap()
-        outputs.forEach { (k, v) ->
-            val value = objectMapper.readTree(v as? String ?: v.toString())
+        val rawOutputs = response?.entries
+            ?.filter { it.key is String }
+            ?.associate { it.key as String to it.value }
+            ?: emptyMap()
+        rawOutputs.forEach { (k, v) ->
+            val value = objectMapper.valueToTree<JsonNode>(v)
             val existing = processVariableRepository.findByProcessInstanceIdAndName(instance.id, k)
             
             if (existing != null) {
@@ -70,7 +76,38 @@ class IntegrationService(
             }
         }
 
-        return outputs
+        return rawOutputs.mapValues { (_, value) -> outputValueAsString(value) }
+    }
+
+    private fun renderTemplate(template: String, variables: Map<String, JsonNode>, nodeId: String): String {
+        var rendered = template
+        variables.forEach { (name, value) ->
+            val replacement = if (value.isTextual) value.asText() else value.toString()
+            rendered = rendered
+                .replace("{{$name}}", replacement)
+                .replace("\${$name}", replacement)
+        }
+        val missingVariables = doubleBraceVariableRegex.findAll(rendered).map { it.groupValues[1] }
+            .plus(dollarBraceVariableRegex.findAll(rendered).map { it.groupValues[1] })
+            .distinct()
+            .toList()
+        if (missingVariables.isNotEmpty()) {
+            throw IllegalArgumentException(
+                "Integration node $nodeId URL references missing process variable(s): ${missingVariables.joinToString(", ")}"
+            )
+        }
+        return rendered
+    }
+
+    private fun outputValueAsString(value: Any?): String =
+        when (value) {
+            null -> ""
+            is String -> value
+            else -> value.toString()
+        }
+
+    companion object {
+        private val doubleBraceVariableRegex = Regex("\\{\\{([^}]+)}}")
+        private val dollarBraceVariableRegex = Regex("\\$\\{([^}]+)}")
     }
 }
-
