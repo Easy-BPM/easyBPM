@@ -93,6 +93,15 @@ class AICredentialController(
         val credentials = credentialVault.listCredentials(userId)
         return ResponseEntity.ok(credentials)
     }
+
+    @GetMapping("/available")
+    fun listAvailableCredentials(
+        authentication: Authentication
+    ): ResponseEntity<List<AICredentialResponseDto>> {
+        val userId = authentication.name
+        val credentials = credentialVault.listAvailableCredentials(userId)
+        return ResponseEntity.ok(credentials)
+    }
     
     /**
      * Get a specific credential by ID.

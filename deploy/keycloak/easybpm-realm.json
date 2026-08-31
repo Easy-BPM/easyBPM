@@ -38,6 +38,14 @@
       {
         "name": "easybpm-admin-permissions-manage",
         "description": "Assign Easy BPM direct permissions"
+      },
+      {
+        "name": "easybpm-admin-secrets-read",
+        "description": "Read Easy BPM workspace secrets metadata"
+      },
+      {
+        "name": "easybpm-admin-secrets-manage",
+        "description": "Create, rotate and remove Easy BPM workspace secrets"
       }
     ]
   },

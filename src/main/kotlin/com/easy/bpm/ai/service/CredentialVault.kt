@@ -2,6 +2,7 @@ package com.easy.bpm.ai.service
 
 import com.easy.bpm.ai.dto.AICredentialCreateRequestDto
 import com.easy.bpm.ai.dto.AICredentialResponseDto
+import com.easy.bpm.ai.dto.AICredentialUpdateRequestDto
 import com.easy.bpm.ai.entity.AICredential
 import com.easy.bpm.ai.repository.AICredentialRepository
 import org.springframework.beans.factory.annotation.Autowired
@@ -25,6 +26,9 @@ class CredentialVault(
     @Autowired(required = false)
     private val auditService: AuditService? = null
 ) {
+    companion object {
+        const val WORKSPACE_OWNER_ID = "__workspace__"
+    }
     
     // Use base64-encoded AES encryption for credentials
     // In production, encryption key should come from EASY_BPM_SERVER_AI_ENCRYPTION_KEY.
@@ -82,10 +86,10 @@ class CredentialVault(
      * @throws IllegalArgumentException if user already has credential for this provider
      */
     fun storeCredential(userId: String, request: AICredentialCreateRequestDto): AICredential {
-        // Check for existing credential (unique constraint: provider + owner)
-        val existing = credentialRepository.findByProviderIdAndOwnerId(request.providerId, userId)
+        val secretName = normalizeSecretName(request.name ?: request.providerId)
+        val existing = credentialRepository.findByOwnerIdAndSecretName(userId, secretName)
         if (existing.isPresent) {
-            throw IllegalArgumentException("Credential already exists for provider '${request.providerId}' for user '$userId'")
+            throw IllegalArgumentException("Credential already exists with name '$secretName' for user '$userId'")
         }
         
         // Encrypt token before storage
@@ -94,10 +98,12 @@ class CredentialVault(
         val credential = AICredential(
             id = UUID.randomUUID().toString(),
             providerId = request.providerId,
+            secretName = secretName,
             credentialType = request.credentialType,
             encryptedToken = encryptedToken,
             ownerId = userId,
-            permissions = mutableSetOf()  // Empty = no RBAC restriction
+            permissions = request.permissions.toMutableSet(),
+            description = request.description
         )
         
         val saved = credentialRepository.save(credential)
@@ -105,6 +111,35 @@ class CredentialVault(
         // Audit log (optional)
         auditService?.logCredentialAction("CREATE", userId, request.providerId, success = true)
         
+        return saved
+    }
+
+    fun storeWorkspaceSecret(request: AICredentialCreateRequestDto): AICredential =
+        storeCredential(WORKSPACE_OWNER_ID, request)
+
+    fun updateWorkspaceSecret(credentialId: String, request: AICredentialUpdateRequestDto): AICredential {
+        val cred = credentialRepository.findByIdAndOwnerId(credentialId, WORKSPACE_OWNER_ID)
+            .orElseThrow { IllegalArgumentException("Secret not found: $credentialId") }
+
+        request.name?.let {
+            val nextName = normalizeSecretName(it)
+            val duplicate = credentialRepository.findByOwnerIdAndSecretName(WORKSPACE_OWNER_ID, nextName)
+            if (duplicate.isPresent && duplicate.get().id != cred.id) {
+                throw IllegalArgumentException("Secret already exists with name '$nextName'")
+            }
+            cred.secretName = nextName
+        }
+        request.credentialType?.takeIf { it.isNotBlank() }?.let { cred.credentialType = it.trim() }
+        request.token?.takeIf { it.isNotBlank() }?.let { cred.encryptedToken = encrypt(it) }
+        if (request.description != null) cred.description = request.description.takeIf { it.isNotBlank() }
+        request.permissions?.let {
+            cred.permissions.clear()
+            cred.permissions.addAll(it.map(String::trim).filter(String::isNotEmpty))
+        }
+        cred.updatedAt = LocalDateTime.now()
+
+        val saved = credentialRepository.save(cred)
+        auditService?.logCredentialAction("UPDATE", WORKSPACE_OWNER_ID, cred.providerId, credentialId, true)
         return saved
     }
     
@@ -120,6 +155,7 @@ class CredentialVault(
      */
     fun retrieveCredential(credentialId: String, userId: String, userRole: String = "USER"): String {
         val cred = credentialRepository.findByIdAndOwnerId(credentialId, userId)
+            .or { credentialRepository.findByIdAndOwnerId(credentialId, WORKSPACE_OWNER_ID) }
             .orElseThrow { IllegalArgumentException("Credential not found: $credentialId") }
         
         // RBAC check
@@ -148,21 +184,25 @@ class CredentialVault(
      * @return Resolved credential token
      */
     fun resolveCredentialRef(credentialRef: String, userId: String, userRole: String = "USER"): String {
+        val normalizedRef = credentialRef.removePrefix("@secret:").trim()
         return when {
-            credentialRef.startsWith("$") -> {
+            normalizedRef.startsWith("$") -> {
                 // Environment variable reference
-                val envVarName = credentialRef.substring(1)
+                val envVarName = normalizedRef.substring(1)
                 System.getenv(envVarName)
                     ?: throw IllegalArgumentException("Environment variable not found: $envVarName")
             }
             else -> {
                 // UUID or stored credential reference to vault
                 try {
-                    retrieveCredential(credentialRef, userId, userRole)
+                    retrieveCredential(normalizedRef, userId, userRole)
                 } catch (e: IllegalArgumentException) {
-                    throw IllegalArgumentException(
-                        "Credential not found for provided reference. Use a stored credentialId or an environment variable reference like '\$AZURE_OPENAI_API_KEY'."
-                    )
+                    val namedCredential = credentialRepository.findByOwnerIdAndSecretName(userId, normalizedRef)
+                        .or { credentialRepository.findByOwnerIdAndSecretName(WORKSPACE_OWNER_ID, normalizedRef) }
+                    if (namedCredential.isPresent) {
+                        return retrieveCredential(namedCredential.get().id, namedCredential.get().ownerId, userRole)
+                    }
+                    throw IllegalArgumentException("Credential not found for provided reference. Use a stored credentialId, a workspace secret name, or an environment variable reference like '\$AZURE_OPENAI_API_KEY'.")
                 }
             }
         }
@@ -180,9 +220,12 @@ class CredentialVault(
             .orElseThrow { IllegalArgumentException("Credential not found: $credentialId") }
         return AICredentialResponseDto(
             id = cred.id,
+            name = cred.secretName,
             providerId = cred.providerId,
             credentialType = cred.credentialType,
             maskedToken = maskToken(decrypt(cred.encryptedToken)),
+            reference = "@secret:${cred.secretName}",
+            description = cred.description,
             createdAt = cred.createdAt.toString(),
             updatedAt = cred.updatedAt.toString(),
             lastUsedAt = cred.lastUsedAt?.toString(),
@@ -197,19 +240,17 @@ class CredentialVault(
      * @return List of credential DTOs (tokens masked)
      */
     fun listCredentials(userId: String): List<AICredentialResponseDto> {
-        return credentialRepository.findByOwnerIdOrderByCreatedAtDesc(userId).map { cred ->
-            AICredentialResponseDto(
-                id = cred.id,
-                providerId = cred.providerId,
-                credentialType = cred.credentialType,
-                maskedToken = maskToken(decrypt(cred.encryptedToken)),
-                createdAt = cred.createdAt.toString(),
-                updatedAt = cred.updatedAt.toString(),
-                lastUsedAt = cred.lastUsedAt?.toString(),
-                permissions = cred.permissions.toList()
-            )
-        }
+        return credentialRepository.findByOwnerIdOrderByCreatedAtDesc(userId).map(::toDto)
     }
+
+    fun listAvailableCredentials(userId: String): List<AICredentialResponseDto> {
+        val owned = credentialRepository.findByOwnerIdAndIsActiveOrderByCreatedAtDesc(userId, true)
+        val workspace = credentialRepository.findByOwnerIdAndIsActiveOrderByCreatedAtDesc(WORKSPACE_OWNER_ID, true)
+        return (owned + workspace).distinctBy { it.id }.map(::toDto)
+    }
+
+    fun listWorkspaceSecrets(): List<AICredentialResponseDto> =
+        credentialRepository.findByOwnerIdOrderByCreatedAtDesc(WORKSPACE_OWNER_ID).map(::toDto)
     
     /**
      * Delete credential (soft delete for audit trail).
@@ -224,6 +265,10 @@ class CredentialVault(
         credentialRepository.save(cred)
         
         auditService?.logCredentialAction("DELETE", userId, cred.providerId, credentialId, true)
+    }
+
+    fun deleteWorkspaceSecret(credentialId: String) {
+        deleteCredential(credentialId, WORKSPACE_OWNER_ID)
     }
     
     /**
@@ -252,8 +297,32 @@ class CredentialVault(
      */
     fun isCredentialValid(credentialId: String, userId: String): Boolean {
         return credentialRepository.findByIdAndOwnerId(credentialId, userId)
+            .or { credentialRepository.findByIdAndOwnerId(credentialId, WORKSPACE_OWNER_ID) }
             .map { it.isActive }
             .orElse(false)
+    }
+
+    private fun toDto(cred: AICredential): AICredentialResponseDto =
+        AICredentialResponseDto(
+            id = cred.id,
+            name = cred.secretName,
+            providerId = cred.providerId,
+            credentialType = cred.credentialType,
+            maskedToken = maskToken(decrypt(cred.encryptedToken)),
+            reference = "@secret:${cred.secretName}",
+            description = cred.description,
+            createdAt = cred.createdAt.toString(),
+            updatedAt = cred.updatedAt.toString(),
+            lastUsedAt = cred.lastUsedAt?.toString(),
+            permissions = cred.permissions.toList()
+        )
+
+    private fun normalizeSecretName(value: String): String {
+        val trimmed = value.trim().removePrefix("@secret:")
+        require(trimmed.matches(Regex("[A-Za-z][A-Za-z0-9_-]{1,99}"))) {
+            "Secret name must start with a letter and contain only letters, numbers, underscores, or hyphens."
+        }
+        return trimmed
     }
 }
 

@@ -9,6 +9,8 @@ object AppPermissions {
     const val VIEW_GROUPS = "VIEW_GROUPS"
     const val MANAGE_GROUPS = "MANAGE_GROUPS"
     const val MANAGE_PERMISSIONS = "MANAGE_PERMISSIONS"
+    const val VIEW_SECRETS = "VIEW_SECRETS"
+    const val MANAGE_SECRETS = "MANAGE_SECRETS"
 
     val all = setOf(
         ACCESS_BPM_ADMIN,
@@ -18,7 +20,9 @@ object AppPermissions {
         MANAGE_USERS,
         VIEW_GROUPS,
         MANAGE_GROUPS,
-        MANAGE_PERMISSIONS
+        MANAGE_PERMISSIONS,
+        VIEW_SECRETS,
+        MANAGE_SECRETS
     )
 }
 

@@ -91,9 +91,12 @@ data class ConfigFieldMetadata(
  */
 data class AICredentialResponseDto(
     val id: String,                                  // UUID
+    val name: String,
     val providerId: String,
     val credentialType: String,                      // API_KEY, BEARER, BASIC_AUTH
     val maskedToken: String,                         // Last 4 chars only, e.g., "sk-***...hfaX"
+    val reference: String,
+    val description: String? = null,
     val createdAt: String,
     val updatedAt: String,
     val lastUsedAt: String? = null,
@@ -104,9 +107,24 @@ data class AICredentialResponseDto(
  * Request to store a new credential.
  */
 data class AICredentialCreateRequestDto(
+    val name: String? = null,
     val providerId: String,
     val credentialType: String,                      // API_KEY, BEARER, BASIC_AUTH
-    val token: String                                // Will be encrypted immediately server-side
+    val token: String,                               // Will be encrypted immediately server-side
+    val description: String? = null,
+    val permissions: List<String> = emptyList()
+) : Serializable
+
+/**
+ * Request to update metadata or rotate an existing credential.
+ */
+data class AICredentialUpdateRequestDto(
+    val name: String? = null,
+    val providerId: String? = null,
+    val credentialType: String? = null,
+    val token: String? = null,
+    val description: String? = null,
+    val permissions: List<String>? = null
 ) : Serializable
 
 /**

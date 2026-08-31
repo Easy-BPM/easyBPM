@@ -59,9 +59,11 @@ easybpm-admin-users-manage: MANAGE_USERS
 easybpm-admin-groups-read: VIEW_GROUPS
 easybpm-admin-groups-manage: MANAGE_GROUPS
 easybpm-admin-permissions-manage: MANAGE_PERMISSIONS
+easybpm-admin-secrets-read: VIEW_SECRETS
+easybpm-admin-secrets-manage: MANAGE_SECRETS
 ```
 
-`easybpm-admin` only opens the Admin application. Use the fine-grained roles above to decide whether a Keycloak user can read or manage Easy BPM local users, groups and direct permissions.
+`easybpm-admin` only opens the Admin application. Use the fine-grained roles above to decide whether a Keycloak user can read or manage Easy BPM local users, groups, direct permissions and workspace secrets.
 
 ## Current User
 

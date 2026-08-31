@@ -77,6 +77,16 @@ export type AgentProcessDefinitionSummary = {
   createdAt?: string;
 };
 
+export type AvailableCredential = {
+  id: string;
+  name: string;
+  providerId: string;
+  credentialType: string;
+  maskedToken: string;
+  reference: string;
+  description?: string | null;
+};
+
 type PageResponse<T> = {
   content: T[];
 };
@@ -365,6 +375,16 @@ export const processService = {
     if (!response.ok) {
       const body = await response.text();
       throw new Error(`Load agent processes failed (${response.status}): ${body || response.statusText}`);
+    }
+    return response.json();
+  },
+
+  listAvailableCredentials: async (): Promise<AvailableCredential[]> => {
+    const response = await fetchWithAuth(`${API_BASE_URL}/ai/credentials/available`);
+    if (response.status === 401) throw new AuthRequiredError();
+    if (!response.ok) {
+      const body = await response.text();
+      throw new Error(`Load secrets failed (${response.status}): ${body || response.statusText}`);
     }
     return response.json();
   }

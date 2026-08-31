@@ -22,6 +22,7 @@ import { DashboardView } from './components/DashboardView';
 import { IncidentListPage } from './components/IncidentListPage';
 import { MaintenancePage } from './components/MaintenancePage';
 import { SecurityAdminView } from './components/SecurityAdminView';
+import { SecretsAdminView } from './components/SecretsAdminView';
 import { TaskResourcesView } from './components/TaskResourcesView';
 import { ThemeMode, ThemeToggle } from './components/ThemeToggle';
 import { adminService } from './services/adminService';
@@ -146,6 +147,8 @@ const App: React.FC = () => {
         return <MaintenancePage />;
       case 'security-admin':
         return <SecurityAdminView permissions={permissions} />;
+      case 'secrets':
+        return <SecretsAdminView permissions={permissions} />;
       case 'task-resources':
         return <TaskResourcesView />;
       default:
