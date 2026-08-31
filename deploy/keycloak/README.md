@@ -54,7 +54,14 @@ Default mappings:
 easybpm-user: ACCESS_PROCESS_PORTAL
 easybpm-modeler: ACCESS_BPM_MODELER
 easybpm-admin: ACCESS_BPM_ADMIN
+easybpm-admin-users-read: VIEW_USERS
+easybpm-admin-users-manage: MANAGE_USERS
+easybpm-admin-groups-read: VIEW_GROUPS
+easybpm-admin-groups-manage: MANAGE_GROUPS
+easybpm-admin-permissions-manage: MANAGE_PERMISSIONS
 ```
+
+`easybpm-admin` only opens the Admin application. Use the fine-grained roles above to decide whether a Keycloak user can read or manage Easy BPM local users, groups and direct permissions.
 
 ## Current User
 

@@ -17,6 +17,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.http.SessionCreationPolicy
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
 import org.springframework.security.crypto.password.PasswordEncoder
+import org.springframework.http.HttpMethod
 import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator
 import org.springframework.security.oauth2.core.OAuth2Error
 import org.springframework.security.oauth2.core.OAuth2TokenValidator
@@ -69,7 +70,12 @@ class SecurityConfig(
             .authorizeHttpRequests {
                 it.requestMatchers("/auth/**", "/actuator/**", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                 it.requestMatchers("/admin/maintenance/**").hasAuthority(AppPermissions.ACCESS_BPM_ADMIN)
-                it.requestMatchers("/admin/**").hasAnyAuthority(AppPermissions.MANAGE_USERS, AppPermissions.MANAGE_GROUPS)
+                it.requestMatchers(HttpMethod.GET, "/admin/users").hasAnyAuthority(AppPermissions.VIEW_USERS, AppPermissions.MANAGE_USERS)
+                it.requestMatchers("/admin/users/**").hasAuthority(AppPermissions.MANAGE_USERS)
+                it.requestMatchers(HttpMethod.POST, "/admin/users").hasAuthority(AppPermissions.MANAGE_USERS)
+                it.requestMatchers(HttpMethod.GET, "/admin/groups", "/admin/groups/*/users").hasAnyAuthority(AppPermissions.VIEW_GROUPS, AppPermissions.MANAGE_GROUPS)
+                it.requestMatchers("/admin/groups/**").hasAuthority(AppPermissions.MANAGE_GROUPS)
+                it.requestMatchers(HttpMethod.POST, "/admin/groups").hasAuthority(AppPermissions.MANAGE_GROUPS)
                 it.requestMatchers("/code-tasks/**").hasAnyAuthority(AppPermissions.ACCESS_BPM_ADMIN, AppPermissions.ACCESS_BPM_MODELER)
                 it.requestMatchers("/incidents/**").hasAuthority(AppPermissions.ACCESS_BPM_ADMIN)
                 it.requestMatchers("/api/documents/**").hasAnyAuthority(AppPermissions.ACCESS_BPM_ADMIN, AppPermissions.ACCESS_PROCESS_PORTAL, AppPermissions.ACCESS_BPM_MODELER)

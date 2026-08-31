@@ -32,7 +32,12 @@ class ExternalAuthenticationProperties {
         var roleMappings: Map<String, String> = mapOf(
             "easybpm-admin" to AppPermissions.ACCESS_BPM_ADMIN,
             "easybpm-modeler" to AppPermissions.ACCESS_BPM_MODELER,
-            "easybpm-user" to AppPermissions.ACCESS_PROCESS_PORTAL
+            "easybpm-user" to AppPermissions.ACCESS_PROCESS_PORTAL,
+            "easybpm-admin-users-read" to AppPermissions.VIEW_USERS,
+            "easybpm-admin-users-manage" to AppPermissions.MANAGE_USERS,
+            "easybpm-admin-groups-read" to AppPermissions.VIEW_GROUPS,
+            "easybpm-admin-groups-manage" to AppPermissions.MANAGE_GROUPS,
+            "easybpm-admin-permissions-manage" to AppPermissions.MANAGE_PERMISSIONS
         )
         var groupMappings: Map<String, String> = emptyMap()
         var syncGroups: Boolean = true

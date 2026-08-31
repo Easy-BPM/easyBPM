@@ -35,7 +35,7 @@ class OidcIdentityService(
 
         val user = appUserRepository.findByIdentityProviderAndExternalIdentityId(providerName, subject)
             ?: appUserRepository.findByUsername(username)
-            ?: provisionUser(providerName, subject, username, email, firstName, lastName, tokenGroups, mappedPermissionCodes + defaultPermissionCodes)
+            ?: provisionUser(providerName, subject, username, email, firstName, lastName, tokenGroups, defaultPermissionCodes)
 
         if (user.externalIdentityId == null && user.identityProvider == "LOCAL") {
             user.identityProvider = providerName
@@ -48,9 +48,6 @@ class OidcIdentityService(
         user.updatedAt = LocalDateTime.now()
         if (properties.oidc.syncGroups) {
             user.groups = syncGroups(tokenGroups)
-        }
-        if (mappedPermissionCodes.isNotEmpty()) {
-            user.permissions = (user.permissions + findPermissions(mappedPermissionCodes)).toMutableSet()
         }
         val saved = appUserRepository.save(user)
 

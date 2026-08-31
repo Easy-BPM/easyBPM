@@ -4,6 +4,7 @@ const API_BASE_URL = getModelerApiBaseUrl();
 const AUTH_STORAGE_KEY = 'easybpm_modeler_auth';
 const OIDC_STATE_KEY = 'easybpm_modeler_oidc_state';
 const OIDC_VERIFIER_KEY = 'easybpm_modeler_oidc_verifier';
+const OIDC_AUTO_LOGIN_SUPPRESS_KEY = 'easybpm_modeler_oidc_auto_login_suppressed';
 
 export class AuthRequiredError extends Error {
   constructor(message = 'Session expired. Please sign in again.') {
@@ -167,6 +168,18 @@ export const processService = {
     const response = await fetch(`${API_BASE_URL}/auth/config`);
     if (!response.ok) throw await errorFromResponse(response, 'Failed to load auth configuration');
     return response.json();
+  },
+
+  markOidcAutoLoginSuppressed: (): void => {
+    sessionStorage.setItem(OIDC_AUTO_LOGIN_SUPPRESS_KEY, 'true');
+  },
+
+  shouldAutoStartOidcLogin: async (): Promise<boolean> => {
+    const suppressed = sessionStorage.getItem(OIDC_AUTO_LOGIN_SUPPRESS_KEY) === 'true';
+    if (suppressed) return false;
+
+    const config = await processService.authConfig();
+    return Boolean(config.oidc);
   },
 
   startOidcLogin: async (): Promise<void> => {

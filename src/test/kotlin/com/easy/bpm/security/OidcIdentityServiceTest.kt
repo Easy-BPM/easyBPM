@@ -36,7 +36,10 @@ class OidcIdentityServiceTest : FunSpec({
             oidc.roleMappings = mapOf(
                 "easybpm-admin" to AppPermissions.ACCESS_BPM_ADMIN,
                 "easybpm-modeler" to AppPermissions.ACCESS_BPM_MODELER,
-                "easybpm-user" to AppPermissions.ACCESS_PROCESS_PORTAL
+                "easybpm-user" to AppPermissions.ACCESS_PROCESS_PORTAL,
+                "easybpm-admin-users-manage" to AppPermissions.MANAGE_USERS,
+                "easybpm-admin-groups-manage" to AppPermissions.MANAGE_GROUPS,
+                "easybpm-admin-permissions-manage" to AppPermissions.MANAGE_PERMISSIONS
             )
         }
         service = OidcIdentityService(appUserRepository, userGroupRepository, permissionRepository, properties)
@@ -44,12 +47,11 @@ class OidcIdentityServiceTest : FunSpec({
 
     test("provisions a Keycloak user from OIDC claims") {
         val portalPermission = Permission(code = AppPermissions.ACCESS_PROCESS_PORTAL, name = "Portal")
-        val adminPermission = Permission(code = AppPermissions.ACCESS_BPM_ADMIN, name = "Admin")
         val supportGroup = UserGroup(code = "customer-support", name = "customer-support")
 
         every { appUserRepository.findByIdentityProviderAndExternalIdentityId("KEYCLOAK", "sub-123") } returns null
         every { appUserRepository.findByUsername("john.doe") } returns null
-        every { permissionRepository.findAllByCodeIn(any<Collection<String>>()) } returns listOf(portalPermission, adminPermission)
+        every { permissionRepository.findAllByCodeIn(any<Collection<String>>()) } returns listOf(portalPermission)
         every { userGroupRepository.findByCode("customer-support") } returns supportGroup
         every { appUserRepository.save(any<AppUser>()) } answers {
             val user = firstArg<AppUser>()
@@ -65,7 +67,7 @@ class OidcIdentityServiceTest : FunSpec({
                     "given_name" to "John",
                     "family_name" to "Doe",
                     "groups" to listOf("customer-support"),
-                    "realm_access" to mapOf("roles" to listOf("easybpm-user", "easybpm-admin"))
+                    "realm_access" to mapOf("roles" to listOf("easybpm-user", "easybpm-admin", "easybpm-admin-users-manage"))
                 )
             )
         )
@@ -79,6 +81,31 @@ class OidcIdentityServiceTest : FunSpec({
         principal.groups shouldContain "customer-support"
         principal.permissionCodes shouldContain AppPermissions.ACCESS_PROCESS_PORTAL
         principal.permissionCodes shouldContain AppPermissions.ACCESS_BPM_ADMIN
+        principal.permissionCodes shouldContain AppPermissions.MANAGE_USERS
+    }
+
+    test("does not persist Keycloak mapped roles as local direct permissions") {
+        val portalPermission = Permission(code = AppPermissions.ACCESS_PROCESS_PORTAL, name = "Portal")
+        val savedUsers = mutableListOf<AppUser>()
+
+        every { appUserRepository.findByIdentityProviderAndExternalIdentityId("KEYCLOAK", "sub-roles") } returns null
+        every { appUserRepository.findByUsername("role.user") } returns null
+        every { permissionRepository.findAllByCodeIn(any<Collection<String>>()) } returns listOf(portalPermission)
+        every { appUserRepository.save(any<AppUser>()) } answers {
+            firstArg<AppUser>().copy(id = 55L).also(savedUsers::add)
+        }
+
+        service.loadOrProvision(
+            jwt(
+                subject = "sub-roles",
+                claims = mapOf(
+                    "preferred_username" to "role.user",
+                    "realm_access" to mapOf("roles" to listOf("easybpm-admin", "easybpm-admin-users-manage"))
+                )
+            )
+        )
+
+        savedUsers.last().permissions.map { it.code }.toSet() shouldBe setOf(AppPermissions.ACCESS_PROCESS_PORTAL)
     }
 
     test("loads an existing external identity without creating a new user") {

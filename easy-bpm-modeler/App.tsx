@@ -99,7 +99,12 @@ const App: React.FC = () => {
        try {
          const oidcSession = await processService.completeOidcLoginIfPresent();
          const session = oidcSession ?? processService.getSession();
-         if (!session) return;
+         if (!session) {
+           if (await processService.shouldAutoStartOidcLogin()) {
+             await processService.startOidcLogin();
+           }
+           return;
+         }
 
          setCurrentUser(session.username);
          setPermissions(session.permissions);
@@ -1410,6 +1415,7 @@ const App: React.FC = () => {
 
   const handleLogout = () => {
     const logoutUrl = processService.buildLogoutUrl();
+    if (logoutUrl) processService.markOidcAutoLoginSuppressed();
     processService.clearSession();
     setCurrentUser(null);
     setPermissions([]);
@@ -1691,11 +1697,33 @@ const ModelerLoginView: React.FC<{
   const [loading, setLoading] = useState(false);
   const [oidcEnabled, setOidcEnabled] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const autoLoginStarted = React.useRef(false);
 
   useEffect(() => {
+    let cancelled = false;
+
     processService.authConfig()
-      .then((config) => setOidcEnabled(Boolean(config.oidc)))
-      .catch(() => setOidcEnabled(false));
+      .then(async (config) => {
+        if (cancelled) return;
+        const enabled = Boolean(config.oidc);
+        setOidcEnabled(enabled);
+        if (!enabled || autoLoginStarted.current) return;
+        if (!(await processService.shouldAutoStartOidcLogin())) return;
+        autoLoginStarted.current = true;
+        setLoading(true);
+        await processService.startOidcLogin();
+      })
+      .catch((e) => {
+        if (!cancelled) {
+          setError((e as Error).message);
+          setOidcEnabled(false);
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const submit = async (event: React.FormEvent) => {

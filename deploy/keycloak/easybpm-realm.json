@@ -18,6 +18,26 @@
       {
         "name": "easybpm-admin",
         "description": "Easy BPM administrator"
+      },
+      {
+        "name": "easybpm-admin-users-read",
+        "description": "Read Easy BPM local users"
+      },
+      {
+        "name": "easybpm-admin-users-manage",
+        "description": "Create, update, disable, delete and reset Easy BPM local users"
+      },
+      {
+        "name": "easybpm-admin-groups-read",
+        "description": "Read Easy BPM local groups and group membership"
+      },
+      {
+        "name": "easybpm-admin-groups-manage",
+        "description": "Create, update and delete Easy BPM local groups"
+      },
+      {
+        "name": "easybpm-admin-permissions-manage",
+        "description": "Assign Easy BPM direct permissions"
       }
     ]
   },

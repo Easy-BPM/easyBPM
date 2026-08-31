@@ -52,7 +52,12 @@ const App: React.FC = () => {
       try {
         const oidcSession = await adminService.completeOidcLoginIfPresent();
         const session = oidcSession ?? adminService.getSession();
-        if (!session) return;
+        if (!session) {
+          if (await adminService.shouldAutoStartOidcLogin()) {
+            await adminService.startOidcLogin();
+          }
+          return;
+        }
 
         setCurrentUser(session.username);
         setPermissions(session.permissions);
@@ -89,6 +94,7 @@ const App: React.FC = () => {
 
   const handleLogout = () => {
     const logoutUrl = adminService.buildLogoutUrl();
+    if (logoutUrl) adminService.markOidcAutoLoginSuppressed();
     adminService.clearSession();
     setCurrentUser(null);
     setPermissions([]);
@@ -139,7 +145,7 @@ const App: React.FC = () => {
       case 'maintenance':
         return <MaintenancePage />;
       case 'security-admin':
-        return <SecurityAdminView />;
+        return <SecurityAdminView permissions={permissions} />;
       case 'task-resources':
         return <TaskResourcesView />;
       default:
@@ -171,11 +177,33 @@ const LoginView: React.FC<{ onLogin: (username: string, perms: string[]) => void
   const [loading, setLoading] = useState(false);
   const [oidcEnabled, setOidcEnabled] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const autoLoginStarted = React.useRef(false);
 
   useEffect(() => {
+    let cancelled = false;
+
     adminService.authConfig()
-      .then((config) => setOidcEnabled(Boolean(config.oidc)))
-      .catch(() => setOidcEnabled(false));
+      .then(async (config) => {
+        if (cancelled) return;
+        const enabled = Boolean(config.oidc);
+        setOidcEnabled(enabled);
+        if (!enabled || autoLoginStarted.current) return;
+        if (adminService.isOidcAutoLoginSuppressed()) return;
+        autoLoginStarted.current = true;
+        setLoading(true);
+        await adminService.startOidcLogin();
+      })
+      .catch((e) => {
+        if (!cancelled) {
+          setError((e as Error).message);
+          setOidcEnabled(false);
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
