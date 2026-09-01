@@ -17,6 +17,7 @@ import com.easy.bpm.service.form.FormService
 import com.easy.bpm.service.integration.IntegrationService
 import com.easy.bpm.service.message.MessageSubscriptionService
 import com.easy.bpm.service.metrics.MetricsService
+import com.easy.bpm.service.process.GatewayRoutingException
 import com.easy.bpm.service.process.GatewayService
 import com.easy.bpm.service.process.unitTestBpmnXml
 import com.easy.bpm.service.process.ProcessInstanceTimelineService
@@ -264,6 +265,88 @@ class TaskServiceTest : FunSpec() {
                 mockProcessVariableRepository.save(match<ProcessVariable> {
                     it.processInstanceId == 100L && it.name == "amount" && it.value.asInt() == 125
                 })
+            }
+        }
+
+        test("should fail process with incident when continuation fails after completion") {
+            // Arrange
+            val realObjectMapper = ObjectMapper()
+            val service = TaskService(
+                mockTaskRepository,
+                mockProcessInstanceRepository,
+                mockProcessVariableRepository,
+                mockTaskVariableRepository,
+                mockHistoricTaskVariableRepository,
+                mockIntegrationService,
+                mockFormService,
+                realObjectMapper,
+                mockRabbitPublisher,
+                mockGatewayService,
+                mockMessageSubscriptionService,
+                mockMetricsService,
+                mockAgentProcessCallHandler,
+                mockTimelineService,
+                mockFailureHandler,
+                mockHistoricVariableArchiver
+            )
+            val definitionJson = unitTestBpmnXml(
+                "routing-failure",
+                """[
+                    {"id": "review", "type": "UserTask", "name": "Review"},
+                    {"id": "route", "type": "ExclusiveGateway", "name": "Route"},
+                    {"id": "end", "type": "EndEvent", "name": "End"}
+                ]""",
+                """[
+                    {"from": "review", "to": "route"},
+                    {"from": "route", "to": "end"}
+                ]"""
+            )
+            val definition = ProcessDefinition(id = 1, key = "routing-failure", definitionJson = definitionJson)
+            val instance = ProcessInstance(
+                id = 100,
+                processDefinition = definition,
+                status = ProcessStatus.ACTIVE,
+                currentNode = listOf("review"),
+                nodeHistory = listOf("review")
+            )
+            val task = Task(
+                id = 10,
+                processInstanceId = 100,
+                title = "Review",
+                nodeId = "review",
+                assignee = "alice",
+                status = TaskStatus.PENDING,
+                formId = null
+            )
+
+            every { mockTaskRepository.findByIdForUpdate(10) } returns Optional.of(task)
+            every { mockProcessInstanceRepository.findByIdForUpdate(100) } returns instance
+            every { mockGatewayService.getNextNodes(match { it.get("id").asText() == "review" }, any(), instance) } returns listOf("route")
+            every {
+                mockGatewayService.getNextNodes(match { it.get("id").asText() == "route" }, any(), instance)
+            } throws GatewayRoutingException("route", "No matching gateway route")
+            every { mockTaskRepository.save(any<Task>()) } answers { firstArg() }
+            every { mockProcessInstanceRepository.save(any<ProcessInstance>()) } answers { firstArg() }
+
+            // Act
+            val error = shouldThrow<TaskCompletionIncidentException> {
+                service.completeTask(
+                    taskId = 10,
+                    assignee = "alice",
+                    variables = emptyMap()
+                )
+            }
+
+            // Assert
+            error.message shouldBe
+                "Task was completed, but process execution failed and an incident was recorded: No matching gateway route"
+            task.status shouldBe TaskStatus.COMPLETED
+            verify {
+                mockFailureHandler.failInstance(
+                    instance = instance,
+                    nodeId = "route",
+                    errorMessage = "No matching gateway route"
+                )
             }
         }
     }

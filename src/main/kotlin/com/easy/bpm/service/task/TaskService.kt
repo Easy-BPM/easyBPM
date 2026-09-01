@@ -76,12 +76,12 @@ class TaskService(
        TASK COMPLETION
      ========================= */
 
-    @Transactional
+    @Transactional(dontRollbackOn = [TaskCompletionIncidentException::class])
     fun completeTask(taskId: Long, assignee: String, variables: Map<String, Any?>) {
         completeTask(taskId, assignee, emptySet(), variables)
     }
 
-    @Transactional
+    @Transactional(dontRollbackOn = [TaskCompletionIncidentException::class])
     fun completeTask(taskId: Long, assignee: String, groups: Set<String>, variables: Map<String, Any?>) {
         val startTime = System.currentTimeMillis()
 
@@ -143,11 +143,29 @@ class TaskService(
             // 6️⃣ Continuar execução
             executeNextSteps(nextNodeIds, instance, definition)
         } catch (ex: GatewayRoutingException) {
+            val errorMessage = ex.message ?: "Gateway routing failed"
             failureHandler.failInstance(
                 instance = instance,
                 nodeId = ex.nodeId,
-                errorMessage = ex.message ?: "Gateway routing failed"
+                errorMessage = errorMessage
             )
+            throw TaskCompletionIncidentException(taskCompletionIncidentMessage(errorMessage), ex)
+        } catch (ex: Exception) {
+            val failedNodeId = instance.currentNode?.firstOrNull() ?: nextNodeIds.firstOrNull() ?: task.nodeId
+            val failedNode = definition.get("nodes")?.find { it.get("id")?.asText() == failedNodeId }
+            val failedNodeType = failedNode
+                ?.get("type")
+                ?.asText()
+                ?.let(NodeType::fromString)
+                ?: NodeType.UserTask
+            val errorMessage = ex.message ?: ex.javaClass.simpleName
+            failureHandler.failInstance(
+                instance = instance,
+                nodeId = failedNodeId,
+                errorMessage = errorMessage,
+                incidentSource = failureHandler.incidentSourceForNode(failedNodeType)
+            )
+            throw TaskCompletionIncidentException(taskCompletionIncidentMessage(errorMessage), ex)
         }
     }
 
@@ -989,6 +1007,9 @@ class TaskService(
         processInstanceRepository.findByIdForUpdate(instanceId)
             ?: throw IllegalArgumentException("Process instance not found")
 
+    private fun taskCompletionIncidentMessage(errorMessage: String): String =
+        "Task was completed, but process execution failed and an incident was recorded: $errorMessage"
+
     private fun parseDefinition(definitionJson: String): JsonNode =
         BpmnXmlCodec.parseDefinition(definitionJson, objectMapper)
 
@@ -1038,3 +1059,8 @@ class TaskService(
     private fun parseStaticValue(valueNode: JsonNode): JsonNode =
         if (valueNode.isTextual) objectMapper.readTree(valueNode.asText()) else valueNode
 }
+
+class TaskCompletionIncidentException(
+    message: String,
+    cause: Throwable
+) : IllegalStateException(message, cause)
