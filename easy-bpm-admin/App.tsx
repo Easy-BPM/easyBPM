@@ -347,8 +347,18 @@ const App: React.FC = () => {
         theme={theme}
         onToggleTheme={toggleTheme}
       />
-      <main className="flex-1 px-6 py-6 overflow-y-auto h-screen">
-        <div className={`${currentView === 'dashboard' ? 'max-w-7xl' : 'max-w-5xl'} mx-auto`}>{renderView()}</div>
+      <main className="flex-1 px-4 py-6 overflow-y-auto h-screen sm:px-6 lg:px-8">
+        <div
+          className={`${
+            currentView === 'incidents'
+              ? 'w-full max-w-[1600px]'
+              : currentView === 'dashboard'
+                ? 'max-w-7xl'
+                : 'max-w-5xl'
+          } mx-auto`}
+        >
+          {renderView()}
+        </div>
       </main>
     </div>
   );
