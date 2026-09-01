@@ -34,7 +34,7 @@ class ProcessAgentCallHandler(
             nodeId = nodeId,
             eventType = ProcessInstanceEventType.AGENT_PROCESS_COMPLETED,
             message = "Agent process call completed.",
-            details = "agentExecutionId=${execution.id}; status=${execution.status}"
+            details = agentProcessCallHandler.buildTimelineDetails(execution)
         )
 
         return navigator.getNextNodes(node, definition, instance)

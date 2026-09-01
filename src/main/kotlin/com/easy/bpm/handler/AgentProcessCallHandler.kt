@@ -52,7 +52,7 @@ class AgentProcessCallHandler(
 
         val agentDefinitionJson = objectMapper.readTree(definition.definitionJson)
         val outputPayload = executeAgentOrPlan(execution.id, definition, agentDefinitionJson, config, inputPayload)
-        val decisionTrace = buildDecisionTrace(nodeId, definition, config, inputPayload, outputPayload)
+        val decisionTrace = buildDecisionTrace(nodeId, definition, agentDefinitionJson, config, inputPayload, outputPayload)
 
         execution.status = AgentProcessExecutionStatus.COMPLETED
         execution.outputPayload = outputPayload.toString()
@@ -257,6 +257,7 @@ class AgentProcessCallHandler(
     private fun buildDecisionTrace(
         nodeId: String,
         definition: com.easy.bpm.model.agent.AgentProcessDefinition,
+        agentDefinitionJson: JsonNode,
         config: JsonNode,
         inputPayload: JsonNode,
         outputPayload: JsonNode
@@ -270,10 +271,123 @@ class AgentProcessCallHandler(
         trace.put("decision", outputPayload.get("decision").asText())
         trace.put("reason", outputPayload.get("reason").asText())
         trace.put("tool_called", "agent-process:${definition.key}")
+        trace.set<JsonNode>("toolAudit", buildToolAudit(definition, agentDefinitionJson, outputPayload))
         trace.set<JsonNode>("output", outputPayload)
+        trace.set<JsonNode>("steps", objectMapper.createArrayNode().apply {
+            add(objectMapper.createObjectNode().apply {
+                put("title", "Input payload resolved")
+                put("description", "The agent invocation collected the configured process inputs.")
+                set<JsonNode>("payload", inputPayload)
+            })
+            add(objectMapper.createObjectNode().apply {
+                put("title", "Tool audit prepared")
+                put("description", "The runtime recorded the verified agent execution and the tools available to the AI.")
+                set<JsonNode>("payload", trace.get("toolAudit"))
+            })
+            add(objectMapper.createObjectNode().apply {
+                put("title", "Agent context prepared")
+                put("description", "Goal, instructions, constraints, available tools, and process inputs were rendered for the AI provider.")
+            })
+            add(objectMapper.createObjectNode().apply {
+                put("title", "Decision produced")
+                put("description", outputPayload.get("reason")?.asText() ?: "The agent produced an orchestration decision.")
+                put("decision", outputPayload.get("decision")?.asText() ?: "UNKNOWN")
+            })
+            add(objectMapper.createObjectNode().apply {
+                put("title", "Output captured")
+                put("description", "The agent output was saved and mapped back to process variables.")
+                set<JsonNode>("payload", outputPayload)
+            })
+        })
         trace.put("waitForCompletion", config.get("waitForCompletion")?.asBoolean(true) ?: true)
         trace.put("timestamp", LocalDateTime.now().toString())
         return trace
+    }
+
+    private fun buildToolAudit(
+        definition: AgentProcessDefinition,
+        agentDefinitionJson: JsonNode,
+        outputPayload: JsonNode
+    ): ObjectNode {
+        val audit = objectMapper.createObjectNode()
+        audit.set<JsonNode>("verifiedCalls", objectMapper.createArrayNode().apply {
+            add(objectMapper.createObjectNode().apply {
+                put("type", "agent-process")
+                put("name", definition.processName ?: definition.key)
+                put("key", definition.key)
+                put("status", "COMPLETED")
+                put("verifiedBy", "easy-bpm-runtime")
+            })
+        })
+        audit.set<JsonNode>("configuredTools", summarizeConfiguredTools(agentDefinitionJson.get("availableTools")))
+        audit.set<JsonNode>("aiReportedToolCalls", extractAiReportedToolCalls(outputPayload))
+        audit.put(
+            "note",
+            "verifiedCalls are runtime-audited executions. aiReportedToolCalls are model-reported tool usage from the agent response."
+        )
+        return audit
+    }
+
+    private fun summarizeConfiguredTools(toolsNode: JsonNode?): JsonNode {
+        val tools = objectMapper.createArrayNode()
+        if (toolsNode == null || !toolsNode.isArray) return tools
+        toolsNode.forEach { tool ->
+            if (!tool.isObject) return@forEach
+            tools.add(objectMapper.createObjectNode().apply {
+                put("id", tool.get("id")?.asText())
+                put("name", tool.get("name")?.asText())
+                put("type", tool.get("type")?.asText())
+                tool.get("method")?.asText()?.let { put("method", it) }
+                tool.get("url")?.asText()?.let { put("urlTemplate", it) }
+                tool.get("className")?.asText()?.let { put("className", it) }
+                tool.get("methodName")?.asText()?.let { put("methodName", it) }
+            })
+        }
+        return tools
+    }
+
+    private fun extractAiReportedToolCalls(outputPayload: JsonNode): JsonNode {
+        val fields = listOf("toolCalls", "tool_calls", "toolsUsed", "tools_used", "calledTools", "called_tools")
+        fields.forEach { field ->
+            outputPayload.get(field)?.let { return normalizeToolCalls(it) }
+        }
+        outputPayload.get("agentResponse")?.takeIf { it.isObject }?.let { response ->
+            fields.forEach { field ->
+                response.get(field)?.let { return normalizeToolCalls(it) }
+            }
+            response.get("tool")?.let { tool ->
+                return objectMapper.createArrayNode().add(tool)
+            }
+        }
+        return objectMapper.createArrayNode()
+    }
+
+    private fun normalizeToolCalls(node: JsonNode): JsonNode =
+        if (node.isArray) node else objectMapper.createArrayNode().add(node)
+
+    fun buildTimelineDetails(execution: AgentProcessExecution): String {
+        val details = objectMapper.createObjectNode()
+        details.put("kind", "agent-process-execution")
+        details.put("agentExecutionId", execution.id)
+        details.put("status", execution.status.name)
+        details.put("agentProcessDefinitionId", execution.agentProcessDefinitionId)
+        details.put("processInstanceId", execution.processInstanceId)
+        details.put("nodeId", execution.nodeId)
+        details.put("createdAt", execution.createdAt.toString())
+        execution.completedAt?.let { details.put("completedAt", it.toString()) }
+        parseStoredJson(execution.inputPayload)?.let { details.set<JsonNode>("inputPayload", it) }
+        parseStoredJson(execution.decisionTrace)?.let { details.set<JsonNode>("decisionTrace", it) }
+        parseStoredJson(execution.outputPayload)?.let { details.set<JsonNode>("outputPayload", it) }
+        return details.toString()
+    }
+
+    private fun parseStoredJson(value: String?): JsonNode? {
+        if (value.isNullOrBlank()) return null
+        return try {
+            objectMapper.readTree(value)
+        } catch (_: Exception) {
+            objectMapper.valueToTree(value)
+        }
     }
 
     private fun applyOutputMappings(processInstanceId: Long, config: JsonNode, outputPayload: JsonNode) {

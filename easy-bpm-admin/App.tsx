@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   AlertCircle,
   ArrowRightLeft,
+  Bot,
+  Braces,
   ChevronDown,
   ChevronRight,
   CheckCircle2,
@@ -79,6 +81,132 @@ const parseVariableEditValue = (value: string): unknown => {
   } catch {
     return value;
   }
+};
+
+const tryParseJson = (value: string): unknown | null => {
+  try {
+    return JSON.parse(value);
+  } catch {
+    return null;
+  }
+};
+
+const prettyJson = (value: unknown): string => {
+  try {
+    return JSON.stringify(value, null, 2);
+  } catch {
+    return String(value);
+  }
+};
+
+const JsonBlock: React.FC<{ value: unknown }> = ({ value }) => (
+  <pre className="mt-2 max-h-56 overflow-auto rounded border border-slate-200 bg-white p-3 text-xs leading-relaxed text-slate-700">
+    {prettyJson(value)}
+  </pre>
+);
+
+const AgentTimelineDetails: React.FC<{ details: string }> = ({ details }) => {
+  const parsed = tryParseJson(details);
+  if (!parsed || typeof parsed !== 'object') {
+    return <p className="text-xs text-slate-500 mt-1 bg-slate-50 border border-slate-200 rounded px-2 py-1">{details}</p>;
+  }
+
+  const data = parsed as Record<string, any>;
+  if (data.kind !== 'agent-process-execution') {
+    return <JsonBlock value={data} />;
+  }
+
+  const trace = data.decisionTrace && typeof data.decisionTrace === 'object' ? data.decisionTrace as Record<string, any> : {};
+  const steps = Array.isArray(trace.steps) ? trace.steps : [];
+  const toolAudit = trace.toolAudit && typeof trace.toolAudit === 'object' ? trace.toolAudit as Record<string, any> : {};
+  const verifiedCalls = Array.isArray(toolAudit.verifiedCalls) ? toolAudit.verifiedCalls : [];
+  const configuredTools = Array.isArray(toolAudit.configuredTools) ? toolAudit.configuredTools : [];
+  const aiReportedToolCalls = Array.isArray(toolAudit.aiReportedToolCalls) ? toolAudit.aiReportedToolCalls : [];
+
+  return (
+    <div className="mt-2 rounded border border-cyan-200 bg-cyan-50 p-3 text-xs text-slate-700">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="inline-flex items-center gap-1 rounded border border-cyan-200 bg-white px-2 py-1 font-semibold text-cyan-700">
+          <Bot size={13} /> Agent execution #{data.agentExecutionId}
+        </span>
+        {data.status && <span className="rounded border border-slate-200 bg-white px-2 py-1 text-slate-600">{data.status}</span>}
+        {trace.agentProcessKey && <span className="rounded border border-slate-200 bg-white px-2 py-1 font-mono text-slate-600">{trace.agentProcessKey}</span>}
+        {trace.agentProcessVersion && <span className="rounded border border-slate-200 bg-white px-2 py-1 text-slate-600">v{trace.agentProcessVersion}</span>}
+      </div>
+
+      {trace.decision && (
+        <div className="mt-3 rounded border border-cyan-200 bg-white p-3">
+          <p className="font-semibold text-slate-800">{trace.decision}</p>
+          {trace.reason && <p className="mt-1 text-slate-600">{trace.reason}</p>}
+          {trace.tool_called && <p className="mt-2 font-mono text-[11px] text-cyan-700">{trace.tool_called}</p>}
+        </div>
+      )}
+
+      {(verifiedCalls.length > 0 || configuredTools.length > 0 || aiReportedToolCalls.length > 0) && (
+        <div className="mt-3 rounded border border-cyan-200 bg-white p-3">
+          <p className="font-semibold text-slate-800">Tool audit</p>
+          {verifiedCalls.length > 0 && (
+            <div className="mt-2">
+              <p className="text-[11px] font-bold uppercase tracking-wide text-emerald-700">Verified by Easy BPM</p>
+              <div className="mt-1 flex flex-wrap gap-2">
+                {verifiedCalls.map((call: Record<string, any>, index: number) => (
+                  <span key={`${call.type || 'call'}-${index}`} className="rounded border border-emerald-200 bg-emerald-50 px-2 py-1 font-mono text-[11px] text-emerald-800">
+                    {call.type}:{call.key || call.name || index + 1} · {call.status || 'RECORDED'}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+          {configuredTools.length > 0 && (
+            <div className="mt-3">
+              <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500">Configured tools available to the agent</p>
+              <div className="mt-1 flex flex-wrap gap-2">
+                {configuredTools.map((tool: Record<string, any>, index: number) => (
+                  <span key={`${tool.id || tool.name || 'tool'}-${index}`} className="rounded border border-slate-200 bg-slate-50 px-2 py-1 font-mono text-[11px] text-slate-700">
+                    {tool.type || 'tool'}:{tool.name || tool.id || index + 1}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+          <div className="mt-3">
+            <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500">AI-reported tool calls</p>
+            {aiReportedToolCalls.length > 0 ? (
+              <JsonBlock value={aiReportedToolCalls} />
+            ) : (
+              <p className="mt-1 text-slate-500">No tool call was reported by the model response.</p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {steps.length > 0 && (
+        <div className="mt-3 space-y-2">
+          {steps.map((step: Record<string, any>, index: number) => (
+            <div key={`${step.title || 'step'}-${index}`} className="rounded border border-slate-200 bg-white p-3">
+              <div className="flex items-center gap-2">
+                <span className="flex h-5 w-5 items-center justify-center rounded bg-cyan-600 text-[11px] font-bold text-white">{index + 1}</span>
+                <span className="font-semibold text-slate-800">{step.title || `Step ${index + 1}`}</span>
+              </div>
+              {step.description && <p className="mt-1 text-slate-600">{step.description}</p>}
+              {step.decision && <p className="mt-1 font-mono text-[11px] text-slate-600">{step.decision}</p>}
+              {step.payload !== undefined && <JsonBlock value={step.payload} />}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {(data.inputPayload || data.outputPayload) && (
+        <details className="mt-3 rounded border border-slate-200 bg-white p-3">
+          <summary className="flex cursor-pointer items-center gap-2 font-semibold text-slate-700">
+            <Braces size={13} /> Raw execution payload
+          </summary>
+          {data.inputPayload && <JsonBlock value={{ inputPayload: data.inputPayload }} />}
+          {data.outputPayload && <JsonBlock value={{ outputPayload: data.outputPayload }} />}
+        </details>
+      )}
+    </div>
+  );
 };
 
 const App: React.FC = () => {
@@ -988,7 +1116,11 @@ const InstanceExplorerView: React.FC<{ initialInstanceId?: number | null }> = ({
                         {event.actor && <span className="text-[11px] text-slate-500">by {event.actor}</span>}
                       </div>
                       <p className="text-sm text-slate-700 mt-1">{event.message}</p>
-                      {event.details && <p className="text-xs text-slate-500 mt-1 bg-slate-50 border border-slate-200 rounded px-2 py-1">{event.details}</p>}
+                      {event.details && (
+                        event.eventType.startsWith('AGENT_PROCESS_')
+                          ? <AgentTimelineDetails details={event.details} />
+                          : <p className="text-xs text-slate-500 mt-1 bg-slate-50 border border-slate-200 rounded px-2 py-1">{event.details}</p>
+                      )}
                       <p className="text-[11px] text-slate-400 mt-1">{new Date(event.createdAt).toLocaleString()}</p>
                     </div>
                   </div>
