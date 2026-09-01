@@ -30,6 +30,7 @@ interface AgentBoardModelerProps {
 }
 
 interface AgentBoardState {
+  processKey: string;
   processName: string;
   goal: string;
   instructions: string;
@@ -209,6 +210,7 @@ const agentProcessTemplates: AgentProcessTemplate[] = [
 const createBlankAgentState = (): AgentBoardState => {
   const defaultProviderId = getRuntimeDefault('EASY_BPM_MODELER_DEFAULT_AI_PROVIDER', 'gemini');
   return {
+  processKey: '',
   processName: '',
   goal: '',
   instructions: '',
@@ -342,6 +344,9 @@ const normalizeImportedAgent = (data: unknown): AgentBoardState => {
   const provider = imported.provider && typeof imported.provider === 'object' ? imported.provider : {};
 
   return {
+    processKey: typeof imported.processKey === 'string'
+      ? imported.processKey
+      : (typeof imported.key === 'string' ? imported.key : ''),
     processName: typeof imported.processName === 'string' ? imported.processName : '',
     goal: typeof imported.goal === 'string' ? imported.goal : '',
     instructions: typeof imported.instructions === 'string' ? imported.instructions : '',
@@ -373,6 +378,7 @@ export const AgentBoardModeler: React.FC<AgentBoardModelerProps> = ({
   const [credentials, setCredentials] = useState<AvailableCredential[]>(availableCredentials);
   const importInputRef = useRef<HTMLInputElement>(null);
   const {
+    processKey,
     processName,
     goal,
     instructions,
@@ -445,7 +451,7 @@ export const AgentBoardModeler: React.FC<AgentBoardModelerProps> = ({
 
   const buildDefinition = () => ({
       resourceType: 'AgentProcess',
-      processKey: processName.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'agent-process',
+      processKey: processKey.trim().toLowerCase().replace(/[^a-z0-9_-]+/g, '-') || processName.trim().toLowerCase().replace(/[^a-z0-9_-]+/g, '-') || 'agent-process',
       processName,
       goal,
       instructions,
@@ -654,15 +660,26 @@ export const AgentBoardModeler: React.FC<AgentBoardModelerProps> = ({
                 <p className="mt-1 text-xs text-slate-500">Describe what this AI block should decide inside the BPMN process.</p>
               </div>
               <div className="space-y-4 p-5">
-                <label className="block space-y-1.5">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Name</span>
-                  <input
-                    value={processName}
-                    onChange={event => updateAgentState({ processName: event.target.value })}
-                    className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                    placeholder="Customer Support Resolution"
-                  />
-                </label>
+                <div className="grid gap-4 md:grid-cols-[0.8fr_1.2fr]">
+                  <label className="block space-y-1.5">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Agent Key</span>
+                    <input
+                      value={processKey}
+                      onChange={event => updateAgentState({ processKey: event.target.value })}
+                      className="w-full rounded-md border border-slate-300 px-3 py-2 font-mono text-sm font-semibold text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                      placeholder="customer-support-resolution"
+                    />
+                  </label>
+                  <label className="block space-y-1.5">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Name</span>
+                    <input
+                      value={processName}
+                      onChange={event => updateAgentState({ processName: event.target.value })}
+                      className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                      placeholder="Customer Support Resolution"
+                    />
+                  </label>
+                </div>
 
                 <label className="block space-y-1.5">
                   <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Goal</span>

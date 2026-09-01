@@ -10,12 +10,15 @@ import {
   Layers,
   Loader2,
   Lock,
+  Pencil,
+  Save,
   Search,
   Settings2,
   StopCircle,
   Trash2,
   User,
-  Workflow
+  Workflow,
+  X
 } from 'lucide-react';
 import { Sidebar } from './components/Sidebar';
 import { WorkflowCanvas } from './components/WorkflowCanvas';
@@ -59,6 +62,22 @@ const formatVariableDetails = (value: unknown): string => {
     return JSON.stringify(value, null, 2);
   } catch {
     return String(value);
+  }
+};
+
+const formatVariableForEdit = (value: unknown): string => {
+  if (isComplexVariableValue(value)) return formatVariableDetails(value);
+  if (typeof value === 'string') return value;
+  return value === undefined ? '' : String(value);
+};
+
+const parseVariableEditValue = (value: string): unknown => {
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+  try {
+    return JSON.parse(trimmed);
+  } catch {
+    return value;
   }
 };
 
@@ -347,6 +366,9 @@ const InstanceExplorerView: React.FC<{ initialInstanceId?: number | null }> = ({
   const [newVarName, setNewVarName] = useState('');
   const [newVarValue, setNewVarValue] = useState('');
   const [expandedVariables, setExpandedVariables] = useState<Record<string, boolean>>({});
+  const [editingVariableName, setEditingVariableName] = useState<string | null>(null);
+  const [editingVariableValue, setEditingVariableValue] = useState('');
+  const [savingVariableName, setSavingVariableName] = useState<string | null>(null);
   const [moveFrom, setMoveFrom] = useState('');
   const [moveTo, setMoveTo] = useState('');
   const [actionMessage, setActionMessage] = useState<string | null>(null);
@@ -455,6 +477,8 @@ const InstanceExplorerView: React.FC<{ initialInstanceId?: number | null }> = ({
       setInstance(found);
       setActiveInstanceTab('overview');
       setExpandedVariables({});
+      setEditingVariableName(null);
+      setEditingVariableValue('');
       if (found) {
         setVariables(await adminService.getProcessVariables(found.id));
         setTimelineEvents(await adminService.getProcessTimeline(found.id));
@@ -510,6 +534,40 @@ const InstanceExplorerView: React.FC<{ initialInstanceId?: number | null }> = ({
     } catch (error) {
       console.error(error);
       setActionMessage('Failed to assign variable.');
+    }
+  };
+
+  const startEditingVariable = (variable: ProcessVariable) => {
+    if (isInstanceCompleted) return;
+    setEditingVariableName(variable.name);
+    setEditingVariableValue(formatVariableForEdit(variable.value));
+    setExpandedVariables((current) => ({ ...current, [variable.name]: true }));
+  };
+
+  const cancelEditingVariable = () => {
+    setEditingVariableName(null);
+    setEditingVariableValue('');
+  };
+
+  const saveEditedVariable = async (variableName: string) => {
+    if (!instance || isInstanceCompleted) return;
+
+    setSavingVariableName(variableName);
+    setActionMessage(null);
+    try {
+      await adminService.assignProcessVariables(instance.id, {
+        variables: { [variableName]: parseVariableEditValue(editingVariableValue) }
+      });
+      const refreshed = await adminService.getProcessVariables(instance.id);
+      setVariables(refreshed);
+      setEditingVariableName(null);
+      setEditingVariableValue('');
+      setActionMessage('Variable updated successfully.');
+    } catch (error) {
+      console.error(error);
+      setActionMessage('Failed to update variable.');
+    } finally {
+      setSavingVariableName(null);
     }
   };
 
@@ -737,12 +795,14 @@ const InstanceExplorerView: React.FC<{ initialInstanceId?: number | null }> = ({
                   variables.map((v) => {
                     const isComplex = isComplexVariableValue(v.value);
                     const isExpanded = expandedVariables[v.name] ?? false;
+                    const isEditing = editingVariableName === v.name;
+                    const isSaving = savingVariableName === v.name;
 
                     return (
                     <div key={v.name} className="rounded-lg bg-slate-50 border border-slate-200 overflow-hidden">
                       <div className="flex items-start justify-between gap-3 px-3 py-2">
                         <div className="min-w-0 flex items-center gap-2">
-                          {isComplex ? (
+                          {isComplex || isEditing ? (
                             <button
                               type="button"
                               onClick={() => setExpandedVariables((current) => ({ ...current, [v.name]: !isExpanded }))}
@@ -756,11 +816,56 @@ const InstanceExplorerView: React.FC<{ initialInstanceId?: number | null }> = ({
                           )}
                           <span className="truncate font-mono text-sm font-medium text-slate-700">{v.name}</span>
                         </div>
-                        <span className="min-w-[8rem] max-w-[55%] text-right text-sm text-slate-600 break-words">
-                          {formatVariableSummary(v.value)}
-                        </span>
+                        <div className="flex min-w-0 max-w-[60%] items-start justify-end gap-2">
+                          <span className="min-w-[8rem] text-right text-sm text-slate-600 break-words">
+                            {isEditing ? 'Editing...' : formatVariableSummary(v.value)}
+                          </span>
+                          {isEditing ? (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => saveEditedVariable(v.name)}
+                                disabled={isSaving}
+                                className="flex h-7 w-7 flex-none items-center justify-center rounded border border-emerald-200 bg-white text-emerald-600 transition-colors hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-60"
+                                title="Save variable"
+                                aria-label="Save variable"
+                              >
+                                {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={cancelEditingVariable}
+                                disabled={isSaving}
+                                className="flex h-7 w-7 flex-none items-center justify-center rounded border border-slate-200 bg-white text-slate-500 transition-colors hover:text-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                                title="Cancel edit"
+                                aria-label="Cancel edit"
+                              >
+                                <X size={14} />
+                              </button>
+                            </>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => startEditingVariable(v)}
+                              disabled={isInstanceCompleted}
+                              className="flex h-7 w-7 flex-none items-center justify-center rounded border border-slate-200 bg-white text-slate-500 transition-colors hover:text-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
+                              title="Edit variable"
+                              aria-label="Edit variable"
+                            >
+                              <Pencil size={14} />
+                            </button>
+                          )}
+                        </div>
                       </div>
-                      {isComplex && isExpanded && (
+                      {isEditing && isExpanded ? (
+                        <textarea
+                          value={editingVariableValue}
+                          onChange={(event) => setEditingVariableValue(event.target.value)}
+                          className="mx-3 mb-3 h-40 w-[calc(100%-1.5rem)] resize-y rounded border border-slate-300 bg-white p-3 font-mono text-xs leading-relaxed text-slate-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-100"
+                          disabled={isSaving}
+                          spellCheck={false}
+                        />
+                      ) : isComplex && isExpanded && (
                         <pre className="mx-3 mb-3 max-h-72 overflow-auto rounded border border-slate-200 bg-white p-3 text-xs leading-relaxed text-slate-700">
                           {formatVariableDetails(v.value)}
                         </pre>
