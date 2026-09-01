@@ -112,7 +112,12 @@ const authHeaders = (): HeadersInit => {
   return session?.token ? { Authorization: `Bearer ${session.token}` } : {};
 };
 
-const fetchWithAuth = async (url: string, init?: RequestInit): Promise<Response> => {
+const fetchWithAuth = async (
+  url: string,
+  init?: RequestInit,
+  options: { expireOnUnauthorized?: boolean } = {}
+): Promise<Response> => {
+  const expireOnUnauthorized = options.expireOnUnauthorized ?? true;
   const response = await fetch(url, {
     ...init,
     headers: {
@@ -121,7 +126,7 @@ const fetchWithAuth = async (url: string, init?: RequestInit): Promise<Response>
     }
   });
 
-  if (response.status === 401) {
+  if (response.status === 401 && expireOnUnauthorized) {
     localStorage.removeItem(AUTH_STORAGE_KEY);
     window.dispatchEvent(new Event('easybpm-portal-auth-expired'));
   }
@@ -380,6 +385,8 @@ export const bpmService = {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
+    }, {
+      expireOnUnauthorized: false
     });
 
     await assertOk(response, `Complete task ${id}`);
