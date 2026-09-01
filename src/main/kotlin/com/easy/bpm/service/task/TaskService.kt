@@ -476,7 +476,7 @@ class TaskService(
             nodeId = nodeId,
             eventType = ProcessInstanceEventType.AGENT_PROCESS_COMPLETED,
             message = "Agent process call completed.",
-            details = "agentExecutionId=${execution.id}; status=${execution.status}"
+            details = agentProcessCallHandler.buildTimelineDetails(execution)
         )
 
         val nextNodeIds = getNextNodes(node, definition, instance)

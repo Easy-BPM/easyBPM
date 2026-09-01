@@ -30,7 +30,7 @@ class ProcessInstanceTimelineService(
                 eventType = eventType,
                 message = message.take(4000),
                 actor = actor,
-                details = details?.take(8000)
+                details = details
             )
         )
 }
