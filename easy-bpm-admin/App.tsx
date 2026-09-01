@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   AlertCircle,
   ArrowRightLeft,
+  ChevronDown,
+  ChevronRight,
   CheckCircle2,
   Clock,
   GitBranch,
@@ -28,6 +30,37 @@ import { ThemeMode, ThemeToggle } from './components/ThemeToggle';
 import { adminService } from './services/adminService';
 import { ProcessDefinition, ProcessInstance, ProcessInstanceEvent, ProcessVariable, WorkflowDefinition } from './types';
 import { parseWorkflowDefinition } from './utils/bpmnXml';
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const isComplexVariableValue = (value: unknown) =>
+  typeof value === 'object' && value !== null;
+
+const formatVariableSummary = (value: unknown): string => {
+  if (value === null) return 'null';
+  if (value === undefined) return 'undefined';
+  if (Array.isArray(value)) {
+    const label = value.length === 1 ? 'item' : 'items';
+    return `[${value.length} ${label}]`;
+  }
+  if (isRecord(value)) {
+    const keys = Object.keys(value);
+    if (keys.length === 0) return '{ }';
+    return `{ ${keys.slice(0, 3).join(', ')}${keys.length > 3 ? ', ...' : ''} }`;
+  }
+  if (typeof value === 'string') return value;
+  return String(value);
+};
+
+const formatVariableDetails = (value: unknown): string => {
+  if (!isComplexVariableValue(value)) return formatVariableSummary(value);
+  try {
+    return JSON.stringify(value, null, 2);
+  } catch {
+    return String(value);
+  }
+};
 
 const App: React.FC = () => {
   const [theme, setTheme] = useState<ThemeMode>(() => {
@@ -313,6 +346,7 @@ const InstanceExplorerView: React.FC<{ initialInstanceId?: number | null }> = ({
   const [variables, setVariables] = useState<ProcessVariable[]>([]);
   const [newVarName, setNewVarName] = useState('');
   const [newVarValue, setNewVarValue] = useState('');
+  const [expandedVariables, setExpandedVariables] = useState<Record<string, boolean>>({});
   const [moveFrom, setMoveFrom] = useState('');
   const [moveTo, setMoveTo] = useState('');
   const [actionMessage, setActionMessage] = useState<string | null>(null);
@@ -420,6 +454,7 @@ const InstanceExplorerView: React.FC<{ initialInstanceId?: number | null }> = ({
       const found = await adminService.findInstanceById(targetId);
       setInstance(found);
       setActiveInstanceTab('overview');
+      setExpandedVariables({});
       if (found) {
         setVariables(await adminService.getProcessVariables(found.id));
         setTimelineEvents(await adminService.getProcessTimeline(found.id));
@@ -695,16 +730,44 @@ const InstanceExplorerView: React.FC<{ initialInstanceId?: number | null }> = ({
                   Variables are locked because this process instance is completed.
                 </div>
               )}
-              <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+              <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
                 {variables.length === 0 ? (
                   <p className="text-sm text-slate-500">No variables found for this instance.</p>
                 ) : (
-                  variables.map((v) => (
-                    <div key={v.name} className="flex items-center justify-between px-3 py-2 rounded-lg bg-slate-50 border border-slate-200">
-                      <span className="font-mono text-sm text-slate-700">{v.name}</span>
-                      <span className="text-sm text-slate-500 max-w-[55%] truncate">{String(v.value)}</span>
+                  variables.map((v) => {
+                    const isComplex = isComplexVariableValue(v.value);
+                    const isExpanded = expandedVariables[v.name] ?? false;
+
+                    return (
+                    <div key={v.name} className="rounded-lg bg-slate-50 border border-slate-200 overflow-hidden">
+                      <div className="flex items-start justify-between gap-3 px-3 py-2">
+                        <div className="min-w-0 flex items-center gap-2">
+                          {isComplex ? (
+                            <button
+                              type="button"
+                              onClick={() => setExpandedVariables((current) => ({ ...current, [v.name]: !isExpanded }))}
+                              className="mt-0.5 rounded border border-slate-200 bg-white p-1 text-slate-500 transition-colors hover:text-slate-800"
+                              title={isExpanded ? 'Collapse variable value' : 'Expand variable value'}
+                            >
+                              {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                            </button>
+                          ) : (
+                            <span className="h-6 w-6 flex-none" />
+                          )}
+                          <span className="truncate font-mono text-sm font-medium text-slate-700">{v.name}</span>
+                        </div>
+                        <span className="min-w-[8rem] max-w-[55%] text-right text-sm text-slate-600 break-words">
+                          {formatVariableSummary(v.value)}
+                        </span>
+                      </div>
+                      {isComplex && isExpanded && (
+                        <pre className="mx-3 mb-3 max-h-72 overflow-auto rounded border border-slate-200 bg-white p-3 text-xs leading-relaxed text-slate-700">
+                          {formatVariableDetails(v.value)}
+                        </pre>
+                      )}
                     </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
