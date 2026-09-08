@@ -25,12 +25,12 @@ import { validateId } from './utils/validation';
 import { Toaster, toast } from 'sonner';
 import { AgentProcessDefinitionSummary, AvailableCredential, isAuthRequiredError, processService, fetchWithAuth } from './services/processService';
 import { formService } from './services/formService';
-import { downloadForm, importForm, generateJsonSchema } from './utils/formUtils';
+import { importForm, generateJsonSchema } from './utils/formUtils';
 import { bpmnXmlToProcessDefinition, isBpmnXml, processDefinitionToBpmnXml } from './utils/bpmnXml';
 import { featureFlags } from './config/featureFlags';
-import { getModelerApiBaseUrl } from './config/runtimeConfig';
+import { getModelerApiBaseUrl, isDesktopModeler } from './config/runtimeConfig';
+import { saveTextFile } from './services/desktopBridge';
 
-const API_BASE_URL = getModelerApiBaseUrl();
 const BOUNDARY_TYPES: NodeType[] = ['error-boundary', 'message-boundary', 'timer-boundary'];
 const START_TYPES: NodeType[] = ['start', 'message-start'];
 const END_TYPES: NodeType[] = ['end'];
@@ -50,6 +50,7 @@ const safeString = (value: any): string => {
 type EditorMode = 'welcome' | 'process-editor' | 'form-editor' | 'agent-process-editor';
 
 const App: React.FC = () => {
+   const isDesktop = isDesktopModeler();
    const [theme, setTheme] = useState<ThemeMode>(() => {
      const storedTheme = localStorage.getItem('easyBpmModelerTheme');
      if (storedTheme === 'light' || storedTheme === 'dark') return storedTheme;
@@ -87,6 +88,7 @@ const App: React.FC = () => {
    const [currentUser, setCurrentUser] = useState<string | null>(null);
    const [permissions, setPermissions] = useState<string[]>([]);
    const [authLoading, setAuthLoading] = useState(true);
+   const [isConnectionDialogOpen, setIsConnectionDialogOpen] = useState(false);
 
    useEffect(() => {
      localStorage.setItem('easyBpmModelerTheme', theme);
@@ -97,6 +99,14 @@ const App: React.FC = () => {
 
    useEffect(() => {
      const loadSession = async () => {
+       if (isDesktop) {
+         const session = processService.getSession();
+         setCurrentUser(session?.username || 'Desktop');
+         setPermissions(['ACCESS_BPM_MODELER']);
+         setAuthLoading(false);
+         return;
+       }
+
        try {
          const oidcSession = await processService.completeOidcLoginIfPresent();
          const session = oidcSession ?? processService.getSession();
@@ -121,7 +131,7 @@ const App: React.FC = () => {
      };
 
      void loadSession();
-   }, []);
+   }, [isDesktop]);
 
    const parseAgentDefinition = (definition: AgentProcessDefinitionSummary): unknown => {
      if (typeof definition.definitionJson === 'string') {
@@ -135,6 +145,11 @@ const App: React.FC = () => {
    };
 
    const loadWorkspaceResources = useCallback(async () => {
+     if (isDesktop && !processService.getSession()?.token) {
+       setWorkspaceResources([]);
+       setWorkspaceResourceError(null);
+       return;
+     }
      setIsLoadingWorkspaceResources(true);
      setWorkspaceResourceError(null);
      try {
@@ -205,13 +220,13 @@ const App: React.FC = () => {
      } finally {
        setIsLoadingWorkspaceResources(false);
      }
-   }, []);
+   }, [isDesktop]);
 
    useEffect(() => {
-     if (!authLoading && currentUser && (editorMode === 'welcome' || editorMode === 'process-editor')) {
+     if (!authLoading && currentUser && (!isDesktop || processService.getSession()?.token) && (editorMode === 'welcome' || editorMode === 'process-editor')) {
        loadWorkspaceResources();
      }
-   }, [authLoading, currentUser, editorMode, loadWorkspaceResources]);
+   }, [authLoading, currentUser, editorMode, isDesktop, loadWorkspaceResources]);
 
    const deployedFormOptions = useMemo(() => (
      workspaceResources
@@ -911,12 +926,12 @@ const App: React.FC = () => {
     [nodes, edges, variables, processId, processName]
   );
 
-  const downloadCurrentProcessXml = () => {
-    const dataStr = "data:application/xml;charset=utf-8," + encodeURIComponent(currentProcessXml);
-    const link = document.createElement('a');
-    link.href = dataStr;
-    link.download = `${processId || 'process'}.bpmn`;
-    link.click();
+  const downloadCurrentProcessXml = async () => {
+    await saveTextFile(
+      currentProcessXml,
+      `${processId || 'process'}.bpmn`,
+      [{ name: 'BPMN XML', extensions: ['bpmn', 'xml'] }]
+    );
   };
 
   const handleExport = () => {
@@ -925,7 +940,7 @@ const App: React.FC = () => {
       return;
     }
 
-    downloadCurrentProcessXml();
+    void downloadCurrentProcessXml();
   };
 
   const handleDeployProcess = async () => {
@@ -934,6 +949,11 @@ const App: React.FC = () => {
       return;
     }
     if (isDeployingProcess) return;
+    if (isDesktop && !processService.getSession()?.token) {
+      setIsConnectionDialogOpen(true);
+      toast.info('Connect to an Easy BPM backend before deploying.');
+      return;
+    }
 
     setIsDeployingProcess(true);
     try {
@@ -992,10 +1012,10 @@ const App: React.FC = () => {
   };
 
   const handleSaveFileAndCreateProcess = () => {
-    downloadCurrentProcessXml();
+    void downloadCurrentProcessXml();
     resetProcessDefinition();
     setIsNewProcessDialogOpen(false);
-    toast.success('Process file downloaded.');
+    toast.success('Process file saved.');
   };
 
   const handleDiscardAndCreateProcess = () => {
@@ -1289,16 +1309,18 @@ const App: React.FC = () => {
 
   // Form library management methods
   const handleAddForm = useCallback((form: FormDefinition) => {
-    setFormLibrary(lib => new Map(lib).set(form.formKey, form));
-    setSelectedFormKey(form.formKey);
-    toast.success(`Form "${form.name || form.formKey}" added to library`);
+    const formKey = form.formKey || form.id;
+    setFormLibrary(lib => new Map(lib).set(formKey, { ...form, formKey }));
+    setSelectedFormKey(formKey);
+    toast.success(`Form "${form.name || formKey}" added to library`);
   }, []);
 
   const handleFormChange = useCallback((form: FormDefinition) => {
+    const formKey = form.formKey || form.id;
     // Update form library in real-time as user edits
-    setFormLibrary(lib => new Map(lib).set(form.formKey, form));
+    setFormLibrary(lib => new Map(lib).set(formKey, { ...form, formKey }));
     // Also track the current form being edited
-    setCurrentEditingForm(form);
+    setCurrentEditingForm({ ...form, formKey });
   }, []);
 
   const handleRemoveForm = useCallback((formKey: string) => {
@@ -1313,7 +1335,7 @@ const App: React.FC = () => {
   }, [selectedFormKey]);
 
   const handleSelectForm = useCallback((form: FormDefinition) => {
-    setSelectedFormKey(form.formKey);
+    setSelectedFormKey(form.formKey || form.id);
   }, []);
 
   const handleOpenWorkspaceResource = async (resource: WorkspaceResource) => {
@@ -1342,9 +1364,10 @@ const App: React.FC = () => {
           toast.error(result.error || 'Could not open selected form.');
           return;
         }
-        setFormLibrary(lib => new Map(lib).set(result.form!.formKey, result.form!));
-        setSelectedFormKey(result.form.formKey);
-        setCurrentEditingForm(result.form);
+        const formKey = result.form.formKey || result.form.id;
+        setFormLibrary(lib => new Map(lib).set(formKey, { ...result.form!, formKey }));
+        setSelectedFormKey(formKey);
+        setCurrentEditingForm({ ...result.form, formKey });
         setEditorMode('form-editor');
         return;
       }
@@ -1364,7 +1387,11 @@ const App: React.FC = () => {
       toast.error('No form to export');
       return;
     }
-    downloadForm(formToExport, `form-${formToExport.formKey}.json`);
+    void saveTextFile(
+      JSON.stringify({ version: '1.0.0', exportedAt: new Date().toISOString(), form: formToExport }, null, 2),
+      `form-${formToExport.formKey || formToExport.id}.json`,
+      [{ name: 'JSON', extensions: ['json'] }]
+    );
     toast.success('Form exported successfully');
   };
 
@@ -1383,10 +1410,15 @@ const App: React.FC = () => {
       toast.error('No form to deploy');
       return;
     }
+    if (isDesktop && !processService.getSession()?.token) {
+      setIsConnectionDialogOpen(true);
+      toast.info('Connect to an Easy BPM backend before deploying.');
+      return;
+    }
     setIsDeployingForm(true);
     try {
       const schema = generateJsonSchema(formToDeploy);
-      const response = await fetchWithAuth(`${API_BASE_URL}/forms`, {
+      const response = await fetchWithAuth(`${getModelerApiBaseUrl()}/forms`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(schema)
@@ -1419,6 +1451,10 @@ const App: React.FC = () => {
   }, [selectedNodeUids, handleDeleteNodes]);
 
   const handleLogout = () => {
+    if (isDesktop) {
+      setIsConnectionDialogOpen(true);
+      return;
+    }
     const logoutUrl = processService.buildLogoutUrl();
     if (logoutUrl) processService.markOidcAutoLoginSuppressed();
     processService.clearSession();
@@ -1426,6 +1462,19 @@ const App: React.FC = () => {
     setPermissions([]);
     if (logoutUrl) window.location.assign(logoutUrl);
   };
+
+  const connectionDialog = isDesktop && isConnectionDialogOpen ? (
+    <BackendConnectionDialog
+      theme={theme}
+      onClose={() => setIsConnectionDialogOpen(false)}
+      onConnected={(username, perms) => {
+        setCurrentUser(username || 'Desktop');
+        setPermissions(perms.length > 0 ? perms : ['ACCESS_BPM_MODELER']);
+        setIsConnectionDialogOpen(false);
+        loadWorkspaceResources();
+      }}
+    />
+  ) : null;
 
   if (authLoading) {
     return <div className="min-h-screen flex items-center justify-center text-slate-600">Loading session...</div>;
@@ -1455,6 +1504,7 @@ const App: React.FC = () => {
     return (
       <div className="h-screen overflow-hidden">
         <Toaster position="top-right" richColors />
+        {connectionDialog}
         <WelcomeScreen
           onCreateProcess={handleCreateProcess}
           onCreateForm={handleCreateForm}
@@ -1479,6 +1529,7 @@ const App: React.FC = () => {
     return (
       <div className="process-modeler flex flex-col h-screen" data-theme={theme}>
         <Toaster position="top-right" richColors />
+        {connectionDialog}
         
         {/* Process Editor Navbar */}
         <ModelerNavbar
@@ -1629,6 +1680,7 @@ const App: React.FC = () => {
     return (
       <div className="form-modeler flex flex-col h-screen" data-theme={theme}>
         <Toaster position="top-right" richColors />
+        {connectionDialog}
         
         {/* Form Editor Navbar */}
         <ModelerNavbar
@@ -1660,15 +1712,18 @@ const App: React.FC = () => {
 
   if (editorMode === 'agent-process-editor' && featureFlags.agenticOrchestration) {
     return (
-      <AgentBoardModeler
-        currentUser={currentUser}
-        onBack={handleBackToWelcome}
-        onLogout={handleLogout}
-        theme={theme}
-        onToggleTheme={toggleTheme}
-        initialDefinition={initialAgentDefinition}
-        availableCredentials={availableCredentials}
-      />
+      <>
+        {connectionDialog}
+        <AgentBoardModeler
+          currentUser={currentUser}
+          onBack={handleBackToWelcome}
+          onLogout={handleLogout}
+          theme={theme}
+          onToggleTheme={toggleTheme}
+          initialDefinition={initialAgentDefinition}
+          availableCredentials={availableCredentials}
+        />
+      </>
     );
   }
 
@@ -1676,6 +1731,7 @@ const App: React.FC = () => {
   return (
     <div className="h-screen overflow-hidden">
       <Toaster position="top-right" richColors />
+      {connectionDialog}
       <WelcomeScreen
         onCreateProcess={handleCreateProcess}
         onCreateForm={handleCreateForm}
@@ -1820,6 +1876,88 @@ const ModelerLoginView: React.FC<{
             </button>
             {error && <p className="text-sm text-red-400 mt-2">{error}</p>}
           </form>
+      </div>
+    </div>
+  );
+};
+
+const BackendConnectionDialog: React.FC<{
+  theme: ThemeMode;
+  onClose: () => void;
+  onConnected: (username: string, permissions: string[]) => void;
+}> = ({ theme, onClose, onConnected }) => {
+  const [backendUrl, setBackendUrl] = useState(processService.getApiBaseUrl());
+  const [username, setUsername] = useState(processService.getSession()?.username || '');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const submit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setLoading(true);
+    setError(null);
+    try {
+      processService.setApiBaseUrl(backendUrl);
+      const session = await processService.login(username.trim(), password);
+      onConnected(session.username, session.permissions);
+      toast.success(`Connected to ${processService.getApiBaseUrl()}`);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm" data-theme={theme}>
+      <div className="w-full max-w-lg rounded-lg border border-[var(--modeler-border)] bg-[var(--modeler-surface)] p-6 text-[var(--modeler-text)] shadow-2xl">
+        <div className="mb-5 flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-semibold">Backend connection</h2>
+            <p className="mt-1 text-sm text-[var(--modeler-text-muted)]">Used only for deploy and loading published resources.</p>
+          </div>
+          <button type="button" onClick={onClose} className="modeler-ghost-button rounded-md px-3 py-2 text-xs font-semibold">
+            Close
+          </button>
+        </div>
+
+        <form onSubmit={submit} className="space-y-4">
+          <label className="block space-y-1.5">
+            <span className="text-xs font-semibold uppercase text-[var(--modeler-text-muted)]">Backend URL</span>
+            <input
+              value={backendUrl}
+              onChange={event => setBackendUrl(event.target.value)}
+              className="w-full rounded-md border border-[var(--modeler-input-border)] bg-[var(--modeler-input-bg)] px-3 py-2 text-sm text-[var(--modeler-input-text)] outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              placeholder="http://localhost:8080"
+            />
+          </label>
+          <label className="block space-y-1.5">
+            <span className="text-xs font-semibold uppercase text-[var(--modeler-text-muted)]">Username</span>
+            <input
+              value={username}
+              onChange={event => setUsername(event.target.value)}
+              className="w-full rounded-md border border-[var(--modeler-input-border)] bg-[var(--modeler-input-bg)] px-3 py-2 text-sm text-[var(--modeler-input-text)] outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+            />
+          </label>
+          <label className="block space-y-1.5">
+            <span className="text-xs font-semibold uppercase text-[var(--modeler-text-muted)]">Password</span>
+            <input
+              type="password"
+              value={password}
+              onChange={event => setPassword(event.target.value)}
+              className="w-full rounded-md border border-[var(--modeler-input-border)] bg-[var(--modeler-input-bg)] px-3 py-2 text-sm text-[var(--modeler-input-text)] outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+            />
+          </label>
+          {error && <p className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-500">{error}</p>}
+          <button
+            type="submit"
+            disabled={loading}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-70"
+          >
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            Connect
+          </button>
+        </form>
       </div>
     </div>
   );

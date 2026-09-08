@@ -79,10 +79,10 @@ const normalizeImportedForm = (data: any): FormDefinition | null => {
     id: String(candidate.id || formKey),
     formKey,
     name: String(candidate.name || formKey),
-    tabs: tabs.map((tab, tabIndex) => ({
+    tabs: tabs.map((tab: any, tabIndex: number) => ({
       id: String(tab.id || `tab_${tabIndex + 1}`),
       name: String(tab.name || `Tab ${tabIndex + 1}`),
-      fields: Array.isArray(tab.fields) ? tab.fields.map((field, fieldIndex) => ({
+      fields: Array.isArray(tab.fields) ? tab.fields.map((field: any, fieldIndex: number) => ({
         id: String(field.id || `field_${tabIndex + 1}_${fieldIndex + 1}`),
         name: String(field.name || `field_${fieldIndex + 1}`),
         title: String(field.title || field.name || `Field ${fieldIndex + 1}`),

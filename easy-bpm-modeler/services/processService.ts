@@ -1,6 +1,5 @@
-import { getModelerApiBaseUrl } from '../config/runtimeConfig';
+import { getModelerApiBaseUrl, setModelerApiBaseUrl } from '../config/runtimeConfig';
 
-const API_BASE_URL = getModelerApiBaseUrl();
 const AUTH_STORAGE_KEY = 'easybpm_modeler_auth';
 const OIDC_STATE_KEY = 'easybpm_modeler_oidc_state';
 const OIDC_VERIFIER_KEY = 'easybpm_modeler_oidc_verifier';
@@ -169,13 +168,17 @@ const buildSessionFromMe = (token: string, me: AuthCurrentUser, idToken?: string
 export const processService = {
   getSession: (): AuthSession | null => getSession(),
 
+  getApiBaseUrl: (): string => getModelerApiBaseUrl(),
+
+  setApiBaseUrl: (url: string): void => setModelerApiBaseUrl(url),
+
   clearSession: (): void => {
     activeSession = null;
     localStorage.removeItem(AUTH_STORAGE_KEY);
   },
 
   authConfig: async (): Promise<AuthProviderConfig> => {
-    const response = await fetch(`${API_BASE_URL}/auth/config`);
+    const response = await fetch(`${getModelerApiBaseUrl()}/auth/config`);
     if (!response.ok) throw await errorFromResponse(response, 'Failed to load auth configuration');
     return response.json();
   },
@@ -246,7 +249,7 @@ export const processService = {
     if (!tokenResponse.ok) throw await errorFromResponse(tokenResponse, 'OIDC token exchange failed');
     const tokenPayload = await tokenResponse.json() as { access_token: string; id_token?: string };
 
-    const meResponse = await fetch(`${API_BASE_URL}/auth/me`, {
+    const meResponse = await fetch(`${getModelerApiBaseUrl()}/auth/me`, {
       headers: { Authorization: `Bearer ${tokenPayload.access_token}` }
     });
     if (!meResponse.ok) throw await errorFromResponse(meResponse, 'Failed to load current OIDC user');
@@ -269,7 +272,7 @@ export const processService = {
   },
 
   login: async (username: string, password: string): Promise<AuthSession> => {
-    const response = await fetch(`${API_BASE_URL}/auth/login`, {
+    const response = await fetch(`${getModelerApiBaseUrl()}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password })
@@ -293,7 +296,7 @@ export const processService = {
   },
 
   me: async (): Promise<AuthCurrentUser> => {
-    const response = await fetchWithAuth(`${API_BASE_URL}/auth/me`);
+    const response = await fetchWithAuth(`${getModelerApiBaseUrl()}/auth/me`);
     if (response.status === 401) throw new AuthRequiredError();
     if (!response.ok) throw new Error('Session check failed');
     return response.json();
@@ -305,7 +308,7 @@ export const processService = {
       throw new AuthRequiredError('No saved Modeler session was found. Please sign in again before deploying.');
     }
 
-    const response = await fetchWithAuth(`${API_BASE_URL}/processes`, {
+    const response = await fetchWithAuth(`${getModelerApiBaseUrl()}/processes`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/xml'
@@ -324,7 +327,7 @@ export const processService = {
   },
 
   listLatestProcesses: async (): Promise<ProcessDefinitionSummary[]> => {
-    const response = await fetchWithAuth(`${API_BASE_URL}/processes?size=50&sort=id,desc`);
+    const response = await fetchWithAuth(`${getModelerApiBaseUrl()}/processes?size=50&sort=id,desc`);
     if (response.status === 401) throw new AuthRequiredError();
     if (!response.ok) {
       const body = await response.text();
@@ -336,7 +339,7 @@ export const processService = {
   },
 
   getProcessDefinition: async (id: number): Promise<ProcessDefinitionSummary> => {
-    const response = await fetchWithAuth(`${API_BASE_URL}/processes/definitions/${id}`);
+    const response = await fetchWithAuth(`${getModelerApiBaseUrl()}/processes/definitions/${id}`);
     if (response.status === 401) throw new AuthRequiredError();
     if (!response.ok) {
       const body = await response.text();
@@ -351,7 +354,7 @@ export const processService = {
       throw new AuthRequiredError('No saved Modeler session was found. Please sign in again before deploying.');
     }
 
-    const response = await fetchWithAuth(`${API_BASE_URL}/agent-processes`, {
+    const response = await fetchWithAuth(`${getModelerApiBaseUrl()}/agent-processes`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -370,7 +373,7 @@ export const processService = {
   },
 
   listAgentProcesses: async (): Promise<AgentProcessDefinitionSummary[]> => {
-    const response = await fetchWithAuth(`${API_BASE_URL}/agent-processes`);
+    const response = await fetchWithAuth(`${getModelerApiBaseUrl()}/agent-processes`);
     if (response.status === 401) throw new AuthRequiredError();
     if (!response.ok) {
       const body = await response.text();
@@ -380,7 +383,7 @@ export const processService = {
   },
 
   listAvailableCredentials: async (): Promise<AvailableCredential[]> => {
-    const response = await fetchWithAuth(`${API_BASE_URL}/ai/credentials/available`);
+    const response = await fetchWithAuth(`${getModelerApiBaseUrl()}/ai/credentials/available`);
     if (response.status === 401) throw new AuthRequiredError();
     if (!response.ok) {
       const body = await response.text();

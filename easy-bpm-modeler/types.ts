@@ -71,6 +71,7 @@ export interface NodeData {
   timeoutSeconds?: number | null;
   // Error Boundary specific
   errorCode?: string;
+  exceptionVariable?: string;
   // Timer Boundary specific
   interrupting?: boolean;
 }

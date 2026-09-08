@@ -360,7 +360,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
                   {showUserMenu && (
                     <div className="absolute right-0 top-full z-50 mt-2 w-48 rounded-lg border border-[var(--modeler-border)] bg-[var(--modeler-surface)] shadow-xl">
                       <div className="border-b border-[var(--modeler-border)] px-4 py-3">
-                        <p className="text-xs text-[var(--modeler-text-muted)]">Logged in as</p>
+                        <p className="text-xs text-[var(--modeler-text-muted)]">{currentUser === 'Desktop' ? 'Desktop app' : 'Logged in as'}</p>
                         <p className="truncate text-sm font-semibold text-[var(--modeler-text)]">{currentUser}</p>
                       </div>
                       {onLogout && (
@@ -372,7 +372,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
                           className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-[var(--modeler-text-soft)] transition-colors hover:bg-[var(--modeler-surface-muted)] hover:text-[var(--modeler-text)]"
                         >
                           <LogOut className="h-4 w-4" />
-                          Logout
+                          {currentUser === 'Desktop' ? 'Connect backend' : 'Logout'}
                         </button>
                       )}
                     </div>
