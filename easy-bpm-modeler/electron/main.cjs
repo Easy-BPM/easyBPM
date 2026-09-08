@@ -11,6 +11,7 @@ const createWindow = async () => {
     minWidth: 1100,
     minHeight: 720,
     title: 'Easy BPM Desktop Modeler',
+    icon: path.join(__dirname, '..', 'assets', 'easy-bpm-logo.png'),
     backgroundColor: '#0f172a',
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),

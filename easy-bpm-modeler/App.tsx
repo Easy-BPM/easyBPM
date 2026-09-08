@@ -145,8 +145,9 @@ const App: React.FC = () => {
    };
 
    const loadWorkspaceResources = useCallback(async () => {
-     if (isDesktop && !processService.getSession()?.token) {
+     if (isDesktop) {
        setWorkspaceResources([]);
+       setAvailableCredentials([]);
        setWorkspaceResourceError(null);
        return;
      }
@@ -223,7 +224,7 @@ const App: React.FC = () => {
    }, [isDesktop]);
 
    useEffect(() => {
-     if (!authLoading && currentUser && (!isDesktop || processService.getSession()?.token) && (editorMode === 'welcome' || editorMode === 'process-editor')) {
+     if (!authLoading && currentUser && !isDesktop && (editorMode === 'welcome' || editorMode === 'process-editor')) {
        loadWorkspaceResources();
      }
    }, [authLoading, currentUser, editorMode, isDesktop, loadWorkspaceResources]);
@@ -1471,7 +1472,7 @@ const App: React.FC = () => {
         setCurrentUser(username || 'Desktop');
         setPermissions(perms.length > 0 ? perms : ['ACCESS_BPM_MODELER']);
         setIsConnectionDialogOpen(false);
-        loadWorkspaceResources();
+        if (!isDesktop) loadWorkspaceResources();
       }}
     />
   ) : null;
@@ -1516,6 +1517,7 @@ const App: React.FC = () => {
           resourceLoadError={workspaceResourceError}
           onRefreshResources={loadWorkspaceResources}
           onOpenResource={handleOpenWorkspaceResource}
+          showDeployedResources={!isDesktop}
           currentUser={currentUser}
           onLogout={handleLogout}
           theme={theme}
@@ -1663,6 +1665,7 @@ const App: React.FC = () => {
               isLoadingDeployedForms={isLoadingWorkspaceResources}
               deployedFormsError={workspaceResourceError}
               onRefreshDeployedForms={loadWorkspaceResources}
+              useDeployedFormPicker={!isDesktop}
               availableCredentials={availableCredentials}
               validation={{
                 duplicateNodeIds: validationState.duplicateNodeIds,
@@ -1743,6 +1746,7 @@ const App: React.FC = () => {
         resourceLoadError={workspaceResourceError}
         onRefreshResources={loadWorkspaceResources}
         onOpenResource={handleOpenWorkspaceResource}
+        showDeployedResources={!isDesktop}
         theme={theme}
         onToggleTheme={toggleTheme}
       />

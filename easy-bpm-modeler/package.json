@@ -36,9 +36,11 @@
   "build": {
     "appId": "com.easybpm.modeler.desktop",
     "productName": "Easy BPM Desktop Modeler",
+    "icon": "assets/icon",
     "files": [
       "dist/**/*",
       "electron/**/*",
+      "assets/**/*",
       "package.json"
     ],
     "directories": {

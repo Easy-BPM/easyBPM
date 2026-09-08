@@ -36,6 +36,7 @@ interface PropertiesPanelProps {
   isLoadingDeployedForms?: boolean;
   deployedFormsError?: string | null;
   onRefreshDeployedForms?: () => void;
+  useDeployedFormPicker?: boolean;
   availableCredentials?: AvailableCredential[];
   validation: {
     duplicateNodeIds: string[];
@@ -65,6 +66,7 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
   isLoadingDeployedForms = false,
   deployedFormsError,
   onRefreshDeployedForms,
+  useDeployedFormPicker = true,
   availableCredentials = [],
   validation,
 }) => {
@@ -1071,7 +1073,7 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                     <label className="text-[10px] text-slate-400 uppercase font-bold flex items-center gap-1">
                       <FileText className="w-3 h-3" /> Form
                     </label>
-                    {onRefreshDeployedForms && (
+                    {useDeployedFormPicker && onRefreshDeployedForms && (
                       <button
                         type="button"
                         onClick={onRefreshDeployedForms}
@@ -1082,77 +1084,91 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                       </button>
                     )}
                   </div>
-                  <div className="space-y-2">
-                    <div className="relative">
-                      <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--modeler-placeholder)]" />
-                      <input
-                        className={`${smallInputClassName} modeler-variable-search w-full ${selectedNode.data.formId ? 'pr-8' : ''} ${formKeyError ? '!border-red-500' : ''}`}
-                        value={formSearch}
-                        onFocus={() => setIsFormPickerOpen(true)}
-                        onChange={e => {
-                          setFormSearch(e.target.value);
-                          setIsFormPickerOpen(true);
-                        }}
-                        disabled={isLoadingDeployedForms}
-                        placeholder={selectedDeployedForm ? `${selectedDeployedForm.name} · ${selectedDeployedForm.formId}` : 'Search deployed forms...'}
-                      />
-                      {selectedNode.data.formId && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            onUpdateNode(selectedNode.uid, { formId: '' });
-                            setFormKeyError(null);
-                            setFormSearch('');
-                            setIsFormPickerOpen(false);
-                            setIsFormPreviewOpen(false);
+                  {useDeployedFormPicker ? (
+                    <div className="space-y-2">
+                      <div className="relative">
+                        <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--modeler-placeholder)]" />
+                        <input
+                          className={`${smallInputClassName} modeler-variable-search w-full ${selectedNode.data.formId ? 'pr-8' : ''} ${formKeyError ? '!border-red-500' : ''}`}
+                          value={formSearch}
+                          onFocus={() => setIsFormPickerOpen(true)}
+                          onChange={e => {
+                            setFormSearch(e.target.value);
+                            setIsFormPickerOpen(true);
                           }}
-                          className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-[var(--modeler-text-muted)] transition-colors hover:bg-[var(--modeler-surface-muted)] hover:text-[var(--modeler-text)]"
-                          aria-label="Clear selected form"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      )}
-                    </div>
-                    {isFormPickerOpen && deployedForms.length > 0 && (
-                      <div className="max-h-36 overflow-y-auto rounded-md border border-[var(--modeler-border)] bg-[var(--modeler-surface)]">
-                        {filteredDeployedForms.length > 0 ? (
-                          filteredDeployedForms.map(form => {
-                            const isSelected = form.formId === selectedNode.data.formId;
-                            return (
-                              <button
-                                key={form.id}
-                                type="button"
-                                onClick={() => {
-                                  onUpdateNode(selectedNode.uid, { formId: form.formId });
-                                  setFormKeyError(validateId(form.formId));
-                                  setFormSearch('');
-                                  setIsFormPickerOpen(false);
-                                  setIsFormPreviewOpen(false);
-                                }}
-                                className={`flex w-full items-center justify-between gap-2 border-b border-[var(--modeler-border)] px-2.5 py-2 text-left text-xs transition-colors last:border-b-0 ${isSelected ? 'bg-blue-500/10 text-[var(--modeler-text)]' : 'text-[var(--modeler-text-soft)] hover:bg-[var(--modeler-surface-muted)]'}`}
-                              >
-                                <span className="min-w-0">
-                                  <span className="block truncate font-semibold">{form.name || form.formId}</span>
-                                  <span className="block truncate font-mono text-[10px] text-[var(--modeler-text-muted)]">{form.formId}</span>
-                                </span>
-                                {form.version && <span className="shrink-0 rounded bg-[var(--modeler-surface-muted)] px-1.5 py-0.5 text-[10px] font-semibold">v{form.version}</span>}
-                              </button>
-                            );
-                          })
-                        ) : (
-                          <p className="px-3 py-4 text-center text-[11px] text-[var(--modeler-text-muted)]">No forms match this search.</p>
+                          disabled={isLoadingDeployedForms}
+                          placeholder={selectedDeployedForm ? `${selectedDeployedForm.name} · ${selectedDeployedForm.formId}` : 'Search deployed forms...'}
+                        />
+                        {selectedNode.data.formId && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              onUpdateNode(selectedNode.uid, { formId: '' });
+                              setFormKeyError(null);
+                              setFormSearch('');
+                              setIsFormPickerOpen(false);
+                              setIsFormPreviewOpen(false);
+                            }}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-[var(--modeler-text-muted)] transition-colors hover:bg-[var(--modeler-surface-muted)] hover:text-[var(--modeler-text)]"
+                            aria-label="Clear selected form"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
                         )}
                       </div>
-                    )}
-                  </div>
-                  {deployedFormsError && (
+                      {isFormPickerOpen && deployedForms.length > 0 && (
+                        <div className="max-h-36 overflow-y-auto rounded-md border border-[var(--modeler-border)] bg-[var(--modeler-surface)]">
+                          {filteredDeployedForms.length > 0 ? (
+                            filteredDeployedForms.map(form => {
+                              const isSelected = form.formId === selectedNode.data.formId;
+                              return (
+                                <button
+                                  key={form.id}
+                                  type="button"
+                                  onClick={() => {
+                                    onUpdateNode(selectedNode.uid, { formId: form.formId });
+                                    setFormKeyError(validateId(form.formId));
+                                    setFormSearch('');
+                                    setIsFormPickerOpen(false);
+                                    setIsFormPreviewOpen(false);
+                                  }}
+                                  className={`flex w-full items-center justify-between gap-2 border-b border-[var(--modeler-border)] px-2.5 py-2 text-left text-xs transition-colors last:border-b-0 ${isSelected ? 'bg-blue-500/10 text-[var(--modeler-text)]' : 'text-[var(--modeler-text-soft)] hover:bg-[var(--modeler-surface-muted)]'}`}
+                                >
+                                  <span className="min-w-0">
+                                    <span className="block truncate font-semibold">{form.name || form.formId}</span>
+                                    <span className="block truncate font-mono text-[10px] text-[var(--modeler-text-muted)]">{form.formId}</span>
+                                  </span>
+                                  {form.version && <span className="shrink-0 rounded bg-[var(--modeler-surface-muted)] px-1.5 py-0.5 text-[10px] font-semibold">v{form.version}</span>}
+                                </button>
+                              );
+                            })
+                          ) : (
+                            <p className="px-3 py-4 text-center text-[11px] text-[var(--modeler-text-muted)]">No forms match this search.</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <input
+                      className={`${smallInputClassName} w-full ${formKeyError ? '!border-red-500' : ''}`}
+                      value={selectedNode.data.formId || ''}
+                      onChange={e => {
+                        const nextFormId = e.target.value.replace(/\s+/g, '');
+                        onUpdateNode(selectedNode.uid, { formId: nextFormId });
+                        setFormKeyError(nextFormId ? validateId(nextFormId) : null);
+                      }}
+                      onBlur={() => setFormKeyError(selectedNode.data.formId ? validateId(selectedNode.data.formId) : null)}
+                      placeholder="e.g. approvalForm"
+                    />
+                  )}
+                  {useDeployedFormPicker && deployedFormsError && (
                     <p className="mt-1 text-[10px] text-amber-500 leading-tight">{deployedFormsError}</p>
                   )}
-                  {!deployedFormsError && deployedForms.length === 0 && !isLoadingDeployedForms && (
+                  {useDeployedFormPicker && !deployedFormsError && deployedForms.length === 0 && !isLoadingDeployedForms && (
                     <p className="mt-1 text-[10px] text-slate-400 leading-tight">No deployed forms loaded yet. Refresh to load forms from the database.</p>
                   )}
                   {formKeyError && <p className="text-[10px] text-red-500 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> {formKeyError}</p>}
-                  {selectedDeployedForm && (
+                  {useDeployedFormPicker && selectedDeployedForm && (
                     <div className="relative mt-2 rounded-md border border-[var(--modeler-border)] bg-[var(--modeler-surface-muted)] px-2.5 py-2">
                       <div className="flex items-center justify-between gap-2">
                         <div className="min-w-0">
@@ -1202,7 +1218,11 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                       )}
                     </div>
                   )}
-                  <p className="text-[10px] text-slate-400 mt-1 leading-tight">Focus or type to search deployed forms from the database.</p>
+                  {useDeployedFormPicker ? (
+                    <p className="text-[10px] text-slate-400 mt-1 leading-tight">Focus or type to search deployed forms from the database.</p>
+                  ) : (
+                    <p className="text-[10px] text-slate-400 mt-1 leading-tight">Type the form key that this task should reference when deployed.</p>
+                  )}
                 </div>
                 <div><label className="text-[10px] text-slate-400 uppercase font-bold mb-1 block">Assignee(s)</label><input className={smallInputClassName} value={selectedNode.data.assignee || ''} onChange={e => onUpdateNode(selectedNode.uid, { assignee: e.target.value })} placeholder="e.g. manager1, manager2" /></div>
                 <div><label className="text-[10px] text-slate-400 uppercase font-bold mb-1 block">Candidate Groups</label><input className={smallInputClassName} value={selectedNode.data.candidateGroups || ''} onChange={e => onUpdateNode(selectedNode.uid, { candidateGroups: e.target.value })} placeholder="e.g. FINANCE, OPERATIONS" /></div>
