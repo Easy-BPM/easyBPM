@@ -39,6 +39,8 @@ export const ModelerNavbar: React.FC<NavbarProps> = ({
   validationWarnings = [],
   currentView,
   onViewChange,
+  currentUser,
+  onLogout,
   theme,
   onToggleTheme
 }) => {
@@ -182,6 +184,17 @@ export const ModelerNavbar: React.FC<NavbarProps> = ({
           </button>
         )}
         <ThemeToggle theme={theme} onToggle={onToggleTheme} />
+        {currentUser && onLogout && (
+          <button
+            type="button"
+            onClick={onLogout}
+            className="modeler-ghost-button inline-flex items-center gap-2 rounded-md px-3 py-2 text-xs font-semibold transition-colors"
+            title="Backend connection"
+          >
+            <span className="h-2 w-2 rounded-full bg-emerald-500" />
+            {currentUser}
+          </button>
+        )}
         {onSave && (
           <button
             onClick={onSave}

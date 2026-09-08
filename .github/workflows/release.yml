@@ -261,7 +261,72 @@ jobs:
             echo "- Tag: \`${{ steps.meta.outputs.tag }}\`"
             echo "- Previous tag: \`${{ steps.meta.outputs.previous_tag || 'first release' }}\`"
             echo "- Release images: the \`Build Release Images\` job publishes all runtime images with the \`${{ steps.meta.outputs.tag }}\` tag."
+            echo "- Desktop modeler: native installers are attached to this GitHub Release."
           } >> "$GITHUB_STEP_SUMMARY"
+
+  desktop-modeler-assets:
+    name: Build Desktop Modeler (${{ matrix.platform }})
+    needs: release
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux
+            os: ubuntu-latest
+            builder_args: --linux AppImage
+          - platform: macos
+            os: macos-latest
+            builder_args: --mac dmg zip
+          - platform: windows
+            os: windows-latest
+            builder_args: --win nsis
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout release tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.release.outputs.tag }}
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: easy-bpm-modeler/package-lock.json
+
+      - name: Install modeler dependencies
+        run: npm ci
+        working-directory: easy-bpm-modeler
+
+      - name: Build desktop modeler assets
+        run: npm run build:desktop
+        working-directory: easy-bpm-modeler
+
+      - name: Package desktop modeler
+        run: npx electron-builder ${{ matrix.builder_args }} --publish never
+        working-directory: easy-bpm-modeler
+
+      - name: Upload desktop modeler assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          assets=(
+            easy-bpm-modeler/release/*.AppImage
+            easy-bpm-modeler/release/*.dmg
+            easy-bpm-modeler/release/*.zip
+            easy-bpm-modeler/release/*.exe
+          )
+          if [[ ${#assets[@]} -eq 0 ]]; then
+            echo "No desktop assets were produced." >&2
+            exit 1
+          fi
+          gh release upload "${{ needs.release.outputs.tag }}" "${assets[@]}" --clobber
 
   images:
     name: Build Release Images

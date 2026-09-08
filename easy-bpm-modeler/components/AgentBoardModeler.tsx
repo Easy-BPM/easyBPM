@@ -529,6 +529,7 @@ export const AgentBoardModeler: React.FC<AgentBoardModelerProps> = ({
     } catch (error) {
       if (isAuthRequiredError(error)) {
         toast.error(error.message);
+        onLogout();
       } else {
         toast.error(error instanceof Error ? error.message : 'Unexpected Agent Process deploy error');
       }

@@ -80,7 +80,7 @@ export const FormLibrary: React.FC<FormLibraryProps> = ({
   };
 
   const handleDuplicateForm = (form: FormDefinition) => {
-    const newFormKey = `${form.formKey}_copy_${Date.now()}`;
+    const newFormKey = `${form.formKey || form.id}_copy_${Date.now()}`;
     const newForm: FormDefinition = {
       ...form,
       formKey: newFormKey,
@@ -139,9 +139,9 @@ export const FormLibrary: React.FC<FormLibraryProps> = ({
           <div className="divide-y divide-slate-200">
             {formsList.map((form) => (
               <div
-                key={form.formKey}
+                key={form.formKey || form.id}
                 className={`p-3 hover:bg-slate-50 transition-colors cursor-pointer ${
-                  selectedFormKey === form.formKey ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
+                  selectedFormKey === (form.formKey || form.id) ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
                 }`}
                 onClick={() => onSelectForm(form)}
               >
@@ -151,10 +151,10 @@ export const FormLibrary: React.FC<FormLibraryProps> = ({
                       {getFormDisplayName(form)}
                     </h3>
                     <p className="text-xs text-slate-500 truncate">
-                      Key: <code className="bg-slate-100 px-1.5 py-0.5 rounded">{form.formKey}</code>
+                      Key: <code className="bg-slate-100 px-1.5 py-0.5 rounded">{form.formKey || form.id}</code>
                     </p>
                     <p className="text-xs text-slate-500 mt-1">
-                      {form.fields?.length || 0} fields
+                      {form.tabs?.reduce((total, tab) => total + tab.fields.length, 0) || 0} fields
                       {form.tabs && form.tabs.length > 1 && ` • ${form.tabs.length} tabs`}
                     </p>
                   </div>
@@ -185,7 +185,7 @@ export const FormLibrary: React.FC<FormLibraryProps> = ({
                       onClick={(e) => {
                         e.stopPropagation();
                         if (confirm(`Delete form "${getFormDisplayName(form)}"?`)) {
-                          onRemoveForm(form.formKey);
+                          onRemoveForm(form.formKey || form.id);
                           toast.success('Form deleted');
                         }
                       }}

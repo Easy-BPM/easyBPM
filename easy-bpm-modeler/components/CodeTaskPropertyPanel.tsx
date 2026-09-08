@@ -282,7 +282,6 @@ export const CodeTaskPropertyPanel: React.FC<CodeTaskPropertyPanelProps> = ({
                 value={mapping.processVar}
                 onChange={(e) => updateInputMapping(index, { ...mapping, processVar: e.target.value })}
                 className="flex-1 px-3 py-2 border border-gray-300 rounded text-sm"
-                placeholder="Process variable"
               >
                 <option value="">Process variable</option>
                 {processVariables.map(v => (
