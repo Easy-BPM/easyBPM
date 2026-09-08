@@ -2,6 +2,8 @@
 
 React/Vite workspace for designing and deploying Easy BPM processes and forms. It also ships as an independent desktop modeler, similar in spirit to Camunda Desktop Modeler.
 
+The desktop modeler is independent: users can download it, model locally, and then choose the Easy BPM server URL plus username/password they want to use for deployment.
+
 ## What It Does
 
 - Signs modelers in through the Easy BPM backend.
@@ -26,9 +28,9 @@ React/Vite workspace for designing and deploying Easy BPM processes and forms. I
 
 ## Configuration
 
-The app uses `http://localhost:8080` by default.
+The web modeler uses `http://localhost:8080` by default.
 
-To point at a different backend, set:
+To point the web modeler at a different backend, set:
 
 ```powershell
 $env:EASY_BPM_MODELER_API_BASE_URL = "http://localhost:8080"
@@ -36,7 +38,7 @@ $env:EASY_BPM_MODELER_API_BASE_URL = "http://localhost:8080"
 
 The authentication session is stored in browser `localStorage` under `easybpm_modeler_auth`.
 
-In the desktop app, the backend URL is optional and can be supplied in the connection dialog. The saved URL is stored locally under `easybpm_modeler_backend_url`. The desktop app talks only to the Easy BPM backend HTTP API; it never connects to the database.
+In the desktop app, the backend URL is optional and is supplied in the connection dialog together with username and password. The saved URL is stored locally under `easybpm_modeler_backend_url`. The desktop app talks only to the Easy BPM backend HTTP API; it never connects to the database.
 
 ## Run Locally
 
@@ -70,14 +72,7 @@ Package installers:
 npm run desktop:build
 ```
 
-To preconfigure the backend address when launching the desktop app:
-
-```powershell
-$env:EASY_BPM_MODELER_API_BASE_URL = "http://localhost:8080"
-npm run desktop:start
-```
-
-Users can also set the backend URL, username, and password from the desktop connection dialog before deploying.
+Users set the backend URL, username, and password from the desktop connection dialog before deploying.
 
 ## Type Check
 
