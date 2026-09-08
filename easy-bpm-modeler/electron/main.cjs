@@ -3,6 +3,7 @@ const fs = require('fs/promises');
 const path = require('path');
 
 const isDev = process.env.EASY_BPM_DESKTOP_DEV === 'true';
+const appIconPath = path.join(__dirname, '..', 'assets', 'icon.png');
 
 const createWindow = async () => {
   const mainWindow = new BrowserWindow({
@@ -11,7 +12,7 @@ const createWindow = async () => {
     minWidth: 1100,
     minHeight: 720,
     title: 'Easy BPM Desktop Modeler',
-    icon: path.join(__dirname, '..', 'assets', 'easy-bpm-logo.png'),
+    icon: appIconPath,
     backgroundColor: '#0f172a',
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
@@ -99,6 +100,11 @@ ipcMain.handle('easy-bpm:open-text-file', async (_event, request) => {
 });
 
 app.whenReady().then(async () => {
+  app.setName('Easy BPM Desktop Modeler');
+  if (process.platform === 'darwin' && app.dock) {
+    app.dock.setIcon(appIconPath);
+  }
+
   createMenu();
   await createWindow();
 
