@@ -18,6 +18,7 @@ The desktop modeler is independent: users can download it, model locally, and th
 - Includes code-task modeling helpers for JAR uploads, class selection, method selection, and variable mappings.
 - Runs as a desktop app with local file open/save. The desktop app does not access the database directly.
 - Can deploy from desktop when a backend URL, username, and password are configured in the app.
+- In the desktop app, form references are typed manually by form key; deployed forms and deployed resources are not loaded from the database.
 
 ## Requirements
 

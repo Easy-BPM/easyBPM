@@ -66,6 +66,7 @@ interface WelcomeScreenProps {
   resourceLoadError?: string | null;
   onRefreshResources?: () => void;
   onOpenResource?: (resource: WorkspaceResource) => void;
+  showDeployedResources?: boolean;
   currentUser?: string | null;
   onLogout?: () => void;
   theme: ThemeMode;
@@ -249,6 +250,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
   resourceLoadError,
   onRefreshResources,
   onOpenResource,
+  showDeployedResources = true,
   currentUser,
   onLogout,
   theme,
@@ -470,7 +472,8 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
               )}
             </section>
 
-            <section className="mt-6 grid gap-6 xl:grid-cols-[1.2fr_0.9fr]">
+            <section className={`mt-6 grid gap-6 ${showDeployedResources ? 'xl:grid-cols-[1.2fr_0.9fr]' : 'xl:grid-cols-1'}`}>
+              {showDeployedResources && (
               <div className="rounded-lg border border-[var(--modeler-border)] bg-[var(--modeler-surface)] shadow-sm">
                 <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--modeler-border)] px-5 py-4">
                   <div>
@@ -577,6 +580,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
                   )}
                 </div>
               </div>
+              )}
 
               <div className="rounded-lg border border-[var(--modeler-border)] bg-[var(--modeler-surface)] p-5 shadow-sm">
                 <div className="mb-5 flex items-center justify-between gap-3">
