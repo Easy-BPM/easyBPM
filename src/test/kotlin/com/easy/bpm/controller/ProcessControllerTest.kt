@@ -141,6 +141,23 @@ class ProcessControllerTest : FunSpec() {
             body["message"] shouldBe "Process '$processKey' does not have a regular StartEvent. It must be started by sending its MessageStartEvent payload to POST /processes/messages."
             body["messageEndpoint"] shouldBe "/processes/messages"
         }
+
+        test("should return real execution error when process start fails during runtime") {
+            // Arrange
+            val processKey = "support-triage"
+            every { mockProcessService.startProcessInstance(processKey) } throws IllegalStateException("Agent process provider execution failed: AUTH_ERROR - invalid API key")
+
+            // Act
+            val result = processController.startInstance(processKey)
+
+            // Assert
+            result.statusCode shouldBe HttpStatus.INTERNAL_SERVER_ERROR
+            @Suppress("UNCHECKED_CAST")
+            val body = result.body as Map<String, Any>
+            body["status"] shouldBe "error"
+            body["message"] shouldBe "Agent process provider execution failed: AUTH_ERROR - invalid API key"
+            body["processId"] shouldBe processKey
+        }
     }
 
     context("getProcessInstances") {
