@@ -9,7 +9,7 @@ plugins {
 }
 
 group = "com.easy"
-version = "0.1.1-beta.2"
+version = "0.1.2-beta.2"
 
 java {
 	toolchain {
