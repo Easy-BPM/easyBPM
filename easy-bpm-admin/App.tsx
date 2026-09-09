@@ -782,9 +782,7 @@ const InstanceExplorerView: React.FC<{ initialInstanceId?: number | null }> = ({
         <p className="text-slate-500 text-sm">Search a process by instance number, manage variables, and move nodes safely.</p>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[380px_minmax(0,1fr)]">
-        <div className="space-y-6 xl:sticky xl:top-6 xl:self-start">
-          <div className="bg-white border border-slate-200 rounded-xl p-5">
+      <div className="bg-white border border-slate-200 rounded-xl p-5">
             <label className="block text-xs font-semibold uppercase tracking-widest text-slate-400 mb-2">Find Process Instance by Number</label>
             <div className="flex gap-2">
               <div className="relative flex-1">
@@ -806,10 +804,10 @@ const InstanceExplorerView: React.FC<{ initialInstanceId?: number | null }> = ({
                 {loading ? <Loader2 className="animate-spin" size={15} /> : <><Search size={14} /> Search</>}
               </button>
             </div>
-          </div>
+      </div>
 
-          {!instance && (
-          <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+      {!instance && (
+        <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
             <div className="mb-4 flex items-center justify-between gap-3">
               <div>
                 <h3 className="font-semibold text-slate-800">Recent Instances</h3>
@@ -871,11 +869,8 @@ const InstanceExplorerView: React.FC<{ initialInstanceId?: number | null }> = ({
                 })}
               </div>
             )}
-          </div>
-          )}
         </div>
-
-        <div className="min-w-0 space-y-6">
+      )}
 
       {actionMessage && (
         <div className={`rounded-lg px-4 py-3 text-sm flex items-center gap-2 border ${
@@ -1374,8 +1369,6 @@ const InstanceExplorerView: React.FC<{ initialInstanceId?: number | null }> = ({
 
         </>
       )}
-        </div>
-      </div>
     </div>
   );
 };
