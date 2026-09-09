@@ -24,7 +24,7 @@ class ProcessInstanceStarter(
     @Transactional
     fun startWithDefinition(
         definition: ProcessDefinition,
-        initialVariables: Map<String, Any> = emptyMap(),
+        initialVariables: Map<String, Any?> = emptyMap(),
         startNodeId: String? = null
     ): ProcessInstance {
         val startTime = System.currentTimeMillis()

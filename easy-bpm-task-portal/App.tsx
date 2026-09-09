@@ -3,7 +3,7 @@ import { Sidebar } from './components/Sidebar';
 import { bpmService } from './services/bpmService';
 import { DynamicForm } from './components/DynamicForm';
 import { ThemeMode, ThemeToggle } from './components/ThemeToggle';
-import { Task, ProcessDefinition, TaskStatus, Form, JsonSchemaProperty, TaskFilterOperator, TaskSearchFilter } from './types';
+import { Task, ProcessDefinition, ProcessInstance, TaskStatus, Form, JsonSchemaProperty, TaskFilterOperator, TaskSearchFilter, Page } from './types';
 import {
   Play,
   CheckCircle2,
@@ -18,6 +18,7 @@ import {
   Trash2,
   AlertCircle,
   ChevronRight,
+  ChevronLeft,
   Zap,
   ListTodo,
   Unlock,
@@ -815,35 +816,158 @@ const InboxView: React.FC<{ onSelectTask: (id: number) => void; currentUser: str
   );
 };
 
+const PROCESS_PAGE_SIZE = 10;
+const finiteNumber = (value: unknown, fallback: number): number => {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : fallback;
+};
+
+const closedProcessStatuses = new Set(['COMPLETED', 'FAILED', 'CANCELLED', 'CANCELED']);
+
+const describeStartedInstance = (instance: ProcessInstance): string => {
+  const status = instance.status ? instance.status.toLowerCase() : 'started';
+  return `Process instance #${instance.id} ${status}.`;
+};
+
 const ProcessListView: React.FC<{ onViewInbox: () => void }> = ({ onViewInbox }) => {
   const [processes, setProcesses] = useState<ProcessDefinition[]>([]);
+  const [processPage, setProcessPage] = useState<Page<ProcessDefinition> | null>(null);
+  const [page, setPage] = useState(0);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [loading, setLoading] = useState(false);
   const [starting, setStarting] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [startMessage, setStartMessage] = useState<string | null>(null);
 
   useEffect(() => {
+    setLoading(true);
+    setError(null);
     bpmService
-      .getProcesses()
-      .then((result) => setProcesses(result.content))
-      .catch((loadError) => setError((loadError as Error).message));
-  }, []);
+      .getProcesses(page, PROCESS_PAGE_SIZE)
+      .then((result) => {
+        setProcessPage(result);
+        setProcesses(result.content);
+      })
+      .catch((loadError) => {
+        setProcessPage(null);
+        setProcesses([]);
+        setError((loadError as Error).message);
+      })
+      .finally(() => setLoading(false));
+  }, [page]);
 
   const handleStart = async (key: string) => {
     setStarting(key);
     setError(null);
+    setStartMessage(null);
     try {
-      await bpmService.startProcess(key);
-      setTimeout(() => onViewInbox(), 500);
+      const instance = await bpmService.startProcess(key);
+      setStartMessage(describeStartedInstance(instance));
+      setStarting(null);
+      if (!closedProcessStatuses.has(instance.status)) {
+        setTimeout(() => onViewInbox(), 500);
+      }
     } catch (startError) {
       setError((startError as Error).message);
       setStarting(null);
     }
   };
 
+  const normalizedSearch = searchTerm.trim().toLowerCase();
+  const filteredProcesses = normalizedSearch
+    ? processes.filter((processDefinition) => {
+        const haystack = [
+          processDefinition.processName,
+          processDefinition.key,
+          processDefinition.description,
+          String(processDefinition.version)
+        ].join(' ').toLowerCase();
+        return haystack.includes(normalizedSearch);
+      })
+    : processes;
+  const pageNumber = finiteNumber(processPage?.number, page);
+  const pageSize = finiteNumber(processPage?.size, PROCESS_PAGE_SIZE);
+  const visibleCount = processPage?.content.length ?? processes.length;
+  const reportedTotal = finiteNumber(processPage?.totalElements, pageNumber * pageSize + visibleCount);
+  const totalPages = finiteNumber(processPage?.totalPages, 0);
+  const canGoNext = processPage
+    ? pageNumber < totalPages - 1 || visibleCount >= PROCESS_PAGE_SIZE
+    : false;
+  const totalLabel = processPage
+    ? totalPages > pageNumber + 1
+      ? `of ${totalPages}`
+      : ''
+    : '';
+  const totalElementsLabel = processPage
+    ? visibleCount >= PROCESS_PAGE_SIZE && reportedTotal <= pageNumber * pageSize + visibleCount
+      ? `${reportedTotal}+`
+      : String(reportedTotal)
+    : '0';
+
+  const paginationControls = processPage && processes.length > 0 ? (
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600 shadow-sm">
+      <span>
+        Showing {pageNumber * pageSize + 1}-{pageNumber * pageSize + visibleCount} of {totalElementsLabel} processes
+      </span>
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setPage((current) => Math.max(0, current - 1))}
+          disabled={page === 0}
+          className="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-3 py-1.5 font-medium text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          <ChevronLeft size={16} />
+          Previous
+        </button>
+        <span className="px-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+          Page {pageNumber + 1} {totalLabel}
+        </span>
+        <button
+          type="button"
+          onClick={() => setPage((current) => current + 1)}
+          disabled={!canGoNext}
+          className="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-3 py-1.5 font-medium text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          Next
+          <ChevronRight size={16} />
+        </button>
+      </div>
+    </div>
+  ) : null;
+
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-slate-800">Start Process</h2>
-        <p className="text-slate-500 text-sm mt-1">Initiate new workflows from the task portal.</p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-bold text-slate-800">Start Process</h2>
+          <p className="text-slate-500 text-sm mt-1">Initiate new workflows from the task portal.</p>
+        </div>
+        {processPage && processes.length > 0 && (
+          <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500 shadow-sm">
+            Page {pageNumber + 1} {totalLabel}
+          </div>
+        )}
+      </div>
+
+      <div className="relative">
+        <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+        <input
+          type="search"
+          value={searchTerm}
+          onChange={(event) => setSearchTerm(event.target.value)}
+          className="w-full rounded-xl border border-slate-200 bg-white py-3 pl-10 pr-10 text-sm text-slate-800 shadow-sm outline-none transition-colors placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+          placeholder="Search processes by name, key, or description"
+        />
+        {searchTerm && (
+          <button
+            type="button"
+            onClick={() => setSearchTerm('')}
+            className="absolute right-3 top-1/2 -translate-y-1/2 rounded p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+            aria-label="Clear search"
+          >
+            <X size={16} />
+          </button>
+        )}
       </div>
 
       {error && (
@@ -853,45 +977,69 @@ const ProcessListView: React.FC<{ onViewInbox: () => void }> = ({ onViewInbox })
         </div>
       )}
 
-      {processes.length === 0 && !error ? (
+      {startMessage && (
+        <div className="p-3 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 text-sm flex items-center gap-2">
+          <CheckCircle2 size={16} className="flex-shrink-0" />
+          {startMessage}
+        </div>
+      )}
+
+      {loading ? (
+        <div className="text-center py-20 bg-white rounded-xl border border-slate-200">
+          <Loader2 className="mx-auto mb-3 animate-spin text-blue-500" size={34} />
+          <p className="text-slate-500 font-medium">Loading processes...</p>
+        </div>
+      ) : processes.length === 0 && !error ? (
         <div className="text-center py-20 bg-white rounded-xl border border-dashed border-slate-300">
           <Zap className="mx-auto text-slate-300 mb-3" size={48} />
           <p className="text-slate-500 font-medium">No processes deployed yet.</p>
           <p className="text-slate-400 text-sm mt-1">Deploy a process via the BPMN Modeler to get started.</p>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {processes.map((processDefinition) => (
-            <div
-              key={processDefinition.id}
-              className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between hover:border-slate-300 hover:shadow-md transition-all"
-            >
-              <div className="flex items-start gap-4">
-                <div className="p-2.5 bg-emerald-100 text-emerald-600 rounded-xl flex-shrink-0">
-                  <Play size={18} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap mb-1">
-                    <h3 className="font-bold text-slate-800 text-sm">{processDefinition.processName || processDefinition.key}</h3>
-                    <span className="text-[10px] font-mono bg-blue-50 text-blue-600 border border-blue-200 px-1.5 py-0.5 rounded">{processDefinition.key}</span>
-                    <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded">v{processDefinition.version}</span>
-                  </div>
-                  <p className="text-xs text-slate-500 line-clamp-2">{processDefinition.description}</p>
-                </div>
-              </div>
-              <div className="mt-4 flex justify-end">
-                <button
-                  onClick={() => handleStart(processDefinition.key)}
-                  disabled={starting === processDefinition.key}
-                  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 shadow-sm shadow-blue-200"
-                >
-                  {starting === processDefinition.key ? <Loader2 className="animate-spin" size={14} /> : <Play size={14} />}
-                  Start
-                </button>
-              </div>
-            </div>
-          ))}
+      ) : filteredProcesses.length === 0 ? (
+        <div className="text-center py-16 bg-white rounded-xl border border-dashed border-slate-300">
+          <Search className="mx-auto text-slate-300 mb-3" size={38} />
+          <p className="text-slate-500 font-medium">No processes match this search.</p>
+          <p className="text-slate-400 text-sm mt-1">Try a different name, key, or description.</p>
         </div>
+      ) : (
+        <>
+          {paginationControls}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {filteredProcesses.map((processDefinition) => (
+              <div
+                key={processDefinition.id}
+                className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between hover:border-slate-300 hover:shadow-md transition-all"
+              >
+                <div className="flex items-start gap-4">
+                  <div className="p-2.5 bg-emerald-100 text-emerald-600 rounded-xl flex-shrink-0">
+                    <Play size={18} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                      <h3 className="font-bold text-slate-800 text-sm">{processDefinition.processName || processDefinition.key}</h3>
+                      <span className="text-[10px] font-mono bg-blue-50 text-blue-600 border border-blue-200 px-1.5 py-0.5 rounded">{processDefinition.key}</span>
+                      <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded">v{processDefinition.version}</span>
+                    </div>
+                    <p className="text-xs text-slate-500 line-clamp-2">{processDefinition.description}</p>
+                  </div>
+                </div>
+                <div className="mt-4 flex justify-end">
+                  <button
+                    onClick={() => handleStart(processDefinition.key)}
+                    disabled={starting === processDefinition.key}
+                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 shadow-sm shadow-blue-200"
+                  >
+                    {starting === processDefinition.key ? <Loader2 className="animate-spin" size={14} /> : <Play size={14} />}
+                    Start
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {paginationControls}
+        </>
       )}
     </div>
   );

@@ -30,7 +30,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { FormDefinition, FormField, FormTab } from '../types';
 import { fetchWithAuth } from '../services/processService';
-import { generateJsonSchema } from '../utils/formUtils';
+import { generateJsonSchema, importForm } from '../utils/formUtils';
 import { getModelerApiBaseUrl } from '../config/runtimeConfig';
 
 const API_BASE_URL = getModelerApiBaseUrl();
@@ -221,6 +221,8 @@ export const FormModeler: React.FC<FormModelerProps> = ({ formLibrary, selectedF
   const [showSchema, setShowSchema] = useState(false);
   const [isDeploying, setIsDeploying] = useState(false);
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
+  const [schemaDraft, setSchemaDraft] = useState('');
+  const [schemaError, setSchemaError] = useState<string | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -380,6 +382,33 @@ export const FormModeler: React.FC<FormModelerProps> = ({ formLibrary, selectedF
     toast.success('Schema copied to clipboard!');
   };
 
+  const openSchemaEditor = () => {
+    setSchemaDraft(JSON.stringify(generateJsonSchema(form), null, 2));
+    setSchemaError(null);
+    setShowSchema(true);
+  };
+
+  const applySchemaDraft = () => {
+    try {
+      const parsed = JSON.parse(schemaDraft);
+      const result = importForm(parsed);
+      if (!result.success || !result.form) {
+        throw new Error(result.error || 'Invalid form JSON.');
+      }
+
+      setForm(result.form);
+      setActiveTabId(result.form.tabs[0]?.id || null);
+      setSelectedFieldId(null);
+      setSchemaDraft(JSON.stringify(generateJsonSchema(result.form), null, 2));
+      setSchemaError(null);
+      toast.success('JSON applied to the form.');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Could not apply JSON changes.';
+      setSchemaError(message);
+      toast.error(message);
+    }
+  };
+
   return (
     <div className="flex flex-1 h-full overflow-hidden bg-slate-50">
       {/* Field Palette */}
@@ -436,7 +465,7 @@ export const FormModeler: React.FC<FormModelerProps> = ({ formLibrary, selectedF
               <span>{showPreview ? 'Edit Fields' : 'Preview Form'}</span>
             </button>
             <button 
-              onClick={() => setShowSchema(true)}
+              onClick={openSchemaEditor}
               className="flex items-center space-x-2 px-3 py-1.5 bg-slate-100 text-slate-600 rounded-md text-sm font-medium hover:bg-slate-200 transition-colors border border-transparent"
             >
               <Code className="w-4 h-4" />
@@ -647,18 +676,35 @@ export const FormModeler: React.FC<FormModelerProps> = ({ formLibrary, selectedF
                   <X className="w-5 h-5" />
                 </button>
               </div>
-              <div className="flex-1 overflow-y-auto p-6 bg-slate-900">
-                <pre className="text-blue-300 font-mono text-sm">
-                  {JSON.stringify(generateJsonSchema(form), null, 2)}
-                </pre>
+              <div className="flex min-h-0 flex-1 flex-col gap-3 bg-slate-900 p-6">
+                {schemaError && (
+                  <div className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">
+                    {schemaError}
+                  </div>
+                )}
+                <textarea
+                  value={schemaDraft}
+                  onChange={(event) => {
+                    setSchemaDraft(event.target.value);
+                    setSchemaError(null);
+                  }}
+                  spellCheck={false}
+                  className="min-h-[420px] flex-1 resize-none rounded-md border border-slate-700 bg-slate-950 p-4 font-mono text-sm leading-6 text-blue-300 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
+                />
               </div>
               <div className="p-4 border-t border-slate-200 flex justify-end space-x-3">
                 <button 
-                  onClick={() => copyToClipboard(JSON.stringify(generateJsonSchema(form), null, 2))}
+                  onClick={() => copyToClipboard(schemaDraft)}
                   className="flex items-center space-x-2 px-4 py-2 bg-slate-100 text-slate-600 rounded-md text-sm font-medium hover:bg-slate-200 transition-colors"
                 >
                   <Copy className="w-4 h-4" />
                   <span>Copy to Clipboard</span>
+                </button>
+                <button
+                  onClick={applySchemaDraft}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors"
+                >
+                  Apply JSON
                 </button>
                 <button 
                   onClick={() => setShowSchema(false)}

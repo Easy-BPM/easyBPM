@@ -16,7 +16,6 @@ import {
 } from 'lucide-react';
 import { ThemeMode, ThemeToggle } from './ThemeToggle';
 import { AvailableCredential, isAuthRequiredError, processService } from '../services/processService';
-import { getRuntimeConfigValue } from '../config/runtimeConfig';
 import { Toaster, toast } from 'sonner';
 
 interface AgentBoardModelerProps {
@@ -75,13 +74,8 @@ interface AgentProcessTemplate {
 
 const splitLines = (value: string) => value.split('\n').map(line => line.trim()).filter(Boolean);
 
-const getRuntimeDefault = (key: string, fallback: string) =>
-  getRuntimeConfigValue(key) ?? (import.meta.env[key] as string | undefined) ?? fallback;
-
 const defaultSystemPrompt = 'You are an Easy BPM orchestration agent. Return concise, auditable decisions as JSON when possible.';
 const defaultPromptTemplate = 'Goal: {{goal}}\nInstructions: {{instructions}}\nConstraints: {{constraints}}\nAvailable tools: {{tools}}\nInputs: {{inputs}}\n\nDecide the next orchestration outcome and explain the reason. When a tool is needed, include the intended tool call and arguments in the JSON response.';
-const defaultProviderEndpoint = (providerId: string) =>
-  providerId === 'ollama' ? 'http://host.docker.internal:11434' : '';
 const createToolId = () => Math.random().toString(36).slice(2, 10);
 const defaultApiInputSchema = '{\n  "type": "object",\n  "properties": {}\n}';
 const defaultApiOutputSchema = '{\n  "type": "object",\n  "properties": {}\n}';
@@ -208,20 +202,19 @@ const agentProcessTemplates: AgentProcessTemplate[] = [
 ];
 
 const createBlankAgentState = (): AgentBoardState => {
-  const defaultProviderId = getRuntimeDefault('EASY_BPM_MODELER_DEFAULT_AI_PROVIDER', 'gemini');
   return {
-  processKey: '',
-  processName: '',
-  goal: '',
-  instructions: '',
-  constraints: '',
-  availableTools: [],
-  providerId: defaultProviderId,
-  modelName: getRuntimeDefault('EASY_BPM_MODELER_DEFAULT_AI_MODEL', 'gemini-3.5-flash'),
-  endpoint: defaultProviderEndpoint(defaultProviderId),
-  credentialRef: getRuntimeDefault('EASY_BPM_MODELER_DEFAULT_AI_CREDENTIAL_REF', '$GEMINI_API_KEY'),
-  systemPrompt: defaultSystemPrompt,
-  promptTemplate: defaultPromptTemplate
+    processKey: '',
+    processName: '',
+    goal: '',
+    instructions: '',
+    constraints: '',
+    availableTools: [],
+    providerId: '',
+    modelName: '',
+    endpoint: '',
+    credentialRef: '',
+    systemPrompt: defaultSystemPrompt,
+    promptTemplate: defaultPromptTemplate
   };
 };
 
@@ -354,9 +347,7 @@ const normalizeImportedAgent = (data: unknown): AgentBoardState => {
     availableTools: normalizeTools(imported.availableTools),
     providerId: typeof provider.providerId === 'string' ? provider.providerId : blank.providerId,
     modelName: typeof provider.modelName === 'string' ? provider.modelName : blank.modelName,
-    endpoint: typeof provider.endpoint === 'string'
-      ? provider.endpoint
-      : defaultProviderEndpoint(typeof provider.providerId === 'string' ? provider.providerId : blank.providerId),
+    endpoint: typeof provider.endpoint === 'string' ? provider.endpoint : blank.endpoint,
     credentialRef: typeof provider.credentialRef === 'string' ? provider.credentialRef : blank.credentialRef,
     systemPrompt: typeof provider.systemPrompt === 'string' ? provider.systemPrompt : blank.systemPrompt,
     promptTemplate: typeof provider.promptTemplate === 'string' ? provider.promptTemplate : blank.promptTemplate
@@ -413,7 +404,7 @@ export const AgentBoardModeler: React.FC<AgentBoardModelerProps> = ({
   const handleProviderChange = (nextProviderId: string) => {
     updateAgentState({
       providerId: nextProviderId,
-      endpoint: defaultProviderEndpoint(nextProviderId)
+      endpoint: ''
     });
   };
 
@@ -882,6 +873,7 @@ export const AgentBoardModeler: React.FC<AgentBoardModelerProps> = ({
                 <label className="block space-y-1.5">
                   <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Provider</span>
                   <select value={providerId} onChange={event => handleProviderChange(event.target.value)} className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100">
+                    <option value="">Select provider</option>
                     <option value="openai">OpenAI</option>
                     <option value="anthropic">Anthropic</option>
                     <option value="gemini">Gemini</option>
@@ -896,7 +888,7 @@ export const AgentBoardModeler: React.FC<AgentBoardModelerProps> = ({
                 </label>
                 <label className="block space-y-1.5">
                   <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Endpoint</span>
-                  <input value={endpoint} onChange={event => updateAgentState({ endpoint: event.target.value })} className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" placeholder={providerId === 'ollama' ? 'http://host.docker.internal:11434' : 'Optional provider endpoint'} />
+                  <input value={endpoint} onChange={event => updateAgentState({ endpoint: event.target.value })} className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" placeholder="Optional provider endpoint" />
                 </label>
                 <label className="block space-y-1.5">
                   <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Credential Ref</span>
@@ -908,7 +900,7 @@ export const AgentBoardModeler: React.FC<AgentBoardModelerProps> = ({
                       ))}
                     </select>
                   )}
-                  <input value={credentialRef} onChange={event => updateAgentState({ credentialRef: event.target.value })} className="w-full rounded-md border border-slate-300 px-3 py-2 font-mono text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" placeholder="$GEMINI_API_KEY" />
+                  <input value={credentialRef} onChange={event => updateAgentState({ credentialRef: event.target.value })} className="w-full rounded-md border border-slate-300 px-3 py-2 font-mono text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" placeholder="Secret name or environment variable" />
                 </label>
               </div>
             </aside>

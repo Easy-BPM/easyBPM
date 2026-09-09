@@ -68,6 +68,13 @@ class ProcessService(
         return instanceStarter.startWithDefinition(definition)
     }
 
+    fun startProcessInstance(processId: String, initialVariables: Map<String, Any?>): ProcessInstance {
+        val definition = processDefinitionRepository.findTopByKeyOrderByVersionDesc(processId)
+            ?: throw IllegalArgumentException("Process definition not found for id: $processId")
+
+        return instanceStarter.startWithDefinition(definition, initialVariables)
+    }
+
     fun getProcessInstances(pageable: Pageable): Page<ProcessInstance> =
         processInstanceRepository.findAll(pageableSanitizer.sanitizeProcessInstances(pageable))
 

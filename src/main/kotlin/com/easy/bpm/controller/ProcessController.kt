@@ -12,6 +12,8 @@ import com.easy.bpm.model.variable.ProcessVariable
 import com.easy.bpm.service.message.MessageEventInboxService
 import com.easy.bpm.service.process.ProcessInstanceTimelineService
 import com.easy.bpm.service.process.ProcessService
+import com.fasterxml.jackson.core.type.TypeReference
+import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.ExampleObject
@@ -88,10 +90,22 @@ class ProcessController(
     }
 
     @PostMapping("/{processId}/start")
-    @Operation(summary = "Start a process instance", description = "Create and start a new instance of a process definition by processId")
-    fun startInstance(@PathVariable processId: String): ResponseEntity<Any> {
+    @Operation(
+        summary = "Start a process instance",
+        description = "Create and start a new instance of a process definition by processId. Optional process variables may be sent as {\"variables\":{...}} or as a direct JSON object."
+    )
+    fun startInstance(
+        @PathVariable processId: String,
+        @RequestBody(required = false) requestBody: JsonNode? = null
+    ): ResponseEntity<Any> {
         return try {
-            ResponseEntity.ok(processService.startProcessInstance(processId))
+            val initialVariables = extractStartVariables(requestBody)
+            val instance = if (initialVariables.isEmpty()) {
+                processService.startProcessInstance(processId)
+            } else {
+                processService.startProcessInstance(processId, initialVariables)
+            }
+            ResponseEntity.ok(instance)
         } catch (ex: IllegalArgumentException) {
             val errorMessage = when (ex.message) {
                 "StartEvent not found" ->
@@ -114,7 +128,44 @@ class ProcessController(
                     "messageEndpoint" to "/processes/messages"
                 )
             )
+        } catch (ex: Exception) {
+            val errorMessage = rootCauseMessage(ex) ?: "Process '$processId' failed while starting."
+            ResponseEntity.status(500).body(
+                mapOf(
+                    "status" to "error",
+                    "message" to errorMessage,
+                    "processId" to processId,
+                    "startEndpoint" to "/processes/$processId/start"
+                )
+            )
         }
+    }
+
+    private fun rootCauseMessage(ex: Throwable): String? {
+        var current: Throwable = ex
+        while (current.cause != null && current.cause !== current) {
+            current = current.cause!!
+        }
+        return current.message ?: ex.message
+    }
+
+    private fun extractStartVariables(requestBody: JsonNode?): Map<String, Any?> {
+        if (requestBody == null || requestBody.isNull) return emptyMap()
+        if (!requestBody.isObject) {
+            throw IllegalArgumentException("Start request body must be a JSON object")
+        }
+
+        val variablesNode = requestBody.get("variables")
+        val variablePayload = if (variablesNode != null) {
+            if (!variablesNode.isObject) {
+                throw IllegalArgumentException("Start request variables must be a JSON object")
+            }
+            variablesNode
+        } else {
+            requestBody
+        }
+
+        return objectMapper.convertValue(variablePayload, object : TypeReference<Map<String, Any?>>() {})
     }
 
     @GetMapping("/instances")
