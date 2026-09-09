@@ -808,6 +808,7 @@ const InstanceExplorerView: React.FC<{ initialInstanceId?: number | null }> = ({
             </div>
           </div>
 
+          {!instance && (
           <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
             <div className="mb-4 flex items-center justify-between gap-3">
               <div>
@@ -871,6 +872,7 @@ const InstanceExplorerView: React.FC<{ initialInstanceId?: number | null }> = ({
               </div>
             )}
           </div>
+          )}
         </div>
 
         <div className="min-w-0 space-y-6">
