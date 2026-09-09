@@ -1518,7 +1518,6 @@ const App: React.FC = () => {
           onRefreshResources={loadWorkspaceResources}
           onOpenResource={handleOpenWorkspaceResource}
           showDeployedResources={!isDesktop}
-          showSidebar={!isDesktop}
           currentUser={currentUser}
           onLogout={handleLogout}
           theme={theme}
@@ -1748,7 +1747,6 @@ const App: React.FC = () => {
         onRefreshResources={loadWorkspaceResources}
         onOpenResource={handleOpenWorkspaceResource}
         showDeployedResources={!isDesktop}
-        showSidebar={!isDesktop}
         theme={theme}
         onToggleTheme={toggleTheme}
       />
