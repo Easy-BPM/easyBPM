@@ -67,6 +67,7 @@ interface WelcomeScreenProps {
   onRefreshResources?: () => void;
   onOpenResource?: (resource: WorkspaceResource) => void;
   showDeployedResources?: boolean;
+  showSidebar?: boolean;
   currentUser?: string | null;
   onLogout?: () => void;
   theme: ThemeMode;
@@ -251,6 +252,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
   onRefreshResources,
   onOpenResource,
   showDeployedResources = true,
+  showSidebar = true,
   currentUser,
   onLogout,
   theme,
@@ -286,6 +288,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
   return (
     <div className="welcome-modeler h-dvh overflow-hidden bg-[var(--modeler-bg)] text-[var(--modeler-text)]" data-theme={theme}>
       <div className="flex h-full min-h-0">
+        {showSidebar && (
         <aside className="hidden h-full w-72 shrink-0 overflow-y-auto border-r border-[var(--modeler-border)] bg-[var(--modeler-surface)]/80 px-5 py-6 lg:flex lg:flex-col">
           <div className="flex items-center gap-3">
             <EasyBpmLogoMark />
@@ -331,17 +334,18 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
             </button>
           </div>
         </aside>
+        )}
 
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           <header className="flex h-16 shrink-0 items-center justify-between border-b border-[var(--modeler-border)] bg-[var(--modeler-surface)]/70 px-4 backdrop-blur-sm sm:px-6">
-            <div className="flex items-center gap-3 lg:hidden">
+            <div className={`flex items-center gap-3 ${showSidebar ? 'lg:hidden' : ''}`}>
               <EasyBpmLogoMark className="h-9 w-9" />
               <div>
                 <h1 className="text-sm font-semibold">Easy BPM Modeler</h1>
                 <p className="text-xs text-[var(--modeler-text-muted)]">Workspace</p>
               </div>
             </div>
-            <div className="hidden text-sm text-[var(--modeler-text-muted)] lg:block">
+            <div className={`${showSidebar ? 'hidden lg:block' : 'hidden md:block'} text-sm text-[var(--modeler-text-muted)]`}>
               Design, orchestrate and automate with ease
             </div>
 
