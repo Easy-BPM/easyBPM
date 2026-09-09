@@ -320,6 +320,50 @@ class ProcessServiceTest : FunSpec() {
                 )
             }
         }
+
+        test("should create instance by process key with initial variables") {
+            // Arrange
+            val processKey = "simple-process"
+            val definition = ProcessDefinition(
+                id = 1,
+                processName = processKey,
+                definitionJson = unitTestBpmnXml("simple", "[]"),
+                version = 1
+            )
+            val initialVariables = mapOf<String, Any?>(
+                "customerId" to "C-123",
+                "newVariable" to true,
+                "optionalNote" to null
+            )
+            val expectedInstance = ProcessInstance(
+                id = 100,
+                processDefinition = definition,
+                status = ProcessStatus.ACTIVE,
+                currentNode = emptyList()
+            )
+
+            every { mockProcessDefinitionRepository.findTopByKeyOrderByVersionDesc(processKey) } returns definition
+            every {
+                mockInstanceStarter.startWithDefinition(
+                    definition = definition,
+                    initialVariables = initialVariables,
+                    startNodeId = null
+                )
+            } returns expectedInstance
+
+            // Act
+            val result = processService.startProcessInstance(processKey, initialVariables)
+
+            // Assert
+            result.status shouldBe ProcessStatus.ACTIVE
+            verify {
+                mockInstanceStarter.startWithDefinition(
+                    definition = definition,
+                    initialVariables = initialVariables,
+                    startNodeId = null
+                )
+            }
+        }
     }
 
     context("getProcessInstances") {

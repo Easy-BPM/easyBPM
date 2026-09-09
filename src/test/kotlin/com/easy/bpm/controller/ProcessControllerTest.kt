@@ -108,6 +108,78 @@ class ProcessControllerTest : FunSpec() {
             verify { mockProcessService.startProcessInstance(processKey) }
         }
 
+        test("should start process instance with initial variables") {
+            // Arrange
+            val processKey = "my-process"
+            val processDefinition = ProcessDefinition(
+                id = 1,
+                processName = "my-process",
+                definitionJson = "{}",
+                version = 1
+            )
+            val expectedInstance = ProcessInstance(
+                id = 100,
+                processDefinition = processDefinition,
+                status = com.easy.bpm.enum.ProcessStatus.ACTIVE,
+                currentNode = listOf("start-1")
+            )
+            val requestBody = objectMapper.readTree(
+                """
+                {
+                  "variables": {
+                    "customerId": "C-123",
+                    "priority": 3,
+                    "newVariable": true
+                  }
+                }
+                """.trimIndent()
+            )
+            val expectedVariables = mapOf(
+                "customerId" to "C-123",
+                "priority" to 3,
+                "newVariable" to true
+            )
+
+            every { mockProcessService.startProcessInstance(processKey, expectedVariables) } returns expectedInstance
+
+            // Act
+            val result = processController.startInstance(processKey, requestBody)
+
+            // Assert
+            result.statusCode shouldBe HttpStatus.OK
+            val body = result.body as ProcessInstance
+            body.id shouldBe 100
+            verify { mockProcessService.startProcessInstance(processKey, expectedVariables) }
+        }
+
+        test("should accept direct variable object when starting process instance") {
+            // Arrange
+            val processKey = "my-process"
+            val processDefinition = ProcessDefinition(
+                id = 1,
+                processName = "my-process",
+                definitionJson = "{}",
+                version = 1
+            )
+            val expectedInstance = ProcessInstance(
+                id = 100,
+                processDefinition = processDefinition,
+                status = com.easy.bpm.enum.ProcessStatus.ACTIVE,
+                currentNode = listOf("start-1")
+            )
+            val requestBody = objectMapper.readTree("""{"customerId":"C-123"}""")
+            val expectedVariables = mapOf("customerId" to "C-123")
+
+            every { mockProcessService.startProcessInstance(processKey, expectedVariables) } returns expectedInstance
+
+            // Act
+            val result = processController.startInstance(processKey, requestBody)
+
+            // Assert
+            result.statusCode shouldBe HttpStatus.OK
+            verify { mockProcessService.startProcessInstance(processKey, expectedVariables) }
+        }
+
         test("should return not found when process definition does not exist") {
             // Arrange
             val processKey = "unknown"
