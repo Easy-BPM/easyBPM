@@ -6,8 +6,6 @@ import {
   ExternalLink,
   FileText,
   HelpCircle,
-  Home,
-  Lightbulb,
   Loader2,
   LogOut,
   MoreVertical,
@@ -67,7 +65,6 @@ interface WelcomeScreenProps {
   onRefreshResources?: () => void;
   onOpenResource?: (resource: WorkspaceResource) => void;
   showDeployedResources?: boolean;
-  showSidebar?: boolean;
   currentUser?: string | null;
   onLogout?: () => void;
   theme: ThemeMode;
@@ -252,7 +249,6 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
   onRefreshResources,
   onOpenResource,
   showDeployedResources = true,
-  showSidebar = true,
   currentUser,
   onLogout,
   theme,
@@ -278,74 +274,20 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
     }
     setIsTemplateBrowserOpen(false);
   };
-  const sidebarItems = [
-    { label: 'Welcome', icon: <Home className="h-4 w-4" />, active: true, onClick: undefined },
-    { label: 'Modeler', icon: <Workflow className="h-4 w-4" />, active: false, onClick: onCreateProcess },
-    { label: 'Forms', icon: <FileText className="h-4 w-4" />, active: false, onClick: onCreateForm },
-    { label: 'Agents', icon: <Bot className="h-4 w-4" />, active: false, onClick: onCreateAgentProcess }
-  ].filter(item => item.label !== 'Agents' || isAgenticOrchestrationEnabled);
 
   return (
     <div className="welcome-modeler h-dvh overflow-hidden bg-[var(--modeler-bg)] text-[var(--modeler-text)]" data-theme={theme}>
       <div className="flex h-full min-h-0">
-        {showSidebar && (
-        <aside className="hidden h-full w-72 shrink-0 overflow-y-auto border-r border-[var(--modeler-border)] bg-[var(--modeler-surface)]/80 px-5 py-6 lg:flex lg:flex-col">
-          <div className="flex items-center gap-3">
-            <EasyBpmLogoMark />
-            <div>
-              <h1 className="text-sm font-semibold text-[var(--modeler-text)]">Easy BPM Modeler</h1>
-              <p className="text-xs text-[var(--modeler-text-muted)]">Modeling made simple.</p>
-            </div>
-          </div>
-
-          <nav className="mt-10 space-y-2">
-            {sidebarItems.map(item => (
-              <button
-                key={item.label}
-                type="button"
-                onClick={item.onClick}
-                className={`flex w-full items-center gap-3 rounded-md px-4 py-3 text-left text-sm font-semibold transition-colors ${
-                  item.active
-                    ? 'bg-blue-600 text-white shadow-sm shadow-blue-600/25'
-                    : 'text-[var(--modeler-text-soft)] hover:bg-[var(--modeler-surface-muted)] hover:text-[var(--modeler-text)]'
-                }`}
-              >
-                {item.icon}
-                {item.label}
-              </button>
-            ))}
-          </nav>
-
-          <div className="mt-auto rounded-lg border border-[var(--modeler-border)] bg-[var(--modeler-surface-muted)] p-4">
-            <div className="mb-3 flex items-center gap-2">
-              <Lightbulb className="h-4 w-4 text-amber-400" />
-              <p className="text-sm font-semibold text-[var(--modeler-text)]">Tip</p>
-            </div>
-            <p className="text-sm leading-5 text-[var(--modeler-text-muted)]">
-              Start by creating a process or explore templates to speed up your work.
-            </p>
-            <button
-              type="button"
-              onClick={() => setIsTemplateBrowserOpen(true)}
-              className="mt-4 inline-flex items-center gap-2 rounded-md border border-[var(--modeler-border)] bg-[var(--modeler-surface)] px-3 py-2 text-xs font-semibold text-[var(--modeler-text-soft)] transition-colors hover:bg-[var(--modeler-surface-muted)] hover:text-[var(--modeler-text)]"
-            >
-              Explore templates
-              <ArrowRight className="h-3.5 w-3.5" />
-            </button>
-          </div>
-        </aside>
-        )}
-
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           <header className="flex h-16 shrink-0 items-center justify-between border-b border-[var(--modeler-border)] bg-[var(--modeler-surface)]/70 px-4 backdrop-blur-sm sm:px-6">
-            <div className={`flex items-center gap-3 ${showSidebar ? 'lg:hidden' : ''}`}>
+            <div className="flex items-center gap-3">
               <EasyBpmLogoMark className="h-9 w-9" />
               <div>
                 <h1 className="text-sm font-semibold">Easy BPM Modeler</h1>
                 <p className="text-xs text-[var(--modeler-text-muted)]">Workspace</p>
               </div>
             </div>
-            <div className={`${showSidebar ? 'hidden lg:block' : 'hidden md:block'} text-sm text-[var(--modeler-text-muted)]`}>
+            <div className="hidden text-sm text-[var(--modeler-text-muted)] md:block">
               Design, orchestrate and automate with ease
             </div>
 
