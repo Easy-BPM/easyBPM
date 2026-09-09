@@ -284,9 +284,9 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
   ].filter(item => item.label !== 'Agents' || isAgenticOrchestrationEnabled);
 
   return (
-    <div className="welcome-modeler min-h-screen bg-[var(--modeler-bg)] text-[var(--modeler-text)]" data-theme={theme}>
-      <div className="flex min-h-screen">
-        <aside className="hidden w-72 shrink-0 border-r border-[var(--modeler-border)] bg-[var(--modeler-surface)]/80 px-5 py-6 lg:flex lg:flex-col">
+    <div className="welcome-modeler h-dvh overflow-hidden bg-[var(--modeler-bg)] text-[var(--modeler-text)]" data-theme={theme}>
+      <div className="flex h-full min-h-0">
+        <aside className="hidden h-full w-72 shrink-0 overflow-y-auto border-r border-[var(--modeler-border)] bg-[var(--modeler-surface)]/80 px-5 py-6 lg:flex lg:flex-col">
           <div className="flex items-center gap-3">
             <EasyBpmLogoMark />
             <div>
@@ -332,8 +332,8 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
           </div>
         </aside>
 
-        <div className="min-w-0 flex-1">
-          <header className="flex h-16 items-center justify-between border-b border-[var(--modeler-border)] bg-[var(--modeler-surface)]/70 px-6 backdrop-blur-sm">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+          <header className="flex h-16 shrink-0 items-center justify-between border-b border-[var(--modeler-border)] bg-[var(--modeler-surface)]/70 px-4 backdrop-blur-sm sm:px-6">
             <div className="flex items-center gap-3 lg:hidden">
               <EasyBpmLogoMark className="h-9 w-9" />
               <div>
@@ -384,18 +384,19 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
             </div>
           </header>
 
-          <main className="mx-auto w-full max-w-7xl px-6 py-8">
-            <section className="grid gap-6 xl:grid-cols-[1fr_560px]">
-              <div className="pt-4">
-                <h2 className="text-3xl font-semibold tracking-normal text-[var(--modeler-text)]">
+          <main className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-6 lg:px-8">
+            <div className="mx-auto w-full max-w-7xl pb-8">
+            <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(360px,520px)]">
+              <div className="pt-1 lg:pt-3">
+                <h2 className="text-2xl font-semibold tracking-normal text-[var(--modeler-text)] sm:text-3xl">
                   Welcome to Easy BPM Modeler
                 </h2>
-                <p className="mt-3 max-w-2xl text-base leading-7 text-[var(--modeler-text-muted)]">
+                <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--modeler-text-muted)] sm:text-base sm:leading-7">
                   Everything you need to design, automate and orchestrate powerful business processes.
                 </p>
               </div>
-              <div className="hidden min-h-36 items-center justify-center overflow-hidden rounded-lg border border-[var(--modeler-border)] bg-[var(--modeler-surface)]/60 xl:flex">
-                <div className="relative h-28 w-[460px]">
+              <div className="hidden min-h-32 items-center justify-center overflow-hidden rounded-lg border border-[var(--modeler-border)] bg-[var(--modeler-surface)]/60 xl:flex">
+                <div className="relative h-24 w-full max-w-[430px]">
                   <div className="absolute inset-0 bg-[radial-gradient(circle,var(--modeler-canvas-grid)_1px,transparent_1px)] [background-size:24px_24px]" />
                   <div className="absolute left-12 top-10 h-8 w-8 rounded-full border-2 border-blue-300" />
                   <div className="absolute left-28 top-14 h-px w-20 bg-blue-300/60" />
@@ -408,16 +409,16 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
               </div>
             </section>
 
-            <section className="mt-8 grid gap-5 lg:grid-cols-3">
-              <article className="group overflow-hidden rounded-lg border border-blue-500/25 bg-blue-600/10 p-6 transition-colors hover:bg-blue-600/15">
-                <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg shadow-blue-600/20">
+            <section className="mt-6 grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
+              <article className="group overflow-hidden rounded-lg border border-blue-500/25 bg-blue-600/10 p-5 transition-colors hover:bg-blue-600/15">
+                <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg shadow-blue-600/20">
                   <Workflow className="h-6 w-6" />
                 </div>
                 <h3 className="text-lg font-semibold text-[var(--modeler-text)]">Modeler</h3>
-                <p className="mt-2 min-h-16 text-sm leading-5 text-[var(--modeler-text-muted)]">
+                <p className="mt-2 min-h-14 text-sm leading-5 text-[var(--modeler-text-muted)]">
                   Create and edit BPMN diagrams visually. Design processes with gateways, events and flows.
                 </p>
-                <div className="mt-5 flex flex-wrap items-center gap-2">
+                <div className="mt-4 flex flex-wrap items-center gap-2">
                   <button
                     type="button"
                     onClick={onCreateProcess}
@@ -429,15 +430,15 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
                 </div>
               </article>
 
-              <article className="group overflow-hidden rounded-lg border border-emerald-500/25 bg-emerald-600/10 p-6 transition-colors hover:bg-emerald-600/15">
-                <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-600 text-white shadow-lg shadow-emerald-600/20">
+              <article className="group overflow-hidden rounded-lg border border-emerald-500/25 bg-emerald-600/10 p-5 transition-colors hover:bg-emerald-600/15">
+                <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-full bg-emerald-600 text-white shadow-lg shadow-emerald-600/20">
                   <FileText className="h-6 w-6" />
                 </div>
                 <h3 className="text-lg font-semibold text-[var(--modeler-text)]">Forms</h3>
-                <p className="mt-2 min-h-16 text-sm leading-5 text-[var(--modeler-text-muted)]">
+                <p className="mt-2 min-h-14 text-sm leading-5 text-[var(--modeler-text-muted)]">
                   Build forms with drag-and-drop. Add fields, validations and logic to collect the right data.
                 </p>
-                <div className="mt-5 flex flex-wrap items-center gap-2">
+                <div className="mt-4 flex flex-wrap items-center gap-2">
                   <button
                     type="button"
                     onClick={onCreateForm}
@@ -450,15 +451,15 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
               </article>
 
               {isAgenticOrchestrationEnabled && onCreateAgentProcess && (
-                <article className="group overflow-hidden rounded-lg border border-violet-500/25 bg-violet-600/10 p-6 transition-colors hover:bg-violet-600/15">
-                  <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-full bg-violet-600 text-white shadow-lg shadow-violet-600/20">
+                <article className="group overflow-hidden rounded-lg border border-violet-500/25 bg-violet-600/10 p-5 transition-colors hover:bg-violet-600/15">
+                  <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-full bg-violet-600 text-white shadow-lg shadow-violet-600/20">
                     <Bot className="h-6 w-6" />
                   </div>
                   <h3 className="text-lg font-semibold text-[var(--modeler-text)]">Agents</h3>
-                  <p className="mt-2 min-h-16 text-sm leading-5 text-[var(--modeler-text-muted)]">
+                  <p className="mt-2 min-h-14 text-sm leading-5 text-[var(--modeler-text-muted)]">
                     Configure AI agents to make decisions, interact with systems and automate tasks.
                   </p>
-                  <div className="mt-5 flex flex-wrap items-center gap-2">
+                  <div className="mt-4 flex flex-wrap items-center gap-2">
                     <button
                       type="button"
                       onClick={onCreateAgentProcess}
@@ -634,6 +635,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
                 <ExternalLink className="h-4 w-4" />
               </button>
             </section>
+            </div>
           </main>
         </div>
       </div>

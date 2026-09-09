@@ -5,6 +5,8 @@ const path = require('path');
 const isDev = process.env.EASY_BPM_DESKTOP_DEV === 'true';
 const appIconPath = path.join(__dirname, '..', 'assets', 'icon.png');
 
+app.setName('Easy BPM Desktop Modeler');
+
 const createWindow = async () => {
   const mainWindow = new BrowserWindow({
     width: 1440,
@@ -100,7 +102,6 @@ ipcMain.handle('easy-bpm:open-text-file', async (_event, request) => {
 });
 
 app.whenReady().then(async () => {
-  app.setName('Easy BPM Desktop Modeler');
   if (process.platform === 'darwin' && app.dock) {
     app.dock.setIcon(appIconPath);
   }
