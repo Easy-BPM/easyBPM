@@ -77,6 +77,9 @@ const App: React.FC = () => {
    const [isPropertiesPanelVisible, setIsPropertiesPanelVisible] = useState(true);
    const [processView, setProcessView] = useState<AppView>('bpmn');
    const [isNewProcessDialogOpen, setIsNewProcessDialogOpen] = useState(false);
+   const [processXmlDraft, setProcessXmlDraft] = useState('');
+   const [isProcessXmlDirty, setIsProcessXmlDirty] = useState(false);
+   const [processXmlError, setProcessXmlError] = useState<string | null>(null);
 
    // Form editor state
    const [formLibrary, setFormLibrary] = useState<Map<string, FormDefinition>>(new Map());
@@ -927,6 +930,39 @@ const App: React.FC = () => {
     [nodes, edges, variables, processId, processName]
   );
 
+  useEffect(() => {
+    if (processView === 'xml' && !isProcessXmlDirty) {
+      setProcessXmlDraft(currentProcessXml);
+      setProcessXmlError(null);
+    }
+  }, [currentProcessXml, isProcessXmlDirty, processView]);
+
+  const handleProcessViewChange = (view: AppView) => {
+    if (view === 'xml') {
+      setProcessXmlDraft(currentProcessXml);
+      setIsProcessXmlDirty(false);
+      setProcessXmlError(null);
+    }
+    setProcessView(view);
+  };
+
+  const handleApplyProcessXml = () => {
+    try {
+      if (!isBpmnXml(processXmlDraft)) {
+        throw new Error('Enter valid BPMN XML before applying changes.');
+      }
+
+      handleImport(bpmnXmlToProcessDefinition(processXmlDraft));
+      setIsProcessXmlDirty(false);
+      setProcessXmlError(null);
+      toast.success('XML applied to the process model.');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Could not apply XML changes.';
+      setProcessXmlError(message);
+      toast.error(message);
+    }
+  };
+
   const downloadCurrentProcessXml = async () => {
     await saveTextFile(
       currentProcessXml,
@@ -1547,7 +1583,7 @@ const App: React.FC = () => {
           validationErrors={validationState.errors}
           validationWarnings={validationState.warnings}
           currentView={processView}
-          onViewChange={setProcessView}
+          onViewChange={handleProcessViewChange}
           currentUser={currentUser}
           onLogout={handleLogout}
           theme={theme}
@@ -1636,10 +1672,36 @@ const App: React.FC = () => {
                 />
               </>
             ) : (
-              <div className="h-full overflow-auto bg-[var(--modeler-bg)] p-6">
-                <pre className="min-h-full whitespace-pre-wrap break-words rounded border border-[var(--modeler-border)] bg-[var(--modeler-surface)] p-4 text-xs leading-5 text-[var(--modeler-text)]">
-                  {currentProcessXml}
-                </pre>
+              <div className="flex h-full flex-col bg-[var(--modeler-bg)] p-6">
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <h2 className="text-sm font-semibold text-[var(--modeler-text)]">BPMN XML</h2>
+                    <p className="mt-1 text-xs text-[var(--modeler-text-muted)]">Edit the XML and apply it back to the visual model.</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleApplyProcessXml}
+                    disabled={!isProcessXmlDirty}
+                    className="inline-flex min-h-9 items-center justify-center rounded-md border border-blue-600 bg-blue-600 px-3 py-2 text-xs font-semibold text-white transition-colors hover:border-blue-500 hover:bg-blue-500 disabled:cursor-not-allowed disabled:border-[var(--modeler-border)] disabled:bg-[var(--modeler-surface-muted)] disabled:text-[var(--modeler-text-muted)]"
+                  >
+                    Apply XML
+                  </button>
+                </div>
+                {processXmlError && (
+                  <div className="mb-3 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">
+                    {processXmlError}
+                  </div>
+                )}
+                <textarea
+                  value={processXmlDraft}
+                  onChange={(event) => {
+                    setProcessXmlDraft(event.target.value);
+                    setIsProcessXmlDirty(true);
+                    setProcessXmlError(null);
+                  }}
+                  spellCheck={false}
+                  className="min-h-0 flex-1 resize-none rounded border border-[var(--modeler-border)] bg-[var(--modeler-surface)] p-4 font-mono text-xs leading-5 text-[var(--modeler-text)] outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                />
               </div>
             )}
           </div>

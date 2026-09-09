@@ -1,4 +1,4 @@
-import { Task, TaskStatus, ProcessDefinition, CompleteTaskPayload, Page, Form, AuthLoginResponse, AuthSession, DocumentMetadata, TaskSearchFilter, AuthCurrentUser, AuthProviderConfig } from '../types';
+import { Task, TaskStatus, ProcessDefinition, ProcessInstance, CompleteTaskPayload, Page, Form, AuthLoginResponse, AuthSession, DocumentMetadata, TaskSearchFilter, AuthCurrentUser, AuthProviderConfig } from '../types';
 
 const API_BASE_URL = (import.meta.env.EASY_BPM_TASK_PORTAL_API_BASE_URL || 'http://localhost:8080').replace(/\/$/, '');
 const USE_MOCK = false;
@@ -6,6 +6,11 @@ const AUTH_STORAGE_KEY = 'easybpm_portal_auth';
 const OIDC_STATE_KEY = 'easybpm_portal_oidc_state';
 const OIDC_VERIFIER_KEY = 'easybpm_portal_oidc_verifier';
 const OIDC_AUTO_LOGIN_SUPPRESS_KEY = 'easybpm_portal_oidc_auto_login_suppressed';
+
+const finiteNumber = (value: unknown, fallback: number): number => {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : fallback;
+};
 
 const MOCK_PROCESSES: ProcessDefinition[] = [
   { id: 'proc-1', key: 'hiring-process', name: 'Employee Hiring', description: 'Standard onboarding workflow for new hires', version: 1 },
@@ -93,7 +98,16 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 const assertOk = async (response: Response, operation: string) => {
   if (response.ok) return;
   const body = await response.text().catch(() => '');
-  throw new Error(`${operation} failed (${response.status}): ${body || response.statusText}`);
+  let detail = body || response.statusText;
+  if (body) {
+    try {
+      const parsed = JSON.parse(body);
+      detail = parsed.message || parsed.error || body;
+    } catch {
+      detail = body;
+    }
+  }
+  throw new Error(`${operation} failed (${response.status}): ${detail}`);
 };
 
 const getSession = (): AuthSession | null => {
@@ -296,13 +310,15 @@ export const bpmService = {
     return response.json();
   },
 
-  startProcess: async (processKey: string): Promise<any> => {
+  startProcess: async (processKey: string): Promise<ProcessInstance> => {
     if (USE_MOCK) {
       await delay(300);
-      return { id: Math.floor(Math.random() * 1000), key: processKey };
+      return { id: Math.floor(Math.random() * 1000), status: 'ACTIVE', processDefinition: { id: processKey, key: processKey, description: '', version: 1 } };
     }
 
-    const res = await fetchWithAuth(`${API_BASE_URL}/processes/${processKey}/start`, { method: 'POST' });
+    const res = await fetchWithAuth(`${API_BASE_URL}/processes/${processKey}/start`, { method: 'POST' }, {
+      expireOnUnauthorized: false
+    });
     await assertOk(res, 'Start process');
     return res.json();
   },
@@ -322,7 +338,21 @@ export const bpmService = {
     const params = new URLSearchParams({ page: String(page), size: String(size) });
     const response = await fetchWithAuth(`${API_BASE_URL}/processes?${params.toString()}`);
     await assertOk(response, 'Get processes');
-    return response.json();
+    const payload = await response.json();
+    const content = Array.isArray(payload) ? payload : Array.isArray(payload.content) ? payload.content : [];
+    const normalizedSize = finiteNumber(payload.size, size);
+    const normalizedNumber = finiteNumber(payload.number, finiteNumber(payload.pageNumber, page));
+    const normalizedTotalElements = finiteNumber(
+      payload.totalElements ?? payload.total_elements ?? payload.total,
+      normalizedNumber * normalizedSize + content.length
+    );
+    return {
+      content,
+      totalPages: finiteNumber(payload.totalPages ?? payload.total_pages, Math.max(1, Math.ceil(normalizedTotalElements / normalizedSize))),
+      totalElements: normalizedTotalElements,
+      size: normalizedSize,
+      number: normalizedNumber
+    };
   },
 
   getTasks: async (filters: TaskSearchFilter[] = []): Promise<Task[]> => {

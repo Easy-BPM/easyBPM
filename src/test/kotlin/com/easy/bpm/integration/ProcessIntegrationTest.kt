@@ -661,7 +661,7 @@ class ProcessIntegrationTest(
         )
 
         val processDefinition = processService.deployProcess(legacyJsonFixtureToBpmnXml(processDefinitionJson))
-        val processInstance = processService.startProcessInstance(processDefinition.id)
+        val processInstance = processService.startProcessInstance(processDefinition.key)
 
         val completedInstance = processInstanceRepository.findById(processInstance.id).orElseThrow()
         assertThat(completedInstance.status).isEqualTo(ProcessStatus.COMPLETED)

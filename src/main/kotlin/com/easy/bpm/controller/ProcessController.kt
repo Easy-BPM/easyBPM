@@ -114,7 +114,25 @@ class ProcessController(
                     "messageEndpoint" to "/processes/messages"
                 )
             )
+        } catch (ex: Exception) {
+            val errorMessage = rootCauseMessage(ex) ?: "Process '$processId' failed while starting."
+            ResponseEntity.status(500).body(
+                mapOf(
+                    "status" to "error",
+                    "message" to errorMessage,
+                    "processId" to processId,
+                    "startEndpoint" to "/processes/$processId/start"
+                )
+            )
         }
+    }
+
+    private fun rootCauseMessage(ex: Throwable): String? {
+        var current: Throwable = ex
+        while (current.cause != null && current.cause !== current) {
+            current = current.cause!!
+        }
+        return current.message ?: ex.message
     }
 
     @GetMapping("/instances")

@@ -11,8 +11,16 @@ export interface ProcessDefinition {
   id: string;
   key: string;
   processName?: string;
+  name?: string;
   description: string;
   version: number;
+}
+
+export interface ProcessInstance {
+  id: number;
+  status: string;
+  currentNode?: string[] | null;
+  processDefinition?: ProcessDefinition;
 }
 
 // Document metadata returned by POST /api/documents

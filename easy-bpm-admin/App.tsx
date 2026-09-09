@@ -517,6 +517,8 @@ const InstanceExplorerView: React.FC<{ initialInstanceId?: number | null }> = ({
   const [parentInstance, setParentInstance] = useState<ProcessInstance | null>(null);
   const [childInstances, setChildInstances] = useState<ProcessInstance[]>([]);
   const [timelineEvents, setTimelineEvents] = useState<ProcessInstanceEvent[]>([]);
+  const [recentInstances, setRecentInstances] = useState<ProcessInstance[]>([]);
+  const [recentInstancesLoading, setRecentInstancesLoading] = useState(false);
   const [hierarchyLoading, setHierarchyLoading] = useState(false);
   const [selectedChildId, setSelectedChildId] = useState<number | null>(null);
   const [childMapping, setChildMapping] = useState<any>(null);
@@ -623,9 +625,11 @@ const InstanceExplorerView: React.FC<{ initialInstanceId?: number | null }> = ({
         await loadDefinitionForInstance(found);
         await loadHierarchy(found);
       } else {
+        setInstance(null);
         setVariables([]);
         setTimelineEvents([]);
         setWorkflowDefinition(null);
+        setActionMessage(`Instance #${targetId} was not found.`);
       }
     } catch (error) {
       console.error(error);
@@ -634,6 +638,19 @@ const InstanceExplorerView: React.FC<{ initialInstanceId?: number | null }> = ({
       setTimelineEvents([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadRecentInstances = async () => {
+    setRecentInstancesLoading(true);
+    try {
+      const result = await adminService.getProcessInstances(0, 10);
+      setRecentInstances(result.content ?? []);
+    } catch (error) {
+      console.error(error);
+      setRecentInstances([]);
+    } finally {
+      setRecentInstancesLoading(false);
     }
   };
 
@@ -653,6 +670,10 @@ const InstanceExplorerView: React.FC<{ initialInstanceId?: number | null }> = ({
     if (!initialInstanceId) return;
     loadInstanceById(initialInstanceId);
   }, [initialInstanceId]);
+
+  useEffect(() => {
+    loadRecentInstances();
+  }, []);
 
   const handleAssignVariable = async () => {
     if (!instance || !newVarName.trim()) return;
@@ -761,29 +782,98 @@ const InstanceExplorerView: React.FC<{ initialInstanceId?: number | null }> = ({
         <p className="text-slate-500 text-sm">Search a process by instance number, manage variables, and move nodes safely.</p>
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-xl p-5">
-        <label className="block text-xs font-semibold uppercase tracking-widest text-slate-400 mb-2">Find Process Instance by Number</label>
-        <div className="flex gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
-            <input
-              type="number"
-              className="w-full pl-9 pr-4 rounded-lg border border-slate-300 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-              placeholder="e.g. 1001"
-              value={instanceIdInput}
-              onChange={(e) => setInstanceIdInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-            />
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[380px_minmax(0,1fr)]">
+        <div className="space-y-6 xl:sticky xl:top-6 xl:self-start">
+          <div className="bg-white border border-slate-200 rounded-xl p-5">
+            <label className="block text-xs font-semibold uppercase tracking-widest text-slate-400 mb-2">Find Process Instance by Number</label>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
+                <input
+                  type="number"
+                  className="w-full pl-9 pr-4 rounded-lg border border-slate-300 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                  placeholder="e.g. 1001"
+                  value={instanceIdInput}
+                  onChange={(e) => setInstanceIdInput(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                />
+              </div>
+              <button
+                onClick={handleSearch}
+                disabled={loading}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2 disabled:opacity-60"
+              >
+                {loading ? <Loader2 className="animate-spin" size={15} /> : <><Search size={14} /> Search</>}
+              </button>
+            </div>
           </div>
-          <button
-            onClick={handleSearch}
-            disabled={loading}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2 disabled:opacity-60"
-          >
-            {loading ? <Loader2 className="animate-spin" size={15} /> : <><Search size={14} /> Search</>}
-          </button>
+
+          <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div>
+                <h3 className="font-semibold text-slate-800">Recent Instances</h3>
+                <p className="text-sm text-slate-500">Latest process instances, including flows that completed automatically.</p>
+              </div>
+              <button
+                type="button"
+                onClick={loadRecentInstances}
+                disabled={recentInstancesLoading}
+                className="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {recentInstancesLoading ? <Loader2 size={14} className="animate-spin" /> : <Clock size={14} />}
+                Refresh
+              </button>
+            </div>
+            {recentInstancesLoading ? (
+              <div className="py-6 text-center text-sm text-slate-500">
+                <Loader2 size={18} className="mx-auto mb-2 animate-spin text-blue-600" />
+                Loading recent instances...
+              </div>
+            ) : recentInstances.length === 0 ? (
+              <p className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-3 py-4 text-center text-sm text-slate-500">
+                No process instances found yet.
+              </p>
+            ) : (
+              <div className="max-h-[560px] divide-y divide-slate-100 overflow-y-auto rounded-lg border border-slate-200">
+                {recentInstances.map((recent) => {
+                  const processName = recent.processDefinitionName || recent.processDefinition?.processName || recent.processDefinition?.name || recent.processDefinition?.key || 'Process';
+                  const isSelected = instance?.id === recent.id;
+                  return (
+                    <button
+                      key={recent.id}
+                      type="button"
+                      onClick={() => {
+                        setInstanceIdInput(String(recent.id));
+                        loadInstanceById(recent.id);
+                      }}
+                      className={`flex w-full flex-wrap items-center justify-between gap-3 px-4 py-3 text-left transition-colors ${
+                        isSelected ? 'bg-blue-50' : 'hover:bg-slate-50'
+                      }`}
+                    >
+                      <div className="min-w-0">
+                        <p className="font-medium text-slate-800">Instance #{recent.id}</p>
+                        <p className="truncate text-sm text-slate-500">{processName}</p>
+                      </div>
+                      <div className="flex items-center gap-3 text-xs">
+                        <span className={`rounded-full px-2 py-1 font-semibold ${
+                          recent.status === 'COMPLETED' ? 'bg-emerald-50 text-emerald-700' :
+                          recent.status === 'FAILED' ? 'bg-red-50 text-red-700' :
+                          recent.status === 'ACTIVE' ? 'bg-blue-50 text-blue-700' :
+                          'bg-slate-100 text-slate-600'
+                        }`}>
+                          {recent.status}
+                        </span>
+                        <span className="text-slate-400">{new Date(recent.createdAt).toLocaleString()}</span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+
+        <div className="min-w-0 space-y-6">
 
       {actionMessage && (
         <div className={`rounded-lg px-4 py-3 text-sm flex items-center gap-2 border ${
@@ -1282,6 +1372,8 @@ const InstanceExplorerView: React.FC<{ initialInstanceId?: number | null }> = ({
 
         </>
       )}
+        </div>
+      </div>
     </div>
   );
 };
