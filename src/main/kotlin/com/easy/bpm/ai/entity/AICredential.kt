@@ -35,6 +35,12 @@ data class AICredential(
     
     @Column(name = "encrypted_token", nullable = false, length = 2048)
     var encryptedToken: String,                                  // Encrypted at rest
+
+    @Column(name = "masked_token", nullable = false, length = 128)
+    var maskedToken: String = "****",                            // Safe display value; no decrypt needed for lists
+
+    @Column(name = "token_fingerprint", length = 128)
+    var tokenFingerprint: String? = null,                        // SHA-256 fingerprint for audit/rotation checks
     
     @Column(name = "owner_id", nullable = false, length = 100)
     val ownerId: String,                                         // User ID (from security context)
