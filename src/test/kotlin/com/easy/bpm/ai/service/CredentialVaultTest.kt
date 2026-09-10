@@ -40,6 +40,7 @@ class CredentialVaultTest {
         
         // Encrypted should be different from original
         assertNotEquals(original, encrypted)
+        assertTrue(encrypted.startsWith("gcm:"))
         
         // Decrypt should restore original
         val decrypted = vault.decrypt(encrypted)
@@ -52,8 +53,7 @@ class CredentialVaultTest {
         val encrypted1 = vault.encrypt(plaintext)
         val encrypted2 = vault.encrypt(plaintext)
         
-        // Same plaintext may produce same or different ciphertext depending on encryption algorithm
-        // Both should decrypt to same plaintext
+        assertNotEquals(encrypted1, encrypted2)
         assertEquals(plaintext, vault.decrypt(encrypted1))
         assertEquals(plaintext, vault.decrypt(encrypted2))
     }
@@ -77,6 +77,9 @@ class CredentialVaultTest {
         
         // Token should be encrypted
         assertNotEquals(request.token, stored.encryptedToken)
+        assertTrue(stored.encryptedToken.startsWith("gcm:"))
+        assertTrue(stored.maskedToken.contains("***"))
+        assertTrue(!stored.tokenFingerprint.isNullOrBlank())
         assertEquals("openai", stored.providerId)
         assertEquals("API_KEY", stored.credentialType)
         
@@ -128,14 +131,6 @@ class CredentialVaultTest {
     
     @Test
     fun `test retrieve credential denies access for different user`() {
-        val credential = AICredential(
-            id = "cred-123",
-            providerId = "openai",
-            credentialType = "API_KEY",
-            encryptedToken = "encrypted",
-            ownerId = "user123"
-        )
-        
         `when`(credentialRepository.findByIdAndOwnerId("cred-123", "user456"))
             .thenReturn(Optional.empty())
         
@@ -225,14 +220,16 @@ class CredentialVaultTest {
             id = "cred-1",
             providerId = "openai",
             credentialType = "API_KEY",
-            encryptedToken = vault.encrypt("sk-test1"),
+            encryptedToken = "not-decryptable-during-list",
+            maskedToken = "sk-t***...est1",
             ownerId = "user123"
         )
         val cred2 = AICredential(
             id = "cred-2",
             providerId = "anthropic",
             credentialType = "API_KEY",
-            encryptedToken = vault.encrypt("sk-test2"),
+            encryptedToken = "not-decryptable-during-list",
+            maskedToken = "sk-t***...est2",
             ownerId = "user123"
         )
         
@@ -252,7 +249,8 @@ class CredentialVaultTest {
             providerId = "custom-api",
             secretName = "CRM_API_TOKEN",
             credentialType = "BEARER",
-            encryptedToken = vault.encrypt("crm-secret-token"),
+            encryptedToken = "not-decryptable-during-list",
+            maskedToken = "crm-***...oken",
             ownerId = CredentialVault.WORKSPACE_OWNER_ID
         )
 
