@@ -8,6 +8,7 @@ import com.easy.bpm.model.variable.ProcessVariable
 import com.easy.bpm.repository.process.ProcessDefinitionRepository
 import com.easy.bpm.repository.process.ProcessInstanceRepository
 import com.easy.bpm.repository.process.CallActivityMappingRepository
+import com.easy.bpm.repository.variable.HistoricProcessVariableRepository
 import com.easy.bpm.repository.variable.ProcessVariableRepository
 import jakarta.transaction.Transactional
 import org.springframework.stereotype.Service
@@ -19,6 +20,7 @@ class ProcessService(
     private val processDefinitionRepository: ProcessDefinitionRepository,
     private val processInstanceRepository: ProcessInstanceRepository,
     private val processVariableRepository: ProcessVariableRepository,
+    private val historicProcessVariableRepository: HistoricProcessVariableRepository,
     private val callActivityMappingRepository: CallActivityMappingRepository,
     private val pageableSanitizer: ProcessPageableSanitizer,
     private val variableManager: ProcessVariableManager,
@@ -98,8 +100,20 @@ class ProcessService(
         callActivityMappingRepository.findByParentInstanceIdAndChildInstanceId(parentInstanceId, childInstanceId)
 
     fun getProcessVariables(processInstanceId: Long): List<ProcessVariable> {
-        processInstanceRepository.findById(processInstanceId)
+        val instance = processInstanceRepository.findById(processInstanceId)
             .orElseThrow { IllegalArgumentException("Process instance not found") }
+
+        if (instance.status == ProcessStatus.COMPLETED) {
+            return historicProcessVariableRepository.findByProcessInstanceId(processInstanceId)
+                .map { variable ->
+                    ProcessVariable(
+                        id = variable.id,
+                        processInstanceId = variable.processInstanceId,
+                        name = variable.name,
+                        value = variable.value
+                    )
+                }
+        }
 
         return processVariableRepository.findByProcessInstanceId(processInstanceId)
     }
