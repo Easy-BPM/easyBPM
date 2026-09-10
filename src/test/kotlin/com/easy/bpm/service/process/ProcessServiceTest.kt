@@ -6,11 +6,13 @@ import com.easy.bpm.handler.AgentProcessCallHandler
 import com.easy.bpm.handler.CodeTaskHandler
 import com.easy.bpm.model.process.ProcessDefinition
 import com.easy.bpm.model.process.ProcessInstance
+import com.easy.bpm.model.variable.HistoricProcessVariable
 import com.easy.bpm.model.task.Task
 import com.easy.bpm.model.variable.ProcessVariable
 import com.easy.bpm.repository.process.ProcessDefinitionRepository
 import com.easy.bpm.repository.process.ProcessInstanceRepository
 import com.easy.bpm.repository.process.CallActivityMappingRepository
+import com.easy.bpm.repository.variable.HistoricProcessVariableRepository
 import com.easy.bpm.repository.task.TaskRepository
 import com.easy.bpm.repository.variable.ProcessVariableRepository
 import com.easy.bpm.repository.variable.TaskVariableRepository
@@ -42,6 +44,7 @@ class ProcessServiceTest : FunSpec() {
     val mockProcessDefinitionRepository = mockk<ProcessDefinitionRepository>()
     val mockProcessInstanceRepository = mockk<ProcessInstanceRepository>()
     val mockProcessVariableRepository = mockk<ProcessVariableRepository>()
+    val mockHistoricProcessVariableRepository = mockk<HistoricProcessVariableRepository>()
     val mockTaskVariableRepository = mockk<TaskVariableRepository>()
     val mockFormService = mockk<FormService>()
     val mockTaskRepository = mockk<TaskRepository>()
@@ -188,6 +191,7 @@ class ProcessServiceTest : FunSpec() {
         processDefinitionRepository = mockProcessDefinitionRepository,
         processInstanceRepository = mockProcessInstanceRepository,
         processVariableRepository = mockProcessVariableRepository,
+        historicProcessVariableRepository = mockHistoricProcessVariableRepository,
         callActivityMappingRepository = mockCallActivityMappingRepository,
         pageableSanitizer = pageableSanitizer,
         variableManager = variableManager,
@@ -457,6 +461,36 @@ class ProcessServiceTest : FunSpec() {
     }
 
     context("assignProcessVariables") {
+        test("should return historic variables for completed process instance") {
+            // Arrange
+            val instanceId = 100L
+            val instance = ProcessInstance(
+                id = instanceId,
+                processDefinition = ProcessDefinition(id = 1, processName = "proc", definitionJson = "{}", version = 1),
+                status = ProcessStatus.COMPLETED,
+                currentNode = emptyList()
+            )
+            val historicVariable = HistoricProcessVariable(
+                id = 200,
+                processInstanceId = instanceId,
+                name = "finalDecision",
+                value = objectMapper.valueToTree("approved")
+            )
+
+            every { mockProcessInstanceRepository.findById(instanceId) } returns Optional.of(instance)
+            every { mockHistoricProcessVariableRepository.findByProcessInstanceId(instanceId) } returns listOf(historicVariable)
+
+            // Act
+            val result = processService.getProcessVariables(instanceId)
+
+            // Assert
+            result.size shouldBe 1
+            result.first().id shouldBe historicVariable.id
+            result.first().name shouldBe "finalDecision"
+            result.first().value.asText() shouldBe "approved"
+            verify(exactly = 0) { mockProcessVariableRepository.findByProcessInstanceId(instanceId) }
+        }
+
         test("should reject variable assignment for completed process instance") {
             // Arrange
             val instanceId = 100L
