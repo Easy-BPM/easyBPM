@@ -6,6 +6,7 @@ on:
       - master
     tags:
       - 'v*'
+
   workflow_call:
     inputs:
       ref:
@@ -39,10 +40,12 @@ jobs:
             component: backend
             dockerfile: Dockerfile
             context: .
+
           - image: easybpm-worker
             component: worker
             dockerfile: Dockerfile.worker
             context: .
+
           - image: easybpm-admin
             component: admin
             dockerfile: deploy/docker/Dockerfile.frontend
@@ -50,6 +53,7 @@ jobs:
             build-args: |
               APP_DIR=easy-bpm-admin
               EASY_BPM_ADMIN_API_BASE_URL=
+
           - image: easybpm-modeler
             component: modeler
             dockerfile: deploy/docker/Dockerfile.frontend
@@ -57,6 +61,7 @@ jobs:
             build-args: |
               APP_DIR=easy-bpm-modeler
               EASY_BPM_MODELER_API_BASE_URL=
+
           - image: easybpm-task-portal
             component: task-portal
             dockerfile: deploy/docker/Dockerfile.frontend
@@ -70,6 +75,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ inputs.ref || github.ref }}
+
+      # Required to build ARM64 images on the AMD64 GitHub runner
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -113,10 +124,19 @@ jobs:
           context: ${{ matrix.context }}
           file: ${{ matrix.dockerfile }}
           build-args: ${{ matrix.build-args || '' }}
+
+          # Publish a multi-platform manifest.
+          # AMD64 -> Intel/AMD servers and most cloud Kubernetes clusters
+          # ARM64 -> Apple Silicon, ARM servers, etc.
+          platforms: linux/amd64,linux/arm64
+
           push: true
+
           tags: |
             ${{ steps.ghcr-meta.outputs.tags }}
             ${{ steps.dockerhub-meta.outputs.tags }}
+
           labels: ${{ steps.ghcr-meta.outputs.labels }}
+
           cache-from: type=gha
           cache-to: type=gha,mode=max
