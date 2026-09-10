@@ -6,13 +6,15 @@ import com.easy.bpm.ai.dto.AICredentialUpdateRequestDto
 import com.easy.bpm.ai.entity.AICredential
 import com.easy.bpm.ai.repository.AICredentialRepository
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.security.MessageDigest
+import java.security.SecureRandom
 import java.time.LocalDateTime
 import java.util.*
 import javax.crypto.Cipher
 import javax.crypto.SecretKey
+import javax.crypto.spec.GCMParameterSpec
 import javax.crypto.spec.SecretKeySpec
 
 /**
@@ -28,12 +30,22 @@ class CredentialVault(
 ) {
     companion object {
         const val WORKSPACE_OWNER_ID = "__workspace__"
+        private const val AES_GCM_PREFIX = "gcm:"
+        private const val AES_GCM_IV_BYTES = 12
+        private const val AES_GCM_TAG_BITS = 128
+        private const val KEY_ENV_VAR = "EASY_BPM_SERVER_AI_ENCRYPTION_KEY"
+        private const val DEV_KEY = "default-dev-key-change-in-prod-1234"
+        private val secureRandom = SecureRandom()
     }
     
-    // Use base64-encoded AES encryption for credentials
-    // In production, encryption key should come from EASY_BPM_SERVER_AI_ENCRYPTION_KEY.
+    // In production, encryption key must come from EASY_BPM_SERVER_AI_ENCRYPTION_KEY.
     private val encryptionKey: SecretKey by lazy {
-        val keyStr = System.getenv("EASY_BPM_SERVER_AI_ENCRYPTION_KEY") ?: "default-dev-key-change-in-prod-1234"
+        val keyStr = System.getenv(KEY_ENV_VAR)
+            ?: if (isProductionRuntime()) {
+                throw IllegalStateException("$KEY_ENV_VAR must be configured before storing or reading AI credentials in production")
+            } else {
+                DEV_KEY
+            }
         val keyBytes = keyStr
             .take(32)
             .padEnd(32, 'x')
@@ -42,17 +54,19 @@ class CredentialVault(
     }
 
     /**
-     * Encrypt a plaintext token using AES encryption.
+     * Encrypt a plaintext token using AES-GCM with a random IV.
      * 
      * @param plaintext Raw credential token
      * @return Encrypted ciphertext (base64 encoded)
      */
     fun encrypt(plaintext: String): String {
         return try {
-            val cipher = Cipher.getInstance("AES")
-            cipher.init(Cipher.ENCRYPT_MODE, encryptionKey)
+            val iv = ByteArray(AES_GCM_IV_BYTES)
+            secureRandom.nextBytes(iv)
+            val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+            cipher.init(Cipher.ENCRYPT_MODE, encryptionKey, GCMParameterSpec(AES_GCM_TAG_BITS, iv))
             val encryptedBytes = cipher.doFinal(plaintext.toByteArray(Charsets.UTF_8))
-            Base64.getEncoder().encodeToString(encryptedBytes)
+            AES_GCM_PREFIX + Base64.getEncoder().encodeToString(iv + encryptedBytes)
         } catch (e: Exception) {
             throw RuntimeException("Failed to encrypt credential: ${e.message}", e)
         }
@@ -66,11 +80,11 @@ class CredentialVault(
      */
     fun decrypt(ciphertext: String): String {
         return try {
-            val cipher = Cipher.getInstance("AES")
-            cipher.init(Cipher.DECRYPT_MODE, encryptionKey)
-            val decodedBytes = Base64.getDecoder().decode(ciphertext)
-            val decryptedBytes = cipher.doFinal(decodedBytes)
-            String(decryptedBytes, Charsets.UTF_8)
+            if (ciphertext.startsWith(AES_GCM_PREFIX)) {
+                decryptGcm(ciphertext.removePrefix(AES_GCM_PREFIX))
+            } else {
+                decryptLegacyAes(ciphertext)
+            }
         } catch (e: Exception) {
             throw RuntimeException("Failed to decrypt credential: ${e.message}", e)
         }
@@ -101,6 +115,8 @@ class CredentialVault(
             secretName = secretName,
             credentialType = request.credentialType,
             encryptedToken = encryptedToken,
+            maskedToken = maskToken(request.token),
+            tokenFingerprint = fingerprint(request.token),
             ownerId = userId,
             permissions = request.permissions.toMutableSet(),
             description = request.description
@@ -130,7 +146,11 @@ class CredentialVault(
             cred.secretName = nextName
         }
         request.credentialType?.takeIf { it.isNotBlank() }?.let { cred.credentialType = it.trim() }
-        request.token?.takeIf { it.isNotBlank() }?.let { cred.encryptedToken = encrypt(it) }
+        request.token?.takeIf { it.isNotBlank() }?.let {
+            cred.encryptedToken = encrypt(it)
+            cred.maskedToken = maskToken(it)
+            cred.tokenFingerprint = fingerprint(it)
+        }
         if (request.description != null) cred.description = request.description.takeIf { it.isNotBlank() }
         request.permissions?.let {
             cred.permissions.clear()
@@ -223,7 +243,7 @@ class CredentialVault(
             name = cred.secretName,
             providerId = cred.providerId,
             credentialType = cred.credentialType,
-            maskedToken = maskToken(decrypt(cred.encryptedToken)),
+            maskedToken = displayMaskedToken(cred),
             reference = "@secret:${cred.secretName}",
             description = cred.description,
             createdAt = cred.createdAt.toString(),
@@ -308,7 +328,7 @@ class CredentialVault(
             name = cred.secretName,
             providerId = cred.providerId,
             credentialType = cred.credentialType,
-            maskedToken = maskToken(decrypt(cred.encryptedToken)),
+            maskedToken = displayMaskedToken(cred),
             reference = "@secret:${cred.secretName}",
             description = cred.description,
             createdAt = cred.createdAt.toString(),
@@ -323,6 +343,40 @@ class CredentialVault(
             "Secret name must start with a letter and contain only letters, numbers, underscores, or hyphens."
         }
         return trimmed
+    }
+
+    private fun decryptGcm(encodedPayload: String): String {
+        val payload = Base64.getDecoder().decode(encodedPayload)
+        require(payload.size > AES_GCM_IV_BYTES) { "Invalid encrypted credential payload" }
+        val iv = payload.copyOfRange(0, AES_GCM_IV_BYTES)
+        val encryptedBytes = payload.copyOfRange(AES_GCM_IV_BYTES, payload.size)
+        val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+        cipher.init(Cipher.DECRYPT_MODE, encryptionKey, GCMParameterSpec(AES_GCM_TAG_BITS, iv))
+        return String(cipher.doFinal(encryptedBytes), Charsets.UTF_8)
+    }
+
+    private fun decryptLegacyAes(ciphertext: String): String {
+        val cipher = Cipher.getInstance("AES")
+        cipher.init(Cipher.DECRYPT_MODE, encryptionKey)
+        val decodedBytes = Base64.getDecoder().decode(ciphertext)
+        return String(cipher.doFinal(decodedBytes), Charsets.UTF_8)
+    }
+
+    private fun displayMaskedToken(cred: AICredential): String =
+        cred.maskedToken.takeIf { it.isNotBlank() && it != "****" }
+            ?: maskToken(decrypt(cred.encryptedToken))
+
+    private fun fingerprint(token: String): String =
+        MessageDigest.getInstance("SHA-256")
+            .digest(token.toByteArray(Charsets.UTF_8))
+            .joinToString("") { "%02x".format(it) }
+
+    private fun isProductionRuntime(): Boolean {
+        val activeProfiles = System.getenv("SPRING_PROFILES_ACTIVE").orEmpty()
+        val appEnv = System.getenv("EASY_BPM_ENV").orEmpty()
+        return listOf(activeProfiles, appEnv).any { value ->
+            value.split(',', ';', ' ').any { it.equals("prod", ignoreCase = true) || it.equals("production", ignoreCase = true) }
+        }
     }
 }
 
