@@ -12,10 +12,72 @@
     "Ask for human input when evidence is incomplete."
   ],
   "availableTools": [
-    "CRM",
-    "Email",
-    "Knowledge Base",
-    "BPMN Process: approve-refund"
+    {
+      "id": "crm_lookup",
+      "name": "CRM Lookup",
+      "type": "api-call",
+      "description": "Look up customer account, order history, and previous tickets.",
+      "url": "https://crm.example.com/customers/{{customerId}}",
+      "method": "GET",
+      "auth": {
+        "type": "bearer",
+        "ref": "CRM_API_TOKEN"
+      },
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "customerId": {
+            "type": "string"
+          }
+        },
+        "required": ["customerId"]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "tier": {
+            "type": "string"
+          },
+          "previousTickets": {
+            "type": "array"
+          }
+        }
+      }
+    },
+    {
+      "id": "refund_policy_check",
+      "name": "Refund Policy Check",
+      "type": "code-task",
+      "description": "Evaluate refund rules using an uploaded Java policy service.",
+      "jarId": "policy-service",
+      "className": "com.easy.bpm.policy.RefundPolicyService",
+      "methodName": "evaluateRefund",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "refundAmount": {
+            "type": "number"
+          },
+          "customerTier": {
+            "type": "string"
+          }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "approved": {
+            "type": "boolean"
+          },
+          "requiresApproval": {
+            "type": "boolean"
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      }
+    }
   ],
   "participants": [
     "Planner Agent",

@@ -44,6 +44,66 @@ class AgentProcessServiceTest : FunSpec({
         verify { repository.save(any<AgentProcessDefinition>()) }
     }
 
+    test("should deploy agent process with structured API and code task tools") {
+        val json = objectMapper.readTree(
+            """
+            {
+              "resourceType": "AgentProcess",
+              "processKey": "customer-support-resolution",
+              "processName": "Customer Support Resolution",
+              "goal": "Resolve customer complaint.",
+              "provider": {
+                "providerId": "openai",
+                "modelName": "gpt-4o-mini"
+              },
+              "availableTools": [
+                {
+                  "id": "crm_lookup",
+                  "name": "CRM Lookup",
+                  "type": "api-call",
+                  "description": "Read customer context from CRM.",
+                  "url": "https://crm.example.com/customers/{{customerId}}",
+                  "method": "GET",
+                  "auth": {
+                    "type": "bearer",
+                    "ref": "CRM_API_TOKEN"
+                  },
+                  "inputSchema": {
+                    "type": "object"
+                  },
+                  "outputSchema": {
+                    "type": "object"
+                  }
+                },
+                {
+                  "id": "refund_policy",
+                  "name": "Refund Policy",
+                  "type": "code-task",
+                  "description": "Evaluate refund policy in Java.",
+                  "jarId": 12,
+                  "className": "com.easy.bpm.policy.RefundPolicyService",
+                  "methodName": "evaluateRefund",
+                  "inputSchema": {
+                    "type": "object"
+                  },
+                  "outputSchema": {
+                    "type": "object"
+                  }
+                }
+              ]
+            }
+            """.trimIndent()
+        )
+
+        every { repository.findTopByKeyOrderByVersionDesc("customer-support-resolution") } returns null
+        every { repository.save(any<AgentProcessDefinition>()) } answers { firstArg() }
+
+        val deployed = service.deploy(json)
+
+        deployed.key shouldBe "customer-support-resolution"
+        deployed.definitionJson shouldBe json.toString()
+    }
+
     test("should reject provider configuration without model name") {
         val json = objectMapper.readTree(
             """
@@ -54,6 +114,29 @@ class AgentProcessServiceTest : FunSpec({
               "provider": {
                 "providerId": "openai"
               }
+            }
+            """.trimIndent()
+        )
+
+        shouldThrow<IllegalArgumentException> {
+            service.deploy(json)
+        }
+    }
+
+    test("should reject structured agent tool without required runtime fields") {
+        val json = objectMapper.readTree(
+            """
+            {
+              "resourceType": "AgentProcess",
+              "processKey": "bad-agent",
+              "goal": "Resolve customer complaint.",
+              "availableTools": [
+                {
+                  "name": "Broken Java Tool",
+                  "type": "code-task",
+                  "className": "com.easy.bpm.policy.RefundPolicyService"
+                }
+              ]
             }
             """.trimIndent()
         )

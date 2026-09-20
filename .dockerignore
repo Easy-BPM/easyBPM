@@ -1,11 +1,15 @@
 .git
 .github
+.agents
 .gradle
 .idea
 .vscode
+.local-backup
 build
+docs-site-working
 logs
 out
+easybpmn-modeler
 **/build
 **/dist
 **/node_modules

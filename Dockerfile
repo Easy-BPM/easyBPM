@@ -1,7 +1,7 @@
 FROM gradle:jdk21 AS builder
 WORKDIR /home/gradle/project
 COPY --chown=gradle:gradle . .
-RUN gradle bootJar -x test --no-daemon
+RUN gradle :bootJar -x test --no-daemon
 
 FROM eclipse-temurin:21-jdk
 WORKDIR /app
