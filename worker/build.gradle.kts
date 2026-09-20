@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "com.easy.bpm.worker"
-version = "0.1.2-beta.2"
+version = "0.1.3-beta.2"
 
 repositories {
     mavenCentral()
