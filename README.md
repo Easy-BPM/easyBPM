@@ -19,7 +19,6 @@ EasyBPM is a Kotlin/Spring Boot business process engine with a React modeler, an
 | `easy-bpm-modeler/` | React/Vite process and form modeler |
 | `easy-bpm-admin/` | React/Vite admin console for instances, variables, security, and code-task audits |
 | `easy-bpm-task-portal/` | React/Vite portal for users to start processes and complete human tasks |
-| `docs-site-public/` | Docusaurus documentation site |
 | `src/test/kotlin/com/easy/bpm` | Unit, controller, repository, worker, and integration tests |
 | `src/main/resources/db/migration` | Flyway migrations for the PostgreSQL schema |
 
