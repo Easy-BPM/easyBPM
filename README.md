@@ -2,7 +2,6 @@
 
 [![CI](https://github.com/Easy-BPM/easyBPM/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/Easy-BPM/easyBPM/actions/workflows/ci.yml)
 [![Qodana](https://github.com/Easy-BPM/easyBPM/actions/workflows/qodana_code_quality.yml/badge.svg?branch=master)](https://github.com/Easy-BPM/easyBPM/actions/workflows/qodana_code_quality.yml)
-[![Release Images](https://github.com/Easy-BPM/easyBPM/actions/workflows/release-images.yml/badge.svg?branch=master)](https://github.com/Easy-BPM/easyBPM/actions/workflows/release-images.yml)
 [![Latest Release](https://img.shields.io/github/v/release/Easy-BPM/easyBPM?include_prereleases&label=release)](https://github.com/Easy-BPM/easyBPM/releases)
 [![License](https://img.shields.io/github/license/Easy-BPM/easyBPM)](LICENSE)
 [![Java](https://img.shields.io/badge/Java-21-orange)](https://adoptium.net/)
