@@ -169,6 +169,22 @@ For longer runs, use `--duration-seconds`. To save the raw result payload, use `
 
 Use `host.docker.internal` when the worker runs in Docker and needs to call the mock API running on the host. Use `http://localhost:19090/mock-api` when the worker runs directly on the same machine as the script.
 
+Example local Docker results from higher-volume runs:
+
+| Setup | Mock API latency | Submitted | Completed | Throughput | p95 latency |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 1 worker | 250 ms | 200 | 200 | ~3.75 API tasks/sec | ~10.87 s |
+| 3 workers | 250 ms | 300 | 300 | ~10.88 API tasks/sec | ~5.81 s |
+| 1 worker | 1000 ms | 120 | 120 | ~0.98 API tasks/sec | ~30.77 s |
+| 3 workers | 1000 ms | 180 | 180 | ~2.93 API tasks/sec | ~20.66 s |
+
+These numbers are local benchmark samples, not product limits. In this setup, throughput scaled close to:
+
+```text
+worker throughput ~= worker count / external API latency
+```
+
+
 ## Docker Compose Authentication Options
 
 Run the default stack with local EasyBPM username/password authentication:
@@ -195,17 +211,3 @@ docker compose -f docker-compose.yml -f docker-compose.keycloak.yml up -d
 
 The Keycloak option imports the `easybpm` realm from `deploy/keycloak/easybpm-realm.json`, exposes Keycloak at `http://localhost:8081`, and configures the backend to map Keycloak roles/groups to EasyBPM permissions. The public issuer stays on `localhost` for browser login, while the backend reads signing keys through the internal Docker service name. Create local development users in Keycloak and assign `easybpm-user`, `easybpm-modeler`, or `easybpm-admin` as needed.
 
-Example local Docker results from higher-volume runs:
-
-| Setup | Mock API latency | Submitted | Completed | Throughput | p95 latency |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| 1 worker | 250 ms | 200 | 200 | ~3.75 API tasks/sec | ~10.87 s |
-| 3 workers | 250 ms | 300 | 300 | ~10.88 API tasks/sec | ~5.81 s |
-| 1 worker | 1000 ms | 120 | 120 | ~0.98 API tasks/sec | ~30.77 s |
-| 3 workers | 1000 ms | 180 | 180 | ~2.93 API tasks/sec | ~20.66 s |
-
-These numbers are local benchmark samples, not product limits. In this setup, throughput scaled close to:
-
-```text
-worker throughput ~= worker count / external API latency
-```
