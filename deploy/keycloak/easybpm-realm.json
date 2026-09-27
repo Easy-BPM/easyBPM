@@ -46,6 +46,14 @@
       {
         "name": "easybpm-admin-secrets-manage",
         "description": "Create, rotate and remove Easy BPM workspace secrets"
+      },
+      {
+        "name": "easybpm-admin-api-clients-read",
+        "description": "Read Easy BPM API clients and audit history"
+      },
+      {
+        "name": "easybpm-admin-api-clients-manage",
+        "description": "Create, edit, rotate and revoke Easy BPM API clients"
       }
     ]
   },

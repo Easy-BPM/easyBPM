@@ -52,6 +52,7 @@ class AuthService(
             displayName = principal.displayName,
             identityProvider = principal.identityProvider,
             externalIdentityId = principal.externalIdentityId,
+            identityType = principal.identityType,
             groups = principal.groups,
             permissions = principal.permissionCodes
         )

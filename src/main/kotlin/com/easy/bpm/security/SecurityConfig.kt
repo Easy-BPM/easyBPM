@@ -28,12 +28,15 @@ import org.springframework.security.oauth2.jwt.JwtValidators
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder
 import org.springframework.security.web.SecurityFilterChain
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter
+import org.springframework.security.oauth2.server.resource.web.DefaultBearerTokenResolver
+import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter
 
 @Configuration
 @EnableMethodSecurity
 class SecurityConfig(
     private val userDetailsService: AppUserDetailsService,
     private val jwtAuthenticationFilter: JwtAuthenticationFilter,
+    private val apiClientAuthenticationFilter: ApiClientAuthenticationFilter,
     private val oidcJwtAuthenticationConverter: OidcJwtAuthenticationConverter,
     private val authenticationProperties: ExternalAuthenticationProperties,
     @Value("\${easybpm.security.enabled:true}") private val securityEnabled: Boolean
@@ -70,6 +73,9 @@ class SecurityConfig(
             .authorizeHttpRequests {
                 it.requestMatchers("/auth/**", "/actuator/**", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                 it.requestMatchers("/admin/maintenance/**").hasAuthority(AppPermissions.ACCESS_BPM_ADMIN)
+                it.requestMatchers(HttpMethod.GET, "/admin/api-clients", "/admin/api-clients/*", "/admin/api-clients/*/audit")
+                    .hasAnyAuthority(AppPermissions.VIEW_API_CLIENTS, AppPermissions.MANAGE_API_CLIENTS)
+                it.requestMatchers("/admin/api-clients/**").hasAuthority(AppPermissions.MANAGE_API_CLIENTS)
                 it.requestMatchers(HttpMethod.GET, "/admin/users").hasAnyAuthority(AppPermissions.VIEW_USERS, AppPermissions.MANAGE_USERS)
                 it.requestMatchers("/admin/users/**").hasAuthority(AppPermissions.MANAGE_USERS)
                 it.requestMatchers(HttpMethod.POST, "/admin/users").hasAuthority(AppPermissions.MANAGE_USERS)
@@ -91,14 +97,20 @@ class SecurityConfig(
 
         if (authenticationProperties.isOidcEnabled()) {
             http.oauth2ResourceServer { oauth2 ->
+                val resolver = DefaultBearerTokenResolver()
+                oauth2.bearerTokenResolver { request ->
+                    if (ApiClientCredential.isNativeBearer(request.getHeader("Authorization"))) null else resolver.resolve(request)
+                }
                 oauth2.jwt { jwt ->
                     jwt.decoder(oidcJwtDecoder())
                     jwt.jwtAuthenticationConverter(oidcJwtAuthenticationConverter)
                 }
             }
+            http.addFilterBefore(apiClientAuthenticationFilter, BearerTokenAuthenticationFilter::class.java)
         } else {
             http
                 .authenticationProvider(authenticationProvider())
+                .addFilterBefore(apiClientAuthenticationFilter, UsernamePasswordAuthenticationFilter::class.java)
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter::class.java)
         }
 
@@ -165,8 +177,8 @@ class SecurityConfig(
             "http://127.0.0.1:*"
         )
         configuration.allowedMethods = listOf("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
-        configuration.allowedHeaders = listOf("Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With")
-        configuration.exposedHeaders = listOf("Authorization")
+        configuration.allowedHeaders = listOf("Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With", "If-Match", "X-Correlation-ID")
+        configuration.exposedHeaders = listOf("Authorization", "ETag", "Location", "X-Correlation-ID")
         configuration.allowCredentials = true
 
         val source = UrlBasedCorsConfigurationSource()

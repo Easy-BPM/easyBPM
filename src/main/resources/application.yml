@@ -94,6 +94,13 @@ easybpm:
         easybpm-admin-permissions-manage: MANAGE_PERMISSIONS
         easybpm-admin-secrets-read: VIEW_SECRETS
         easybpm-admin-secrets-manage: MANAGE_SECRETS
+        easybpm-admin-api-clients-read: VIEW_API_CLIENTS
+        easybpm-admin-api-clients-manage: MANAGE_API_CLIENTS
+  api-clients:
+    audit-retention-days: ${EASYBPM_API_CLIENT_AUDIT_RETENTION_DAYS:90}
+    audit-retention-cron: "${EASYBPM_API_CLIENT_AUDIT_RETENTION_CRON:0 15 2 * * *}"
+    audit-finalization-recovery-ms: ${EASYBPM_API_CLIENT_AUDIT_FINALIZATION_RECOVERY_MS:60000}
+    finalization-stale-minutes: ${EASYBPM_API_CLIENT_FINALIZATION_STALE_MINUTES:60}
   test-data:
     enabled: ${EASY_BPM_TEST_DATA:${EASY_BPM_SERVER_TEST_DATA_ENABLED:false}}
     qa-resource-path: ${EASY_BPM_TEST_DATA_QA_RESOURCE_PATH:modeler-qa/qa-processes}

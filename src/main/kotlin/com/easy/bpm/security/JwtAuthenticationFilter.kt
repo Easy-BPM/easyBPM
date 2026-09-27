@@ -17,7 +17,7 @@ class JwtAuthenticationFilter(
 ) : OncePerRequestFilter() {
 
     override fun shouldNotFilter(request: HttpServletRequest): Boolean =
-        authenticationProperties.isOidcEnabled()
+        authenticationProperties.isOidcEnabled() || ApiClientCredential.isNativeBearer(request.getHeader("Authorization"))
 
     override fun doFilterInternal(
         request: HttpServletRequest,

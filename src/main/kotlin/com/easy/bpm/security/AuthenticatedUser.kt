@@ -5,7 +5,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.core.userdetails.UserDetails
 
 data class AuthenticatedUser(
-    val userId: Long,
+    val userId: Long?,
     private val usernameValue: String,
     private val passwordValue: String,
     private val enabledValue: Boolean,
@@ -14,7 +14,8 @@ data class AuthenticatedUser(
     val identityProvider: String = "LOCAL",
     val externalIdentityId: String? = null,
     val email: String? = null,
-    val displayName: String? = null
+    val displayName: String? = null,
+    val identityType: String = "HUMAN"
 ) : UserDetails {
 
     override fun getAuthorities(): Collection<GrantedAuthority> =

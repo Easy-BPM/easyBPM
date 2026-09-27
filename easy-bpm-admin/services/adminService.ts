@@ -1,5 +1,9 @@
 import {
   AdminGroup,
+  ApiClient,
+  ApiClientAudit,
+  ApiClientCredential,
+  AssignablePermission,
   AdminSecret,
   AdminUser,
   AuthCurrentUser,
@@ -30,6 +34,8 @@ import {
   CreateAdminSecretPayload,
   UpdateDataRetentionSettingsPayload,
   UpdateAdminSecretPayload,
+  CreateApiClientPayload,
+  UpdateApiClientPayload,
   VariableAssignmentPayload
 } from '../types';
 
@@ -896,5 +902,69 @@ export const adminService = {
   deleteSecret: async (id: string): Promise<void> => {
     const res = await fetchWithAuth(`${API_BASE_URL}/admin/secrets/${id}`, { method: 'DELETE' });
     if (!res.ok) throw await errorFromResponse(res, 'Failed to delete secret');
+  },
+
+  getApiClients: async (filters: { q?: string; status?: string; page?: number; size?: number } = {}): Promise<Page<ApiClient>> => {
+    const params = new URLSearchParams();
+    if (filters.q) params.set('q', filters.q);
+    if (filters.status) params.set('status', filters.status);
+    params.set('page', String(filters.page ?? 0));
+    params.set('size', String(filters.size ?? 50));
+    const res = await fetchWithAuth(`${API_BASE_URL}/admin/api-clients?${params.toString()}`);
+    if (!res.ok) throw await errorFromResponse(res, 'Failed to load API clients');
+    return res.json();
+  },
+
+  getApiClient: async (id: string): Promise<ApiClient> => {
+    const res = await fetchWithAuth(`${API_BASE_URL}/admin/api-clients/${id}`);
+    if (!res.ok) throw await errorFromResponse(res, 'Failed to load API client');
+    return res.json();
+  },
+
+  getApiClientAudit: async (id: string, page = 0): Promise<Page<ApiClientAudit>> => {
+    const res = await fetchWithAuth(`${API_BASE_URL}/admin/api-clients/${id}/audit?page=${page}&size=50`);
+    if (!res.ok) throw await errorFromResponse(res, 'Failed to load API client audit');
+    return res.json();
+  },
+
+  getAssignableApiClientPermissions: async (): Promise<AssignablePermission[]> => {
+    const res = await fetchWithAuth(`${API_BASE_URL}/admin/api-clients/assignable-permissions`);
+    if (!res.ok) throw await errorFromResponse(res, 'Failed to load assignable permissions');
+    return res.json();
+  },
+
+  createApiClient: async (payload: CreateApiClientPayload): Promise<ApiClientCredential> => {
+    const res = await fetchWithAuth(`${API_BASE_URL}/admin/api-clients`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+    });
+    if (!res.ok) throw await errorFromResponse(res, 'Failed to create API client');
+    return res.json();
+  },
+
+  updateApiClient: async (id: string, version: number, payload: UpdateApiClientPayload): Promise<ApiClient> => {
+    const res = await fetchWithAuth(`${API_BASE_URL}/admin/api-clients/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'If-Match': `"${version}"` },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) throw await errorFromResponse(res, 'Failed to update API client');
+    return res.json();
+  },
+
+  rotateApiClient: async (id: string, version: number, expiresAt?: string): Promise<ApiClientCredential> => {
+    const res = await fetchWithAuth(`${API_BASE_URL}/admin/api-clients/${id}/rotate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'If-Match': `"${version}"` },
+      body: JSON.stringify(expiresAt ? { expiresAt } : {})
+    });
+    if (!res.ok) throw await errorFromResponse(res, 'Failed to rotate API client');
+    return res.json();
+  },
+
+  revokeApiClient: async (id: string, version: number): Promise<void> => {
+    const res = await fetchWithAuth(`${API_BASE_URL}/admin/api-clients/${id}/revoke`, {
+      method: 'POST', headers: { 'If-Match': `"${version}"` }
+    });
+    if (!res.ok) throw await errorFromResponse(res, 'Failed to revoke API client');
   }
 };

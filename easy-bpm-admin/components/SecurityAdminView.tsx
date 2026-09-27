@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { adminService } from '../services/adminService';
 import { AdminGroup, AdminUser } from '../types';
+import { ApiClientsAdminView } from './ApiClientsAdminView';
 
 const ALL_PERMISSIONS = [
   'ACCESS_BPM_ADMIN',
@@ -10,7 +11,9 @@ const ALL_PERMISSIONS = [
   'MANAGE_USERS',
   'VIEW_GROUPS',
   'MANAGE_GROUPS',
-  'MANAGE_PERMISSIONS'
+  'MANAGE_PERMISSIONS',
+  'VIEW_API_CLIENTS',
+  'MANAGE_API_CLIENTS'
 ];
 
 type SecurityAdminViewProps = {
@@ -22,9 +25,10 @@ export const SecurityAdminView: React.FC<SecurityAdminViewProps> = ({ permission
   const canManageUsers = permissions.includes('MANAGE_USERS');
   const canReadGroups = permissions.includes('VIEW_GROUPS') || permissions.includes('MANAGE_GROUPS');
   const canManageGroups = permissions.includes('MANAGE_GROUPS');
+  const canReadApiClients = permissions.includes('VIEW_API_CLIENTS') || permissions.includes('MANAGE_API_CLIENTS');
   const canManageGroupMembership = canManageGroups && canReadUsers;
-  const canUseSecurity = canReadUsers || canManageUsers || canReadGroups || canManageGroups;
-  const [tab, setTab] = useState<'users' | 'groups'>(canReadUsers ? 'users' : 'groups');
+  const canUseSecurity = canReadUsers || canManageUsers || canReadGroups || canManageGroups || canReadApiClients;
+  const [tab, setTab] = useState<'users' | 'groups' | 'api-clients'>(canReadUsers ? 'users' : canReadGroups ? 'groups' : 'api-clients');
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [groups, setGroups] = useState<AdminGroup[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -288,9 +292,17 @@ export const SecurityAdminView: React.FC<SecurityAdminViewProps> = ({ permission
         >
           Groups
         </button>}
+        {canReadApiClients && <button
+          onClick={() => setTab('api-clients')}
+          className={`px-4 py-2 rounded-md text-sm ${tab === 'api-clients' ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
+        >
+          API Clients
+        </button>}
       </div>
 
       {error && <div className="rounded-lg border border-red-200 bg-red-50 text-red-700 px-3 py-2 text-sm">{error}</div>}
+
+      {tab === 'api-clients' && <ApiClientsAdminView permissions={permissions} embedded />}
 
       {tab === 'users' && (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
