@@ -33,12 +33,16 @@ class SecurityBootstrap(
                 ?: permissionRepository.save(Permission(code = code, name = code.replace("_", " ")))
         }.toSet()
 
-        val adminGroup = userGroupRepository.findByCode(adminGroupCode) ?: userGroupRepository.save(
-            UserGroup(
-                code = adminGroupCode,
-                name = adminGroupName,
-                permissions = permissions.toMutableSet()
-            )
+        val adminGroup = userGroupRepository.findByCode(adminGroupCode)?.also { existing ->
+            val byCode = existing.permissions.associateBy { it.code }
+            val missing = permissions.filterNot { byCode.containsKey(it.code) }
+            if (missing.isNotEmpty()) {
+                existing.permissions.addAll(missing)
+                existing.updatedAt = java.time.LocalDateTime.now()
+                userGroupRepository.save(existing)
+            }
+        } ?: userGroupRepository.save(
+            UserGroup(code = adminGroupCode, name = adminGroupName, permissions = permissions.toMutableSet())
         )
 
         if (appUserRepository.findByUsername(adminUsername) == null) {

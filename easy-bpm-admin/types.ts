@@ -281,12 +281,13 @@ export interface AuthLoginResponse {
 }
 
 export interface AuthCurrentUser {
-  id?: number;
+  id?: number | null;
   username: string;
   email?: string | null;
   displayName?: string | null;
   identityProvider?: string | null;
   externalIdentityId?: string | null;
+  identityType?: 'HUMAN' | 'API_CLIENT' | string;
   groups: string[];
   permissions: string[];
 }
@@ -339,6 +340,68 @@ export interface AdminSecret {
   updatedAt: string;
   lastUsedAt?: string | null;
   permissions: string[];
+}
+
+export type ApiClientStatus = 'ACTIVE' | 'EXPIRED' | 'REVOKED';
+
+export interface ApiClient {
+  id: string;
+  name: string;
+  description?: string | null;
+  status: ApiClientStatus;
+  expiresAt: string;
+  permissionCodes: string[];
+  credentialGeneration: number;
+  lastUsedAt?: string | null;
+  lastUsedIp?: string | null;
+  revokedAt?: string | null;
+  revokedBy?: string | null;
+  createdAt: string;
+  createdBy: string;
+  updatedAt: string;
+  updatedBy: string;
+  version: number;
+}
+
+export interface ApiClientCredential {
+  client: ApiClient;
+  credential: string;
+}
+
+export interface ApiClientAudit {
+  id: number;
+  category: 'LIFECYCLE' | 'USE';
+  action: string;
+  outcome: string;
+  actor?: string | null;
+  credentialGeneration?: number | null;
+  remoteIp?: string | null;
+  httpMethod?: string | null;
+  requestPath?: string | null;
+  httpStatus?: number | null;
+  requestId?: string | null;
+  durationMs?: number | null;
+  changedFields?: unknown;
+  createdAt: string;
+}
+
+export interface AssignablePermission {
+  code: string;
+  name: string;
+}
+
+export interface CreateApiClientPayload {
+  name: string;
+  description?: string;
+  permissionCodes: string[];
+  expiresAt?: string;
+}
+
+export interface UpdateApiClientPayload {
+  name?: string;
+  description?: string;
+  permissionCodes?: string[];
+  expiresAt?: string;
 }
 
 export interface CreateAdminSecretPayload {

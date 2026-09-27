@@ -14,12 +14,13 @@ data class LoginResponse(
 )
 
 data class CurrentUserResponse(
-    val id: Long,
+    val id: Long?,
     val username: String,
     val email: String? = null,
     val displayName: String? = null,
     val identityProvider: String = "LOCAL",
     val externalIdentityId: String? = null,
+    val identityType: String = "HUMAN",
     val groups: Set<String>,
     val permissions: Set<String>
 )

@@ -39,7 +39,9 @@ class ExternalAuthenticationProperties {
             "easybpm-admin-groups-manage" to AppPermissions.MANAGE_GROUPS,
             "easybpm-admin-permissions-manage" to AppPermissions.MANAGE_PERMISSIONS,
             "easybpm-admin-secrets-read" to AppPermissions.VIEW_SECRETS,
-            "easybpm-admin-secrets-manage" to AppPermissions.MANAGE_SECRETS
+            "easybpm-admin-secrets-manage" to AppPermissions.MANAGE_SECRETS,
+            "easybpm-admin-api-clients-read" to AppPermissions.VIEW_API_CLIENTS,
+            "easybpm-admin-api-clients-manage" to AppPermissions.MANAGE_API_CLIENTS
         )
         var groupMappings: Map<String, String> = emptyMap()
         var syncGroups: Boolean = true

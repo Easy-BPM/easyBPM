@@ -211,3 +211,5 @@ docker compose -f docker-compose.yml -f docker-compose.keycloak.yml up -d
 
 The Keycloak option imports the `easybpm` realm from `deploy/keycloak/easybpm-realm.json`, exposes Keycloak at `http://localhost:8081`, and configures the backend to map Keycloak roles/groups to EasyBPM permissions. The public issuer stays on `localhost` for browser login, while the backend reads signing keys through the internal Docker service name. Create local development users in Keycloak and assign `easybpm-user`, `easybpm-modeler`, or `easybpm-admin` as needed.
 
+For external system integrations, create a scoped, expiring EasyBPM service credential from **Admin → API Clients**. See [EasyBPM API clients](docs-site-working/docs/api-clients.md) for credential storage, rotation, revocation, auditing, and Keycloak administration roles.
+
