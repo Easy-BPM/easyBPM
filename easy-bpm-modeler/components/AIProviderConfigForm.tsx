@@ -143,10 +143,10 @@ export const AIProviderConfigForm: React.FC<AIProviderConfigFormProps> = ({
         ) : (
           <div className="p-3 bg-yellow-50 border border-yellow-300 rounded text-yellow-700 text-sm">
             <p className="font-semibold">No secrets stored for {currentProvider.label}</p>
-            <p className="text-xs mt-1">Add workspace secrets in BPM Admin, or use $ENV_VAR syntax for runtime environment variables.</p>
+            <p className="text-xs mt-1">Add runtime secrets in BPM Admin, or use $ENV_VAR syntax for environment variables.</p>
           </div>
         )}
-        <p className="text-xs text-gray-600 mt-1">Encrypted workspace secret used by the backend at runtime.</p>
+        <p className="text-xs text-gray-600 mt-1">Encrypted runtime secret from the same central store used by API Tasks.</p>
       </div>
 
       {/* Custom Endpoint (for OpenAI/Azure/Ollama) */}

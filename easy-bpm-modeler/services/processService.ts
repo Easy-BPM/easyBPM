@@ -383,7 +383,7 @@ export const processService = {
   },
 
   listAvailableCredentials: async (): Promise<AvailableCredential[]> => {
-    const response = await fetchWithAuth(`${getModelerApiBaseUrl()}/ai/credentials/available`);
+    const response = await fetchWithAuth(`${getModelerApiBaseUrl()}/secrets/available`);
     if (response.status === 401) throw new AuthRequiredError();
     if (!response.ok) {
       const body = await response.text();

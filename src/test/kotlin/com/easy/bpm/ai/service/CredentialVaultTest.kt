@@ -117,15 +117,14 @@ class CredentialVaultTest {
             providerId = "openai",
             credentialType = "API_KEY",
             encryptedToken = vault.encrypt("sk-secret"),
-            ownerId = "user123",
-            permissions = mutableSetOf()
+            ownerId = "user123"
         )
         
         `when`(credentialRepository.findByIdAndOwnerId("cred-123", "user123"))
             .thenReturn(Optional.of(credential))
         `when`(credentialRepository.save(any())).thenReturn(credential)
         
-        val decrypted = vault.retrieveCredential("cred-123", "user123", "USER")
+        val decrypted = vault.retrieveCredential("cred-123", "user123")
         assertEquals("sk-secret", decrypted)
     }
     
@@ -135,7 +134,7 @@ class CredentialVaultTest {
             .thenReturn(Optional.empty())
         
         assertThrows<IllegalArgumentException> {
-            vault.retrieveCredential("cred-123", "user456", "USER")
+            vault.retrieveCredential("cred-123", "user456")
         }
     }
     

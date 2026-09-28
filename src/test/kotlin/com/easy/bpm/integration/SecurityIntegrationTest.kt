@@ -69,6 +69,26 @@ class SecurityIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
+    fun `modeler-facing runtime secret catalog is available to administrators`() {
+        val tokenResponse = mockMvc.perform(
+            post("/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""{"username":"admin","password":"admin"}""")
+        ).andExpect(status().isOk)
+            .andReturn().response.contentAsString
+
+        val token = Regex("\"token\":\"([^\"]+)\"").find(tokenResponse)?.groupValues?.get(1)
+            ?: throw IllegalStateException("Token not found")
+
+        mockMvc.perform(
+            get("/secrets/available")
+                .header("Authorization", "Bearer $token")
+        )
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$").isArray)
+    }
+
+    @Test
     fun `disabled users cannot authenticate`() {
         val user = appUserRepository.save(
             AppUser(

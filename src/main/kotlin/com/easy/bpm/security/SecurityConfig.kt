@@ -85,6 +85,10 @@ class SecurityConfig(
                 it.requestMatchers(HttpMethod.GET, "/admin/secrets").hasAnyAuthority(AppPermissions.VIEW_SECRETS, AppPermissions.MANAGE_SECRETS)
                 it.requestMatchers("/admin/secrets/**").hasAuthority(AppPermissions.MANAGE_SECRETS)
                 it.requestMatchers(HttpMethod.POST, "/admin/secrets").hasAuthority(AppPermissions.MANAGE_SECRETS)
+                it.requestMatchers(HttpMethod.GET, "/secrets/available").hasAnyAuthority(
+                    AppPermissions.ACCESS_BPM_ADMIN,
+                    AppPermissions.ACCESS_BPM_MODELER
+                )
                 it.requestMatchers("/ai/credentials/**").hasAnyAuthority(AppPermissions.ACCESS_BPM_ADMIN, AppPermissions.ACCESS_BPM_MODELER)
                 it.requestMatchers("/code-tasks/**").hasAnyAuthority(AppPermissions.ACCESS_BPM_ADMIN, AppPermissions.ACCESS_BPM_MODELER)
                 it.requestMatchers("/incidents/**").hasAuthority(AppPermissions.ACCESS_BPM_ADMIN)

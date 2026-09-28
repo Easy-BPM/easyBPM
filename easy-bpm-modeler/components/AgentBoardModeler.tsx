@@ -799,7 +799,7 @@ export const AgentBoardModeler: React.FC<AgentBoardModelerProps> = ({
                                   <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Auth Ref</span>
                                   {apiSecrets.length > 0 && (
                                     <select value={tool.authRef || ''} onChange={event => updateTool(tool.id, { authRef: event.target.value })} className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100">
-                                      <option value="">Select a workspace secret</option>
+                                      <option value="">Select a runtime secret</option>
                                       {apiSecrets.map(secret => (
                                         <option key={secret.id} value={secret.reference}>{secret.name} - {secret.maskedToken}</option>
                                       ))}
@@ -894,7 +894,7 @@ export const AgentBoardModeler: React.FC<AgentBoardModelerProps> = ({
                   <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Credential Ref</span>
                   {secretsForProvider.length > 0 && (
                     <select value={credentialRef} onChange={event => updateAgentState({ credentialRef: event.target.value })} className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100">
-                      <option value="">Select a workspace secret</option>
+                      <option value="">Select a runtime secret</option>
                       {secretsForProvider.map(secret => (
                         <option key={secret.id} value={secret.reference}>{secret.name} - {secret.maskedToken}</option>
                       ))}

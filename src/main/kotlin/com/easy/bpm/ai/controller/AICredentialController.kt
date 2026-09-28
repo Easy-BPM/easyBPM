@@ -44,8 +44,7 @@ class AICredentialController(
      *   "maskedToken": "sk-***...xyz",
      *   "createdAt": "2026-05-22T13:31:27Z",
      *   "updatedAt": "2026-05-22T13:31:27Z",
-     *   "lastUsedAt": null,
-     *   "permissions": []
+     *   "lastUsedAt": null
      * }
      */
     @PostMapping
