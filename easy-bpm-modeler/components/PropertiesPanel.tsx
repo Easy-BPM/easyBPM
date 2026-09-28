@@ -1257,14 +1257,14 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                 </div>
                 {(selectedNode.data.apiAuthType || 'none') !== 'none' && (
                   <div>
-                    <label className="text-[10px] text-slate-400 uppercase font-bold mb-1 block">Auth Ref</label>
+                    <label className="text-[10px] text-slate-400 uppercase font-bold mb-1 block">Runtime Secret</label>
                     {apiSecrets.length > 0 && (
                       <select
                         className={`${inputClassName} mb-2`}
                         value={selectedNode.data.apiAuthRef || ''}
                         onChange={e => onUpdateNode(selectedNode.uid, { apiAuthRef: e.target.value })}
                       >
-                        <option value="">Select a workspace secret</option>
+                        <option value="">Select a runtime secret</option>
                         {apiSecrets.map(secret => (
                           <option key={secret.id} value={secret.reference}>{secret.name} - {secret.maskedToken}</option>
                         ))}
@@ -1274,7 +1274,7 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                       className={`${inputClassName} font-mono`}
                       value={selectedNode.data.apiAuthRef || ''}
                       onChange={e => onUpdateNode(selectedNode.uid, { apiAuthRef: e.target.value })}
-                      placeholder="e.g. EXT_API_AUTH"
+                      placeholder="@secret:EXT_API_AUTH or $ENV_VAR"
                     />
                   </div>
                 )}

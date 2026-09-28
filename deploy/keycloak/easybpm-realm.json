@@ -41,11 +41,11 @@
       },
       {
         "name": "easybpm-admin-secrets-read",
-        "description": "Read Easy BPM workspace secrets metadata"
+        "description": "Read Easy BPM runtime secret metadata"
       },
       {
         "name": "easybpm-admin-secrets-manage",
-        "description": "Create, rotate and remove Easy BPM workspace secrets"
+        "description": "Create, rotate and remove Easy BPM runtime secrets"
       },
       {
         "name": "easybpm-admin-api-clients-read",

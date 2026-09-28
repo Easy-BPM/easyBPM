@@ -99,8 +99,7 @@ data class AICredentialResponseDto(
     val description: String? = null,
     val createdAt: String,
     val updatedAt: String,
-    val lastUsedAt: String? = null,
-    val permissions: List<String> = emptyList()
+    val lastUsedAt: String? = null
 ) : Serializable
 
 /**
@@ -111,8 +110,7 @@ data class AICredentialCreateRequestDto(
     val providerId: String,
     val credentialType: String,                      // API_KEY, BEARER, BASIC_AUTH
     val token: String,                               // Will be encrypted immediately server-side
-    val description: String? = null,
-    val permissions: List<String> = emptyList()
+    val description: String? = null
 ) : Serializable
 
 /**
@@ -123,8 +121,7 @@ data class AICredentialUpdateRequestDto(
     val providerId: String? = null,
     val credentialType: String? = null,
     val token: String? = null,
-    val description: String? = null,
-    val permissions: List<String>? = null
+    val description: String? = null
 ) : Serializable
 
 /**

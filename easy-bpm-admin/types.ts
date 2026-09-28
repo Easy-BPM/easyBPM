@@ -339,7 +339,6 @@ export interface AdminSecret {
   createdAt: string;
   updatedAt: string;
   lastUsedAt?: string | null;
-  permissions: string[];
 }
 
 export type ApiClientStatus = 'ACTIVE' | 'EXPIRED' | 'REVOKED';
@@ -410,7 +409,6 @@ export interface CreateAdminSecretPayload {
   credentialType: string;
   token: string;
   description?: string;
-  permissions?: string[];
 }
 
 export interface UpdateAdminSecretPayload {
@@ -419,5 +417,4 @@ export interface UpdateAdminSecretPayload {
   credentialType?: string;
   token?: string;
   description?: string;
-  permissions?: string[];
 }

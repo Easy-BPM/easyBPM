@@ -45,11 +45,6 @@ data class AICredential(
     @Column(name = "owner_id", nullable = false, length = 100)
     val ownerId: String,                                         // User ID (from security context)
     
-    @ElementCollection
-    @CollectionTable(name = "ai_credential_permissions", joinColumns = [JoinColumn(name = "credential_id")])
-    @Column(name = "role")
-    val permissions: MutableSet<String> = mutableSetOf(),        // RBAC: roles allowed to use this credential
-    
     @Column(name = "created_at", nullable = false)
     val createdAt: LocalDateTime = LocalDateTime.now(),
     
@@ -73,13 +68,10 @@ data class AICredential(
         updatedAt = LocalDateTime.now()
     }
     
-    /**
-     * Check if credential is accessible to a given user with a role.
-     */
-    fun isAccessibleBy(userId: String, userRole: String): Boolean {
+    /** Check whether the credential is active and belongs to the user or workspace. */
+    fun isAccessibleBy(userId: String): Boolean {
         val hasOwnerAccess = this.ownerId == userId || this.ownerId == "__workspace__"
-        return hasOwnerAccess && this.isActive &&
-               (this.permissions.isEmpty() || this.permissions.contains(userRole))
+        return hasOwnerAccess && this.isActive
     }
     
     /**

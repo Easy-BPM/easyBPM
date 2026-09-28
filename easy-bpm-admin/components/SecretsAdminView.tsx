@@ -15,11 +15,10 @@ export const SecretsAdminView: React.FC<{ permissions: string[] }> = ({ permissi
   const [message, setMessage] = useState<string | null>(null);
   const [form, setForm] = useState({
     name: '',
-    providerId: 'openai',
+    providerId: 'custom-api',
     credentialType: 'API_KEY',
     token: '',
-    description: '',
-    permissions: ''
+    description: ''
   });
   const [rotationById, setRotationById] = useState<Record<string, string>>({});
 
@@ -44,9 +43,6 @@ export const SecretsAdminView: React.FC<{ permissions: string[] }> = ({ permissi
     void loadSecrets();
   }, []);
 
-  const parsePermissions = (value: string) =>
-    value.split(',').map(item => item.trim()).filter(Boolean);
-
   const createSecret = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!canManage || !form.name.trim() || !form.token.trim()) return;
@@ -60,11 +56,10 @@ export const SecretsAdminView: React.FC<{ permissions: string[] }> = ({ permissi
         providerId: form.providerId,
         credentialType: form.credentialType,
         token: form.token,
-        description: form.description.trim() || undefined,
-        permissions: parsePermissions(form.permissions)
+        description: form.description.trim() || undefined
       });
       setSecrets(current => [created, ...current]);
-      setForm({ name: '', providerId: 'openai', credentialType: 'API_KEY', token: '', description: '', permissions: '' });
+      setForm({ name: '', providerId: 'custom-api', credentialType: 'API_KEY', token: '', description: '' });
       setMessage('Secret saved.');
     } catch (caught) {
       setError((caught as Error).message);
@@ -113,8 +108,8 @@ export const SecretsAdminView: React.FC<{ permissions: string[] }> = ({ permissi
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-2xl font-bold text-slate-800">Workspace Secrets</h2>
-          <p className="text-sm text-slate-500">Encrypted AI tokens and API secrets available to BPM Modeler runtime configuration.</p>
+          <h2 className="text-2xl font-bold text-slate-800">Runtime Secrets</h2>
+          <p className="text-sm text-slate-500">One encrypted secret store shared by API Tasks, AI Tasks, and other process runtime integrations.</p>
         </div>
         <button
           onClick={loadSecrets}
@@ -139,20 +134,23 @@ export const SecretsAdminView: React.FC<{ permissions: string[] }> = ({ permissi
               <input value={form.name} onChange={event => setForm({ ...form, name: event.target.value })} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" placeholder="OPENAI_PROD" />
             </label>
             <label className="block">
-              <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Provider</span>
-              <select value={form.providerId} onChange={event => setForm({ ...form, providerId: event.target.value })} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
-                {providerOptions.map(option => <option key={option} value={option}>{option}</option>)}
-              </select>
+              <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Provider or service</span>
+              <input
+                list="secret-provider-options"
+                value={form.providerId}
+                onChange={event => setForm({ ...form, providerId: event.target.value })}
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                placeholder="crm-api"
+              />
+              <datalist id="secret-provider-options">
+                {providerOptions.map(option => <option key={option} value={option} />)}
+              </datalist>
             </label>
             <label className="block">
               <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Type</span>
               <select value={form.credentialType} onChange={event => setForm({ ...form, credentialType: event.target.value })} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
                 {credentialTypeOptions.map(option => <option key={option} value={option}>{option}</option>)}
               </select>
-            </label>
-            <label className="block">
-              <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Allowed roles</span>
-              <input value={form.permissions} onChange={event => setForm({ ...form, permissions: event.target.value })} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" placeholder="Optional, comma separated" />
             </label>
             <label className="block md:col-span-2">
               <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Secret value</span>
@@ -175,7 +173,7 @@ export const SecretsAdminView: React.FC<{ permissions: string[] }> = ({ permissi
             <Loader2 className="animate-spin" size={18} /> Loading secrets...
           </div>
         ) : sortedSecrets.length === 0 ? (
-          <div className="py-12 text-center text-sm text-slate-500">No workspace secrets have been added yet.</div>
+          <div className="py-12 text-center text-sm text-slate-500">No runtime secrets have been added yet.</div>
         ) : (
           <div className="divide-y divide-slate-100">
             {sortedSecrets.map(secret => (

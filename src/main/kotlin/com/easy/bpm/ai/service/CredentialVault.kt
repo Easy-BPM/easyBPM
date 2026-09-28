@@ -18,8 +18,9 @@ import javax.crypto.spec.GCMParameterSpec
 import javax.crypto.spec.SecretKeySpec
 
 /**
- * Service for managing encrypted AI provider credentials.
- * Supports encryption at rest, environment variable resolution, and audit logging.
+ * Service for managing encrypted runtime credentials shared by API Tasks,
+ * AI Tasks, and other process integrations. Supports encryption at rest,
+ * environment variable resolution, and audit logging.
  */
 @Service
 @Transactional
@@ -42,7 +43,7 @@ class CredentialVault(
     private val encryptionKey: SecretKey by lazy {
         val keyStr = System.getenv(KEY_ENV_VAR)
             ?: if (isProductionRuntime()) {
-                throw IllegalStateException("$KEY_ENV_VAR must be configured before storing or reading AI credentials in production")
+                throw IllegalStateException("$KEY_ENV_VAR must be configured before storing or reading runtime secrets in production")
             } else {
                 DEV_KEY
             }
@@ -118,7 +119,6 @@ class CredentialVault(
             maskedToken = maskToken(request.token),
             tokenFingerprint = fingerprint(request.token),
             ownerId = userId,
-            permissions = request.permissions.toMutableSet(),
             description = request.description
         )
         
@@ -152,10 +152,6 @@ class CredentialVault(
             cred.tokenFingerprint = fingerprint(it)
         }
         if (request.description != null) cred.description = request.description.takeIf { it.isNotBlank() }
-        request.permissions?.let {
-            cred.permissions.clear()
-            cred.permissions.addAll(it.map(String::trim).filter(String::isNotEmpty))
-        }
         cred.updatedAt = LocalDateTime.now()
 
         val saved = credentialRepository.save(cred)
@@ -165,21 +161,19 @@ class CredentialVault(
     
     /**
      * Retrieve decrypted credential by ID.
-     * Performs RBAC check and updates lastUsedAt timestamp.
+     * Performs ownership/activity checks and updates lastUsedAt timestamp.
      * 
      * @param credentialId UUID of credential
      * @param userId User ID from security context (must be owner)
-     * @param userRole User role for RBAC check
      * @return Decrypted credential token
      * @throws IllegalArgumentException if credential not found or access denied
      */
-    fun retrieveCredential(credentialId: String, userId: String, userRole: String = "USER"): String {
+    fun retrieveCredential(credentialId: String, userId: String): String {
         val cred = credentialRepository.findByIdAndOwnerId(credentialId, userId)
             .or { credentialRepository.findByIdAndOwnerId(credentialId, WORKSPACE_OWNER_ID) }
             .orElseThrow { IllegalArgumentException("Credential not found: $credentialId") }
         
-        // RBAC check
-        if (!cred.isAccessibleBy(userId, userRole)) {
+        if (!cred.isAccessibleBy(userId)) {
             auditService?.logCredentialAction("RETRIEVE_DENIED", userId, cred.providerId, credentialId, false)
             throw IllegalArgumentException("Access denied to credential: $credentialId")
         }
@@ -200,10 +194,9 @@ class CredentialVault(
      * 
      * @param credentialRef Credential reference (UUID or $ENV_VAR format)
      * @param userId User ID for vault access
-     * @param userRole User role for RBAC
      * @return Resolved credential token
      */
-    fun resolveCredentialRef(credentialRef: String, userId: String, userRole: String = "USER"): String {
+    fun resolveCredentialRef(credentialRef: String, userId: String): String {
         val normalizedRef = credentialRef.removePrefix("@secret:").trim()
         return when {
             normalizedRef.startsWith("$") -> {
@@ -215,12 +208,12 @@ class CredentialVault(
             else -> {
                 // UUID or stored credential reference to vault
                 try {
-                    retrieveCredential(normalizedRef, userId, userRole)
+                    retrieveCredential(normalizedRef, userId)
                 } catch (e: IllegalArgumentException) {
                     val namedCredential = credentialRepository.findByOwnerIdAndSecretName(userId, normalizedRef)
                         .or { credentialRepository.findByOwnerIdAndSecretName(WORKSPACE_OWNER_ID, normalizedRef) }
                     if (namedCredential.isPresent) {
-                        return retrieveCredential(namedCredential.get().id, namedCredential.get().ownerId, userRole)
+                        return retrieveCredential(namedCredential.get().id, namedCredential.get().ownerId)
                     }
                     throw IllegalArgumentException("Credential not found for provided reference. Use a stored credentialId, a workspace secret name, or an environment variable reference like '\$AZURE_OPENAI_API_KEY'.")
                 }
@@ -248,8 +241,7 @@ class CredentialVault(
             description = cred.description,
             createdAt = cred.createdAt.toString(),
             updatedAt = cred.updatedAt.toString(),
-            lastUsedAt = cred.lastUsedAt?.toString(),
-            permissions = cred.permissions.toList()
+            lastUsedAt = cred.lastUsedAt?.toString()
         )
     }
     
@@ -333,8 +325,7 @@ class CredentialVault(
             description = cred.description,
             createdAt = cred.createdAt.toString(),
             updatedAt = cred.updatedAt.toString(),
-            lastUsedAt = cred.lastUsedAt?.toString(),
-            permissions = cred.permissions.toList()
+            lastUsedAt = cred.lastUsedAt?.toString()
         )
 
     private fun normalizeSecretName(value: String): String {
