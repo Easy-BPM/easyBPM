@@ -31,7 +31,8 @@ class ApiClientAuthenticationFilter(
             passwordValue = "{API_CLIENT}",
             enabledValue = true,
             groups = emptySet(),
-            permissionCodes = identity.permissionCodes,
+            permissionCodes = emptySet(),
+            scopeCodes = identity.scopes,
             identityProvider = "API_CLIENT",
             externalIdentityId = identity.id.toString(),
             displayName = identity.name,
@@ -61,7 +62,7 @@ class ApiClientAuthenticationFilter(
 
         var failureStatus: Int? = null
         try {
-            if (applicationPath(request).startsWith("/admin/api-clients")) {
+            if (!isApiClientEndpoint(applicationPath(request))) {
                 response.status = HttpServletResponse.SC_FORBIDDEN
                 response.contentType = "application/json"
                 response.writer.write(objectMapper.writeValueAsString(mapOf("status" to 403, "error" to "Forbidden")))
@@ -95,4 +96,10 @@ class ApiClientAuthenticationFilter(
     private fun applicationPath(request: HttpServletRequest): String =
         request.servletPath.takeIf { it.isNotBlank() }
             ?: request.requestURI.removePrefix(request.contextPath.orEmpty())
+
+    private fun isApiClientEndpoint(path: String): Boolean =
+        path == "/processes" || path.startsWith("/processes/") ||
+            path == "/tasks" || path.startsWith("/tasks/") ||
+            path == "/forms" || path.startsWith("/forms/") ||
+            path == "/api/documents" || path.startsWith("/api/documents/")
 }

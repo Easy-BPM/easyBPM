@@ -9,7 +9,7 @@ import java.sql.DriverManager
 class ApiClientMigrationIntegrationTest {
 
     @Test
-    fun `V43 creates API client schema and permissions on PostgreSQL`() {
+    fun `API client migrations separate service scopes from user permissions on PostgreSQL`() {
         PostgreSQLContainer(DockerImageName.parse("postgres:16-alpine")).use { postgres ->
             postgres.start()
             DriverManager.getConnection(postgres.jdbcUrl, postgres.username, postgres.password).use { connection ->
@@ -71,6 +71,32 @@ class ApiClientMigrationIntegrationTest {
                             while (rows.next()) add(rows.getString(1))
                         }
                         assertThat(codes).containsExactly("MANAGE_API_CLIENTS", "VIEW_API_CLIENTS")
+                    }
+
+                    val scopeMigration = requireNotNull(javaClass.getResource("/db/migration/V45__separate_api_client_scopes.sql"))
+                        .readText()
+                    statement.execute(scopeMigration)
+                    statement.executeQuery(
+                        """
+                        select count(*)
+                          from information_schema.tables
+                         where table_schema = 'public'
+                           and table_name = 'api_client_scope'
+                        """.trimIndent()
+                    ).use { rows ->
+                        rows.next()
+                        assertThat(rows.getInt(1)).isEqualTo(1)
+                    }
+                    statement.executeQuery(
+                        """
+                        select count(*)
+                          from information_schema.tables
+                         where table_schema = 'public'
+                           and table_name = 'api_client_permission'
+                        """.trimIndent()
+                    ).use { rows ->
+                        rows.next()
+                        assertThat(rows.getInt(1)).isZero()
                     }
                 }
             }

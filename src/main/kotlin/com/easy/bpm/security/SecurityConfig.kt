@@ -88,10 +88,46 @@ class SecurityConfig(
                 it.requestMatchers("/ai/credentials/**").hasAnyAuthority(AppPermissions.ACCESS_BPM_ADMIN, AppPermissions.ACCESS_BPM_MODELER)
                 it.requestMatchers("/code-tasks/**").hasAnyAuthority(AppPermissions.ACCESS_BPM_ADMIN, AppPermissions.ACCESS_BPM_MODELER)
                 it.requestMatchers("/incidents/**").hasAuthority(AppPermissions.ACCESS_BPM_ADMIN)
-                it.requestMatchers("/api/documents/**").hasAnyAuthority(AppPermissions.ACCESS_BPM_ADMIN, AppPermissions.ACCESS_PROCESS_PORTAL, AppPermissions.ACCESS_BPM_MODELER)
-                it.requestMatchers("/tasks/**").hasAnyAuthority(AppPermissions.ACCESS_BPM_ADMIN, AppPermissions.ACCESS_PROCESS_PORTAL)
-                it.requestMatchers("/forms/**").hasAnyAuthority(AppPermissions.ACCESS_BPM_ADMIN, AppPermissions.ACCESS_PROCESS_PORTAL, AppPermissions.ACCESS_BPM_MODELER)
-                it.requestMatchers("/processes/**").hasAnyAuthority(AppPermissions.ACCESS_BPM_ADMIN, AppPermissions.ACCESS_PROCESS_PORTAL, AppPermissions.ACCESS_BPM_MODELER)
+                it.requestMatchers(HttpMethod.GET, "/api/documents/**").hasAnyAuthority(
+                    AppPermissions.ACCESS_BPM_ADMIN, AppPermissions.ACCESS_PROCESS_PORTAL, AppPermissions.ACCESS_BPM_MODELER,
+                    ApiScopes.authority(ApiScopes.DOCUMENTS_READ)
+                )
+                it.requestMatchers("/api/documents/**").hasAnyAuthority(
+                    AppPermissions.ACCESS_BPM_ADMIN, AppPermissions.ACCESS_PROCESS_PORTAL, AppPermissions.ACCESS_BPM_MODELER,
+                    ApiScopes.authority(ApiScopes.DOCUMENTS_WRITE)
+                )
+                it.requestMatchers(HttpMethod.GET, "/tasks/**").hasAnyAuthority(
+                    AppPermissions.ACCESS_BPM_ADMIN, AppPermissions.ACCESS_PROCESS_PORTAL,
+                    ApiScopes.authority(ApiScopes.TASKS_READ)
+                )
+                it.requestMatchers(HttpMethod.POST, "/tasks/search").hasAnyAuthority(
+                    AppPermissions.ACCESS_BPM_ADMIN, AppPermissions.ACCESS_PROCESS_PORTAL,
+                    ApiScopes.authority(ApiScopes.TASKS_READ)
+                )
+                it.requestMatchers("/tasks/**").hasAnyAuthority(
+                    AppPermissions.ACCESS_BPM_ADMIN, AppPermissions.ACCESS_PROCESS_PORTAL,
+                    ApiScopes.authority(ApiScopes.TASKS_WRITE)
+                )
+                it.requestMatchers(HttpMethod.GET, "/forms/**").hasAnyAuthority(
+                    AppPermissions.ACCESS_BPM_ADMIN, AppPermissions.ACCESS_PROCESS_PORTAL, AppPermissions.ACCESS_BPM_MODELER,
+                    ApiScopes.authority(ApiScopes.FORMS_READ)
+                )
+                it.requestMatchers("/forms/**").hasAnyAuthority(
+                    AppPermissions.ACCESS_BPM_ADMIN, AppPermissions.ACCESS_PROCESS_PORTAL, AppPermissions.ACCESS_BPM_MODELER,
+                    ApiScopes.authority(ApiScopes.FORMS_WRITE)
+                )
+                it.requestMatchers(HttpMethod.GET, "/processes/**").hasAnyAuthority(
+                    AppPermissions.ACCESS_BPM_ADMIN, AppPermissions.ACCESS_PROCESS_PORTAL, AppPermissions.ACCESS_BPM_MODELER,
+                    ApiScopes.authority(ApiScopes.PROCESSES_READ)
+                )
+                it.requestMatchers(HttpMethod.POST, "/processes/messages").hasAnyAuthority(
+                    AppPermissions.ACCESS_BPM_ADMIN, AppPermissions.ACCESS_PROCESS_PORTAL, AppPermissions.ACCESS_BPM_MODELER,
+                    ApiScopes.authority(ApiScopes.MESSAGES_PUBLISH)
+                )
+                it.requestMatchers("/processes/**").hasAnyAuthority(
+                    AppPermissions.ACCESS_BPM_ADMIN, AppPermissions.ACCESS_PROCESS_PORTAL, AppPermissions.ACCESS_BPM_MODELER,
+                    ApiScopes.authority(ApiScopes.PROCESSES_WRITE)
+                )
                 it.anyRequest().authenticated()
             }
 

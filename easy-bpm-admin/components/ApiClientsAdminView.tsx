@@ -1,10 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Clipboard, Download, Eye, KeyRound, Pencil, Plus, RefreshCw, RotateCw, Search, ShieldOff, X } from 'lucide-react';
 import { adminService } from '../services/adminService';
-import { ApiClient, ApiClientAudit, ApiClientCredential, AssignablePermission } from '../types';
+import { ApiClient, ApiClientAudit, ApiClientCredential, AssignableScope } from '../types';
 
 type Props = { permissions: string[]; embedded?: boolean };
-type EditorState = { mode: 'create' | 'edit'; client?: ApiClient; name: string; description: string; expiresAt: string; permissionCodes: string[] };
+type EditorState = { mode: 'create' | 'edit'; client?: ApiClient; name: string; description: string; expiresAt: string; scopes: string[] };
 
 const localDateTimeValue = (date: Date) => {
   const offset = date.getTimezoneOffset() * 60000;
@@ -17,7 +17,7 @@ export const ApiClientsAdminView: React.FC<Props> = ({ permissions, embedded = f
   const canRead = permissions.includes('VIEW_API_CLIENTS') || permissions.includes('MANAGE_API_CLIENTS');
   const canManage = permissions.includes('MANAGE_API_CLIENTS');
   const [clients, setClients] = useState<ApiClient[]>([]);
-  const [assignable, setAssignable] = useState<AssignablePermission[]>([]);
+  const [assignable, setAssignable] = useState<AssignableScope[]>([]);
   const [loading, setLoading] = useState(true);
   const [working, setWorking] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -54,17 +54,17 @@ export const ApiClientsAdminView: React.FC<Props> = ({ permissions, embedded = f
   useEffect(() => { void load(0); }, [canRead, status]);
   useEffect(() => {
     if (!canManage) return;
-    void adminService.getAssignableApiClientPermissions().then(setAssignable).catch(e => setError((e as Error).message));
+    void adminService.getAssignableApiClientScopes().then(setAssignable).catch(e => setError((e as Error).message));
   }, [canManage]);
 
   const openCreate = () => setEditor({
     mode: 'create', name: '', description: '',
-    expiresAt: localDateTimeValue(new Date(Date.now() + 90 * 86400000)), permissionCodes: []
+    expiresAt: localDateTimeValue(new Date(Date.now() + 90 * 86400000)), scopes: []
   });
 
   const openEdit = (client: ApiClient) => setEditor({
     mode: 'edit', client, name: client.name, description: client.description ?? '',
-    expiresAt: localDateTimeValue(new Date(client.expiresAt)), permissionCodes: [...client.permissionCodes]
+    expiresAt: localDateTimeValue(new Date(client.expiresAt)), scopes: [...client.scopes]
   });
 
   const save = async () => {
@@ -74,7 +74,7 @@ export const ApiClientsAdminView: React.FC<Props> = ({ permissions, embedded = f
       const payload = {
         name: editor.name,
         description: editor.description,
-        permissionCodes: editor.permissionCodes,
+        scopes: editor.scopes,
         expiresAt: editor.expiresAt.length === 16 ? `${editor.expiresAt}:00` : editor.expiresAt
       };
       if (editor.mode === 'create') {
@@ -132,10 +132,10 @@ export const ApiClientsAdminView: React.FC<Props> = ({ permissions, embedded = f
     anchor.click(); URL.revokeObjectURL(url);
   };
 
-  const selectedPermissions = useMemo(() => new Set(editor?.permissionCodes ?? []), [editor]);
-  const togglePermission = (code: string) => editor && setEditor({
+  const selectedScopes = useMemo(() => new Set(editor?.scopes ?? []), [editor]);
+  const toggleScope = (code: string) => editor && setEditor({
     ...editor,
-    permissionCodes: selectedPermissions.has(code) ? editor.permissionCodes.filter(item => item !== code) : [...editor.permissionCodes, code]
+    scopes: selectedScopes.has(code) ? editor.scopes.filter(item => item !== code) : [...editor.scopes, code]
   });
 
   if (!canRead) return <div className="p-8 text-sm text-slate-600">You do not have permission to view API clients.</div>;
@@ -157,11 +157,11 @@ export const ApiClientsAdminView: React.FC<Props> = ({ permissions, embedded = f
       </div>
       <div className="overflow-hidden rounded border border-slate-200 bg-white">
         {loading ? <div className="p-10 text-center text-sm text-slate-500">Loading API clients…</div> : clients.length === 0 ? <div className="p-10 text-center text-sm text-slate-500">{query || status ? 'No API clients match these filters.' : 'No API clients have been created.'}</div> : (
-          <table className="w-full text-left text-sm"><thead className="bg-slate-50 text-xs uppercase text-slate-500"><tr><th className="px-4 py-3">Client</th><th className="px-4 py-3">Status</th><th className="px-4 py-3">Permissions</th><th className="px-4 py-3">Expires</th><th className="px-4 py-3">Last used</th><th className="px-4 py-3 text-right">Actions</th></tr></thead>
+          <table className="w-full text-left text-sm"><thead className="bg-slate-50 text-xs uppercase text-slate-500"><tr><th className="px-4 py-3">Client</th><th className="px-4 py-3">Status</th><th className="px-4 py-3">API scopes</th><th className="px-4 py-3">Expires</th><th className="px-4 py-3">Last used</th><th className="px-4 py-3 text-right">Actions</th></tr></thead>
           <tbody className="divide-y divide-slate-100">{clients.map(client => <tr key={client.id}>
             <td className="px-4 py-3"><div className="font-semibold text-slate-800">{client.name}</div><div className="max-w-xs truncate text-xs text-slate-500">{client.description || client.id}</div></td>
             <td className="px-4 py-3"><span className={`rounded px-2 py-1 text-xs font-semibold ${client.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-700' : client.status === 'EXPIRED' ? 'bg-amber-100 text-amber-700' : 'bg-slate-200 text-slate-600'}`}>{client.status}</span></td>
-            <td className="px-4 py-3 text-xs text-slate-600">{client.permissionCodes.length ? client.permissionCodes.join(', ') : 'None'}</td>
+            <td className="px-4 py-3 text-xs text-slate-600">{client.scopes.length ? client.scopes.join(', ') : 'No scopes'}</td>
             <td className="px-4 py-3 text-slate-600">{dateLabel(client.expiresAt)}</td><td className="px-4 py-3 text-slate-600">{dateLabel(client.lastUsedAt)}{client.lastUsedIp && <div className="text-xs">{client.lastUsedIp}</div>}</td>
             <td className="px-4 py-3"><div className="flex justify-end gap-1"><button title="View audit" onClick={() => void showAudit(client)} className="p-2 text-slate-500 hover:text-blue-600"><Eye size={16} /></button>{canManage && client.status === 'ACTIVE' && <button title="Edit" onClick={() => openEdit(client)} className="p-2 text-slate-500 hover:text-blue-600"><Pencil size={16} /></button>}{canManage && client.status !== 'REVOKED' && <button title="Rotate" disabled={working} onClick={() => void rotate(client)} className="p-2 text-slate-500 hover:text-blue-600"><RotateCw size={16} /></button>}{canManage && client.status !== 'REVOKED' && <button title="Revoke" onClick={() => { setRevokeClient(client); setRevokeConfirmation(''); }} className="p-2 text-slate-500 hover:text-red-600"><ShieldOff size={16} /></button>}</div></td>
           </tr>)}</tbody></table>
@@ -171,7 +171,7 @@ export const ApiClientsAdminView: React.FC<Props> = ({ permissions, embedded = f
 
       {editor && <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4"><div className="w-full max-w-2xl rounded-xl bg-white p-6 shadow-xl"><div className="flex justify-between"><h3 className="text-lg font-bold">{editor.mode === 'create' ? 'Create API client' : 'Edit API client'}</h3><button onClick={() => setEditor(null)}><X size={18} /></button></div>
         <div className="mt-5 grid gap-4"><label className="text-sm font-medium">Name<input value={editor.name} onChange={e => setEditor({...editor, name: e.target.value})} className="mt-1 w-full rounded border px-3 py-2" /></label><label className="text-sm font-medium">Description<textarea value={editor.description} onChange={e => setEditor({...editor, description: e.target.value})} className="mt-1 w-full rounded border px-3 py-2" /></label><label className="text-sm font-medium">Expires at<input type="datetime-local" value={editor.expiresAt} onChange={e => setEditor({...editor, expiresAt: e.target.value})} className="mt-1 w-full rounded border px-3 py-2" /></label>
-        <fieldset><legend className="text-sm font-medium">Permissions</legend><div className="mt-2 grid max-h-48 grid-cols-2 gap-2 overflow-auto rounded border p-3">{assignable.map(item => <label key={item.code} className="flex gap-2 text-xs"><input type="checkbox" checked={selectedPermissions.has(item.code)} onChange={() => togglePermission(item.code)} /><span><b>{item.code}</b><br />{item.name}</span></label>)}</div></fieldset></div>
+        <fieldset><legend className="text-sm font-medium">API scopes</legend><p className="mt-1 text-xs text-slate-500">Scopes authorize REST API operations only. They never grant access to EasyBPM user portals.</p><div className="mt-2 grid max-h-48 grid-cols-2 gap-2 overflow-auto rounded border p-3">{assignable.map(item => <label key={item.code} className="flex gap-2 text-xs"><input type="checkbox" checked={selectedScopes.has(item.code)} onChange={() => toggleScope(item.code)} /><span><b>{item.code}</b><br />{item.name}</span></label>)}</div></fieldset></div>
         <div className="mt-6 flex justify-end gap-2"><button onClick={() => setEditor(null)} className="rounded border px-4 py-2 text-sm">Cancel</button><button disabled={working || !editor.name || !editor.expiresAt} onClick={() => void save()} className="rounded bg-blue-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{working ? 'Saving…' : 'Save'}</button></div></div></div>}
 
       {credential && <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4"><div className="w-full max-w-2xl rounded-xl bg-white p-6 shadow-xl"><div className="flex items-center gap-2"><KeyRound className="text-amber-600" /><h3 className="text-lg font-bold">Save this credential now</h3></div><p className="mt-3 text-sm text-amber-800">This is the only time EasyBPM will show this credential. Store it in a secure secret manager.</p><pre className="mt-4 overflow-auto rounded bg-slate-950 p-4 text-sm text-emerald-300">{credential.credential}</pre><div className="mt-3 flex gap-2"><button onClick={() => void navigator.clipboard.writeText(credential.credential)} className="rounded border px-3 py-2 text-sm"><Clipboard size={15} className="inline mr-2" />Copy</button><button onClick={downloadCredential} className="rounded border px-3 py-2 text-sm"><Download size={15} className="inline mr-2" />Download</button></div><label className="mt-5 flex gap-2 text-sm"><input type="checkbox" checked={credentialSaved} onChange={e => setCredentialSaved(e.target.checked)} />I have saved this credential securely.</label><div className="mt-5 flex justify-end"><button disabled={!credentialSaved} onClick={() => { setCredential(null); setCredentialSaved(false); }} className="rounded bg-blue-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-40">Close</button></div></div></div>}

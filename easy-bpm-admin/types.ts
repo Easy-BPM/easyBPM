@@ -350,7 +350,7 @@ export interface ApiClient {
   description?: string | null;
   status: ApiClientStatus;
   expiresAt: string;
-  permissionCodes: string[];
+  scopes: string[];
   credentialGeneration: number;
   lastUsedAt?: string | null;
   lastUsedIp?: string | null;
@@ -385,7 +385,7 @@ export interface ApiClientAudit {
   createdAt: string;
 }
 
-export interface AssignablePermission {
+export interface AssignableScope {
   code: string;
   name: string;
 }
@@ -393,14 +393,14 @@ export interface AssignablePermission {
 export interface CreateApiClientPayload {
   name: string;
   description?: string;
-  permissionCodes: string[];
+  scopes: string[];
   expiresAt?: string;
 }
 
 export interface UpdateApiClientPayload {
   name?: string;
   description?: string;
-  permissionCodes?: string[];
+  scopes?: string[];
   expiresAt?: string;
 }
 
