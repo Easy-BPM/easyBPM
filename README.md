@@ -128,6 +128,20 @@ cd easy-bpm-admin && npm install && npm run dev
 cd easy-bpm-task-portal && npm install && npm run dev
 ```
 
+On Windows, the complete local application stack can be started in separate terminal windows with:
+
+```bat
+start-easybpm-local.cmd
+```
+
+The launcher expects PostgreSQL and RabbitMQ to already be available on their default local ports. Start only those dependencies with Docker first:
+
+```bash
+docker compose up -d postgres rabbitmq
+```
+
+It starts the backend, asynchronous worker, modeler, admin console, and task portal locally. Missing frontend dependencies are installed automatically on the first run. Use `start-easybpm-local.cmd --dry-run` to display the planned commands without starting anything.
+
 Useful local URLs:
 
 | Service | URL |
