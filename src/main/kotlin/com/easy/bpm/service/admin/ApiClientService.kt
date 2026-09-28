@@ -4,8 +4,7 @@ import com.easy.bpm.dto.security.*
 import com.easy.bpm.model.security.*
 import com.easy.bpm.repository.security.ApiClientAuditRepository
 import com.easy.bpm.repository.security.ApiClientRepository
-import com.easy.bpm.repository.security.PermissionRepository
-import com.easy.bpm.security.AppPermissions
+import com.easy.bpm.security.ApiScopes
 import com.easy.bpm.security.AuthenticatedUser
 import com.fasterxml.jackson.databind.ObjectMapper
 import jakarta.persistence.criteria.Predicate
@@ -31,7 +30,7 @@ import org.slf4j.LoggerFactory
 data class ApiClientIdentity(
     val id: UUID,
     val name: String,
-    val permissionCodes: Set<String>,
+    val scopes: Set<String>,
     val credentialGeneration: Int
 )
 
@@ -39,7 +38,6 @@ data class ApiClientIdentity(
 class ApiClientService(
     private val clientRepository: ApiClientRepository,
     private val auditRepository: ApiClientAuditRepository,
-    private val permissionRepository: PermissionRepository,
     private val objectMapper: ObjectMapper,
     private val properties: ApiClientProperties
 ) {
@@ -54,7 +52,7 @@ class ApiClientService(
         val displayName = validateAndDisplayName(request.name)
         val normalizedName = normalizeName(displayName)
         val expiry = validateExpiry(request.expiresAt ?: now.plusDays(90), now)
-        val permissions = resolveDelegatedPermissions(request.permissionCodes, actor)
+        val scopes = validateScopes(request.scopes)
         if (clientRepository.existsByNormalizedName(normalizedName)) conflict("API_CLIENT_NAME_EXISTS", "An API client with this name already exists")
         val credential = newCredential()
         var client = ApiClient(
@@ -66,7 +64,7 @@ class ApiClientService(
             expiresAt = expiry,
             createdBy = actor.username,
             updatedBy = actor.username,
-            permissions = permissions.toMutableSet()
+            scopes = scopes.toMutableSet()
         )
         try {
             client = clientRepository.saveAndFlush(client)
@@ -75,7 +73,7 @@ class ApiClientService(
         }
         val changed = linkedSetOf("name", "credential", "status", "expiresAt")
         if (client.description != null) changed += "description"
-        if (client.permissions.isNotEmpty()) changed += "permissions"
+        if (client.scopes.isNotEmpty()) changed += "scopes"
         saveLifecycleAudit(client, "CREATED", actor.username, changed, requestId)
         return ApiClientCredentialResponse(toResponse(client, now), credential.full)
     }
@@ -127,11 +125,8 @@ class ApiClientService(
     }
 
     @Transactional(readOnly = true)
-    fun assignablePermissions(actor: AuthenticatedUser): List<AssignablePermissionResponse> {
-        val allowed = actor.permissionCodes - NON_DELEGABLE
-        return permissionRepository.findAllByCodeIn(allowed).sortedBy { it.code }
-            .map { AssignablePermissionResponse(it.code, it.name) }
-    }
+    fun assignableScopes(): List<AssignableScopeResponse> =
+        ApiScopes.definitions.map { AssignableScopeResponse(it.code, it.name) }
 
     @Transactional
     fun update(id: UUID, expectedVersion: Long, request: UpdateApiClientRequest, actor: AuthenticatedUser, requestId: String = UUID.randomUUID().toString()): ApiClientResponse {
@@ -156,11 +151,11 @@ class ApiClientService(
                 changed += "description"
             }
         }
-        request.permissionCodes?.let {
-            val resolved = resolveDelegatedPermissions(it, actor)
-            if (client.permissions.map { permission -> permission.code }.toSet() != resolved.map { permission -> permission.code }.toSet()) {
-                client.permissions = resolved.toMutableSet()
-                changed += "permissions"
+        request.scopes?.let {
+            val resolved = validateScopes(it)
+            if (client.scopes != resolved) {
+                client.scopes = resolved.toMutableSet()
+                changed += "scopes"
             }
         }
         request.expiresAt?.let {
@@ -223,7 +218,7 @@ class ApiClientService(
         val client = clientRepository.findBySelectorForAuthentication(selector)
         val matches = encoder.matches(secret, client?.secretHash ?: dummyHash)
         if (client == null || !matches || client.lifecycleStatus != ApiClientLifecycleStatus.ACTIVE || !client.expiresAt.isAfter(LocalDateTime.now())) return null
-        return ApiClientIdentity(client.id, client.name, client.permissions.map { it.code }.toSet() - NON_DELEGABLE, client.credentialGeneration)
+        return ApiClientIdentity(client.id, client.name, client.scopes.toSet(), client.credentialGeneration)
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
@@ -285,12 +280,11 @@ class ApiClientService(
             .onFailure { logger.error("API client use audit recovery failed; durable STARTED records remain pending") }
     }
 
-    private fun resolveDelegatedPermissions(codes: Set<String>, actor: AuthenticatedUser): Set<Permission> {
-        val allowed = actor.permissionCodes - NON_DELEGABLE
-        if (!allowed.containsAll(codes) || !AppPermissions.all.containsAll(codes)) forbiddenDelegation()
-        val permissions = if (codes.isEmpty()) emptySet() else permissionRepository.findAllByCodeIn(codes).toSet()
-        if (permissions.size != codes.size) forbiddenDelegation()
-        return permissions
+    private fun validateScopes(scopes: Set<String>): Set<String> {
+        if (!ApiScopes.all.containsAll(scopes)) {
+            badRequest("INVALID_API_CLIENT_SCOPE", "One or more requested API scopes are invalid", mapOf("scopes" to "Unknown API scope"))
+        }
+        return scopes.toSet()
     }
 
     private fun saveLifecycleAudit(client: ApiClient, action: String, actor: String, changed: Set<String>, requestId: String) {
@@ -371,7 +365,7 @@ class ApiClientService(
             else -> "ACTIVE"
         },
         expiresAt = client.expiresAt,
-        permissionCodes = client.permissions.map { it.code }.toSet(),
+        scopes = client.scopes.toSet(),
         credentialGeneration = client.credentialGeneration,
         lastUsedAt = client.lastUsedAt,
         lastUsedIp = client.lastUsedIp,
@@ -393,11 +387,5 @@ class ApiClientService(
     private fun badRequest(code: String, message: String, fields: Map<String, String> = emptyMap()): Nothing =
         throw ApiClientException(HttpStatus.BAD_REQUEST, code, message, fields)
     private fun conflict(code: String, message: String): Nothing = throw ApiClientException(HttpStatus.CONFLICT, code, message)
-    private fun forbiddenDelegation(): Nothing = throw ApiClientException(HttpStatus.FORBIDDEN, "API_CLIENT_PERMISSION_FORBIDDEN", "One or more requested permissions cannot be delegated")
-
     private data class GeneratedCredential(val selector: String, val secret: String, val full: String)
-
-    companion object {
-        val NON_DELEGABLE = setOf(AppPermissions.VIEW_API_CLIENTS, AppPermissions.MANAGE_API_CLIENTS)
-    }
 }

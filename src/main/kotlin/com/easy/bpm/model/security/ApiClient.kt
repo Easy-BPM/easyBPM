@@ -61,15 +61,11 @@ class ApiClient(
     @Column(name = "updated_by", nullable = false, length = 255)
     var updatedBy: String,
 
-    @ManyToMany(fetch = FetchType.EAGER)
-    @JoinTable(
-        name = "api_client_permission",
-        joinColumns = [JoinColumn(name = "api_client_id")],
-        inverseJoinColumns = [JoinColumn(name = "permission_id")]
-    )
-    var permissions: MutableSet<Permission> = mutableSetOf(),
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "api_client_scope", joinColumns = [JoinColumn(name = "api_client_id")])
+    @Column(name = "scope_code", nullable = false, length = 64)
+    var scopes: MutableSet<String> = mutableSetOf(),
 
     @Version
     var version: Long = 0
 )
-

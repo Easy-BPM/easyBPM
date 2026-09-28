@@ -26,7 +26,7 @@ class ApiClientAuthenticationFilterTest : FunSpec({
 
     test("valid native credential creates a service principal and preserves endpoint authorization") {
         val id = UUID.randomUUID()
-        every { service.authenticate(selector, secret) } returns ApiClientIdentity(id, "ERP", setOf(AppPermissions.ACCESS_PROCESS_PORTAL), 2)
+        every { service.authenticate(selector, secret) } returns ApiClientIdentity(id, "ERP", setOf(ApiScopes.TASKS_READ), 2)
         every { service.beginUse(any(), any(), any(), any(), any()) } returns 44L
         val request = MockHttpServletRequest("GET", "/tasks").apply {
             addHeader("Authorization", header)
@@ -40,6 +40,8 @@ class ApiClientAuthenticationFilterTest : FunSpec({
             principal.userId shouldBe null
             principal.username shouldBe "api-client:$id"
             principal.identityType shouldBe "API_CLIENT"
+            principal.permissionCodes shouldBe emptySet()
+            principal.scopeCodes shouldBe setOf(ApiScopes.TASKS_READ)
             response.status = 200
         }
 
@@ -68,7 +70,7 @@ class ApiClientAuthenticationFilterTest : FunSpec({
     }
 
     test("native service identities are always forbidden from API client administration") {
-        every { service.authenticate(selector, secret) } returns ApiClientIdentity(UUID.randomUUID(), "ERP", setOf(AppPermissions.MANAGE_API_CLIENTS), 1)
+        every { service.authenticate(selector, secret) } returns ApiClientIdentity(UUID.randomUUID(), "ERP", setOf(ApiScopes.PROCESSES_READ), 1)
         every { service.beginUse(any(), any(), any(), any(), any()) } returns 45L
         val request = MockHttpServletRequest("GET", "/admin/api-clients").apply { addHeader("Authorization", header) }
         val response = MockHttpServletResponse()
@@ -81,7 +83,7 @@ class ApiClientAuthenticationFilterTest : FunSpec({
     }
 
     test("native service identity cannot reach API client administration under a servlet context path") {
-        every { service.authenticate(selector, secret) } returns ApiClientIdentity(UUID.randomUUID(), "ERP", setOf(AppPermissions.VIEW_API_CLIENTS, AppPermissions.MANAGE_API_CLIENTS), 1)
+        every { service.authenticate(selector, secret) } returns ApiClientIdentity(UUID.randomUUID(), "ERP", setOf(ApiScopes.PROCESSES_READ), 1)
         every { service.beginUse(any(), any(), any(), any(), any()) } returns 46L
         val request = MockHttpServletRequest("GET", "/easybpm/admin/api-clients").apply {
             contextPath = "/easybpm"

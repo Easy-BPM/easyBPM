@@ -5,10 +5,9 @@ import com.easy.bpm.dto.security.UpdateApiClientRequest
 import com.easy.bpm.dto.security.RotateApiClientRequest
 import com.easy.bpm.model.security.ApiClient
 import com.easy.bpm.model.security.ApiClientAudit
-import com.easy.bpm.model.security.Permission
 import com.easy.bpm.repository.security.ApiClientAuditRepository
 import com.easy.bpm.repository.security.ApiClientRepository
-import com.easy.bpm.repository.security.PermissionRepository
+import com.easy.bpm.security.ApiScopes
 import com.easy.bpm.security.AppPermissions
 import com.easy.bpm.security.AuthenticatedUser
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -30,7 +29,6 @@ import java.util.UUID
 class ApiClientServiceTest : FunSpec({
     lateinit var clients: ApiClientRepository
     lateinit var audits: ApiClientAuditRepository
-    lateinit var permissions: PermissionRepository
     lateinit var service: ApiClientService
     val clientSlot = slot<ApiClient>()
     val auditSlot = slot<ApiClientAudit>()
@@ -41,27 +39,23 @@ class ApiClientServiceTest : FunSpec({
         passwordValue = "ignored",
         enabledValue = true,
         groups = emptySet(),
-        permissionCodes = setOf(AppPermissions.MANAGE_API_CLIENTS, AppPermissions.ACCESS_PROCESS_PORTAL)
+        permissionCodes = setOf(AppPermissions.MANAGE_API_CLIENTS)
     )
 
     beforeTest {
         clients = mockk()
         audits = mockk()
-        permissions = mockk()
-        service = ApiClientService(clients, audits, permissions, ObjectMapper(), ApiClientProperties())
+        service = ApiClientService(clients, audits, ObjectMapper(), ApiClientProperties())
         every { clients.existsByNormalizedName(any()) } returns false
         every { clients.saveAndFlush(capture(clientSlot)) } answers { firstArg() }
         every { audits.saveAndFlush(capture(auditSlot)) } answers { firstArg() }
-        every { permissions.findAllByCodeIn(any<Collection<String>>()) } answers {
-            firstArg<Collection<String>>().map { Permission(code = it, name = it) }
-        }
     }
 
     test("creates a one-time credential and stores only a bcrypt cost 12 hash") {
         val result = service.create(
             CreateApiClientRequest(
                 name = "  Order   Connector  ",
-                permissionCodes = setOf(AppPermissions.ACCESS_PROCESS_PORTAL),
+                scopes = setOf(ApiScopes.PROCESSES_READ),
                 expiresAt = LocalDateTime.now().plusDays(30)
             ),
             actor
@@ -69,7 +63,7 @@ class ApiClientServiceTest : FunSpec({
 
         result.credential shouldMatch Regex("^ebpm_[A-Za-z0-9_-]{16}\\.[A-Za-z0-9_-]{43}$")
         result.client.name shouldBe "Order Connector"
-        result.client.permissionCodes.shouldContainExactly(AppPermissions.ACCESS_PROCESS_PORTAL)
+        result.client.scopes.shouldContainExactly(ApiScopes.PROCESSES_READ)
         val secret = result.credential.substringAfter('.')
         clientSlot.captured.secretHash.startsWith("$2") shouldBe true
         clientSlot.captured.secretHash.split('$')[2] shouldBe "12"
@@ -77,19 +71,19 @@ class ApiClientServiceTest : FunSpec({
         clientSlot.captured.secretHash.contains(secret) shouldBe false
     }
 
-    test("does not permit delegation of API client administration") {
+    test("rejects user permissions and unknown values as API scopes") {
         val exception = shouldThrow<ApiClientException> {
             service.create(
                 CreateApiClientRequest(
                     name = "Privileged Connector",
-                    permissionCodes = setOf(AppPermissions.MANAGE_API_CLIENTS),
+                    scopes = setOf(AppPermissions.MANAGE_API_CLIENTS),
                     expiresAt = LocalDateTime.now().plusDays(30)
                 ),
                 actor
             )
         }
-        exception.status shouldBe HttpStatus.FORBIDDEN
-        exception.message shouldBe "One or more requested permissions cannot be delegated"
+        exception.status shouldBe HttpStatus.BAD_REQUEST
+        exception.code shouldBe "INVALID_API_CLIENT_SCOPE"
     }
 
     test("rejects expiry shorter than one hour") {
@@ -103,9 +97,8 @@ class ApiClientServiceTest : FunSpec({
         exception.fieldErrors.keys shouldContainExactly setOf("expiresAt")
     }
 
-    test("rotation replaces the credential atomically while preserving identity and permissions") {
+    test("rotation replaces the credential atomically while preserving identity and scopes") {
         val id = UUID.randomUUID()
-        val permission = Permission(code = AppPermissions.ACCESS_PROCESS_PORTAL, name = "Portal")
         val oldSecret = "b".repeat(43)
         val client = ApiClient(
             id = id,
@@ -116,7 +109,7 @@ class ApiClientServiceTest : FunSpec({
             expiresAt = LocalDateTime.now().plusDays(30),
             createdBy = "manager",
             updatedBy = "manager",
-            permissions = mutableSetOf(permission)
+            scopes = mutableSetOf(ApiScopes.PROCESSES_READ)
         )
         every { clients.findByIdForUpdate(id) } returns client
 
@@ -124,7 +117,7 @@ class ApiClientServiceTest : FunSpec({
 
         rotated.client.id shouldBe id
         rotated.client.credentialGeneration shouldBe 2
-        rotated.client.permissionCodes.shouldContainExactly(AppPermissions.ACCESS_PROCESS_PORTAL)
+        rotated.client.scopes.shouldContainExactly(ApiScopes.PROCESSES_READ)
         BCryptPasswordEncoder(12).matches(oldSecret, client.secretHash) shouldBe false
         BCryptPasswordEncoder(12).matches(rotated.credential.substringAfter('.'), client.secretHash) shouldBe true
     }
@@ -184,17 +177,13 @@ class ApiClientServiceTest : FunSpec({
             expiresAt = LocalDateTime.now().plusHours(2),
             createdBy = "manager",
             updatedBy = "manager",
-            permissions = mutableSetOf(
-                Permission(code = AppPermissions.ACCESS_PROCESS_PORTAL, name = "Portal"),
-                Permission(code = AppPermissions.VIEW_API_CLIENTS, name = "View API clients"),
-                Permission(code = AppPermissions.MANAGE_API_CLIENTS, name = "Manage API clients")
-            )
+            scopes = mutableSetOf(ApiScopes.PROCESSES_READ, ApiScopes.TASKS_READ)
         )
         every { clients.findBySelectorForAuthentication(selector) } returns client
 
         val identity = service.authenticate(selector, secret)
         identity?.id shouldBe client.id
-        identity?.permissionCodes shouldContainExactly setOf(AppPermissions.ACCESS_PROCESS_PORTAL)
+        identity?.scopes shouldContainExactly setOf(ApiScopes.PROCESSES_READ, ApiScopes.TASKS_READ)
         client.expiresAt = LocalDateTime.now()
         service.authenticate(selector, secret) shouldBe null
         client.expiresAt = LocalDateTime.now().minusSeconds(1)

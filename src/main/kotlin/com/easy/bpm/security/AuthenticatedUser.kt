@@ -11,6 +11,7 @@ data class AuthenticatedUser(
     private val enabledValue: Boolean,
     val groups: Set<String>,
     val permissionCodes: Set<String>,
+    val scopeCodes: Set<String> = emptySet(),
     val identityProvider: String = "LOCAL",
     val externalIdentityId: String? = null,
     val email: String? = null,
@@ -19,7 +20,8 @@ data class AuthenticatedUser(
 ) : UserDetails {
 
     override fun getAuthorities(): Collection<GrantedAuthority> =
-        permissionCodes.map { SimpleGrantedAuthority(it) }
+        permissionCodes.map { SimpleGrantedAuthority(it) } +
+            scopeCodes.map { SimpleGrantedAuthority(ApiScopes.authority(it)) }
 
     override fun getPassword(): String = passwordValue
 

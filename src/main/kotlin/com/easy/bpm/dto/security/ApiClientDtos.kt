@@ -7,14 +7,14 @@ import java.util.UUID
 data class CreateApiClientRequest(
     val name: String = "",
     val description: String? = null,
-    val permissionCodes: Set<String> = emptySet(),
+    val scopes: Set<String> = emptySet(),
     val expiresAt: LocalDateTime? = null
 )
 
 data class UpdateApiClientRequest(
     val name: String? = null,
     val description: String? = null,
-    val permissionCodes: Set<String>? = null,
+    val scopes: Set<String>? = null,
     val expiresAt: LocalDateTime? = null
 )
 
@@ -26,7 +26,7 @@ data class ApiClientResponse(
     val description: String?,
     val status: String,
     val expiresAt: LocalDateTime,
-    val permissionCodes: Set<String>,
+    val scopes: Set<String>,
     val credentialGeneration: Int,
     val lastUsedAt: LocalDateTime?,
     val lastUsedIp: String?,
@@ -61,7 +61,7 @@ data class ApiClientAuditResponse(
     val createdAt: LocalDateTime
 )
 
-data class AssignablePermissionResponse(val code: String, val name: String)
+data class AssignableScopeResponse(val code: String, val name: String)
 
 data class ApiClientErrorResponse(
     val timestamp: LocalDateTime,

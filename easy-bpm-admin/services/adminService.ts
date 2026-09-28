@@ -3,7 +3,7 @@ import {
   ApiClient,
   ApiClientAudit,
   ApiClientCredential,
-  AssignablePermission,
+  AssignableScope,
   AdminSecret,
   AdminUser,
   AuthCurrentUser,
@@ -927,9 +927,9 @@ export const adminService = {
     return res.json();
   },
 
-  getAssignableApiClientPermissions: async (): Promise<AssignablePermission[]> => {
-    const res = await fetchWithAuth(`${API_BASE_URL}/admin/api-clients/assignable-permissions`);
-    if (!res.ok) throw await errorFromResponse(res, 'Failed to load assignable permissions');
+  getAssignableApiClientScopes: async (): Promise<AssignableScope[]> => {
+    const res = await fetchWithAuth(`${API_BASE_URL}/admin/api-clients/assignable-scopes`);
+    if (!res.ok) throw await errorFromResponse(res, 'Failed to load assignable API scopes');
     return res.json();
   },
 

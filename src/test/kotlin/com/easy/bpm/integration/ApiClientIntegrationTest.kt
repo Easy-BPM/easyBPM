@@ -39,7 +39,7 @@ class ApiClientIntegrationTest : IntegrationTestBase() {
                     objectMapper.writeValueAsString(
                         mapOf(
                             "name" to "PostgreSQL integration ${UUID.randomUUID()}",
-                            "permissionCodes" to listOf("ACCESS_PROCESS_PORTAL"),
+                            "scopes" to listOf("tasks:read"),
                             "expiresAt" to LocalDateTime.now().plusDays(30).withNano(0).toString()
                         )
                     )
@@ -51,14 +51,24 @@ class ApiClientIntegrationTest : IntegrationTestBase() {
         val credential = created.path("credential").asText()
         val version = created.path("client").path("version").asLong()
         assertThat(credential).matches("^ebpm_[A-Za-z0-9_-]{16}\\.[A-Za-z0-9_-]{43}$")
+        assertThat(created.path("client").path("scopes").map { it.asText() }).containsExactly("tasks:read")
+        assertThat(created.path("client").has("permissionCodes")).isFalse()
         val persisted = apiClientRepository.findById(clientId).orElseThrow()
         assertThat(persisted.secretHash).doesNotContain(credential.substringAfter('.'))
+        assertThat(persisted.scopes).containsExactly("tasks:read")
 
         mockMvc.perform(get("/auth/me").header("Authorization", "Bearer $credential"))
+            .andExpect(status().isForbidden)
+
+        mockMvc.perform(get("/tasks").header("Authorization", "Bearer $credential"))
             .andExpect(status().isOk)
-            .andExpect(jsonPath("$.id").doesNotExist())
-            .andExpect(jsonPath("$.identityType").value("API_CLIENT"))
-            .andExpect(jsonPath("$.permissions[0]").value("ACCESS_PROCESS_PORTAL"))
+
+        mockMvc.perform(
+            post("/tasks/1/complete")
+                .header("Authorization", "Bearer $credential")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""{"variables":{}}""")
+        ).andExpect(status().isForbidden)
 
         mockMvc.perform(get("/admin/api-clients").header("Authorization", "Bearer $credential"))
             .andExpect(status().isForbidden)
@@ -74,9 +84,9 @@ class ApiClientIntegrationTest : IntegrationTestBase() {
         val rotatedCredential = rotated.path("credential").asText()
         val rotatedVersion = rotated.path("client").path("version").asLong()
 
-        mockMvc.perform(get("/auth/me").header("Authorization", "Bearer $credential"))
+        mockMvc.perform(get("/tasks").header("Authorization", "Bearer $credential"))
             .andExpect(status().isUnauthorized)
-        mockMvc.perform(get("/auth/me").header("Authorization", "Bearer $rotatedCredential"))
+        mockMvc.perform(get("/tasks").header("Authorization", "Bearer $rotatedCredential"))
             .andExpect(status().isOk)
 
         mockMvc.perform(
@@ -94,7 +104,7 @@ class ApiClientIntegrationTest : IntegrationTestBase() {
                 .header("If-Match", "\"$rotatedVersion\"")
         ).andExpect(status().isNoContent)
 
-        mockMvc.perform(get("/auth/me").header("Authorization", "Bearer $rotatedCredential"))
+        mockMvc.perform(get("/tasks").header("Authorization", "Bearer $rotatedCredential"))
             .andExpect(status().isUnauthorized)
     }
 

@@ -56,10 +56,9 @@ class ApiClientAdminController(private val service: ApiClientService) {
         @RequestParam(defaultValue = "50") size: Int
     ): Page<ApiClientAuditResponse> = service.audit(id, category, page, size)
 
-    @GetMapping("/assignable-permissions")
+    @GetMapping("/assignable-scopes")
     @PreAuthorize("hasAuthority('MANAGE_API_CLIENTS')")
-    fun assignable(@AuthenticationPrincipal actor: AuthenticatedUser): List<AssignablePermissionResponse> =
-        service.assignablePermissions(actor)
+    fun assignable(): List<AssignableScopeResponse> = service.assignableScopes()
 
     @PatchMapping("/{id}")
     @PreAuthorize("hasAuthority('MANAGE_API_CLIENTS')")
