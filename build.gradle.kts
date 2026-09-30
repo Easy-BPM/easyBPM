@@ -3,10 +3,18 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 plugins {
 	kotlin("jvm") version "1.9.25"
 	kotlin("plugin.spring") version "1.9.25"
-	id("org.springframework.boot") version "3.5.3"
+	id("org.springframework.boot") version "3.5.16"
 	id("io.spring.dependency-management") version "1.1.7"
 	kotlin("plugin.jpa") version "1.9.25"
 }
+
+// Security overrides until these fixes are managed by the Spring Boot BOM.
+extra["commons-lang3.version"] = "3.18.0"
+extra["jackson-bom.version"] = "2.21.6"
+extra["log4j2.version"] = "2.25.5"
+extra["netty.version"] = "4.1.137.Final"
+extra["rabbit-amqp-client.version"] = "5.34.0"
+extra["tomcat.version"] = "10.1.60"
 
 group = "com.easy"
 version = "0.1.3-beta.2"
@@ -25,7 +33,7 @@ dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-data-jpa")
 	implementation("com.vladmihalcea:hibernate-types-60:2.21.1")
 	implementation("org.jetbrains.kotlin:kotlin-reflect")
-	implementation("org.postgresql:postgresql:42.7.11")
+	implementation("org.postgresql:postgresql:42.7.13")
 	implementation("org.springframework.boot:spring-boot-starter-web")
 	implementation("org.springframework.boot:spring-boot-starter-security")
 	implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
