@@ -54,6 +54,38 @@ const FIELD_TYPES = [
   { type: 'pdfViewer', label: 'PDF Viewer', icon: <FileText className="w-4 h-4" /> },
 ];
 
+const parseCommaSeparatedOptions = (value: string) => value
+  .split(',')
+  .map(option => option.trim())
+  .filter(option => option !== '');
+
+const FormOptionsEditor: React.FC<{
+  options?: string[];
+  onChange: (options: string[]) => void;
+}> = ({ options, onChange }) => {
+  const [draft, setDraft] = useState(() => options?.join(', ') || '');
+
+  const handleChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const nextDraft = event.target.value;
+    setDraft(nextDraft);
+    onChange(parseCommaSeparatedOptions(nextDraft));
+  };
+
+  const handleBlur = () => {
+    setDraft(parseCommaSeparatedOptions(draft).join(', '));
+  };
+
+  return (
+    <textarea
+      value={draft}
+      onChange={handleChange}
+      onBlur={handleBlur}
+      className="w-full px-3 py-2 border border-slate-200 rounded-md text-sm focus:ring-2 focus:ring-blue-500 outline-none min-h-[100px]"
+      placeholder="Option 1, Option 2, Option 3"
+    />
+  );
+};
+
 // Sortable Field Item Component (Preview Style)
 const SortableField: React.FC<{
   field: FormField;
@@ -799,11 +831,10 @@ export const FormModeler: React.FC<FormModelerProps> = ({ formLibrary, selectedF
                   </h3>
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Options (comma separated)</label>
-                    <textarea 
-                      value={selectedField.options?.join(', ') || ''}
-                      onChange={(e) => handleUpdateField(selectedField.id, { options: e.target.value.split(',').map(s => s.trim()).filter(s => s !== '') })}
-                      className="w-full px-3 py-2 border border-slate-200 rounded-md text-sm focus:ring-2 focus:ring-blue-500 outline-none min-h-[100px]"
-                      placeholder="Option 1, Option 2, Option 3"
+                    <FormOptionsEditor
+                      key={`${selectedField.id}:${selectedField.type}`}
+                      options={selectedField.options}
+                      onChange={(options) => handleUpdateField(selectedField.id, { options })}
                     />
                   </div>
                 </div>
