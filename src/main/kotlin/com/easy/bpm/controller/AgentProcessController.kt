@@ -1,6 +1,9 @@
 package com.easy.bpm.controller
 
 import com.easy.bpm.model.agent.AgentProcessDefinition
+import com.easy.bpm.service.agent.AgentProcessSimulationRequest
+import com.easy.bpm.service.agent.AgentProcessSimulationResponse
+import com.easy.bpm.service.agent.AgentProcessSimulationService
 import com.easy.bpm.service.agent.AgentProcessService
 import com.fasterxml.jackson.databind.JsonNode
 import io.swagger.v3.oas.annotations.Operation
@@ -17,12 +20,18 @@ import org.springframework.web.bind.annotation.RestController
 @RequestMapping("/agent-processes")
 @Tag(name = "Agent Processes", description = "Agentic process definition management")
 class AgentProcessController(
-    private val agentProcessService: AgentProcessService
+    private val agentProcessService: AgentProcessService,
+    private val agentProcessSimulationService: AgentProcessSimulationService
 ) {
     @PostMapping
     @Operation(summary = "Deploy an agent process definition")
     fun deploy(@RequestBody request: JsonNode): AgentProcessDefinition =
         agentProcessService.deploy(request)
+
+    @PostMapping("/simulate")
+    @Operation(summary = "Simulate an agent process definition without deploying it")
+    fun simulate(@RequestBody request: AgentProcessSimulationRequest): AgentProcessSimulationResponse =
+        agentProcessSimulationService.simulate(request)
 
     @GetMapping
     @Operation(summary = "Get latest agent process definitions")

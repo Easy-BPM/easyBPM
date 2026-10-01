@@ -91,6 +91,10 @@ class SecurityConfig(
                 )
                 it.requestMatchers("/ai/credentials/**").hasAnyAuthority(AppPermissions.ACCESS_BPM_ADMIN, AppPermissions.ACCESS_BPM_MODELER)
                 it.requestMatchers("/code-tasks/**").hasAnyAuthority(AppPermissions.ACCESS_BPM_ADMIN, AppPermissions.ACCESS_BPM_MODELER)
+                it.requestMatchers(HttpMethod.POST, "/agent-processes/simulate").hasAnyAuthority(
+                    AppPermissions.ACCESS_BPM_ADMIN,
+                    AppPermissions.ACCESS_BPM_MODELER
+                )
                 it.requestMatchers("/incidents/**").hasAuthority(AppPermissions.ACCESS_BPM_ADMIN)
                 it.requestMatchers(HttpMethod.GET, "/api/documents/**").hasAnyAuthority(
                     AppPermissions.ACCESS_BPM_ADMIN, AppPermissions.ACCESS_PROCESS_PORTAL, AppPermissions.ACCESS_BPM_MODELER,

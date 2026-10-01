@@ -3,19 +3,23 @@ import {
   ArrowLeft,
   Bot,
   Braces,
+  CheckCircle2,
   Code2,
   Download,
   FilePlus2,
   FileText,
   Globe2,
   Loader2,
+  Play,
   Trash2,
   Upload,
   UploadCloud,
   Wrench,
+  X,
+  XCircle,
 } from 'lucide-react';
 import { ThemeMode, ThemeToggle } from './ThemeToggle';
-import { AvailableCredential, isAuthRequiredError, processService } from '../services/processService';
+import { AgentProcessSimulationResult, AvailableCredential, isAuthRequiredError, processService } from '../services/processService';
 import { Toaster, toast } from 'sonner';
 
 interface AgentBoardModelerProps {
@@ -365,6 +369,11 @@ export const AgentBoardModeler: React.FC<AgentBoardModelerProps> = ({
 }) => {
   const [agentState, setAgentState] = useState<AgentBoardState>(() => initialDefinition ? normalizeImportedAgent(initialDefinition) : createBlankAgentState());
   const [isDeploying, setIsDeploying] = useState(false);
+  const [isSimulating, setIsSimulating] = useState(false);
+  const [simulationInputs, setSimulationInputs] = useState('{\n  \n}');
+  const [simulationResult, setSimulationResult] = useState<AgentProcessSimulationResult | null>(null);
+  const [simulationError, setSimulationError] = useState<string | null>(null);
+  const [isSimulationOpen, setIsSimulationOpen] = useState(false);
   const [isTemplateBrowserOpen, setIsTemplateBrowserOpen] = useState(false);
   const [credentials, setCredentials] = useState<AvailableCredential[]>(availableCredentials);
   const importInputRef = useRef<HTMLInputElement>(null);
@@ -436,6 +445,8 @@ export const AgentBoardModeler: React.FC<AgentBoardModelerProps> = ({
 
   const loadTemplate = (template: AgentProcessTemplate) => {
     setAgentState(normalizeImportedAgent(template.definition));
+    setSimulationResult(null);
+    setSimulationError(null);
     setIsTemplateBrowserOpen(false);
     toast.success(`${template.title} template loaded.`);
   };
@@ -480,6 +491,8 @@ export const AgentBoardModeler: React.FC<AgentBoardModelerProps> = ({
 
   const resetAgent = () => {
     setAgentState(createBlankAgentState());
+    setSimulationResult(null);
+    setSimulationError(null);
     toast.success('New Agent Process started.');
   };
 
@@ -492,6 +505,8 @@ export const AgentBoardModeler: React.FC<AgentBoardModelerProps> = ({
       const text = await file.text();
       const json = JSON.parse(text);
       setAgentState(normalizeImportedAgent(json));
+      setSimulationResult(null);
+      setSimulationError(null);
       toast.success('Agent Process imported.');
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Import failed.');
@@ -526,6 +541,55 @@ export const AgentBoardModeler: React.FC<AgentBoardModelerProps> = ({
       }
     } finally {
       setIsDeploying(false);
+    }
+  };
+
+  const simulateDefinition = async () => {
+    if (!goal.trim()) {
+      toast.error('Agent Process goal is required.');
+      return;
+    }
+    if (!providerId || !modelName.trim()) {
+      toast.error('Provider and model are required for simulation.');
+      return;
+    }
+
+    let inputs: Record<string, unknown>;
+    try {
+      const parsed = JSON.parse(simulationInputs || '{}');
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+        throw new Error('Simulation inputs must be a JSON object.');
+      }
+      inputs = parsed as Record<string, unknown>;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Simulation inputs must be valid JSON.';
+      setSimulationError(message);
+      toast.error(message);
+      return;
+    }
+
+    setIsSimulating(true);
+    setSimulationResult(null);
+    setSimulationError(null);
+    try {
+      const result = await processService.simulateAgentProcess(buildDefinition(), inputs);
+      setSimulationResult(result);
+      if (result.success) {
+        toast.success('Agent simulation completed.');
+      } else {
+        toast.error(result.errorMessage || 'Agent simulation failed.');
+      }
+    } catch (error) {
+      if (isAuthRequiredError(error)) {
+        toast.error(error.message);
+        onLogout();
+      } else {
+        const message = error instanceof Error ? error.message : 'Unexpected Agent Process simulation error';
+        setSimulationError(message);
+        toast.error(message);
+      }
+    } finally {
+      setIsSimulating(false);
     }
   };
 
@@ -591,6 +655,14 @@ export const AgentBoardModeler: React.FC<AgentBoardModelerProps> = ({
           >
             <Download className="h-4 w-4" />
             Export
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsSimulationOpen(true)}
+            className="inline-flex items-center gap-2 rounded-md border border-cyan-200 bg-cyan-50 px-3 py-2 text-xs font-semibold text-cyan-800 shadow-sm transition-colors hover:bg-cyan-100 disabled:cursor-not-allowed disabled:opacity-70"
+          >
+            <Play className="h-4 w-4" />
+            Simulate
           </button>
           <button
             type="button"
@@ -921,6 +993,124 @@ export const AgentBoardModeler: React.FC<AgentBoardModelerProps> = ({
                 </label>
               </div>
             </section>
+
+            {isSimulationOpen && (
+              <div
+                className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 px-4 py-6 backdrop-blur-sm"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="agent-simulation-title"
+              >
+                <section className="flex max-h-[90vh] w-full max-w-6xl flex-col overflow-hidden rounded-lg border border-[var(--modeler-border-strong)] bg-[var(--modeler-surface)] shadow-2xl">
+              <div className="flex flex-col gap-3 border-b border-[var(--modeler-border)] bg-[var(--modeler-surface-muted)] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-md bg-blue-600 text-white">
+                      <Play className="h-4 w-4" />
+                    </span>
+                    <h2 id="agent-simulation-title" className="text-sm font-semibold text-[var(--modeler-text)]">Simulate execution</h2>
+                    <span className="rounded-full border border-blue-500/40 bg-blue-500/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-blue-500">Draft configuration</span>
+                  </div>
+                  <p className="mt-2 text-xs text-[var(--modeler-text-muted)]">Run API Call tools and the selected provider without deploying or creating a process instance.</p>
+                </div>
+                <div className="flex shrink-0 items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={simulateDefinition}
+                    disabled={isSimulating}
+                    className="inline-flex items-center justify-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-70"
+                  >
+                    {isSimulating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+                    {isSimulating ? 'Running simulation' : 'Run simulation'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsSimulationOpen(false)}
+                    disabled={isSimulating}
+                    className="modeler-ghost-button flex h-9 w-9 items-center justify-center rounded-md disabled:cursor-not-allowed disabled:opacity-50"
+                    aria-label="Close simulation"
+                    title="Close simulation"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+              <div className="grid min-h-0 gap-5 overflow-y-auto p-5 lg:grid-cols-[0.75fr_1.25fr]">
+                <label className="block space-y-2 rounded-lg border border-[var(--modeler-border)] bg-[var(--modeler-surface-muted)] p-4">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--modeler-text-muted)]">Process inputs JSON</span>
+                  <textarea
+                    value={simulationInputs}
+                    onChange={event => setSimulationInputs(event.target.value)}
+                    className="h-64 w-full resize-y rounded-md border border-[var(--modeler-input-border)] bg-[var(--modeler-input-bg)] px-3 py-2 font-mono text-xs text-[var(--modeler-input-text)] outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                    spellCheck={false}
+                    aria-label="Simulation inputs JSON"
+                  />
+                  <p className="text-xs text-[var(--modeler-text-muted)]">Values replace placeholders such as <code className="rounded bg-[var(--modeler-surface)] px-1 py-0.5 text-[var(--modeler-text-soft)]">{'{{customerId}}'}</code> in tool URLs, headers and bodies.</p>
+                </label>
+
+                <div className="min-w-0 space-y-3 rounded-lg border border-[var(--modeler-border)] bg-[var(--modeler-surface-muted)] p-4" aria-live="polite">
+                  {isSimulating ? (
+                    <div className="flex h-64 items-center justify-center rounded-md border border-dashed border-blue-500/50 bg-blue-500/10 text-sm text-blue-500">
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      Calling configured tools and provider…
+                    </div>
+                  ) : simulationError ? (
+                    <div className="rounded-md border border-red-500/40 bg-red-500/10 p-4 text-sm text-[var(--modeler-danger)]">
+                      <div className="flex items-center gap-2 font-semibold"><XCircle className="h-4 w-4" />Simulation failed</div>
+                      <pre className="mt-3 whitespace-pre-wrap break-words font-sans text-xs">{simulationError}</pre>
+                    </div>
+                  ) : simulationResult ? (
+                    <>
+                      <div className={`rounded-md border p-4 ${simulationResult.success ? 'border-emerald-500/40 bg-emerald-500/10' : 'border-red-500/40 bg-red-500/10'}`}>
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div className={`flex items-center gap-2 text-sm font-semibold ${simulationResult.success ? 'text-[var(--modeler-success)]' : 'text-[var(--modeler-danger)]'}`}>
+                            {simulationResult.success ? <CheckCircle2 className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
+                            {simulationResult.success ? 'Simulation completed' : 'Simulation failed'}
+                          </div>
+                          <span className="text-xs text-[var(--modeler-text-muted)]">{simulationResult.providerId || providerId} · {simulationResult.modelName || modelName} · {simulationResult.durationMs} ms · {simulationResult.tokensUsed} tokens</span>
+                        </div>
+                        {!simulationResult.success && (
+                          <p className="mt-2 text-xs text-[var(--modeler-danger)]">{simulationResult.errorMessage || simulationResult.errorCode}</p>
+                        )}
+                      </div>
+
+                      {simulationResult.toolResults.length > 0 && (
+                        <div className="space-y-2">
+                          <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--modeler-text-muted)]">Tool execution</h3>
+                          {simulationResult.toolResults.map(tool => (
+                            <div key={tool.id} className="rounded-md border border-[var(--modeler-border)] bg-[var(--modeler-surface)] p-3">
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <span className="text-sm font-semibold text-[var(--modeler-text)]">{tool.name}</span>
+                                <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${tool.status === 'COMPLETED' ? 'border-emerald-500/40 bg-emerald-500/10 text-[var(--modeler-success)]' : tool.status === 'FAILED' ? 'border-red-500/40 bg-red-500/10 text-[var(--modeler-danger)]' : 'border-amber-500/40 bg-amber-500/10 text-amber-500'}`}>{tool.status} · {tool.durationMs} ms</span>
+                              </div>
+                              {tool.error && <p className="mt-2 text-xs text-[var(--modeler-danger)]">{tool.error}</p>}
+                              {tool.response !== undefined && <pre className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap break-words rounded-md border border-slate-700 bg-[#0d1b2a] p-3 text-xs leading-relaxed text-slate-100">{JSON.stringify(tool.response, null, 2)}</pre>}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {simulationResult.responseText && (
+                        <div>
+                          <h3 className="mb-2 text-xs font-bold uppercase tracking-widest text-[var(--modeler-text-muted)]">Agent response</h3>
+                          <pre className="max-h-96 overflow-auto whitespace-pre-wrap break-words rounded-md border border-slate-700 bg-[#0d1b2a] p-4 text-sm leading-relaxed text-slate-100">{simulationResult.responseText}</pre>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="flex h-64 items-center justify-center rounded-md border border-dashed border-[var(--modeler-border-strong)] bg-[var(--modeler-surface)] px-6 text-center">
+                      <div>
+                        <Play className="mx-auto h-6 w-6 text-blue-500" />
+                        <p className="mt-2 text-sm font-semibold text-[var(--modeler-text)]">Ready to test this draft</p>
+                        <p className="mt-1 text-xs text-[var(--modeler-text-muted)]">The simulator executes API tools first, then includes their verified output in the agent prompt.</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+                </section>
+              </div>
+            )}
           </div>
 
           <section className="border-t border-slate-200 bg-white px-6 py-5">
