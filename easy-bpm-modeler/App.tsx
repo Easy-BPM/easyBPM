@@ -631,6 +631,11 @@ const App: React.FC = () => {
         outputVariables: [],
       }
     };
+    if (type === 'agent-process-call') {
+      newNode.data.agentWaitForCompletion = true;
+      newNode.data.agentTimeoutValue = 5;
+      newNode.data.agentTimeoutUnit = 'MINUTES';
+    }
     setNodes(nds => [...nds, newNode]);
     setSelectedNodeUids([newNode.uid]);
     setSelectedEdgeId(null);
@@ -793,7 +798,8 @@ const App: React.FC = () => {
            agentProcessKey: node.data.agentProcessKey || '',
            goalOverride: node.data.agentGoalOverride || '',
            waitForCompletion: node.data.agentWaitForCompletion !== false,
-           timeoutDays: node.data.agentTimeoutDays ?? null,
+           timeoutValue: node.data.agentTimeoutValue ?? null,
+           timeoutUnit: node.data.agentTimeoutUnit || 'MINUTES',
            inputs: (node.data.inputVariables || []).map(v => ({
               targetName: String(v.name || ''),
               type: v.type,
@@ -1210,7 +1216,8 @@ const App: React.FC = () => {
          newNode.data.agentProcessKey = node.config.agentProcessKey || node.config.processKey || '';
          newNode.data.agentGoalOverride = node.config.goalOverride || '';
          newNode.data.agentWaitForCompletion = node.config.waitForCompletion !== false;
-         newNode.data.agentTimeoutDays = node.config.timeoutDays ?? null;
+         newNode.data.agentTimeoutValue = node.config.timeoutValue ?? node.config.timeoutDays ?? null;
+         newNode.data.agentTimeoutUnit = node.config.timeoutUnit || (node.config.timeoutDays != null ? 'DAYS' : 'MINUTES');
          if (node.config.inputs) {
            newNode.data.inputVariables = (node.config.inputs || []).map((i: any) => ({
              id: Math.random().toString(36).substr(2, 9),

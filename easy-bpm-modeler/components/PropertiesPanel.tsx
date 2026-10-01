@@ -1384,7 +1384,7 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                    className={inputClassName}
                    placeholder="e.g. customer-support-resolution"
                  />
-                 <p className="text-[10px] text-slate-400 mt-1 leading-tight">The deployed agent process or board definition this BPM node invokes.</p>
+                 <p className="text-[10px] text-slate-400 mt-1 leading-tight">The runtime always invokes the latest deployed version for this agent process key.</p>
                </div>
 
                <div>
@@ -1408,16 +1408,30 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                    <span className="text-xs text-slate-700 cursor-pointer flex-1">Wait for completion</span>
                  </label>
                  <div>
-                   <label className="block text-[10px] text-slate-400 mb-1 font-bold">TIMEOUT DAYS</label>
+                   <label className="block text-[10px] text-slate-400 mb-1 font-bold">TIMEOUT</label>
                    <input
                      type="number"
                      min={1}
-                     value={selectedNode.data.agentTimeoutDays ?? ''}
-                     onChange={e => onUpdateNode(selectedNode.uid, { agentTimeoutDays: e.target.value ? Number(e.target.value) : null })}
+                     step={1}
+                     value={selectedNode.data.agentTimeoutValue ?? ''}
+                     onChange={e => onUpdateNode(selectedNode.uid, { agentTimeoutValue: e.target.value ? Number(e.target.value) : null })}
                      className={inputClassName}
-                     placeholder="7"
+                     placeholder="5"
                    />
                  </div>
+               </div>
+               <div>
+                 <label className="block text-[10px] text-slate-400 mb-1 font-bold">TIMEOUT UNIT</label>
+                 <select
+                   value={selectedNode.data.agentTimeoutUnit || 'MINUTES'}
+                   onChange={e => onUpdateNode(selectedNode.uid, { agentTimeoutUnit: e.target.value as 'SECONDS' | 'MINUTES' | 'HOURS' | 'DAYS' })}
+                   className={inputClassName}
+                 >
+                   <option value="SECONDS">Seconds</option>
+                   <option value="MINUTES">Minutes</option>
+                   <option value="HOURS">Hours</option>
+                   <option value="DAYS">Days</option>
+                 </select>
                </div>
              </div>
 
