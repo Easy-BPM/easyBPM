@@ -86,6 +86,28 @@ export type AvailableCredential = {
   description?: string | null;
 };
 
+export type AgentToolSimulationResult = {
+  id: string;
+  name: string;
+  type: string;
+  status: 'COMPLETED' | 'FAILED' | 'SKIPPED' | string;
+  durationMs: number;
+  response?: unknown;
+  error?: string | null;
+};
+
+export type AgentProcessSimulationResult = {
+  success: boolean;
+  responseText: string;
+  providerId?: string | null;
+  modelName?: string | null;
+  tokensUsed: number;
+  durationMs: number;
+  toolResults: AgentToolSimulationResult[];
+  errorCode?: string | null;
+  errorMessage?: string | null;
+};
+
 type PageResponse<T> = {
   content: T[];
 };
@@ -370,6 +392,32 @@ export const processService = {
       const body = await response.text();
       throw new Error(`Agent process deploy failed (${response.status}): ${body || response.statusText}`);
     }
+  },
+
+  simulateAgentProcess: async (definition: unknown, inputs: Record<string, unknown>): Promise<AgentProcessSimulationResult> => {
+    const session = getSession();
+    if (!session?.token) {
+      throw new AuthRequiredError('No saved Modeler session was found. Please sign in again before simulating.');
+    }
+
+    const response = await fetchWithAuth(`${getModelerApiBaseUrl()}/agent-processes/simulate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ definition, inputs })
+    });
+
+    if (response.status === 401) {
+      throw new AuthRequiredError('Session expired. Please sign in again before simulating.');
+    }
+
+    if (!response.ok) {
+      const body = await response.text();
+      throw new Error(`Agent process simulation failed (${response.status}): ${body || response.statusText}`);
+    }
+
+    return response.json();
   },
 
   listAgentProcesses: async (): Promise<AgentProcessDefinitionSummary[]> => {

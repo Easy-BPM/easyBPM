@@ -12,7 +12,7 @@ class AgentProcessService(
 ) {
     @Transactional
     fun deploy(definitionJson: JsonNode): AgentProcessDefinition {
-        val json = validateDefinition(definitionJson)
+        val json = validateDraft(definitionJson)
         val key = json.get("processKey")?.asText()?.takeIf { it.isNotBlank() }
             ?: json.get("key")?.asText()?.takeIf { it.isNotBlank() }
             ?: slugify(json.get("processName")?.asText()?.takeIf { it.isNotBlank() } ?: "agent-process")
@@ -41,7 +41,7 @@ class AgentProcessService(
     fun getVersions(key: String): List<AgentProcessDefinition> =
         definitionRepository.findVersionsByKey(key)
 
-    private fun validateDefinition(definitionJson: JsonNode): JsonNode {
+    fun validateDraft(definitionJson: JsonNode): JsonNode {
         require(definitionJson.isObject) { "Root JSON must be an object" }
         val resourceType = definitionJson.get("resourceType")?.asText()
         if (resourceType != null && resourceType != "AgentProcess") {
