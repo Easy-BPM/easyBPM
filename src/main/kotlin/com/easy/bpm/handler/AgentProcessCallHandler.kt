@@ -17,6 +17,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.ObjectNode
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.Duration
 import java.time.LocalDateTime
 
 @Service
@@ -25,7 +26,8 @@ class AgentProcessCallHandler(
     private val executionRepository: AgentProcessExecutionRepository,
     private val processVariableRepository: ProcessVariableRepository,
     private val objectMapper: ObjectMapper,
-    private val aiProviderFactory: AIProviderFactory
+    private val aiProviderFactory: AIProviderFactory,
+    private val invocationExecutor: AgentProcessInvocationExecutor
 ) {
     @Transactional
     fun execute(instance: ProcessInstance, node: JsonNode): AgentProcessExecution {
@@ -36,8 +38,7 @@ class AgentProcessCallHandler(
             ?: config.get("processKey")?.asText()?.trim()?.takeIf { it.isNotEmpty() }
             ?: throw IllegalArgumentException("AgentProcessCall $nodeId missing 'agentProcessKey'")
 
-        val definition = definitionRepository.findTopByKeyOrderByVersionDesc(agentProcessKey)
-            ?: throw IllegalArgumentException("Agent process '$agentProcessKey' not found")
+        val definition = resolveLatestDefinition(agentProcessKey)
 
         val inputPayload = resolveInputPayload(instance.id, config)
         val execution = executionRepository.save(
@@ -136,16 +137,19 @@ class AgentProcessCallHandler(
             credentialRefName = credentialRef
         )
         val provider = aiProviderFactory.createProvider(providerId, providerConfig, "agent-process-runtime")
-        val response = provider.execute(
-            AIExecutionRequestDto(
-                promptTemplate = promptTemplate,
-                userPrompt = renderedPrompt,
-                systemPrompt = systemPrompt,
-                variables = variables,
-                tuningParams = extractTuningParams(providerConfigNode.get("tuningParams")),
-                providerConfig = providerConfig
+        val timeout = resolveTimeout(invocationConfig)
+        val response = invocationExecutor.execute(timeout?.duration) {
+            provider.execute(
+                AIExecutionRequestDto(
+                    promptTemplate = promptTemplate,
+                    userPrompt = renderedPrompt,
+                    systemPrompt = systemPrompt,
+                    variables = variables,
+                    tuningParams = extractTuningParams(providerConfigNode.get("tuningParams")),
+                    providerConfig = providerConfig
+                )
             )
-        )
+        }
 
         if (!response.success) {
             throw IllegalStateException("Agent process provider execution failed: ${response.errorMessage ?: response.errorCode ?: "unknown error"}")
@@ -189,8 +193,9 @@ class AgentProcessCallHandler(
             output.put("goalOverride", it)
         }
         output.put("waitForCompletion", config.get("waitForCompletion")?.asBoolean(true) ?: true)
-        config.get("timeoutDays")?.takeIf { it.isNumber }?.let {
-            output.put("timeoutDays", it.asInt())
+        resolveTimeout(config)?.let { timeout ->
+            output.put("timeoutValue", timeout.value)
+            output.put("timeoutUnit", timeout.unit.name)
         }
         return output
     }
@@ -300,8 +305,40 @@ class AgentProcessCallHandler(
             })
         })
         trace.put("waitForCompletion", config.get("waitForCompletion")?.asBoolean(true) ?: true)
+        resolveTimeout(config)?.let { timeout ->
+            trace.put("timeoutValue", timeout.value)
+            trace.put("timeoutUnit", timeout.unit.name)
+            trace.put("timeoutSeconds", timeout.duration.toSeconds())
+        }
         trace.put("timestamp", LocalDateTime.now().toString())
         return trace
+    }
+
+    private fun resolveLatestDefinition(agentProcessKey: String): AgentProcessDefinition =
+        definitionRepository.findTopByKeyOrderByVersionDesc(agentProcessKey)
+            ?: throw IllegalArgumentException("Agent process '$agentProcessKey' not found")
+
+    internal fun resolveTimeout(config: JsonNode): AgentProcessTimeout? {
+        val timeoutValueNode = config.get("timeoutValue")
+        if (timeoutValueNode != null && !timeoutValueNode.isNull) {
+            require(timeoutValueNode.isIntegralNumber && timeoutValueNode.canConvertToLong()) {
+                "Agent process timeoutValue must be an integer"
+            }
+            val value = timeoutValueNode.asLong()
+            require(value > 0) { "Agent process timeoutValue must be greater than zero" }
+            val unitValue = config.get("timeoutUnit")?.asText()?.trim()?.uppercase() ?: "MINUTES"
+            val unit = try {
+                AgentProcessTimeoutUnit.valueOf(unitValue)
+            } catch (_: IllegalArgumentException) {
+                throw IllegalArgumentException("Unsupported agent process timeoutUnit '$unitValue'")
+            }
+            return AgentProcessTimeout(value, unit)
+        }
+
+        val legacyDays = config.get("timeoutDays")?.takeIf { it.canConvertToLong() }?.asLong()
+            ?: return null
+        require(legacyDays > 0) { "Agent process timeoutDays must be greater than zero" }
+        return AgentProcessTimeout(legacyDays, AgentProcessTimeoutUnit.DAYS)
     }
 
     private fun buildToolAudit(
@@ -536,4 +573,23 @@ class AgentProcessCallHandler(
             objectMapper.nodeFactory.textNode(text)
         }
     }
+}
+
+internal data class AgentProcessTimeout(
+    val value: Long,
+    val unit: AgentProcessTimeoutUnit
+) {
+    val duration: Duration = when (unit) {
+        AgentProcessTimeoutUnit.SECONDS -> Duration.ofSeconds(value)
+        AgentProcessTimeoutUnit.MINUTES -> Duration.ofMinutes(value)
+        AgentProcessTimeoutUnit.HOURS -> Duration.ofHours(value)
+        AgentProcessTimeoutUnit.DAYS -> Duration.ofDays(value)
+    }
+}
+
+internal enum class AgentProcessTimeoutUnit {
+    SECONDS,
+    MINUTES,
+    HOURS,
+    DAYS
 }

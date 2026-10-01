@@ -62,7 +62,8 @@ export interface NodeData {
   agentProcessKey?: string;
   agentGoalOverride?: string;
   agentWaitForCompletion?: boolean;
-  agentTimeoutDays?: number | null;
+  agentTimeoutValue?: number | null;
+  agentTimeoutUnit?: 'SECONDS' | 'MINUTES' | 'HOURS' | 'DAYS';
   // Gateway specific
   condition?: string;
   // Message Event specific

@@ -640,7 +640,8 @@ class ProcessIntegrationTest(
                     "agentProcessKey": "customer-support-resolution",
                     "goalOverride": "Resolve complaint for customer C-100",
                     "waitForCompletion": true,
-                    "timeoutDays": 7,
+                    "timeoutValue": 5,
+                    "timeoutUnit": "MINUTES",
                     "inputs": [
                       { "targetName": "customerId", "type": "string", "source": "variable", "value": "customerId" }
                     ],
