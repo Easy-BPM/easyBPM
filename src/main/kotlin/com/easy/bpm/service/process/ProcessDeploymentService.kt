@@ -18,6 +18,16 @@ class ProcessDeploymentService(
         val xml = definitionXml.takeIf { it.trimStart().startsWith("<") }
             ?: throw IllegalArgumentException("Process definitions must be deployed as BPMN XML")
         val json = processDefinitionValidator.validateAndParse(BpmnXmlCodec.xmlToInternalJson(xml, objectMapper))
+        json.path("nodes").forEach { node ->
+            node.path("config").get("sla")?.let { policy ->
+                try {
+                    require(com.easy.bpm.enum.NodeType.fromString(node.path("type").asText()) == com.easy.bpm.enum.NodeType.UserTask) { "SLA is supported only on User Tasks" }
+                    com.easy.bpm.service.task.SlaPolicy.validate(policy)
+                } catch (ex: IllegalArgumentException) {
+                    throw IllegalArgumentException("Node ${node.path("id").asText()} config.sla: ${ex.message}")
+                }
+            }
+        }
 
         val processId = json.get("processId").asText()
         val processKey = json.get("key")?.asText()?.takeIf { it.isNotBlank() }

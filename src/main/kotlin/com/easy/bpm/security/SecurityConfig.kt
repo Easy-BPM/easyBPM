@@ -108,7 +108,7 @@ class SecurityConfig(
                     AppPermissions.ACCESS_BPM_ADMIN, AppPermissions.ACCESS_PROCESS_PORTAL,
                     ApiScopes.authority(ApiScopes.TASKS_READ)
                 )
-                it.requestMatchers(HttpMethod.POST, "/tasks/search").hasAnyAuthority(
+                it.requestMatchers(HttpMethod.POST, "/tasks/search", "/tasks/sla/summary").hasAnyAuthority(
                     AppPermissions.ACCESS_BPM_ADMIN, AppPermissions.ACCESS_PROCESS_PORTAL,
                     ApiScopes.authority(ApiScopes.TASKS_READ)
                 )

@@ -19,7 +19,8 @@ class ProcessUserTaskHandler(
     private val rabbitPublisher: RabbitPublisher,
     private val metricsService: MetricsService,
     private val variableManager: ProcessVariableManager,
-    private val timelineService: ProcessInstanceTimelineService
+    private val timelineService: ProcessInstanceTimelineService,
+    private val slaService: com.easy.bpm.service.task.TaskSlaService? = null
 ) {
     fun handleUserTask(instance: ProcessInstance, node: JsonNode) {
         val form = resolveUserTaskForm(node)
@@ -32,6 +33,10 @@ class ProcessUserTaskHandler(
             )
         )
 
+        try { slaService?.configure(task, node) } catch (ex: IllegalArgumentException) {
+            taskRepository.delete(task)
+            throw ex
+        }
         metricsService.recordTaskCreated(task.nodeId)
         timelineService.record(
             processInstanceId = instance.id,

@@ -21,6 +21,7 @@ import { EasyBpmLogoMark } from './components/EasyBpmLogoMark';
 import { ThemeMode, ThemeToggle } from './components/ThemeToggle';
 import { BpmnNode, BpmnEdge, ProcessVariable, NodeType, AppView, ValidationIssue, ValidationSummary, FormDefinition, Position } from './types';
 import { generateId, snapToGrid } from './utils/geometry';
+import { validateSla } from './utils/sla';
 import { validateId } from './utils/validation';
 import { Toaster, toast } from 'sonner';
 import { AgentProcessDefinitionSummary, AvailableCredential, isAuthRequiredError, processService, fetchWithAuth } from './services/processService';
@@ -71,6 +72,7 @@ const App: React.FC = () => {
    const [variablesRaw, setVariablesRaw] = useState<ProcessVariable[]>([]);
    const [processId, setProcessId] = useState<string>(`process_${Date.now()}`);
    const [processName, setProcessName] = useState<string>('');
+   const [preservedProcess, setPreservedProcess] = useState<Record<string, any>>({});
    const [selectedNodeUids, setSelectedNodeUids] = useState<string[]>([]);
    const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
    const [isDeployingProcess, setIsDeployingProcess] = useState(false);
@@ -289,6 +291,8 @@ const App: React.FC = () => {
       });
     };
 
+    nodes.forEach(node => validateSla(node.data.sla, node.type).forEach(message =>
+      addIssue('error', `Node ${node.id}: ${message}`, { nodeUid: node.uid, nodeId: node.id })));
     const executableNodes = nodes.filter(node => !VISUAL_NODE_TYPES.includes(node.type));
 
     if (executableNodes.length === 0) {
@@ -674,6 +678,7 @@ const App: React.FC = () => {
         .filter(Boolean);
 
       const base: any = {
+        ...node.data.preservedDefinition,
         id: node.id,
         name: node.data.label,
         type: typeMapping[node.type] || node.type,
@@ -685,6 +690,8 @@ const App: React.FC = () => {
 
        if (node.type === 'user-task') {
          base.config = {
+           ...node.data.preservedConfig,
+           sla: node.data.sla,
            formId: node.data.formId,
            assignee: node.data.assignee,
             candidateGroups: node.data.candidateGroups,
@@ -908,9 +915,11 @@ const App: React.FC = () => {
     });
 
     return {
+      ...preservedProcess,
       processId: processId,
       processName: processName,
       metadata: {
+        ...preservedProcess.metadata,
         exportedAt: new Date().toISOString(),
          version: "1.0"
        },
@@ -923,6 +932,7 @@ const App: React.FC = () => {
       flows: edges
       .filter(e => executableNodeUids.has(e.source) && executableNodeUids.has(e.target))
       .map(e => ({
+        id: e.id,
         from: executableExportNodes.find(n => n.uid === e.source)?.id, 
         to: executableExportNodes.find(n => n.uid === e.target)?.id, 
         condition: e.condition || null,
@@ -933,7 +943,7 @@ const App: React.FC = () => {
 
   const currentProcessXml = useMemo(
     () => processDefinitionToBpmnXml(buildExportObject()),
-    [nodes, edges, variables, processId, processName]
+    [nodes, edges, variables, processId, processName, preservedProcess]
   );
 
   useEffect(() => {
@@ -1017,6 +1027,7 @@ const App: React.FC = () => {
   // Navigation handlers
   const handleCreateProcess = () => {
     // Reset process editor state
+    setPreservedProcess({});
     setNodes([]);
     setEdges([]);
     setVariablesRaw([]);
@@ -1040,6 +1051,7 @@ const App: React.FC = () => {
   };
 
   const resetProcessDefinition = () => {
+    setPreservedProcess({});
     setNodes([]);
     setEdges([]);
     setVariables([]);
@@ -1140,11 +1152,16 @@ const App: React.FC = () => {
         height,
         data: {
           label: node.name || node.id,
+          preservedDefinition: node,
           inputVariables: [],
           outputVariables: [],
         }
       };
 
+       if (node.config) {
+         newNode.data.preservedConfig = node.config;
+         newNode.data.sla = node.config.sla;
+       }
        if (type === 'user-task' && node.config) {
          newNode.data.formId = node.config.formId;
          newNode.data.assignee = node.config.assignee;
@@ -1308,7 +1325,7 @@ const App: React.FC = () => {
 
     // 3. Import Edges (Flows)
     const importedEdges: BpmnEdge[] = (data.flows || []).map((flow: any) => ({
-      id: `edge_${Math.random().toString(36).substr(2, 9)}`,
+      id: flow.id || `edge_${Math.random().toString(36).substr(2, 9)}`,
       source: idToUidMap.get(flow.from) || '',
       target: idToUidMap.get(flow.to) || '',
       condition: flow.condition,
@@ -1321,6 +1338,7 @@ const App: React.FC = () => {
 
     // Update State
     setProcessId(data.processId || `process_${Date.now()}`);
+    setPreservedProcess(data);
     setProcessName(data.processName || data.name || '');
     setVariables(importedVariables);
     setNodes(importedNodes);

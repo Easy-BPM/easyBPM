@@ -25,7 +25,8 @@ import org.springframework.web.bind.annotation.RestController
 @RequestMapping("/incidents")
 @Tag(name = "Incidents", description = "Operational incident tracking and resolution")
 class IncidentController(
-    private val incidentService: IncidentService
+    private val incidentService: IncidentService,
+    private val slaService: com.easy.bpm.service.task.TaskSlaService? = null
 ) {
     @GetMapping
     @Operation(summary = "List incidents", description = "Retrieve incidents with optional status, source, and process instance filters")
@@ -104,13 +105,15 @@ class IncidentController(
         }
 
     @PostMapping("/{id}/retry")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAuthority('ACCESS_BPM_ADMIN')")
     @Operation(summary = "Retry incident", description = "Retry a recoverable worker/API incident")
     fun retryIncident(
         @PathVariable id: Long,
-        @RequestBody(required = false) request: IncidentRetryRequest?
+        @RequestBody(required = false) request: IncidentRetryRequest?,
+        @org.springframework.security.core.annotation.AuthenticationPrincipal principal: com.easy.bpm.security.AuthenticatedUser? = null
     ): ResponseEntity<Incident> =
         try {
-            ResponseEntity.ok(incidentService.retryWorkerIncident(id, request?.requestedBy))
+            ResponseEntity.ok(if (slaService != null && incidentService.getIncident(id)?.source == IncidentSource.SLA) slaService!!.retry(id, principal?.username ?: "system") else incidentService.retryWorkerIncident(id, principal?.username ?: request?.requestedBy))
         } catch (ex: IllegalArgumentException) {
             ResponseEntity.notFound().build()
         } catch (ex: IllegalStateException) {

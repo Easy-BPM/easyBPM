@@ -15,7 +15,17 @@ export interface TaskVariable {
 
 export type ApiAuthType = 'none' | 'bearer' | 'basic' | 'apikey';
 
+export interface TaskSla {
+  duration: string;
+  timeZone?: string;
+  alerts?: { id: string; beforeDue: string }[];
+  escalations?: { id: string; afterDue: string; action: 'REASSIGN' | 'ADD_CANDIDATE_USER' | 'ADD_CANDIDATE_GROUP'; target: string }[];
+}
+
 export interface NodeData {
+  sla?: TaskSla;
+  preservedConfig?: Record<string, unknown>;
+  preservedDefinition?: Record<string, unknown>;
   label: string;
   description?: string;
   // Human Task specific

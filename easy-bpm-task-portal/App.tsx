@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { TaskSlaBadge } from './components/TaskSlaBadge';
+import { mergeSlaMetadata, validOffsetDate } from './utils/sla';
 import { Sidebar } from './components/Sidebar';
 import { bpmService } from './services/bpmService';
 import { DynamicForm } from './components/DynamicForm';
 import { ThemeMode, ThemeToggle } from './components/ThemeToggle';
-import { Task, ProcessDefinition, ProcessInstance, TaskStatus, Form, JsonSchemaProperty, TaskFilterOperator, TaskSearchFilter, Page } from './types';
+import { Task, ProcessDefinition, ProcessInstance, TaskStatus, Form, JsonSchemaProperty, TaskFilterOperator, TaskSearchFilter, Page, SlaSummary } from './types';
 import {
   Play,
   CheckCircle2,
@@ -45,6 +47,8 @@ type InboxFilterField =
   | 'processInstanceId'
   | 'taskName'
   | 'createdAt'
+  | 'dueDate'
+  | 'slaStatus'
   | 'taskVariable'
   | 'processVariable';
 
@@ -65,6 +69,8 @@ const FILTER_FIELD_OPTIONS: Array<{ value: InboxFilterField; label: string }> = 
   { value: 'processInstanceId', label: 'Process Instance' },
   { value: 'taskName', label: 'Task Name' },
   { value: 'createdAt', label: 'Created Date' },
+  { value: 'dueDate', label: 'Due Date (ISO timestamp with offset)' },
+  { value: 'slaStatus', label: 'SLA Status' },
   { value: 'taskVariable', label: 'Task Variable' },
   { value: 'processVariable', label: 'Process Variable' }
 ];
@@ -87,7 +93,7 @@ const OPERATOR_LABELS: Record<TaskFilterOperator, string> = {
 
 const operatorOptionsForField = (field: InboxFilterField): TaskFilterOperator[] => {
   if (field === 'taskName') return ['CONTAINS', 'EQUALS', 'STARTS_WITH', 'ENDS_WITH'];
-  if (field === 'createdAt' || field === 'processInstanceId') return ['EQUALS', 'GREATER_THAN_OR_EQUAL', 'LESS_THAN_OR_EQUAL', 'GREATER_THAN', 'LESS_THAN'];
+  if (field === 'createdAt' || field === 'dueDate' || field === 'processInstanceId') return ['EQUALS', 'GREATER_THAN_OR_EQUAL', 'LESS_THAN_OR_EQUAL', 'GREATER_THAN', 'LESS_THAN'];
   if (field === 'taskVariable' || field === 'processVariable') return ['EQUALS', 'NOT_EQUALS', 'CONTAINS', 'GREATER_THAN_OR_EQUAL', 'LESS_THAN_OR_EQUAL'];
   if (field === 'candidateGroup') return ['EQUALS', 'IN', 'NOT_IN'];
   return ['EQUALS', 'NOT_EQUALS', 'IN', 'NOT_IN'];
@@ -487,7 +493,7 @@ const DashboardView: React.FC<{ onNavigate: (view: string) => void; currentUser:
   );
 };
 
-const InboxView: React.FC<{ onSelectTask: (id: number) => void; currentUser: string }> = ({ onSelectTask, currentUser }) => {
+export const InboxView: React.FC<{ onSelectTask: (id: number) => void; currentUser: string }> = ({ onSelectTask, currentUser }) => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -495,10 +501,35 @@ const InboxView: React.FC<{ onSelectTask: (id: number) => void; currentUser: str
   const [filterPanelOpen, setFilterPanelOpen] = useState(false);
   const [draftFilters, setDraftFilters] = useState<InboxFilterDraft[]>([]);
   const [activeFilters, setActiveFilters] = useState<InboxFilterDraft[]>([]);
+  const [sort, setSort] = useState('createdAt,desc');
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [summary, setSummary] = useState<SlaSummary | null>(null);
 
   useEffect(() => {
-    void loadTasks();
-  }, [filter, currentUser, activeFilters]);
+    let cancelled = false;
+    let pending = false;
+    const refresh = async (initial = false) => {
+      if (pending) return;
+      pending = true;
+      if (initial) setLoading(true);
+      const filters = [...buildQuickFilters(), ...activeFilters.map(toSearchFilter)];
+      const results = await Promise.allSettled([bpmService.getTasksPage(filters, page, sort), bpmService.getSlaSummary(filters)]);
+      if (!cancelled) {
+        if (results[0].status === 'fulfilled') { setTasks(results[0].value.content); setTotalPages(results[0].value.totalPages); setError(null); }
+        else setError(results[0].reason.message || 'Tasks could not refresh. Retry when connected.');
+        if (results[1].status === 'fulfilled') setSummary(results[1].value);
+        else setError(results[1].reason.message || 'SLA counters could not refresh.');
+        setLoading(false);
+      }
+      pending = false;
+    };
+    void refresh(true);
+    const timer = window.setInterval(() => { if (document.visibilityState === 'visible') void refresh(); }, 15000);
+    const visible = () => { if (document.visibilityState === 'visible') void refresh(); };
+    document.addEventListener('visibilitychange', visible);
+    return () => { cancelled = true; clearInterval(timer); document.removeEventListener('visibilitychange', visible); };
+  }, [filter, currentUser, activeFilters, page, sort]);
 
   const buildQuickFilters = (): TaskSearchFilter[] => {
     if (filter === 'completed') {
@@ -554,25 +585,14 @@ const InboxView: React.FC<{ onSelectTask: (id: number) => void; currentUser: str
       if ((draft.field === 'taskVariable' || draft.field === 'processVariable') && !draft.variableName.trim()) {
         return `${FILTER_FIELD_LABELS[draft.field]} requires a variable name.`;
       }
+      if (draft.field === 'dueDate' && !validOffsetDate(draft.value.trim())) return 'Due Date requires an ISO timestamp with timezone offset.';
+      if (draft.field === 'slaStatus' && draft.value.split(',').some(value => !['ON_TRACK', 'AT_RISK', 'OVERDUE', 'COMPLETED'].includes(value.trim()))) return 'SLA Status must be ON_TRACK, AT_RISK, OVERDUE or COMPLETED.';
       if (!draft.value.trim()) return `${FILTER_FIELD_LABELS[draft.field]} requires a value.`;
       if (draft.field === 'processInstanceId' && Number.isNaN(Number(draft.value))) {
         return 'Process Instance must be a number.';
       }
     }
     return null;
-  };
-
-  const loadTasks = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await bpmService.getTasks([...buildQuickFilters(), ...activeFilters.map(toSearchFilter)]);
-      setTasks(data);
-    } catch (error) {
-      setError((error as Error).message);
-    } finally {
-      setLoading(false);
-    }
   };
 
   const updateDraftFilter = (id: string, patch: Partial<InboxFilterDraft>) => {
@@ -600,17 +620,20 @@ const InboxView: React.FC<{ onSelectTask: (id: number) => void; currentUser: str
       setError(validationError);
       return;
     }
+    setPage(0);
     setActiveFilters(draftFilters);
     setFilterPanelOpen(false);
   };
 
   const removeActiveFilter = (id: string) => {
     const next = activeFilters.filter((draft) => draft.id !== id);
+    setPage(0);
     setActiveFilters(next);
     setDraftFilters(next);
   };
 
   const clearFilters = () => {
+    setPage(0);
     setActiveFilters([]);
     setDraftFilters([]);
   };
@@ -636,7 +659,7 @@ const InboxView: React.FC<{ onSelectTask: (id: number) => void; currentUser: str
             {(['assigned', 'all', 'completed'] as const).map((current) => (
               <button
                 key={current}
-                onClick={() => setFilter(current)}
+                onClick={() => { setPage(0); setFilter(current); }}
                 className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
                   filter === current ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600 hover:text-slate-800'
                 }`}
@@ -654,6 +677,11 @@ const InboxView: React.FC<{ onSelectTask: (id: number) => void; currentUser: str
         </div>
       </div>
 
+      <div className="flex flex-wrap gap-3 items-center text-sm">
+        <label>Sort <select aria-label="Sort" className="border rounded p-2" value={sort} onChange={e => { setPage(0); setSort(e.target.value); }}><option value="createdAt,desc">Newest first</option><option value="dueDate,asc">Deadline: earliest first</option><option value="dueDate,desc">Deadline: latest first</option></select></label>
+        <button disabled={page === 0} onClick={() => setPage(p => p - 1)}>Previous page</button><span>Page {page + 1} of {Math.max(1, totalPages)}</span><button disabled={page + 1 >= totalPages} onClick={() => setPage(p => p + 1)}>Next page</button>
+        {summary && <div aria-label="SLA counters">On track: {summary.onTrack} · At risk: {summary.atRisk} · Overdue: {summary.overdue} · Completed: {summary.completed} · No SLA: {summary.withoutSla}</div>}
+      </div>
       {(activeFilters.length > 0 || error) && (
         <div className="space-y-3">
           {activeFilters.length > 0 && (
@@ -798,6 +826,7 @@ const InboxView: React.FC<{ onSelectTask: (id: number) => void; currentUser: str
                 <div>
                   <h4 className="font-semibold text-slate-800 group-hover:text-blue-600 transition-colors text-lg">{task.name || `Task ${task.id}`}</h4>
                   <p className="text-sm text-slate-500 line-clamp-1">{task.description}</p>
+                  <TaskSlaBadge task={task} />
                   <div className="flex items-center gap-4 mt-2 text-xs text-slate-400">
                     <span className="flex items-center gap-1">
                       <Clock size={12} /> {new Date(task.createdAt).toLocaleDateString()}
@@ -1148,8 +1177,9 @@ const TaskVariableEditor: React.FC<{
   );
 };
 
-const TaskDetailView: React.FC<{ taskId: number; onBack: () => void; currentUser: string }> = ({ taskId, onBack, currentUser }) => {
+export const TaskDetailView: React.FC<{ taskId: number; onBack: () => void; currentUser: string }> = ({ taskId, onBack, currentUser }) => {
   const [task, setTask] = useState<Task | null>(null);
+  const [refreshError, setRefreshError] = useState<string | null>(null);
   const [formDef, setFormDef] = useState<Form | null>(null);
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [variableEntries, setVariableEntries] = useState<VariableEntry[]>([]);
@@ -1163,6 +1193,24 @@ const TaskDetailView: React.FC<{ taskId: number; onBack: () => void; currentUser
 
   useEffect(() => {
     void loadData();
+  }, [taskId]);
+
+  useEffect(() => {
+    let active = true;
+    let pending = false;
+    const refresh = async () => {
+      if (pending) return;
+      pending = true;
+      try {
+        const fresh = await bpmService.getTaskById(taskId);
+        if (active) { setTask(current => current ? mergeSlaMetadata(current, fresh) : current); setRefreshError(null); }
+      } catch (error) { if (active) setRefreshError(`Task could not refresh: ${(error as Error).message}. Your inputs are preserved.`); }
+      finally { pending = false; }
+    };
+    const timer = window.setInterval(() => { if (document.visibilityState === 'visible') void refresh(); }, 15000);
+    const visible = () => { if (document.visibilityState === 'visible') void refresh(); };
+    document.addEventListener('visibilitychange', visible);
+    return () => { active = false; clearInterval(timer); document.removeEventListener('visibilitychange', visible); };
   }, [taskId]);
 
   const loadData = async () => {
@@ -1389,6 +1437,8 @@ const TaskDetailView: React.FC<{ taskId: number; onBack: () => void; currentUser
             </div>
             <h1 className="text-2xl font-bold text-slate-900 mt-2">{task.name || 'Untitled Task'}</h1>
             <p className="text-slate-500 mt-1">{task.description}</p>
+            <TaskSlaBadge task={task} />
+            {refreshError && <p role="alert" className="text-red-700 text-sm">{refreshError}</p>}
           </div>
           {isCompleted && (
             <div className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1">
