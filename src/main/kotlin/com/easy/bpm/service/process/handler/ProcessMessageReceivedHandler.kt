@@ -8,6 +8,7 @@ import com.easy.bpm.service.metrics.MetricsService
 import com.easy.bpm.service.process.ProcessInstanceTimelineService
 import com.easy.bpm.service.process.ProcessNavigator
 import com.easy.bpm.service.process.ProcessVariableManager
+import com.easy.bpm.service.process.MessagePayloadMapper
 import com.easy.bpm.util.BpmnXmlCodec
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -36,7 +37,14 @@ class ProcessMessageReceivedHandler(
         val instance = processInstanceRepository.findByIdForUpdate(subscription.processInstanceId)
             ?: throw IllegalArgumentException("Process instance ${subscription.processInstanceId} not found")
 
-        variableManager.saveMessageVariables(instance, variables)
+        val definition = BpmnXmlCodec.parseDefinition(instance.processDefinition.definitionJson, objectMapper)
+        val node = findNode(definition, subscription.nodeId)
+        val mapped = MessagePayloadMapper.resolve(node, definition, variables, objectMapper)
+        if (mapped == null) {
+            variableManager.saveMessageVariables(instance, variables)
+        } else {
+            mapped.forEach { (name, value) -> variableManager.upsertProcessVariable(instance.id, name, value) }
+        }
         messageSubscriptionService.deleteSubscription(subscription.id)
         timelineService.record(
             processInstanceId = instance.id,
@@ -44,9 +52,6 @@ class ProcessMessageReceivedHandler(
             eventType = ProcessInstanceEventType.MESSAGE_RECEIVED,
             message = "Message '$messageName' received with correlation key '$correlationKey'."
         )
-
-        val definition = BpmnXmlCodec.parseDefinition(instance.processDefinition.definitionJson, objectMapper)
-        val node = findNode(definition, subscription.nodeId)
 
         return MessageReceivedResult(
             subscriptionFound = true,

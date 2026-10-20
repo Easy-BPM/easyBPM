@@ -91,7 +91,7 @@ class ProcessVariableManager(
 
     fun saveMessageVariables(instance: ProcessInstance, variables: Map<String, Any>?) {
         variables?.forEach { (name, rawValue) ->
-            val value = objectMapper.convertValue(rawValue, JsonNode::class.java)
+            val value = objectMapper.valueToTree<JsonNode>(rawValue)
             upsertProcessVariable(instance.id, name, value)
         }
     }
