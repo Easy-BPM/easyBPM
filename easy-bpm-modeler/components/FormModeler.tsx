@@ -31,6 +31,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { FormDefinition, FormField, FormTab } from '../types';
 import { fetchWithAuth } from '../services/processService';
 import { generateJsonSchema, importForm } from '../utils/formUtils';
+import { FormPreview } from './FormPreview';
 import { getModelerApiBaseUrl } from '../config/runtimeConfig';
 
 const API_BASE_URL = getModelerApiBaseUrl();
@@ -546,110 +547,7 @@ export const FormModeler: React.FC<FormModelerProps> = ({ formLibrary, selectedF
 
         <div className="flex-1 overflow-y-auto p-8 bg-slate-100/50" onClick={() => setSelectedFieldId(null)}>
           {showPreview ? (
-            <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-              {/* Preview Tabs */}
-              <div className="flex border-b border-slate-100 bg-slate-50/50">
-                {form.tabs.map(tab => (
-                  <button 
-                    key={tab.id}
-                    onClick={() => setActiveTabId(tab.id)}
-                    className={`px-6 py-3 text-sm font-semibold transition-all ${
-                      activeTabId === tab.id ? 'bg-white text-blue-600 border-b-2 border-blue-600' : 'text-slate-400 hover:text-slate-600'
-                    }`}
-                  >
-                    {tab.name}
-                  </button>
-                ))}
-              </div>
-              
-              <div className="p-8">
-                <h2 className="text-2xl font-bold text-slate-800 mb-6">{activeTab?.name}</h2>
-                <div className="space-y-6">
-                  {activeTab?.fields.map(field => (
-                    <div key={field.id} className="space-y-1.5">
-                      <label className="block text-sm font-semibold text-slate-700">
-                        {field.title} {field.required && <span className="text-red-500">*</span>}
-                      </label>
-                      {field.type === 'text' ? (
-                        <textarea 
-                          className={`w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none min-h-[100px] ${field.readOnly ? 'bg-slate-50 cursor-not-allowed' : ''}`} 
-                          placeholder={field.title} 
-                          readOnly={field.readOnly}
-                        />
-                      ) : field.type === 'select' ? (
-                        <select 
-                          className={`w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none ${field.readOnly ? 'bg-slate-50 cursor-not-allowed' : ''}`}
-                          disabled={field.readOnly}
-                        >
-                          {field.options?.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                        </select>
-                      ) : field.type === 'radio' ? (
-                        <div className="space-y-2">
-                          {field.options?.map(opt => (
-                            <label key={opt} className={`flex items-center space-x-2 ${field.readOnly ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
-                              <input 
-                                type="radio" 
-                                name={field.id} 
-                                className="text-blue-600 focus:ring-blue-500" 
-                                disabled={field.readOnly}
-                              />
-                              <span className={`text-sm ${field.readOnly ? 'text-slate-400' : 'text-slate-600'}`}>{opt}</span>
-                            </label>
-                          ))}
-                        </div>
-                      ) : field.type === 'boolean' ? (
-                        <label className={`flex items-center space-x-2 ${field.readOnly ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
-                          <input 
-                            type="checkbox" 
-                            className="rounded text-blue-600 focus:ring-blue-500" 
-                            disabled={field.readOnly}
-                          />
-                          <span className={`text-sm ${field.readOnly ? 'text-slate-400' : 'text-slate-600'}`}>Yes / No</span>
-                        </label>
-                      ) : field.type === 'fileUpload' ? (
-                        <div className="w-full px-4 py-4 border-2 border-dashed border-slate-300 rounded-md bg-slate-50 flex flex-col items-center gap-2 text-slate-400">
-                          <Upload className="w-6 h-6" />
-                          <span className="text-sm">Click to upload or drag & drop</span>
-                          {field.allowedExtensions?.length && (
-                            <span className="text-xs">{field.allowedExtensions.map(e => e.toUpperCase()).join(', ')} · max {field.maxSizeMb ?? 20} MB</span>
-                          )}
-                        </div>
-                      ) : field.type === 'fileDownload' ? (
-                        <div className="flex items-center gap-2 px-3 py-2 border border-blue-200 rounded-md bg-blue-50 text-blue-500 w-fit">
-                          <Download className="w-4 h-4" />
-                          <span className="text-sm">Download file</span>
-                        </div>
-                      ) : field.type === 'pdfViewer' ? (
-                        <div className="w-full h-32 border border-slate-300 rounded-md bg-slate-50 flex items-center justify-center gap-2 text-slate-400">
-                          <FileText className="w-6 h-6" />
-                          <span className="text-sm">PDF Preview area</span>
-                        </div>
-                      ) : (
-                        <input 
-                          type={field.type === 'number' ? 'number' : (field.type === 'date' ? (field.includeTime ? 'datetime-local' : 'date') : 'text')} 
-                          className={`w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none ${field.readOnly ? 'bg-slate-50 cursor-not-allowed' : ''}`} 
-                          placeholder={field.title}
-                          min={field.type === 'date' ? field.minDate : field.type === 'number' ? field.minimum : undefined}
-                          max={field.type === 'date' ? field.maxDate : field.type === 'number' ? field.maximum : undefined}
-                          step={field.type === 'number' ? field.multipleOf : undefined}
-                          readOnly={field.readOnly}
-                        />
-                      )}
-                    </div>
-                  ))}
-                  {activeTab?.fields.length === 0 && (
-                    <div className="text-center py-12 text-slate-400 italic">
-                      No fields added to this tab yet.
-                    </div>
-                  )}
-                  <div className="pt-4">
-                    <button className="w-full bg-blue-600 text-white py-2.5 rounded-md font-bold hover:bg-blue-700 transition-colors">
-                      Submit
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <FormPreview form={form} activeTabId={activeTabId} onSelectTab={setActiveTabId} />
           ) : (
             <div className="max-w-2xl mx-auto bg-white min-h-full rounded-xl shadow-sm border border-slate-200 p-8">
               <div className="mb-8 pb-4 border-b border-slate-100">
