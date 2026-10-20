@@ -147,9 +147,8 @@ class OllamaProvider(
             val duration = Instant.now().toEpochMilli() - startTime
 
             logger.info(
-                "Ollama execution successful: model={}, endpoint={}, duration={}ms",
+                "Ollama execution successful: model={}, duration={}ms",
                 request.providerConfig.modelName,
-                endpoint,
                 duration
             )
 
@@ -171,7 +170,7 @@ class OllamaProvider(
             val errorCode = classifyError(e)
             val errorMsg = sanitizeErrorMessage(e)
 
-            logger.error("Ollama execution failed: $errorCode - $errorMsg", e)
+            logger.error("Ollama execution failed: {}", errorCode)
 
             AIExecutionResponseDto(
                 responseText = "",

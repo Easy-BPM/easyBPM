@@ -170,7 +170,7 @@ class GeminiProvider(
             val errorCode = classifyError(e)
             val errorMsg = sanitizeErrorMessage(e)
 
-            logger.error("Gemini execution failed: $errorCode - $errorMsg", e)
+            logger.error("Gemini execution failed: {}", errorCode)
 
             AIExecutionResponseDto(
                 responseText = "",
