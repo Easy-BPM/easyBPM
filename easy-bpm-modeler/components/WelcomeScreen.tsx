@@ -596,10 +596,10 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
                   <p className="text-sm text-[var(--modeler-text-muted)]">Build better processes, faster.</p>
                 </div>
               </div>
-              <button type="button" className="inline-flex items-center gap-2 rounded-md border border-[var(--modeler-border)] bg-[var(--modeler-surface-muted)] px-4 py-2 text-sm font-semibold text-[var(--modeler-text-soft)] transition-colors hover:bg-[var(--modeler-border)] hover:text-[var(--modeler-text)]">
+              <a href="https://docs.easybpm.net" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-md border border-[var(--modeler-border)] bg-[var(--modeler-surface-muted)] px-4 py-2 text-sm font-semibold text-[var(--modeler-text-soft)] transition-colors hover:bg-[var(--modeler-border)] hover:text-[var(--modeler-text)]">
                 Documentation
                 <ExternalLink className="h-4 w-4" />
-              </button>
+              </a>
             </section>
             </div>
           </main>
