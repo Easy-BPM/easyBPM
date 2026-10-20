@@ -296,8 +296,8 @@ const LoginView: React.FC<{ onLogin: (username: string) => void; theme: ThemeMod
         setLoading(true);
         await bpmService.startOidcLogin();
       })
-      .catch((error) => {
-        console.error(error);
+      .catch(() => {
+        console.error('Unable to initialize sign-in.');
         if (!cancelled) {
           setOidcEnabled(false);
           setLoading(false);
@@ -317,8 +317,8 @@ const LoginView: React.FC<{ onLogin: (username: string) => void; theme: ThemeMod
     try {
       const session = await bpmService.login(username.trim(), password);
       onLogin(session.username);
-    } catch (error) {
-      console.error(error);
+    } catch {
+      console.error('Local sign-in failed.');
     } finally {
       setLoading(false);
     }
@@ -328,8 +328,8 @@ const LoginView: React.FC<{ onLogin: (username: string) => void; theme: ThemeMod
     setLoading(true);
     try {
       await bpmService.startOidcLogin();
-    } catch (error) {
-      console.error(error);
+    } catch {
+      console.error('Unable to start single sign-on.');
       setLoading(false);
     }
   };
