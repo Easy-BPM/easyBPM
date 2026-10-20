@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { bpmService } from './services/bpmService';
+import { validateFormConstraints } from './utils/formConstraints';
 import { DynamicForm } from './components/DynamicForm';
 import { ThemeMode, ThemeToggle } from './components/ThemeToggle';
 import { Task, ProcessDefinition, ProcessInstance, TaskStatus, Form, JsonSchemaProperty, TaskFilterOperator, TaskSearchFilter, Page } from './types';
@@ -1148,10 +1149,15 @@ const TaskVariableEditor: React.FC<{
   );
 };
 
-const TaskDetailView: React.FC<{ taskId: number; onBack: () => void; currentUser: string }> = ({ taskId, onBack, currentUser }) => {
+export const TaskDetailView: React.FC<{ taskId: number; onBack: () => void; currentUser: string }> = ({ taskId, onBack, currentUser }) => {
   const [task, setTask] = useState<Task | null>(null);
   const [formDef, setFormDef] = useState<Form | null>(null);
   const [formData, setFormData] = useState<Record<string, any>>({});
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const handleFormChange = React.useCallback((data: Record<string, any>) => {
+    setFormData(data);
+    setFieldErrors({});
+  }, []);
   const [variableEntries, setVariableEntries] = useState<VariableEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -1282,7 +1288,9 @@ const TaskDetailView: React.FC<{ taskId: number; onBack: () => void; currentUser
   const handleComplete = async () => {
     if (!task || task.status === TaskStatus.COMPLETED || submitting || savingDraft || unclaiming) return;
 
-    const formValidationError = validateFormData();
+    const constraints = formDef ? validateFormConstraints(formDef.schema, buildCompletionVariables()) : {};
+    setFieldErrors(constraints);
+    const formValidationError = validateFormData() || Object.values(constraints)[0];
     if (formValidationError) {
       setError(formValidationError);
       return;
@@ -1433,7 +1441,7 @@ const TaskDetailView: React.FC<{ taskId: number; onBack: () => void; currentUser
               <p className="text-sm text-slate-500">
                 This task has a form. Form values will be submitted as task outputs and synchronized as process variables on completion.
               </p>
-              <DynamicForm schema={formDef.schema} initialData={formData} onChange={setFormData} disabled={isReadOnly} taskId={task.id} processInstanceId={task.processInstanceId} />
+              <DynamicForm schema={formDef.schema} initialData={formData} onChange={handleFormChange} errors={fieldErrors} disabled={isReadOnly} taskId={task.id} processInstanceId={task.processInstanceId} />
             </div>
           ) : (
             <div className="space-y-3">
