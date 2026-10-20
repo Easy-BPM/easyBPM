@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dmn:definitions xmlns:dmn="https://www.omg.org/spec/DMN/20191111/MODEL/"
+                 id="expense_approval_definitions" name="Expense approval" namespace="https://easybpm.example/decisions">
+  <dmn:decision id="expenseApproval" name="Expense approval">
+    <dmn:decisionTable id="expenseApprovalTable" hitPolicy="UNIQUE">
+      <dmn:input id="amountInput" label="Expense amount">
+        <dmn:inputExpression id="amountExpression" typeRef="number"><dmn:text>amount</dmn:text></dmn:inputExpression>
+      </dmn:input>
+      <dmn:output id="approvalOutput" name="approval" typeRef="string" />
+      <dmn:output id="reviewOutput" name="requiresReview" typeRef="boolean" />
+      <dmn:rule id="automaticApproval">
+        <dmn:description>Expenses below 1000 are approved automatically.</dmn:description>
+        <dmn:inputEntry id="automaticAmount"><dmn:text>&lt; 1000</dmn:text></dmn:inputEntry>
+        <dmn:outputEntry id="automaticApprovalValue"><dmn:text>"APPROVED"</dmn:text></dmn:outputEntry>
+        <dmn:outputEntry id="automaticReviewValue"><dmn:text>false</dmn:text></dmn:outputEntry>
+      </dmn:rule>
+      <dmn:rule id="managerReview">
+        <dmn:description>Expenses of 1000 or more require review.</dmn:description>
+        <dmn:inputEntry id="reviewAmount"><dmn:text>&gt;= 1000</dmn:text></dmn:inputEntry>
+        <dmn:outputEntry id="reviewApprovalValue"><dmn:text>"REVIEW"</dmn:text></dmn:outputEntry>
+        <dmn:outputEntry id="reviewRequiredValue"><dmn:text>true</dmn:text></dmn:outputEntry>
+      </dmn:rule>
+    </dmn:decisionTable>
+  </dmn:decision>
+</dmn:definitions>

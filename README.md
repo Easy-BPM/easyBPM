@@ -10,6 +10,8 @@
 
 EasyBPM is a Kotlin/Spring Boot business process engine with a React modeler, an admin console, a task portal, and an async worker for external/API work. It stores process definitions as BPMN 2.0 XML, adapts them to the runtime graph internally, persists process execution state in PostgreSQL, and uses RabbitMQ to hand long-running work to the worker.
 
+The Modeler also supports visual DMN decision tables and BPMN Business Rule Tasks. See the [business rules guide](docs/decision-rules.md) for supported expressions, versioning, testing, and a runnable DMN/BPMN example.
+
 ## What Is In This Repository
 
 | Path | Purpose |

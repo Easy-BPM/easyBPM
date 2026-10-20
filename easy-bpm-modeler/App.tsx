@@ -14,6 +14,8 @@ import { Canvas } from './components/Canvas';
 import { PropertiesPanel } from './components/PropertiesPanel';
 import { FormModeler } from './components/FormModeler';
 import { FormLibrary } from './components/FormLibrary';
+import { DecisionModeler } from './components/DecisionModeler';
+import { decisionMappingErrors } from './components/BusinessRuleTaskEditor';
 import { WelcomeScreen, WorkspaceResource, ProcessTemplateDefinition } from './components/WelcomeScreen';
 import { AgentBoardModeler } from './components/AgentBoardModeler';
 import { ModelerNavbar } from './components/ModelerNavbar';
@@ -35,7 +37,7 @@ import { saveTextFile } from './services/desktopBridge';
 const BOUNDARY_TYPES: NodeType[] = ['error-boundary', 'message-boundary', 'timer-boundary'];
 const START_TYPES: NodeType[] = ['start', 'message-start'];
 const END_TYPES: NodeType[] = ['end'];
-const TASK_TYPES: NodeType[] = ['user-task', 'service-task', 'api-task', 'code-task', 'ai-task', 'agent-process-call'];
+const TASK_TYPES: NodeType[] = ['user-task', 'service-task', 'business-rule-task', 'api-task', 'code-task', 'ai-task', 'agent-process-call'];
 const CONTAINER_TYPES: NodeType[] = ['pool'];
 const VISUAL_NODE_TYPES: NodeType[] = ['pool', 'documentation'];
 const FORM_KEY_PATTERN = /^[A-Za-z][A-Za-z0-9_-]*$/;
@@ -48,7 +50,7 @@ const safeString = (value: any): string => {
   return String(value);
 };
 
-type EditorMode = 'welcome' | 'process-editor' | 'form-editor' | 'agent-process-editor';
+type EditorMode = 'welcome' | 'process-editor' | 'form-editor' | 'agent-process-editor' | 'decision-editor';
 
 const App: React.FC = () => {
    const isDesktop = isDesktopModeler();
@@ -436,6 +438,9 @@ const App: React.FC = () => {
         addIssue('error', `Task node ${node.id} can have only one outgoing flow. Use a gateway to split the process.`, { nodeUid: node.uid, nodeId: node.id });
       }
 
+      if (node.type === 'business-rule-task') {
+        for (const message of decisionMappingErrors(node.data)) addIssue('error', `Business rule task ${node.id}: ${message}`, { nodeUid: node.uid, nodeId: node.id });
+      }
       if (node.type === 'timer-event') {
         const timeout = Number(node.data.timeoutSeconds);
         if (!Number.isFinite(timeout) || timeout <= 0) {
@@ -651,6 +656,7 @@ const App: React.FC = () => {
       'end': 'EndEvent', 
       'user-task': 'HumanTask',
       'service-task': 'ServiceTask',
+      'business-rule-task': 'BusinessRuleTask',
       'api-task': 'APITask',
       'ai-task': 'AiTask',
       'agent-process-call': 'AgentProcessCall',
@@ -781,6 +787,12 @@ const App: React.FC = () => {
          };
        }
 
+       if (node.type === 'business-rule-task') {
+         base.config = { ...node.data.preservedConfig, decisionKey: node.data.decisionKey || '',
+           ...(node.data.decisionVersion ? { decisionVersion: node.data.decisionVersion } : {}),
+           inputs: node.data.decisionInputs || [], outputs: node.data.decisionOutputs || [] };
+         if (!node.data.decisionVersion) delete base.config.decisionVersion;
+       }
        if (node.type === 'call-activity') {
          base.config = {
            processKey: node.data.callActivityProcessKey || '',
@@ -1097,6 +1109,7 @@ const App: React.FC = () => {
       'HumanTask': 'user-task',
       'UserTask': 'user-task',
       'ServiceTask': 'service-task',
+      'BusinessRuleTask': 'business-rule-task',
       'APITask': 'api-task',
       'AgentProcessCall': 'agent-process-call',
       'ExclusiveGateway': 'gateway',
@@ -1161,6 +1174,12 @@ const App: React.FC = () => {
        if (node.config) {
          newNode.data.preservedConfig = node.config;
          newNode.data.sla = node.config.sla;
+       }
+       if (type === 'business-rule-task' && node.config) {
+         newNode.data.decisionKey = node.config.decisionKey || '';
+         newNode.data.decisionVersion = node.config.decisionVersion;
+         newNode.data.decisionInputs = node.config.inputs || [];
+         newNode.data.decisionOutputs = node.config.outputs || [];
        }
        if (type === 'user-task' && node.config) {
          newNode.data.formId = node.config.formId;
@@ -1562,6 +1581,9 @@ const App: React.FC = () => {
   }
 
   // Render based on editor mode
+  if (editorMode === 'decision-editor') {
+    return <>{connectionDialog}<DecisionModeler onBack={handleBackToWelcome} onConnect={() => setIsConnectionDialogOpen(true)} /></>;
+  }
   if (editorMode === 'welcome') {
     return (
       <div className="h-screen overflow-hidden">
@@ -1570,6 +1592,7 @@ const App: React.FC = () => {
         <WelcomeScreen
           onCreateProcess={handleCreateProcess}
           onCreateForm={handleCreateForm}
+          onCreateDecision={() => setEditorMode('decision-editor')}
           onLoadProcessTemplate={handleLoadProcessTemplate}
           onCreateAgentProcess={handleCreateAgentProcess}
           isAgenticOrchestrationEnabled={featureFlags.agenticOrchestration}

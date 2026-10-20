@@ -18,7 +18,7 @@ class TaskSlaMigrationTest {
                     statement.execute("insert into task(process_instance_id,node_id,status,created_at) values (1,'review','PENDING','2026-01-01 12:00:00')")
                 }
             }
-            val result=Flyway.configure().dataSource(database.jdbcUrl,database.username,database.password).load().migrate()
+            val result=Flyway.configure().dataSource(database.jdbcUrl,database.username,database.password).target("47").load().migrate()
             assertEquals(1,result.migrationsExecuted)
             DriverManager.getConnection(database.jdbcUrl,database.username,database.password).use { connection ->
                 connection.createStatement().use { statement ->

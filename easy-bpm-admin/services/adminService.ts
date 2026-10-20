@@ -1,4 +1,5 @@
 import {
+  DecisionDefinition, DecisionDiff, DecisionExecution,
   AdminGroup,
   ApiClient,
   ApiClientAudit,
@@ -79,7 +80,7 @@ const groupLegacyIncidents = (incidents: Incident[], filters: IncidentGroupFilte
   const grouped = [...groups.entries()].map(([signature, entries]): IncidentGroup => {
     const newest = [...entries].sort((left, right) => new Date(right.lastOccurredAt).getTime() - new Date(left.lastOccurredAt).getTime())[0];
     const occurrenceCount = entries.reduce((total, incident) => total + (incident.occurrenceCount || 1), 0);
-    const retryStatus: IncidentRetryStatus = newest.source === 'WORKER' && newest.status === 'OPEN' ? 'RETRY_ELIGIBLE' : 'NOT_ELIGIBLE';
+    const retryStatus: IncidentRetryStatus = ['WORKER', 'DECISION_TASK'].includes(newest.source) && newest.status === 'OPEN' ? 'RETRY_ELIGIBLE' : 'NOT_ELIGIBLE';
     return {
       signature,
       representativeIncidentId: newest.id,
@@ -262,6 +263,28 @@ const buildSessionFromMe = (token: string, me: AuthCurrentUser, idToken?: string
 });
 
 export const adminService = {
+  async getDecisions(): Promise<DecisionDefinition[]> {
+    const response = await fetchWithAuth(`${API_BASE_URL}/decisions`);
+    await assertSlaResponse(response, 'Load decisions'); return response.json();
+  },
+  async getDecisionVersions(key: string): Promise<DecisionDefinition[]> {
+    const response = await fetchWithAuth(`${API_BASE_URL}/decisions/${encodeURIComponent(key)}/versions`);
+    await assertSlaResponse(response, 'Load decision versions'); return response.json();
+  },
+  async getDecisionDiff(key: string, fromVersion: number, toVersion: number): Promise<DecisionDiff> {
+    const response = await fetchWithAuth(`${API_BASE_URL}/decisions/${encodeURIComponent(key)}/diff?fromVersion=${fromVersion}&toVersion=${toVersion}`);
+    await assertSlaResponse(response, 'Compare decision versions'); return response.json();
+  },
+  async getDecisionExecutions(filters: { key?: string; version?: string; processInstanceId?: string; nodeId?: string; status?: string; page?: number }): Promise<Page<DecisionExecution>> {
+    const params = new URLSearchParams({ page: String(filters.page || 0), size: '20' });
+    for (const key of ['key', 'version', 'processInstanceId', 'nodeId', 'status'] as const) if (filters[key]?.trim()) params.set(key, filters[key]!.trim());
+    const response = await fetchWithAuth(`${API_BASE_URL}/decision-executions?${params}`);
+    await assertSlaResponse(response, 'Load decision executions'); return response.json();
+  },
+  async getDecisionExecution(id: number): Promise<DecisionExecution> {
+    const response = await fetchWithAuth(`${API_BASE_URL}/decision-executions/${id}`);
+    await assertSlaResponse(response, 'Load decision execution'); return response.json();
+  },
   getSession: (): AuthSession | null => readSession(),
 
   clearSession: (): void => {

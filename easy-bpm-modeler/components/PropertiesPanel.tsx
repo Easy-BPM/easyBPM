@@ -1,4 +1,5 @@
 import { TaskSlaEditor } from './TaskSlaEditor';
+import { BusinessRuleTaskEditor } from './BusinessRuleTaskEditor';
 import React, { useState, useEffect, useMemo } from 'react';
 import { BpmnNode, BpmnEdge, ProcessVariable, TaskVariable, ValidationIssue } from '../types';
 import { Bot, Trash2, Plus, LogIn, LogOut, Layers, Database, Hash, Type, ToggleLeft, Braces, Fingerprint, AlertCircle, FileCode, Mail, Zap, FileText, Code, Info, Brain, RotateCcw, Search, Copy, Eye, X } from 'lucide-react';
@@ -1443,6 +1444,7 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
              </div>
            </div>
         )}
+        {selectedNode.type === 'business-rule-task' && <BusinessRuleTaskEditor data={selectedNode.data} onChange={data => onUpdateNode(selectedNode.uid, data)} />}
         {selectedNode.type === 'code-task' && (
            <div className="border-t border-slate-100 pt-6 space-y-6">
              <div className="px-4">

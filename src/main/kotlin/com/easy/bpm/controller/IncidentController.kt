@@ -26,7 +26,8 @@ import org.springframework.web.bind.annotation.RestController
 @Tag(name = "Incidents", description = "Operational incident tracking and resolution")
 class IncidentController(
     private val incidentService: IncidentService,
-    private val slaService: com.easy.bpm.service.task.TaskSlaService? = null
+    private val slaService: com.easy.bpm.service.task.TaskSlaService? = null,
+    private val decisionRetryService: com.easy.bpm.decision.DecisionIncidentRetryService? = null
 ) {
     @GetMapping
     @Operation(summary = "List incidents", description = "Retrieve incidents with optional status, source, and process instance filters")
@@ -106,14 +107,19 @@ class IncidentController(
 
     @PostMapping("/{id}/retry")
     @org.springframework.security.access.prepost.PreAuthorize("hasAuthority('ACCESS_BPM_ADMIN')")
-    @Operation(summary = "Retry incident", description = "Retry a recoverable worker/API incident")
+    @Operation(summary = "Retry incident", description = "Retry recoverable worker/API, SLA, or pinned decision-task work")
     fun retryIncident(
         @PathVariable id: Long,
         @RequestBody(required = false) request: IncidentRetryRequest?,
         @org.springframework.security.core.annotation.AuthenticationPrincipal principal: com.easy.bpm.security.AuthenticatedUser? = null
     ): ResponseEntity<Incident> =
         try {
-            ResponseEntity.ok(if (slaService != null && incidentService.getIncident(id)?.source == IncidentSource.SLA) slaService!!.retry(id, principal?.username ?: "system") else incidentService.retryWorkerIncident(id, principal?.username ?: request?.requestedBy))
+            val source = incidentService.getIncident(id)?.source
+            ResponseEntity.ok(when {
+                source == IncidentSource.DECISION_TASK && decisionRetryService != null -> decisionRetryService.retry(id, principal?.username ?: "system")
+                source == IncidentSource.SLA && slaService != null -> slaService.retry(id, principal?.username ?: "system")
+                else -> incidentService.retryWorkerIncident(id, principal?.username ?: request?.requestedBy)
+            })
         } catch (ex: IllegalArgumentException) {
             ResponseEntity.notFound().build()
         } catch (ex: IllegalStateException) {

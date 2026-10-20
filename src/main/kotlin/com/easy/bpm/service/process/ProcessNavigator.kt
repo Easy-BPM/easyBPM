@@ -67,6 +67,7 @@ class ProcessNavigator(
                 }
                 NodeType.UserTask,
                 NodeType.CodeTask,
+                NodeType.BusinessRuleTask,
                 NodeType.ServiceTask,
                 NodeType.AgentProcessCall,
                 NodeType.APITask,

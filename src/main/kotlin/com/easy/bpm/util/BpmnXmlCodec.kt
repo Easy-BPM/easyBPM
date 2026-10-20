@@ -133,6 +133,7 @@ object BpmnXmlCodec {
         "endEvent" -> "EndEvent"
         "userTask" -> "HumanTask"
         "serviceTask" -> "ServiceTask"
+        "businessRuleTask" -> "BusinessRuleTask"
         "callActivity" -> "CallActivity"
         "exclusiveGateway" -> "ExclusiveGateway"
         "parallelGateway" -> "ParallelGateway"

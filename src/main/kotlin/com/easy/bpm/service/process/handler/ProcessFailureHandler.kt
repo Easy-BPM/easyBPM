@@ -53,6 +53,7 @@ class ProcessFailureHandler(
 
     fun incidentSourceForNode(nodeType: NodeType): IncidentSource =
         when (nodeType) {
+            NodeType.BusinessRuleTask -> IncidentSource.DECISION_TASK
             NodeType.CodeTask -> IncidentSource.CODE_TASK
             NodeType.AiTask -> IncidentSource.AI_TASK
             NodeType.MessageEvent,

@@ -53,6 +53,7 @@ const ATTACHABLE_NODE_TYPES: NodeType[] = [
   'user-task',
   'service-task',
   'api-task',
+  'business-rule-task',
   'code-task',
   'ai-task',
   'agent-process-call',
@@ -62,6 +63,7 @@ const SINGLE_OUTGOING_NODE_TYPES: NodeType[] = [
   'user-task',
   'service-task',
   'api-task',
+  'business-rule-task',
   'code-task',
   'ai-task',
   'agent-process-call',
@@ -645,7 +647,7 @@ export const Canvas: React.FC<CanvasProps> = ({
         )}
 
         {nodes.filter(node => node.type !== 'pool').map((node) => {
-          const isTask = node.type === 'user-task' || node.type === 'service-task' || node.type === 'api-task' || node.type === 'code-task' || node.type === 'ai-task' || node.type === 'agent-process-call' || node.type === 'call-activity';
+          const isTask = node.type === 'business-rule-task' || node.type === 'user-task' || node.type === 'service-task' || node.type === 'api-task' || node.type === 'code-task' || node.type === 'ai-task' || node.type === 'agent-process-call' || node.type === 'call-activity';
           const isDocumentation = node.type === 'documentation';
           const isBoxMessageCatch = node.type === 'message-intermediate-catch';
           const isMessageEvent = ['message-start', 'message-intermediate-catch', 'message-intermediate-throw'].includes(node.type);

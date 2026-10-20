@@ -1,4 +1,4 @@
-export type NodeType = 'start' | 'end' | 'user-task' | 'service-task' | 'api-task' | 'code-task' | 'ai-task' | 'agent-process-call' | 'call-activity' | 'gateway' | 'parallel-gateway' | 'timer-event' | 'message-start' | 'message-intermediate-catch' | 'message-intermediate-throw' | 'error-boundary' | 'message-boundary' | 'timer-boundary' | 'pool' | 'documentation';
+export type NodeType = 'start' | 'end' | 'user-task' | 'service-task' | 'business-rule-task' | 'api-task' | 'code-task' | 'ai-task' | 'agent-process-call' | 'call-activity' | 'gateway' | 'parallel-gateway' | 'timer-event' | 'message-start' | 'message-intermediate-catch' | 'message-intermediate-throw' | 'error-boundary' | 'message-boundary' | 'timer-boundary' | 'pool' | 'documentation';
 
 export interface Position {
   x: number;
@@ -23,6 +23,11 @@ export interface TaskSla {
 }
 
 export interface NodeData {
+  decisionKey?: string;
+  decisionInputDrafts?: Record<number, { text: string; error?: string }>;
+  decisionVersion?: number;
+  decisionInputs?: { targetName: string; source: 'variable' | 'static'; value: unknown; type: import('./decisionTypes').DecisionType }[];
+  decisionOutputs?: { sourceName: string; target: 'variable'; value: string; type: import('./decisionTypes').DecisionType }[];
   sla?: TaskSla;
   preservedConfig?: Record<string, unknown>;
   preservedDefinition?: Record<string, unknown>;

@@ -52,7 +52,7 @@ class TaskSlaIntegrationTest : IntegrationTestBase() {
     private fun <T> tx(block: () -> T): T = TransactionTemplate(transactionManager).execute { block() }!!
     private fun task(policy: String = """{"duration":"PT4H","timeZone":"America/New_York","alerts":[{"id":"warn","beforeDue":"PT30M"}]}""", owner: String? = null): Task = tx {
         val key = "sla-${UUID.randomUUID()}"
-        val definition = definitions.saveAndFlush(ProcessDefinition(key=key, definitionJson="<xml/>"))
+        val definition = definitions.saveAndFlush(ProcessDefinition(key=key, definitionJson="""<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"><process id="$key"/></definitions>"""))
         val instance = instances.saveAndFlush(ProcessInstance(processDefinition=definition,status=ProcessStatus.ACTIVE))
         val task = tasks.saveAndFlush(Task(processInstanceId=instance.id,nodeId="review",assignee=owner))
         sla.configure(task, mapper.readTree("""{"config":{"sla":$policy}}"""), now)
@@ -132,17 +132,18 @@ class TaskSlaIntegrationTest : IntegrationTestBase() {
         assertEquals(0L,jdbc.queryForObject("select count(*) from task_sla_event where task_id=? and event_type in ('ESCALATED','ESCALATION_FAILED','OVERDUE')",Long::class.java,task.id))
     }
     @Test fun `fresh status inclusive ranges null last tie sorting visibility summaries and metrics`() {
-        val first=task(owner="visible");val second=task(owner="hidden")
-        val noSla=tx{tasks.saveAndFlush(Task(processInstanceId=first.processInstanceId,nodeId="legacy",assignee="visible")).also{created+=it.id}}
+        val visible="visible-${UUID.randomUUID()}";val hidden="hidden-${UUID.randomUUID()}"
+        val first=task(owner=visible);val second=task(owner=hidden)
+        val noSla=tx{tasks.saveAndFlush(Task(processInstanceId=first.processInstanceId,nodeId="legacy",assignee=visible)).also{created+=it.id}}
         val filter=listOf(TaskSearchFilterDto("slaStatus",value="OVERDUE"),TaskSearchFilterDto("dueDate",TaskFilterOperator.GREATER_THAN_OR_EQUAL,first.dueDate.toString()),TaskSearchFilterDto("dueDate",TaskFilterOperator.LESS_THAN_OR_EQUAL,first.dueDate.toString()))
-        val page=taskService.searchVisibleTaskResponses("visible",emptySet(),filter,PageRequest.of(0,20,Sort.by("dueDate")))
+        val page=taskService.searchVisibleTaskResponses(visible,emptySet(),filter,PageRequest.of(0,20,Sort.by("dueDate")))
         assertEquals(listOf(first.id),page.content.map{it.id});assertEquals(SlaStatus.OVERDUE,page.content.single().slaStatus)
-        val summary=query.summary(emptyList(),TaskVisibility("visible",emptySet()))
+        val summary=query.summary(emptyList(),TaskVisibility(visible,emptySet()))
         assertEquals(1L,summary.overdue);assertEquals(1L,summary.withoutSla)
-        val sorted=taskService.searchVisibleTaskResponses("visible",emptySet(),emptyList(),PageRequest.of(0,20,Sort.by(Sort.Direction.DESC,"dueDate")))
+        val sorted=taskService.searchVisibleTaskResponses(visible,emptySet(),emptyList(),PageRequest.of(0,20,Sort.by(Sort.Direction.DESC,"dueDate")))
         assertEquals(noSla.id,sorted.content.last().id)
         val metrics=query.metrics("USER",first.dueDate.toString(),first.dueDate.toString(),PageRequest.of(0,100))
-        assertTrue(metrics.content.any{it.key=="visible" && it.overdue==1L});assertTrue(metrics.content.any{it.key=="hidden" && it.overdue==1L})
+        assertTrue(metrics.content.any{it.key==visible && it.overdue==1L});assertTrue(metrics.content.any{it.key==hidden && it.overdue==1L})
         assertThrows(IllegalArgumentException::class.java) { query.metrics("USER",second.dueDate!!.plusSeconds(1).toString(),first.dueDate.toString(),PageRequest.of(0,20)) }
     }
     private fun processXml(policy: String?): String = legacyJsonFixtureToBpmnXml(mapper.readTree("""{

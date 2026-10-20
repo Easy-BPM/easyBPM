@@ -24,7 +24,8 @@ class ProcessExecutionEngine(
     private val codeTaskHandler: CodeTaskHandler,
     private val callActivityHandler: CallActivityHandler,
     private val timelineService: ProcessInstanceTimelineService,
-    private val lifecycleManager: ProcessInstanceLifecycleManager
+    private val lifecycleManager: ProcessInstanceLifecycleManager,
+    private val businessRuleTaskHandler: ProcessBusinessRuleTaskHandler
 ) {
     companion object {
         private const val INTERNAL_TIMER_MESSAGE_NAME = "__internal.timer__"
@@ -60,6 +61,10 @@ class ProcessExecutionEngine(
                 NodeType.AiTask -> processAiTaskHandler.handleAiTask(instance, node)
                 NodeType.AgentProcessCall -> handleAgentProcessCall(instance, node, definition)
                 NodeType.CodeTask -> handleCodeTask(instance, node, definition)
+                NodeType.BusinessRuleTask -> {
+                    businessRuleTaskHandler.execute(instance, node)
+                    continueFromNode(instance, node, definition)
+                }
                 NodeType.ServiceTask -> handleServiceTaskNode(instance, node, definition)
                 NodeType.TimerEvent -> messageNodeHandler.handleTimerEvent(instance, node, INTERNAL_TIMER_MESSAGE_NAME)
                 NodeType.MessageEvent -> messageNodeHandler.handleMessageEvent(instance, node)

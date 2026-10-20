@@ -24,6 +24,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onChangeView, cur
     { id: 'task-resources', label: 'Task Resources', icon: UserRoundCheck },
     { id: 'incidents', label: 'Incidents', icon: AlertTriangle },
     { id: 'workflows', label: 'Deployed Workflows', icon: Workflow },
+    ...(permissions.includes('ACCESS_BPM_ADMIN') ? [{ id: 'decisions', label: 'Business Rules', icon: Workflow }] : []),
     { id: 'code-tasks', label: 'Code Task Executions', icon: Code2 },
     ...(canViewSecrets ? [{ id: 'secrets', label: 'Secrets', icon: KeyRound }] : []),
     { id: 'maintenance', label: 'Maintenance', icon: Database },

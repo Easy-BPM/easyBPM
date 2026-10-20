@@ -39,7 +39,7 @@ class TaskSlaApiIntegrationTest : IntegrationTestBase() {
     @Test fun `API requires auth respects task visibility native scopes admin aggregates and returns UTC fields`() {
         val owner="api-owner-${UUID.randomUUID()}"
         val task=TransactionTemplate(manager).execute {
-            val definition=definitions.saveAndFlush(ProcessDefinition(key="sla-api-${UUID.randomUUID()}",definitionJson="<xml/>"))
+            val definition=definitions.saveAndFlush(ProcessDefinition(key="sla-api-${UUID.randomUUID()}",definitionJson="""<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"><process id="slaFixture"/></definitions>"""))
             val instance=instances.saveAndFlush(ProcessInstance(processDefinition=definition,status=ProcessStatus.ACTIVE))
             val task=tasks.saveAndFlush(Task(processInstanceId=instance.id,nodeId="review",assignee=owner))
             sla.configure(task,mapper.readTree("""{"config":{"sla":{"duration":"PT4H"}}}"""),Instant.parse("2026-01-01T00:00:00Z"));task

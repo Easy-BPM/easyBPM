@@ -140,7 +140,7 @@ export interface BpmTask {
 
 export type IncidentStatus = 'OPEN' | 'ACKNOWLEDGED' | 'RESOLVED';
 export type IncidentSeverity = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
-export type IncidentSource = 'PROCESS_ENGINE' | 'WORKER' | 'CODE_TASK' | 'AI_TASK' | 'MESSAGE';
+export type IncidentSource = 'PROCESS_ENGINE' | 'WORKER' | 'CODE_TASK' | 'AI_TASK' | 'MESSAGE' | 'DECISION_TASK';
 export type IncidentRetryStatus = 'NOT_ELIGIBLE' | 'RETRY_ELIGIBLE' | 'RETRY_REQUESTED' | 'RETRYING' | 'RETRY_SUCCEEDED' | 'RETRY_FAILED' | 'RETRY_EXHAUSTED';
 export type IncidentResolutionAction = 'RESOLVED_MANUALLY' | 'VARIABLE_FIXED' | 'RETRIED_SUCCESSFULLY' | 'IGNORED_KNOWN_ISSUE' | 'INSTANCE_CANCELLED';
 export type IncidentEventType = 'CREATED' | 'OCCURRED_AGAIN' | 'ACKNOWLEDGED' | 'RESOLVED' | 'REOPENED' | 'RETRY_REQUESTED';
@@ -435,3 +435,10 @@ export interface SlaMetricRow {
   alertToCompletionSampleCount: number; alertToCompletionAverageSeconds: number | null;
 }
 export interface SlaTaskFilter { field: string; operator: string; value?: string | number; values?: string[] }
+export interface DecisionDefinition { id: number; key: string; name: string; version: number; state: string; dmnXml: string; createdAt: string }
+export interface DecisionDiff { decisionKey: string; fromVersion: number; toVersion: number; changes: { path: string; before: unknown; after: unknown }[] }
+export interface DecisionExecution {
+  id: number; decisionKey: string; decisionVersion: number; processInstanceId?: number | null; nodeId?: string | null;
+  status: string; durationMs: number; matchedRuleIds: string[]; inputs: unknown; outputs: unknown; errorCode?: string | null; executedAt: string;
+  explanations: { ruleId: string; matched: boolean; conditions: { inputId: string; expression: string; matched: boolean }[] }[];
+}

@@ -41,6 +41,7 @@ class ProcessDefinitionValidator {
             validateMessageThrowEvent(node, nodeType, id)
             validateApiTask(node, nodeType, id)
             validateAgentProcessCall(node, nodeType, id)
+            validateBusinessRuleTask(node, nodeType, id)
 
             if (!nodeIds.add(id)) {
                 throw IllegalArgumentException("Duplicate node id '$id'")
@@ -48,6 +49,34 @@ class ProcessDefinitionValidator {
         }
 
         return json
+    }
+
+    private fun validateBusinessRuleTask(node: JsonNode, nodeType: NodeType, id: String) {
+        if (nodeType != NodeType.BusinessRuleTask) return
+        val config = node.get("config")
+            ?: throw IllegalArgumentException("BusinessRuleTask $id missing config")
+        require(config.path("decisionKey").isTextual && config.path("decisionKey").asText().matches(Regex("[A-Za-z_][A-Za-z0-9_.-]{0,127}"))) {
+            "BusinessRuleTask $id requires a valid decisionKey"
+        }
+        config.get("decisionVersion")?.takeUnless { it.isNull }?.let {
+            require(it.isIntegralNumber && it.canConvertToInt() && it.asInt() > 0) { "BusinessRuleTask $id decisionVersion must be a positive integer" }
+        }
+        for (direction in listOf("inputs", "outputs")) {
+            val mappings = config.get(direction) ?: continue
+            require(mappings.isArray && mappings.size() <= 32) { "BusinessRuleTask $id $direction must be an array of at most 32 mappings" }
+            val targets = mutableSetOf<String>()
+            mappings.forEach { mapping ->
+                val target = mapping.path(if (direction == "inputs") "targetName" else "value")
+                require(target.isTextual && target.asText().isNotBlank() && targets.add(target.asText())) { "BusinessRuleTask $id has blank or duplicate $direction target" }
+                require(mapping.path("type").asText() in setOf("string", "number", "boolean", "date", "json")) { "BusinessRuleTask $id mapping requires a supported type" }
+                if (direction == "inputs") {
+                    require(mapping.path("source").asText() in setOf("variable", "static") && mapping.has("value")) { "BusinessRuleTask $id invalid input mapping" }
+                    if (mapping.path("source").asText() == "variable") require(mapping.path("value").isTextual && mapping.path("value").asText().isNotBlank()) { "BusinessRuleTask $id variable input requires a name" }
+                } else {
+                    require(mapping.path("target").asText() == "variable" && mapping.path("sourceName").isTextual && mapping.path("sourceName").asText().isNotBlank()) { "BusinessRuleTask $id invalid output mapping" }
+                }
+            }
+        }
     }
 
     private fun validateMessageEvent(node: JsonNode, nodeType: NodeType, id: String) {

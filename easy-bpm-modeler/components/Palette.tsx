@@ -47,6 +47,7 @@ export const Palette: React.FC<PaletteProps> = ({ onDragStart, isAgenticOrchestr
       title: 'Activities',
       items: [
         { type: 'user-task', label: 'Human Task', icon: <User className="w-5 h-5" />, color: 'text-blue-600' },
+        { type: 'business-rule-task', label: 'Business Rule Task', icon: <Rows3 className="w-5 h-5" />, color: 'text-teal-500' },
         { type: 'api-task', label: 'API Task', icon: <Settings className="w-5 h-5" />, color: 'text-purple-600' },
         { type: 'service-task', label: 'Service Task', icon: <Zap className="w-5 h-5" />, color: 'text-amber-600' },
         { type: 'code-task', label: 'Code Task', icon: <Code className="w-5 h-5" />, color: 'text-indigo-600' },

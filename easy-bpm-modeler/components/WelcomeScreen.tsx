@@ -56,6 +56,7 @@ export interface ProcessTemplateDefinition {
 interface WelcomeScreenProps {
   onCreateProcess: () => void;
   onCreateForm: () => void;
+  onCreateDecision?: () => void;
   onLoadProcessTemplate?: (definition: ProcessTemplateDefinition) => void;
   onCreateAgentProcess?: () => void;
   isAgenticOrchestrationEnabled?: boolean;
@@ -240,6 +241,7 @@ const formatDate = (value?: string) => {
 export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
   onCreateProcess,
   onCreateForm,
+  onCreateDecision,
   onLoadProcessTemplate,
   onCreateAgentProcess,
   isAgenticOrchestrationEnabled = false,
@@ -396,6 +398,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
                 </div>
               </article>
 
+              {onCreateDecision && <article className="rounded-lg border border-teal-500/25 bg-teal-600/10 p-5"><h3 className="text-lg font-semibold">Business Rules</h3><p className="mt-2 min-h-14 text-sm text-[var(--modeler-text-muted)]">Author typed decision tables, test rules and publish reusable DMN decisions.</p><button className="mt-4 rounded-md bg-teal-600 px-4 py-2 font-semibold text-white" onClick={onCreateDecision}>Decision Tables</button></article>}
               {isAgenticOrchestrationEnabled && onCreateAgentProcess && (
                 <article className="group overflow-hidden rounded-lg border border-violet-500/25 bg-violet-600/10 p-5 transition-colors hover:bg-violet-600/15">
                   <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-full bg-violet-600 text-white shadow-lg shadow-violet-600/20">

@@ -1,4 +1,5 @@
 import { SlaDashboard } from './components/SlaDashboard';
+import { DecisionOperations } from './components/DecisionOperations';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   AlertCircle,
@@ -322,6 +323,8 @@ const App: React.FC = () => {
         );
       case 'workflows':
         return <WorkflowCatalogView />;
+      case 'decisions':
+        return <DecisionOperations permissions={permissions} onInspectInstance={id => { setSelectedInstanceId(id); setCurrentView('instances'); }} />;
       case 'code-tasks':
         return <CodeTaskExecutionListPage />;
       case 'maintenance':
