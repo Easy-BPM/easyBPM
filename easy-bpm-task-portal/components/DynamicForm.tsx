@@ -6,6 +6,7 @@ import { PdfViewerField } from './PdfViewerField';
 
 interface DynamicFormProps {
   schema: JsonSchema;
+  errors?: Record<string, string>;
   initialData: Record<string, any>;
   onChange: (data: Record<string, any>) => void;
   disabled?: boolean;
@@ -47,6 +48,7 @@ const documentValueToString = (value: any) => {
 
 export const DynamicForm: React.FC<DynamicFormProps> = ({
   schema,
+  errors = {},
   initialData,
   onChange,
   disabled,
@@ -117,13 +119,14 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
     if (prop.enum) {
       return (
         <select
+          aria-label={prop.title || key} aria-invalid={!!errors[key]} aria-describedby={errors[key] ? `form-${key}-error` : undefined}
           className={`w-full rounded-lg border px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all ${
             isReadOnly
               ? 'bg-slate-100 text-slate-500 border-slate-200 cursor-not-allowed'
               : 'bg-white border-slate-300 hover:border-slate-400'
           }`}
           value={value}
-          onChange={(e) => handleChange(key, e.target.value)}
+          onChange={(e) => handleChange(key, prop.enum?.find(option => String(option) === e.target.value) ?? '')}
           disabled={isReadOnly}
           required={isRequired}
         >
@@ -161,6 +164,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
     if (prop.format === 'textarea') {
       return (
         <textarea
+          aria-label={prop.title || key} aria-invalid={!!errors[key]} aria-describedby={errors[key] ? `form-${key}-error` : undefined}
           className={`w-full rounded-lg border px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all min-h-[100px] resize-y ${
             isReadOnly
               ? 'bg-slate-100 text-slate-500 border-slate-200'
@@ -182,6 +186,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
 
     return (
       <input
+        aria-label={prop.title || key} aria-invalid={!!errors[key]} aria-describedby={errors[key] ? `form-${key}-error` : undefined}
         type={isNumber ? 'number' : prop.format === 'date-time' || prop.includeTime ? 'datetime-local' : isDate ? 'date' : 'text'}
         className={`w-full rounded-lg border px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all ${
           isReadOnly
@@ -227,6 +232,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
                 {prop.title || key} {isRequired && <span className="text-red-500">*</span>}
               </label>
               {renderField(key, prop)}
+              {errors[key] && <p id={`form-${key}-error`} role="alert" className="mt-1 text-sm text-red-600">{errors[key]}</p>}
             </div>
           );
         })}
