@@ -1,9 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { adminService } from '../services/adminService';
 import type { DecisionDefinition, DecisionDiff, DecisionExecution, Page } from '../types';
+import { Table2, RefreshCw, History, Activity } from 'lucide-react';
+import './DecisionOperations.css';
 
-const field = 'rounded border border-slate-300 bg-white p-2 text-sm text-slate-800';
-const button = 'rounded border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 hover:bg-slate-100 disabled:opacity-40';
+const field = 'decision-ops-field';
+const button = 'decision-ops-button';
 const Json = ({ value }: { value: unknown }) => <pre className="max-h-64 overflow-auto whitespace-pre-wrap rounded bg-slate-100 p-3 text-xs">{JSON.stringify(value, null, 2)}</pre>;
 const emptyPage: Page<DecisionExecution> = { content: [], totalElements: 0, totalPages: 0, number: 0, size: 20 };
 export const DecisionOperations: React.FC<{ permissions: string[]; onInspectInstance?: (id: number) => void }> = ({ permissions, onInspectInstance }) => {
@@ -25,8 +27,9 @@ export const DecisionOperations: React.FC<{ permissions: string[]; onInspectInst
   const chooseKey = async (value: string) => { const id = ++versionRequest.current; setKey(value); setDiff(null); setVersions([]); setFrom(''); setTo(''); setError(''); if (!value) return; setLoadingVersions(true); try { const history = await adminService.getDecisionVersions(value); if (id === versionRequest.current) { setVersions(history); setFrom(String(history.length > 1 ? history[history.length - 1].version : history[0]?.version || '')); setTo(String(history[0]?.version || '')); } } catch (e) { if (id === versionRequest.current) setError(e instanceof Error ? e.message : 'Could not load versions.'); } finally { if (id === versionRequest.current) setLoadingVersions(false); } };
   const run = async (action: () => Promise<void>) => { setBusy(true); setError(''); try { await action(); } catch (e) { setError(e instanceof Error ? e.message : 'Decision operation failed.'); } finally { setBusy(false); } };
   if (!allowed) return <p role="alert" className="p-6">Access denied. BPM Admin permission is required.</p>;
-  return <main className="space-y-6 p-6 text-slate-800">
-    <div className="flex items-center justify-between"><div><h1 className="text-2xl font-semibold">Business Rules</h1><p className="text-sm text-slate-500">Published decisions, version differences and execution history.</p></div><button className={button} onClick={() => setRefresh(n => n + 1)}>Refresh</button></div>
+  return <main className="decision-operations">
+    <div className="decision-ops-heading"><div className="decision-ops-title"><span className="decision-ops-icon"><Table2 size={24} /></span><div><span className="decision-ops-eyebrow">DECISION OPERATIONS</span><h1>Business Rules</h1><p>Understand your decisions. Trace every result.</p></div></div><button className={button} onClick={() => setRefresh(n => n + 1)}><RefreshCw size={14} />Refresh</button></div>
+    <div className="decision-ops-overview"><div><Table2 size={18} /><span>Published decisions<strong>{definitions.length}</strong></span></div><div><Activity size={18} /><span>Executions in current filter<strong>{executions.totalElements}</strong></span></div><div><History size={18} /><span>Version history<strong>{key ? `${versions.length} versions` : 'Select a decision'}</strong></span></div></div>
     {error && <p role="alert" className="rounded border border-red-300 bg-red-50 p-3 text-red-700">{error}</p>}
     <section className="space-y-3 rounded border border-slate-200 bg-white p-4" aria-label="Decision version history"><h2 className="font-semibold">Version history and comparison</h2><div className="flex flex-wrap gap-3 items-end"><label className="text-sm">Decision<select aria-label="Decision history key" className={`${field} block`} value={key} onChange={e => void chooseKey(e.target.value)}><option value="">Select decision</option>{definitions.map(d => <option key={d.id} value={d.key}>{d.name} ({d.key}) · v{d.version}</option>)}</select></label>{versions.length > 0 && <><label className="text-sm">From version<select aria-label="From decision version" className={`${field} block`} value={from} onChange={e => setFrom(e.target.value)}>{versions.map(v => <option key={v.id} value={v.version}>v{v.version}</option>)}</select></label><label className="text-sm">To version<select aria-label="To decision version" className={`${field} block`} value={to} onChange={e => setTo(e.target.value)}>{versions.map(v => <option key={v.id} value={v.version}>v{v.version}</option>)}</select></label><button className={button} disabled={busy || !from || !to} onClick={() => void run(async () => setDiff(await adminService.getDecisionDiff(key, Number(from), Number(to))))}>Compare versions</button></>}</div>
       {loadingVersions && <p role="status">Loading versions…</p>}{definitions.length === 0 && <p>No published decisions.</p>}

@@ -22,7 +22,7 @@ async function harness(app, code, run) {
 const definition = { id: 1, key: 'eligibility', name: 'Eligibility', version: 1, state: 'PUBLISHED', dmnXml: '', createdAt: '2026-10-20T12:00:00Z' };
 const result = { decisionKey: 'eligibility', version: 1, hitPolicy: 'UNIQUE', matchedRuleIds: ['adult'], outputs: { eligible: true }, durationMs: 1, explanations: [{ ruleId: 'adult', matched: true, conditions: [{ inputId: 'age', expression: '>= 18', matched: true }] }] };
 try {
-  await harness('easy-bpm-modeler', `import {DecisionModeler} from '/components/DecisionModeler.tsx'; import * as dmn from '/utils/dmnXml.ts'; import * as bpmn from '/utils/bpmnXml.ts'; window.dmn=dmn;window.bpmn=bpmn; createRoot(document.getElementById('root')).render(React.createElement(DecisionModeler,{onBack:()=>{}}));`, async (page, url) => {
+  await harness('easy-bpm-modeler', `import {DecisionModeler} from '/components/DecisionModeler.tsx'; import * as dmn from '/utils/dmnXml.ts'; import {decisionExamples} from '/utils/decisionExamples.ts'; window.examples=decisionExamples; import * as bpmn from '/utils/bpmnXml.ts'; window.dmn=dmn;window.bpmn=bpmn; const root=createRoot(document.getElementById('root')); window.showPublished=definition=>root.render(React.createElement(DecisionModeler,{onBack:()=>{},initialDefinition:definition})); root.render(React.createElement(DecisionModeler,{onBack:()=>{}}));`, async (page, url) => {
     const requests = []; let unavailable = false;
     await page.route('http://localhost:8080/**', async route => {
       const endpoint = new URL(route.request().url()).pathname;
@@ -39,6 +39,8 @@ try {
       return route.fulfill({ status: 404, json: { message: endpoint } });
     });
     await page.goto(url); await page.getByRole('heading', { name: 'Decision Tables', exact: true }).waitFor();
+    assert.equal(await page.getByLabel('Decision key', {exact:true}).inputValue(), ''); assert.equal(await page.getByLabel('Rule 1 ID', {exact:true}).count(), 0); assert.equal(await page.getByLabel('Published decision', {exact:true}).count(), 0);
+    await page.getByRole('button', {name:'Browse examples',exact:true}).click(); await page.getByRole('button', {name:'Load Eligibility example',exact:true}).click(); await page.getByLabel('Rule 1 ID', {exact:true}).waitFor();
     await page.getByRole('button', { name: 'Add input', exact: true }).click(); await page.getByLabel('inputs 2 type').selectOption('date');
     await page.getByRole('button', { name: 'Add output', exact: true }).click(); await page.getByLabel('outputs 2 type').selectOption('json');
     await page.getByRole('button', { name: 'Add rule', exact: true }).click(); await page.getByLabel('Rule 3 input 1', { exact: true }).fill('>= 65');
@@ -57,7 +59,7 @@ try {
     await page.getByRole('button', { name: 'Run saved tests', exact: true }).click(); await page.getByText('Adult applicant: FAIL', { exact: true }).waitFor();
     unavailable = true; await page.getByRole('button', { name: 'Validate', exact: true }).click(); assert.match(await page.getByRole('alert').innerText(), /Backend unavailable/);
     const roundtrip = await page.evaluate(() => {
-      const table = window.dmn.newDecision(); table.name = 'Eligibility & safety'; table.rules[0].description = 'Adults < 100';
+      const table = structuredClone(window.examples[0].table); table.name = 'Eligibility & safety'; table.rules[0].description = 'Adults < 100';
       table.xmlIds = { definitions: 'DefinitionOriginal', table: 'TableOriginal', inputExpressions: { age: 'ExpressionOriginal' }, inputEntries: { adult: ['ConditionOriginal'] }, outputEntries: { adult: ['OutputOriginal'] } };
       const xml = window.dmn.decisionToDmnXml(table); const parsed = window.dmn.dmnXmlToDecision(xml); const again = window.dmn.dmnXmlToDecision(window.dmn.decisionToDmnXml(parsed));
       const prefixed = xml.replace(/<(\/)?(definitions|decision|decisionTable|input|inputExpression|output|rule|inputEntry|outputEntry|text|description)(?=[\s>])/g, '<$1dmn:$2').replace('xmlns=', 'xmlns:dmn=');
@@ -69,6 +71,12 @@ try {
       return { table, parsed, again, prefixParsed, rejected, bpmnXml, config, decoded: window.bpmn.bpmnXmlToProcessDefinition(bpmnXml).nodes[0].config };
     });
     assert.deepEqual(roundtrip.parsed, roundtrip.table); assert.deepEqual(roundtrip.again, roundtrip.table); assert.deepEqual(roundtrip.prefixParsed, roundtrip.table); assert.deepEqual(roundtrip.rejected, [true, true, true, true]); assert.match(roundtrip.bpmnXml, /bpmn:businessRuleTask/); assert.deepEqual(roundtrip.decoded, roundtrip.config);
+    assert.deepEqual(await page.evaluate(() => window.dmn.newDecision()), {key:'',name:'',hitPolicy:'UNIQUE',inputs:[],outputs:[],rules:[]});
+    await page.getByRole('button', {name:'New decision',exact:true}).click(); assert.equal(await page.getByLabel('Rule 1 ID', {exact:true}).count(), 0); assert.equal(await page.getByLabel('Decision name', {exact:true}).inputValue(), '');
+    unavailable = false;
+    await page.evaluate(definition => window.showPublished(definition), definition);
+    await page.getByText('Opened eligibility v1. Editing creates a new version.', {exact:true}).waitFor();
+    assert.equal(await page.getByLabel('Decision key', {exact:true}).inputValue(), 'eligibility');
     console.log('PASS Modeler visual authoring, draft validation/test, exact JSON request numbers, deployment/saved tests and DMN/BPMN roundtrips (AC-1/4/10)');
   });
   await harness('easy-bpm-modeler', `import {BusinessRuleTaskEditor} from '/components/BusinessRuleTaskEditor.tsx'; import * as codec from '/utils/bpmnXml.ts'; function App(){const [data,setData]=React.useState({label:'Decision'});window.data=()=>data;window.reopen=()=>{const config={decisionKey:data.decisionKey,inputs:data.decisionInputs,outputs:data.decisionOutputs};const xml=codec.processDefinitionToBpmnXml({processId:'json-string',nodes:[{id:'decide',type:'BusinessRuleTask',config}],flows:[]});const restored=codec.bpmnXmlToProcessDefinition(xml).nodes[0].config;setData({label:'Decision',decisionKey:restored.decisionKey,decisionInputs:restored.inputs,decisionOutputs:restored.outputs});};return React.createElement(BusinessRuleTaskEditor,{data,onChange:patch=>setData(v=>({...v,...patch}))});}createRoot(document.getElementById('root')).render(React.createElement(App));`, async (page, url) => {
@@ -113,5 +121,16 @@ try {
     await page.goto(url); await page.getByRole('button', { name: 'Retry this group', exact: true }).click(); assert.equal(retried, true);
     await page.getByRole('combobox').first().selectOption('DECISION_TASK'); await page.waitForFunction(() => document.body.textContent.includes('DECISION_TASK')); assert.ok(queries.some(u => u.searchParams.get('source') === 'DECISION_TASK'));
     console.log('PASS Admin decision incident retry and source filter (AC-8)');
+  });
+  await harness('easy-bpm-modeler', `import {WelcomeScreen} from '/components/WelcomeScreen.tsx'; import {DecisionModeler} from '/components/DecisionModeler.tsx'; const definition=${JSON.stringify(definition)}; function Workspace(){const [opened,setOpened]=React.useState(null);return opened ? React.createElement(DecisionModeler,{initialDefinition:opened,onBack:()=>setOpened(null)}) : React.createElement(WelcomeScreen,{theme:'light',onToggleTheme:()=>{},onCreateProcess:()=>{},onCreateForm:()=>{},onCreateDecision:()=>{},workspaceResources:[{id:String(definition.id),kind:'decision',name:definition.name,key:definition.key,version:definition.version,updatedAt:definition.createdAt,payload:definition}],onOpenResource:resource=>setOpened(resource.payload)});} createRoot(document.getElementById('root')).render(React.createElement(Workspace));`, async (page, url) => {
+    await page.route('http://localhost:8080/**', route => route.fulfill({json:route.request().url().endsWith('/versions') ? [definition] : []}));
+    await page.goto(url);
+    await page.getByRole('button', {name:'Business Rules',exact:true}).click();
+    await page.getByPlaceholder('Search by name, key, or description').fill('eligibility');
+    await page.getByRole('button', {name:'Open resource',exact:true}).click();
+    await page.getByText('Opened eligibility v1. Editing creates a new version.', {exact:true}).waitFor();
+    assert.equal(await page.getByLabel('Decision key', {exact:true}).inputValue(),'eligibility');
+    assert.equal(await page.getByLabel('Published decision', {exact:true}).count(),0);
+    console.log('PASS Deployed Business Rules resource search and opening the selected published decision');
   });
 } finally { await browser.close(); }

@@ -15,6 +15,8 @@ import { PropertiesPanel } from './components/PropertiesPanel';
 import { FormModeler } from './components/FormModeler';
 import { FormLibrary } from './components/FormLibrary';
 import { DecisionModeler } from './components/DecisionModeler';
+import { decisionService } from './services/decisionService';
+import type { DecisionDefinition } from './decisionTypes';
 import { decisionMappingErrors } from './components/BusinessRuleTaskEditor';
 import { WelcomeScreen, WorkspaceResource, ProcessTemplateDefinition } from './components/WelcomeScreen';
 import { AgentBoardModeler } from './components/AgentBoardModeler';
@@ -67,6 +69,7 @@ const App: React.FC = () => {
    const [isLoadingWorkspaceResources, setIsLoadingWorkspaceResources] = useState(false);
    const [workspaceResourceError, setWorkspaceResourceError] = useState<string | null>(null);
    const [initialAgentDefinition, setInitialAgentDefinition] = useState<unknown | undefined>(undefined);
+   const [initialDecisionDefinition, setInitialDecisionDefinition] = useState<DecisionDefinition | undefined>(undefined);
 
    // Process editor state
    const [nodes, setNodes] = useState<BpmnNode[]>([]);
@@ -161,17 +164,19 @@ const App: React.FC = () => {
      setIsLoadingWorkspaceResources(true);
      setWorkspaceResourceError(null);
      try {
-       const [processesResult, formsResult, agentsResult, credentialsResult] = await Promise.allSettled([
+       const [processesResult, formsResult, agentsResult, credentialsResult, decisionsResult] = await Promise.allSettled([
          processService.listLatestProcesses(),
          formService.listLatest(),
          featureFlags.agenticOrchestration ? processService.listAgentProcesses() : Promise.resolve([]),
-         processService.listAvailableCredentials()
+         processService.listAvailableCredentials(),
+         decisionService.list()
        ]);
       const loadResults = [
         { label: 'processes', result: processesResult },
         { label: 'forms', result: formsResult },
         { label: 'agents', result: agentsResult },
-        { label: 'secrets', result: credentialsResult }
+        { label: 'secrets', result: credentialsResult },
+        { label: 'decisions', result: decisionsResult }
       ];
       const loadErrors = loadResults
         .filter((item): item is { label: string; result: PromiseRejectedResult } => item.result.status === 'rejected')
@@ -217,7 +222,11 @@ const App: React.FC = () => {
          payload: parseAgentDefinition(agent)
        }));
 
-       setWorkspaceResources([...processResources, ...formResources, ...agentResources]);
+       const decisionResources: WorkspaceResource[] = (decisionsResult.status === 'fulfilled' ? decisionsResult.value : []).map(decision => ({
+         id: String(decision.id), kind: 'decision', name: decision.name, key: decision.key,
+         version: decision.version, updatedAt: decision.createdAt, payload: decision
+       }));
+       setWorkspaceResources([...processResources, ...formResources, ...agentResources, ...decisionResources]);
        setAvailableCredentials(credentials);
        if (loadErrors.length > 0) {
          setWorkspaceResourceError(loadErrors.join(' '));
@@ -1421,6 +1430,13 @@ const App: React.FC = () => {
 
   const handleOpenWorkspaceResource = async (resource: WorkspaceResource) => {
     try {
+      if (resource.kind === 'decision') {
+        const definition = resource.payload as DecisionDefinition | undefined;
+        if (!definition?.dmnXml) throw new Error('The selected decision has no stored definition.');
+        setInitialDecisionDefinition(definition);
+        setEditorMode('decision-editor');
+        return;
+      }
       if (resource.kind === 'process') {
         const definition = await processService.getProcessDefinition(Number(resource.id));
         const source = definition.definitionXml || definition.definitionJson || '';
@@ -1582,7 +1598,7 @@ const App: React.FC = () => {
 
   // Render based on editor mode
   if (editorMode === 'decision-editor') {
-    return <>{connectionDialog}<DecisionModeler onBack={handleBackToWelcome} onConnect={() => setIsConnectionDialogOpen(true)} /></>;
+    return <>{connectionDialog}<DecisionModeler initialDefinition={initialDecisionDefinition} theme={theme} onToggleTheme={toggleTheme} onBack={handleBackToWelcome} onConnect={() => setIsConnectionDialogOpen(true)} /></>;
   }
   if (editorMode === 'welcome') {
     return (
@@ -1592,7 +1608,7 @@ const App: React.FC = () => {
         <WelcomeScreen
           onCreateProcess={handleCreateProcess}
           onCreateForm={handleCreateForm}
-          onCreateDecision={() => setEditorMode('decision-editor')}
+          onCreateDecision={() => { setInitialDecisionDefinition(undefined); setEditorMode('decision-editor'); }}
           onLoadProcessTemplate={handleLoadProcessTemplate}
           onCreateAgentProcess={handleCreateAgentProcess}
           isAgenticOrchestrationEnabled={featureFlags.agenticOrchestration}

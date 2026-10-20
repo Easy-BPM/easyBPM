@@ -4,6 +4,10 @@ EasyBPM supports a deliberately limited DMN 1.3 decision-table language. Busines
 
 ## Create and test a table
 
+New decisions always start with an empty key, name, table, and sample inputs. Choose **Examples** (or **Browse examples**) to explicitly load Eligibility, Expense approval, or Discount collection with matching sample data. Loading an example replaces the current draft only after confirming unsaved changes; **New decision** clears it again.
+
+To open a published decision, use **Deployed resources → Business Rules** on the Modeler home screen. Search by name or key and open the desired resource. The editor loads that decision's XML and version; subsequent publication creates a new immutable version. The editor has no separate **Published decision** resource selector.
+
 Open the Modeler's decision editor. Give the decision a stable key and name, select a hit policy, add input/output columns, and add ordered rule rows. Input expressions name a field in the test input object; dotted expressions such as `customer.age` read nested objects. Output column names become the result object's property names. Save/export DMN XML to keep local work. Desktop authoring/import/export remains available without a server; publishing, backend validation, and saved server test cases require a configured backend.
 
 Input and output types are `string`, `number`, `boolean`, `date`, and `json`. Numbers and booleans must be JSON numbers and booleans, not strings. Dates are valid calendar dates in `yyyy-MM-dd` format, without a time or timezone. JSON values preserve objects, arrays, primitives, and explicit null. Missing inputs fail; explicit null is accepted only by a JSON column. No implicit type conversion occurs.

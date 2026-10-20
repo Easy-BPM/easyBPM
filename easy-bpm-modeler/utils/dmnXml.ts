@@ -3,7 +3,7 @@ import type { DecisionTable, DecisionType } from '../decisionTypes';
 export const DMN_NS = 'https://www.omg.org/spec/DMN/20191111/MODEL/';
 const escape = (value: string) => value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const idAttribute = (value?: string) => value ? ` id="${escape(value)}"` : '';
-export const newDecision = (): DecisionTable => ({ key: 'eligibility', name: 'Eligibility', hitPolicy: 'UNIQUE', inputs: [{ id: 'age', label: 'Age', expression: 'age', type: 'number' }], outputs: [{ id: 'eligible', name: 'eligible', type: 'boolean' }], rules: [{ id: 'adult', inputEntries: ['>= 18'], outputEntries: ['true'] }, { id: 'minor', inputEntries: ['< 18'], outputEntries: ['false'] }] });
+export const newDecision = (): DecisionTable => ({ key: '', name: '', hitPolicy: 'UNIQUE', inputs: [], outputs: [], rules: [] });
 export const decisionToDmnXml = (table: DecisionTable): string => `<?xml version="1.0" encoding="UTF-8"?>
 <definitions xmlns="${DMN_NS}" id="${escape(table.xmlIds?.definitions || `definitions_${table.key}`)}" name="${escape(table.name)}" namespace="https://easybpm.local/decisions">
   <decision id="${escape(table.key)}" name="${escape(table.name)}">

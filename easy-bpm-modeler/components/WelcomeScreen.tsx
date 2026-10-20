@@ -11,13 +11,14 @@ import {
   MoreVertical,
   RefreshCw,
   Search,
+  Table2,
   User,
   Workflow
 } from 'lucide-react';
 import { EasyBpmLogoMark } from './EasyBpmLogoMark';
 import { ThemeMode, ThemeToggle } from './ThemeToggle';
 
-export type WorkspaceResourceKind = 'process' | 'form' | 'agent';
+export type WorkspaceResourceKind = 'process' | 'form' | 'agent' | 'decision';
 
 export interface WorkspaceResource {
   id: string;
@@ -75,12 +76,14 @@ interface WelcomeScreenProps {
 const tabs: { id: WorkspaceResourceKind; label: string; icon: React.ReactNode }[] = [
   { id: 'process', label: 'Processes', icon: <Workflow className="h-4 w-4" /> },
   { id: 'form', label: 'Forms', icon: <FileText className="h-4 w-4" /> },
+  { id: 'decision', label: 'Business Rules', icon: <Table2 className="h-4 w-4" /> },
   { id: 'agent', label: 'Agents', icon: <Bot className="h-4 w-4" /> }
 ];
 
 const kindLabel: Record<WorkspaceResourceKind, string> = {
   process: 'Process',
   form: 'Form',
+  decision: 'Decision',
   agent: 'Agent'
 };
 
@@ -99,6 +102,11 @@ const kindStyles: Record<WorkspaceResourceKind, { icon: React.ReactNode; tone: s
     icon: <Bot className="h-4 w-4" />,
     tone: 'bg-violet-500/15 text-violet-400',
     pill: 'bg-violet-500/15 text-violet-400'
+  },
+  decision: {
+    icon: <Table2 className="h-4 w-4" />,
+    tone: 'bg-teal-500/15 text-teal-400',
+    pill: 'bg-teal-500/15 text-teal-400'
   }
 };
 
@@ -398,7 +406,16 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
                 </div>
               </article>
 
-              {onCreateDecision && <article className="rounded-lg border border-teal-500/25 bg-teal-600/10 p-5"><h3 className="text-lg font-semibold">Business Rules</h3><p className="mt-2 min-h-14 text-sm text-[var(--modeler-text-muted)]">Author typed decision tables, test rules and publish reusable DMN decisions.</p><button className="mt-4 rounded-md bg-teal-600 px-4 py-2 font-semibold text-white" onClick={onCreateDecision}>Decision Tables</button></article>}
+              {onCreateDecision && <article className="group overflow-hidden rounded-lg border border-teal-500/25 bg-teal-600/10 p-5 transition-colors hover:bg-teal-600/15">
+                <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-full bg-teal-600 text-white shadow-lg shadow-teal-600/20">
+                  <Table2 className="h-6 w-6" aria-hidden="true" />
+                </div>
+                <h3 className="text-lg font-semibold text-[var(--modeler-text)]">Business Rules</h3>
+                <p className="mt-2 min-h-14 text-sm leading-5 text-[var(--modeler-text-muted)]">Author typed decision tables, test rules and publish reusable DMN decisions.</p>
+                <div className="mt-4 flex flex-wrap items-center gap-2">
+                  <button type="button" className="inline-flex items-center gap-2 rounded-md bg-teal-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-teal-500" onClick={onCreateDecision}>Decision Tables<ArrowRight className="h-4 w-4" aria-hidden="true" /></button>
+                </div>
+              </article>}
               {isAgenticOrchestrationEnabled && onCreateAgentProcess && (
                 <article className="group overflow-hidden rounded-lg border border-violet-500/25 bg-violet-600/10 p-5 transition-colors hover:bg-violet-600/15">
                   <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-full bg-violet-600 text-white shadow-lg shadow-violet-600/20">
@@ -449,7 +466,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
                           onClick={() => setActiveTab(tab.id)}
                           className={`inline-flex items-center gap-2 rounded px-3 py-1.5 text-xs font-semibold transition-colors ${activeTab === tab.id ? 'bg-[var(--modeler-surface)] text-blue-500 shadow-sm' : 'text-[var(--modeler-text-muted)] hover:text-[var(--modeler-text)]'}`}
                         >
-                          {tab.label}
+                          {tab.icon}{tab.label}
                         </button>
                       ))}
                     </div>
