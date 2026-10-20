@@ -11,7 +11,8 @@
     "desktop:start": "electron .",
     "desktop:build": "npm run build:desktop && electron-builder",
     "preview": "vite preview",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "test:form-preview:ui": "node tests/form-preview-ui.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
