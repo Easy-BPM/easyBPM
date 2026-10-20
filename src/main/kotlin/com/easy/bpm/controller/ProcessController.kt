@@ -5,6 +5,8 @@ import com.easy.bpm.controller.data.CallActivityMappingResponse
 import com.easy.bpm.controller.data.DeployProcessRequest
 import com.easy.bpm.controller.data.MoveNodeRequest
 import com.easy.bpm.enum.MessageEventInboxStatus
+import com.easy.bpm.enum.ProcessStatus
+import com.easy.bpm.handler.AgentProcessRuntimeException
 import com.easy.bpm.model.process.ProcessDefinition
 import com.easy.bpm.model.process.ProcessInstanceEvent
 import com.easy.bpm.model.process.ProcessInstance
@@ -105,7 +107,16 @@ class ProcessController(
             } else {
                 processService.startProcessInstance(processId, initialVariables)
             }
-            ResponseEntity.ok(instance)
+            val agentError = AgentProcessRuntimeException.codeFromMessage(instance.errorMessage)
+            if (instance.status == ProcessStatus.FAILED && agentError != null) {
+                ResponseEntity.unprocessableEntity().body(mapOf(
+                    "status" to "error", "processId" to processId, "instanceId" to instance.id,
+                    "instanceStatus" to instance.status.name, "nodeId" to instance.errorNodeId,
+                    "errorCode" to agentError, "message" to instance.errorMessage
+                ))
+            } else {
+                ResponseEntity.ok(instance)
+            }
         } catch (ex: IllegalArgumentException) {
             val errorMessage = when (ex.message) {
                 "StartEvent not found" ->

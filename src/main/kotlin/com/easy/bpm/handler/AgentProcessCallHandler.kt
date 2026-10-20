@@ -29,7 +29,7 @@ class AgentProcessCallHandler(
     private val aiProviderFactory: AIProviderFactory,
     private val invocationExecutor: AgentProcessInvocationExecutor
 ) {
-    @Transactional
+    @Transactional(noRollbackFor = [AgentProcessRuntimeException::class])
     fun execute(instance: ProcessInstance, node: JsonNode): AgentProcessExecution {
         val nodeId = node.get("id").asText()
         val config = node.get("config")
@@ -52,7 +52,16 @@ class AgentProcessCallHandler(
         )
 
         val agentDefinitionJson = objectMapper.readTree(definition.definitionJson)
-        val outputPayload = executeAgentOrPlan(execution.id, definition, agentDefinitionJson, config, inputPayload)
+        val outputPayload = try {
+            executeAgentOrPlan(execution.id, definition, agentDefinitionJson, config, inputPayload)
+        } catch (ex: AgentProcessRuntimeException) {
+            execution.status = AgentProcessExecutionStatus.FAILED
+            execution.completedAt = LocalDateTime.now()
+            execution.decisionTrace = objectMapper.createObjectNode()
+                .put("status", "FAILED").put("errorCode", ex.errorCode).put("message", ex.message).toString()
+            executionRepository.save(execution)
+            throw ex
+        }
         val decisionTrace = buildDecisionTrace(nodeId, definition, agentDefinitionJson, config, inputPayload, outputPayload)
 
         execution.status = AgentProcessExecutionStatus.COMPLETED
@@ -102,7 +111,24 @@ class AgentProcessCallHandler(
     ): ObjectNode {
         val providerConfigNode = agentDefinitionJson.get("provider")
         return if (providerConfigNode != null && providerConfigNode.isObject) {
-            executeProviderBackedAgent(executionId, definition.key, agentDefinitionJson, providerConfigNode, config, inputPayload)
+            try {
+                executeProviderBackedAgent(executionId, definition.key, agentDefinitionJson, providerConfigNode, config, inputPayload)
+            } catch (ex: AgentProcessRuntimeException) {
+                throw ex
+            } catch (_: AgentProcessTimeoutException) {
+                throw AgentProcessRuntimeException("TIMEOUT")
+            } catch (_: java.net.SocketTimeoutException) {
+                throw AgentProcessRuntimeException("TIMEOUT")
+            } catch (_: org.springframework.web.client.ResourceAccessException) {
+                throw AgentProcessRuntimeException("NETWORK_ERROR")
+            } catch (_: java.io.IOException) {
+                throw AgentProcessRuntimeException("NETWORK_ERROR")
+            } catch (_: IllegalArgumentException) {
+                throw AgentProcessRuntimeException("INVALID_CONFIG")
+            } catch (_: Exception) {
+                // Never retain a provider exception as cause: it may include prompts, URLs or response bodies.
+                throw AgentProcessRuntimeException("PROVIDER_ERROR")
+            }
         } else {
             buildPlannedOutputPayload(executionId, definition.key, config, inputPayload)
         }
@@ -152,7 +178,7 @@ class AgentProcessCallHandler(
         }
 
         if (!response.success) {
-            throw IllegalStateException("Agent process provider execution failed: ${response.errorMessage ?: response.errorCode ?: "unknown error"}")
+            throw AgentProcessRuntimeException(response.errorCode)
         }
 
         val output = objectMapper.createObjectNode()

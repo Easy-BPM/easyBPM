@@ -183,7 +183,7 @@ class OpenAIProvider(
             val errorCode = classifyError(e)
             val errorMsg = sanitizeErrorMessage(e)
             
-            logger.error("OpenAI execution failed: $errorCode - $errorMsg", e)
+            logger.error("OpenAI execution failed: {}", errorCode)
             
             return AIExecutionResponseDto(
                 responseText = "",

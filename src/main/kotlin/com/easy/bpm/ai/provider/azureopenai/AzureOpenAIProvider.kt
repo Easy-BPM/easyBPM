@@ -189,7 +189,7 @@ class AzureOpenAIProvider(
             val errorCode = classifyError(e)
             val errorMsg = sanitizeErrorMessage(e)
 
-            logger.error("Azure OpenAI execution failed: $errorCode - $errorMsg", e)
+            logger.error("Azure OpenAI execution failed: {}", errorCode)
 
             AIExecutionResponseDto(
                 responseText = "",
