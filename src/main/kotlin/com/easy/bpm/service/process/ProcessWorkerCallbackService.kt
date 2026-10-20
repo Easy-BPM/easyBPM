@@ -17,7 +17,7 @@ class ProcessWorkerCallbackService(
     @Transactional
     fun handleServiceTaskCompleted(processInstanceId: Long, nodeId: String, outputs: Map<String, String>) {
         val result = workerCallbackHandler.handleCompleted(processInstanceId, nodeId, outputs)
-        continueFromWorkerCallback(result)
+        continueFromWorkerCallback(result, nodeId)
     }
 
     @Transactional
@@ -35,7 +35,7 @@ class ProcessWorkerCallbackService(
             incidentSource = incidentSource,
             externalReferenceId = externalReferenceId
         )
-        continueFromWorkerCallback(result)
+        continueFromWorkerCallback(result, nodeId)
     }
 
     fun markServiceTaskTimedOut(
@@ -53,9 +53,9 @@ class ProcessWorkerCallbackService(
         )
     }
 
-    private fun continueFromWorkerCallback(result: WorkerCallbackResult) {
+    private fun continueFromWorkerCallback(result: WorkerCallbackResult, nodeId: String) {
         if (result.shouldContinue) {
-            navigator.advanceProcess(result.instance, result.nextNodes, result.definition)
+            navigator.advanceProcess(result.instance, result.nextNodes, result.definition, nodeId)
             executionEngine.executeNodes(result.nextNodes, result.instance, result.definition)
         }
 

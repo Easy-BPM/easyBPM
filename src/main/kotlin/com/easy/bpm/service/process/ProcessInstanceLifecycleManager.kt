@@ -122,7 +122,15 @@ class ProcessInstanceLifecycleManager(
         processInstanceRepository.delete(instance)
     }
 
-    fun finishProcess(instance: ProcessInstance) {
+    fun finishProcess(instance: ProcessInstance, endNodeId: String? = null) {
+        if (endNodeId != null) {
+            instance.currentNode = instance.currentNode.orEmpty().filter { it != endNodeId }
+            if (instance.currentNode.orEmpty().isNotEmpty()) {
+                processInstanceRepository.save(instance)
+                return
+            }
+        }
+        if (instance.status == ProcessStatus.COMPLETED) return
         instance.status = ProcessStatus.COMPLETED
         instance.currentNode = emptyList()
         instance.updatedAt = LocalDateTime.now()

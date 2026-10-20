@@ -305,9 +305,17 @@ class ProcessIntegrationTest(
     }
 
     @Test
-    @Disabled("Parallel gateway join logic out of scope for Phase 2")
     fun `parallel gateway should complete process when all paths finish`() {
-        val processDefinitionJson = objectMapper.readTree(ClassPathResource("process-parallel-gateway.json").inputStream)
+        val processDefinitionJson = objectMapper.readTree("""
+            {"processId":"parallel-internal-regression","variables":[],"nodes":[
+              {"id":"start","type":"StartEvent"},{"id":"parallel_split","type":"ParallelGateway"},
+              {"id":"left","type":"ServiceTask","config":{"variables":[{"name":"leftDone","source":"static","value":true}]}},
+              {"id":"right","type":"ServiceTask","config":{"variables":[{"name":"rightDone","source":"static","value":true}]}},
+              {"id":"join","type":"ParallelGateway"},{"id":"end_parallel","type":"EndEvent"}],
+             "flows":[{"from":"start","to":"parallel_split"},{"from":"parallel_split","to":"left"},
+              {"from":"parallel_split","to":"right"},{"from":"left","to":"join"},
+              {"from":"right","to":"join"},{"from":"join","to":"end_parallel"}]}
+        """)
 
         val processDefinition = processService.deployProcess(legacyJsonFixtureToBpmnXml(processDefinitionJson))
         val processInstance = processService.startProcessInstance(processDefinition.id)

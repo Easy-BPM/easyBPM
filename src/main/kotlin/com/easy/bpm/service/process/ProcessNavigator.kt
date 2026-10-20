@@ -52,37 +52,18 @@ class ProcessNavigator(
     fun advanceProcess(
         instance: ProcessInstance,
         nextNodes: List<String>,
-        definition: JsonNode
+        definition: JsonNode,
+        completedNodeId: String? = null
     ) {
-        instance.currentNode = nextNodes
+        val waiting = nextNodes.isEmpty() && completedNodeId != null &&
+            NodeType.fromString(findNode(definition, completedNodeId).get("type").asText()) == NodeType.ParallelGateway
+        ProcessTokenState.advance(instance, completedNodeId, nextNodes, waiting)
 
-        val appendable = mutableListOf<String>()
-
-        fun resolveAndCollect(id: String) {
-            val node = definition.get("nodes").find { it.get("id").asText() == id } ?: return
-            when (NodeType.fromString(node.get("type").asText())) {
-                NodeType.ExclusiveGateway, NodeType.ParallelGateway, NodeType.InclusiveGateway -> {
-                    val targets = getNextNodes(node, definition, instance)
-                    targets.forEach { resolveAndCollect(it) }
-                }
-                NodeType.UserTask,
-                NodeType.CodeTask,
-                NodeType.ServiceTask,
-                NodeType.AgentProcessCall,
-                NodeType.APITask,
-                NodeType.MessageEvent,
-                NodeType.MessageIntermediateCatchEvent,
-                NodeType.MessageIntermediateThrowEvent,
-                NodeType.TimerEvent,
-                NodeType.ScriptTask,
-                NodeType.EndEvent -> appendable.add(id)
-                else -> { /* ignore other node types */ }
-            }
-        }
-
-        nextNodes.forEach { resolveAndCollect(it) }
-
-        appendable.forEach { id ->
+        // History must never evaluate a gateway: join evaluation consumes an arrival.
+        nextNodes.filter { id ->
+            NodeType.fromString(findNode(definition, id).get("type").asText()) !in
+                setOf(NodeType.ExclusiveGateway, NodeType.ParallelGateway, NodeType.InclusiveGateway)
+        }.forEach { id ->
             if (instance.nodeHistory.lastOrNull() != id) {
                 instance.nodeHistory = instance.nodeHistory + id
                 timelineService.record(
@@ -95,10 +76,7 @@ class ProcessNavigator(
         }
         instance.updatedAt = LocalDateTime.now()
 
-        val isCompleted = nextNodes.isEmpty() || nextNodes.all { nodeId ->
-            val node = definition.get("nodes").find { it.get("id").asText() == nodeId }
-            node != null && NodeType.fromString(node.get("type").asText()) == NodeType.EndEvent
-        }
+        val isCompleted = instance.currentNode.orEmpty().isEmpty() && !waiting
 
         if (isCompleted) {
             instance.status = ProcessStatus.COMPLETED

@@ -77,14 +77,14 @@ class ProcessExecutionEngineTest : FunSpec() {
             every { navigator.findAttachedErrorBoundary(apiNode, definition) } returns boundaryNode
             every { variableManager.assignProcessVariables(42, mapOf("lastError" to "boom")) } returns emptyList()
             every { navigator.getNextNodes(boundaryNode, definition, instance) } returns listOf("recovery")
-            justRun { navigator.advanceProcess(instance, listOf("recovery"), definition) }
+            justRun { navigator.advanceProcess(instance, listOf("recovery"), definition, "api") }
             justRun { userTaskHandler.handleUserTask(instance, definition.get("nodes")[2]) }
 
             engine.executeNodes(listOf("api"), instance, definition)
 
             verify {
                 variableManager.assignProcessVariables(42, mapOf("lastError" to "boom"))
-                navigator.advanceProcess(instance, listOf("recovery"), definition)
+                navigator.advanceProcess(instance, listOf("recovery"), definition, "api")
                 userTaskHandler.handleUserTask(instance, definition.get("nodes")[2])
             }
             verify(exactly = 0) { failureHandler.failInstance(any(), any(), any(), any(), any(), any()) }
@@ -147,7 +147,7 @@ class ProcessExecutionEngineTest : FunSpec() {
             } returns mapOf("processedOrderMessage" to "Processed ORDER-1001")
             every { variableManager.assignProcessVariables(43, mapOf("processedOrderMessage" to "Processed ORDER-1001")) } returns emptyList()
             every { navigator.getNextNodes(codeNode, definition, instance) } returns listOf("review")
-            justRun { navigator.advanceProcess(instance, listOf("review"), definition) }
+            justRun { navigator.advanceProcess(instance, listOf("review"), definition, "code") }
             justRun { userTaskHandler.handleUserTask(instance, reviewNode) }
 
             engine.executeNodes(listOf("code"), instance, definition)
@@ -164,7 +164,7 @@ class ProcessExecutionEngineTest : FunSpec() {
                     inputVariables = mapOf("orderId" to "ORDER-1001", "amount" to 1250)
                 )
                 variableManager.assignProcessVariables(43, mapOf("processedOrderMessage" to "Processed ORDER-1001"))
-                navigator.advanceProcess(instance, listOf("review"), definition)
+                navigator.advanceProcess(instance, listOf("review"), definition, "code")
                 userTaskHandler.handleUserTask(instance, reviewNode)
             }
         }

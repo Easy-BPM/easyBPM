@@ -46,14 +46,14 @@ class ProcessWorkerCallbackServiceTest : FunSpec() {
             )
 
             every { workerCallbackHandler.handleCompleted(10, "worker", mapOf("approved" to "true")) } returns result
-            justRun { navigator.advanceProcess(instance, nextNodes, definition) }
+            justRun { navigator.advanceProcess(instance, nextNodes, definition, "worker") }
             justRun { executionEngine.executeNodes(nextNodes, instance, definition) }
 
             service.handleServiceTaskCompleted(10, "worker", mapOf("approved" to "true"))
 
             verifySequence {
                 workerCallbackHandler.handleCompleted(10, "worker", mapOf("approved" to "true"))
-                navigator.advanceProcess(instance, nextNodes, definition)
+                navigator.advanceProcess(instance, nextNodes, definition, "worker")
                 executionEngine.executeNodes(nextNodes, instance, definition)
             }
             verify { metricsService.recordServiceTaskExecution(any(), success = true) }
@@ -88,7 +88,7 @@ class ProcessWorkerCallbackServiceTest : FunSpec() {
                 externalReferenceId = "job-1"
             )
 
-            verify(exactly = 0) { navigator.advanceProcess(any(), any(), any()) }
+            verify(exactly = 0) { navigator.advanceProcess(any(), any(), any(), any()) }
             verify(exactly = 0) { executionEngine.executeNodes(any(), any(), any()) }
             verify { metricsService.recordServiceTaskExecution(any(), success = false) }
         }
