@@ -122,14 +122,14 @@ class ProcessMessageRuntimeServiceTest : FunSpec() {
 
             every { processInstanceRepository.findByIdForUpdate(10) } returns instance
             every { navigator.getNextNodes(timerNode, any(), instance) } returns listOf("next")
-            justRun { navigator.advanceProcess(instance, listOf("next"), any()) }
+            justRun { navigator.advanceProcess(instance, listOf("next"), any(), "timer") }
             justRun { executionEngine.executeNodes(listOf("next"), instance, any()) }
 
             val handled = service.handleTimerTimeout(10, "timer")
 
             handled shouldBe true
             verify {
-                navigator.advanceProcess(instance, listOf("next"), any())
+                navigator.advanceProcess(instance, listOf("next"), any(), "timer")
                 executionEngine.executeNodes(listOf("next"), instance, any())
             }
         }

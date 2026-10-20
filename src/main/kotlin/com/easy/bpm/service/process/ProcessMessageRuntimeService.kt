@@ -43,7 +43,7 @@ class ProcessMessageRuntimeService(
 
         val instance = requireNotNull(result.instance)
         val definition = requireNotNull(result.definition)
-        navigator.advanceProcess(instance, result.nextNodes, definition)
+        navigator.advanceProcess(instance, result.nextNodes, definition, result.completedNodeId)
         executionEngine.executeNodes(result.nextNodes, instance, definition)
     }
 
@@ -56,7 +56,7 @@ class ProcessMessageRuntimeService(
         val errorBoundaryNode = navigator.findAttachedErrorBoundary(node, definition)
         if (errorBoundaryNode != null) {
             val nextNodes = navigator.getNextNodes(errorBoundaryNode, definition, instance)
-            navigator.advanceProcess(instance, nextNodes, definition)
+            navigator.advanceProcess(instance, nextNodes, definition, nodeId)
             executionEngine.executeNodes(nextNodes, instance, definition)
             return true
         }
@@ -75,7 +75,7 @@ class ProcessMessageRuntimeService(
         }
 
         val nextNodes = navigator.getNextNodes(node, definition, instance)
-        navigator.advanceProcess(instance, nextNodes, definition)
+        navigator.advanceProcess(instance, nextNodes, definition, nodeId)
         executionEngine.executeNodes(nextNodes, instance, definition)
         return true
     }

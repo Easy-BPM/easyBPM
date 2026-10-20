@@ -52,7 +52,8 @@ class ProcessMessageReceivedHandler(
             subscriptionFound = true,
             instance = instance,
             definition = definition,
-            nextNodes = navigator.getNextNodes(node, definition, instance)
+            nextNodes = navigator.getNextNodes(node, definition, instance),
+            completedNodeId = subscription.nodeId
         )
     }
 
@@ -66,5 +67,6 @@ data class MessageReceivedResult(
     val subscriptionFound: Boolean,
     val instance: ProcessInstance? = null,
     val definition: JsonNode? = null,
-    val nextNodes: List<String> = emptyList()
+    val nextNodes: List<String> = emptyList(),
+    val completedNodeId: String? = null
 )

@@ -53,37 +53,6 @@ class GatewayService(
 
                     if (!passes) continue
 
-                    val targetNode = definition.get("nodes").find { it.get("id").asText() == target }
-                    if (targetNode != null && NodeType.fromString(targetNode.get("type").asText()) == NodeType.ParallelGateway) {
-                        val incoming = definition.get("flows").filter { (it.get("target") ?: it.get("to"))?.asText() == target }.map { (it.get("source") ?: it.get("from"))?.asText() }
-                            .filterNotNull()
-                        if (incoming.size <= 1) {
-                            return listOf(target)
-                        }
-
-                        val tokenVarName = "__pg_${target}_arrivals"
-                        val existing = processVariableRepository.findByProcessInstanceIdAndName(instance.id, tokenVarName)
-                        val currentCount = existing?.value?.asInt() ?: 0
-                        val newCount = currentCount + 1
-
-                        if (existing != null) {
-                            existing.value = objectMapper.valueToTree(newCount)
-                            processVariableRepository.save(existing)
-                        } else {
-                            processVariableRepository.save(ProcessVariable(processInstanceId = instance.id, name = tokenVarName, value = objectMapper.valueToTree(newCount)))
-                        }
-
-                        if (newCount >= incoming.size) {
-                            val reset = processVariableRepository.findByProcessInstanceIdAndName(instance.id, tokenVarName)
-                            if (reset != null) {
-                                reset.value = objectMapper.valueToTree(0)
-                                processVariableRepository.save(reset)
-                            }
-                            return listOf(target)
-                        } else {
-                            continue
-                        }
-                    }
 
                     return listOf(target)
                 }

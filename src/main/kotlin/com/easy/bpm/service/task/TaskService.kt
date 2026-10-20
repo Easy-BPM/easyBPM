@@ -21,6 +21,7 @@ import com.easy.bpm.service.form.FormService
 import com.easy.bpm.service.integration.IntegrationService
 import com.easy.bpm.service.message.MessageSubscriptionService
 import com.easy.bpm.service.metrics.MetricsService
+import com.easy.bpm.service.process.ProcessTokenState
 import com.easy.bpm.service.process.GatewayService
 import com.easy.bpm.service.process.GatewayRoutingException
 import com.easy.bpm.service.process.ProcessInstanceTimelineService
@@ -138,7 +139,7 @@ class TaskService(
 
         try {
             // 5️⃣ Atualizar instância
-            advanceProcess(instance, nextNodeIds, definition)
+            advanceProcess(instance, nextNodeIds, definition, task.nodeId)
 
             // 6️⃣ Continuar execução
             executeNextSteps(nextNodeIds, instance, definition)
@@ -395,7 +396,7 @@ class TaskService(
             NodeType.AgentProcessCall -> handleAgentProcessCall(instance, node, definition)
             NodeType.MessageIntermediateCatchEvent -> handleMessageIntermediateCatchEvent(instance, node)
             NodeType.MessageIntermediateThrowEvent -> handleMessageIntermediateThrowEvent(instance, node, definition)
-            NodeType.EndEvent -> finishProcess(instance)
+            NodeType.EndEvent -> finishProcess(instance, node.get("id").asText())
                 NodeType.ExclusiveGateway, NodeType.ParallelGateway, NodeType.InclusiveGateway -> {
                     val nextNodes = getNextNodes(node, definition, instance)
                     timelineService.record(
@@ -404,7 +405,7 @@ class TaskService(
                         eventType = ProcessInstanceEventType.GATEWAY_EVALUATED,
                         message = "Gateway routed to ${nextNodes.joinToString(", ")}."
                     )
-                    advanceProcess(instance, nextNodes, definition)
+                    advanceProcess(instance, nextNodes, definition, node.get("id").asText())
                 executeNextSteps(nextNodes, instance, definition)
             }
             else -> { /* no-op for other node types */ }
@@ -498,7 +499,7 @@ class TaskService(
         )
 
         val nextNodeIds = getNextNodes(node, definition, instance)
-        advanceProcess(instance, nextNodeIds, definition)
+        advanceProcess(instance, nextNodeIds, definition, node.get("id").asText())
         executeNextSteps(nextNodeIds, instance, definition)
     }
 
@@ -514,7 +515,7 @@ class TaskService(
 
         val nextNodeIds = getNextNodes(node, definition, instance)
 
-        advanceProcess(instance, nextNodeIds, definition)
+        advanceProcess(instance, nextNodeIds, definition, node.get("id").asText())
 
         executeNextSteps(nextNodeIds, instance, definition)
     }
@@ -563,7 +564,7 @@ class TaskService(
 
             // Continue to next nodes for internal service task
             val nextNodeIds = getNextNodes(node, definition, instance)
-            advanceProcess(instance, nextNodeIds, definition)
+            advanceProcess(instance, nextNodeIds, definition, node.get("id").asText())
             executeNextSteps(nextNodeIds, instance, definition)
         } else {
             // External service task: publish request and remain on this node until completion
@@ -703,7 +704,7 @@ class TaskService(
         // Advance to next node
         val nextNodeIds = getNextNodes(node, definition, instance)
 
-        advanceProcess(instance, nextNodeIds, definition)
+        advanceProcess(instance, nextNodeIds, definition, node.get("id").asText())
 
         executeNextSteps(nextNodeIds, instance, definition)
     }
@@ -715,36 +716,17 @@ class TaskService(
     private fun advanceProcess(
         instance: ProcessInstance,
         nextNodeIds: List<String>,
-        definition: JsonNode
+        definition: JsonNode,
+        completedNodeId: String
     ) {
-        instance.currentNode = nextNodeIds
-        // Resolve and append meaningful nodes to history (skip gateways, include resolved targets and end events)
-        val appendable = mutableListOf<String>()
-
-        fun resolveAndCollect(id: String) {
-            val node = definition.get("nodes").find { it.get("id").asText() == id } ?: return
-            when (NodeType.fromString(node.get("type").asText())) {
-                NodeType.ExclusiveGateway, NodeType.ParallelGateway, NodeType.InclusiveGateway -> {
-                    val targets = getNextNodes(node, definition, instance)
-                    targets.forEach { resolveAndCollect(it) }
-                }
-                NodeType.UserTask,
-                NodeType.ServiceTask,
-                NodeType.AgentProcessCall,
-                NodeType.APITask,
-                NodeType.MessageEvent,
-                NodeType.MessageIntermediateCatchEvent,
-                NodeType.MessageIntermediateThrowEvent,
-                NodeType.ScriptTask,
-                NodeType.EndEvent -> appendable.add(id)
-                else -> { /* ignore other node types */ }
-            }
-        }
-
-        nextNodeIds.forEach { resolveAndCollect(it) }
-
-        // Avoid consecutive duplicates when appending
-        appendable.forEach { id ->
+        val waiting = nextNodeIds.isEmpty() &&
+            NodeType.fromString(findNode(definition, completedNodeId).get("type").asText()) == NodeType.ParallelGateway
+        ProcessTokenState.advance(instance, completedNodeId, nextNodeIds, waiting)
+        // Record destinations without evaluating gateways or consuming join arrivals.
+        nextNodeIds.filter { id ->
+            NodeType.fromString(findNode(definition, id).get("type").asText()) !in
+                setOf(NodeType.ExclusiveGateway, NodeType.ParallelGateway, NodeType.InclusiveGateway)
+        }.forEach { id ->
             if (instance.nodeHistory.lastOrNull() != id) {
                 instance.nodeHistory = instance.nodeHistory + id
                 timelineService.record(
@@ -756,19 +738,9 @@ class TaskService(
             }
         }
         instance.updatedAt = LocalDateTime.now()
-
-        if (nextNodeIds.isEmpty() || nextNodeIds.all { isEndEvent(it, definition) }) {
-            instance.status = ProcessStatus.COMPLETED
-            timelineService.record(
-                processInstanceId = instance.id,
-                eventType = ProcessInstanceEventType.PROCESS_COMPLETED,
-                message = "Process instance completed."
-            )
-        }
-
         processInstanceRepository.save(instance)
-        if (instance.status == ProcessStatus.COMPLETED) {
-            historicVariableArchiver.archiveProcessInstanceVariables(instance.id)
+        if (instance.currentNode.orEmpty().isEmpty() && !waiting) {
+            finishProcess(instance)
         }
     }
 
@@ -820,12 +792,26 @@ class TaskService(
                 ?: formService.getLatestVersionByName(configuredFormRef)
         } ?: formService.getLatestVersionByName(node.get("id").asText())
 
-    private fun finishProcess(instance: ProcessInstance) {
+    private fun finishProcess(instance: ProcessInstance, endNodeId: String? = null) {
+        if (endNodeId != null) {
+            instance.currentNode = instance.currentNode.orEmpty().filter { it != endNodeId }
+            if (instance.currentNode.orEmpty().isNotEmpty()) {
+                processInstanceRepository.save(instance)
+                return
+            }
+        }
+        if (instance.status == ProcessStatus.COMPLETED) return
         instance.status = ProcessStatus.COMPLETED
         instance.currentNode = emptyList()
         instance.updatedAt = LocalDateTime.now()
         processInstanceRepository.save(instance)
         historicVariableArchiver.archiveProcessInstanceVariables(instance.id)
+        metricsService.recordProcessCompleted()
+        timelineService.record(
+            processInstanceId = instance.id,
+            eventType = ProcessInstanceEventType.PROCESS_COMPLETED,
+            message = "Process instance completed."
+        )
     }
 
     /* =========================

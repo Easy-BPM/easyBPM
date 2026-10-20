@@ -67,7 +67,7 @@ class ProcessExecutionEngine(
                 NodeType.MessageIntermediateCatchEvent -> messageNodeHandler.handleMessageIntermediateCatchEvent(instance, node)
                 NodeType.MessageIntermediateThrowEvent -> handleMessageIntermediateThrowEvent(instance, node, definition)
                 NodeType.CallActivity -> handleCallActivity(instance, node, definition)
-                NodeType.EndEvent -> lifecycleManager.finishProcess(instance)
+                NodeType.EndEvent -> lifecycleManager.finishProcess(instance, node.get("id").asText())
                 NodeType.ExclusiveGateway, NodeType.ParallelGateway, NodeType.InclusiveGateway -> handleGateway(
                     instance,
                     node,
@@ -91,7 +91,7 @@ class ProcessExecutionEngine(
             eventType = ProcessInstanceEventType.GATEWAY_EVALUATED,
             message = "Gateway routed to ${nextNodes.joinToString(", ")}."
         )
-        navigator.advanceProcess(instance, nextNodes, definition)
+        navigator.advanceProcess(instance, nextNodes, definition, node.get("id").asText())
         executeNodes(nextNodes, instance, definition)
     }
 
@@ -101,7 +101,7 @@ class ProcessExecutionEngine(
         definition: JsonNode
     ) {
         val nextNodes = processAgentCallHandler.handleAgentProcessCall(instance, node, definition)
-        navigator.advanceProcess(instance, nextNodes, definition)
+        navigator.advanceProcess(instance, nextNodes, definition, node.get("id").asText())
         executeNodes(nextNodes, instance, definition)
     }
 
@@ -212,7 +212,7 @@ class ProcessExecutionEngine(
             }
 
             val nextNodes = navigator.getNextNodes(errorBoundaryNode, definition, instance)
-            navigator.advanceProcess(instance, nextNodes, definition)
+            navigator.advanceProcess(instance, nextNodes, definition, node.get("id").asText())
             executeNodes(nextNodes, instance, definition)
             recordNodeExecution(startTime, nodeType)
             return true
@@ -234,7 +234,7 @@ class ProcessExecutionEngine(
 
     private fun continueFromNode(instance: ProcessInstance, node: JsonNode, definition: JsonNode) {
         val nextNodes = navigator.getNextNodes(node, definition, instance)
-        navigator.advanceProcess(instance, nextNodes, definition)
+        navigator.advanceProcess(instance, nextNodes, definition, node.get("id").asText())
         executeNodes(nextNodes, instance, definition)
     }
 
