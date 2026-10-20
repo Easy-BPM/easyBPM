@@ -288,7 +288,6 @@ export const bpmService = {
 
     const url = `${API_BASE_URL}/auth/login`;
     const body = JSON.stringify({ username, password });
-    console.log('Logging in to:', url, 'with body:', body);
     const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
