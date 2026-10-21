@@ -16,6 +16,7 @@ import {
   ZoomOut
 } from 'lucide-react';
 import { WorkflowDefinition, WorkflowNode } from '../types';
+import { getVisitedEdges } from '../utils/workflowProgress';
 
 type Props = {
   definition: WorkflowDefinition;
@@ -307,11 +308,7 @@ export const WorkflowCanvas: React.FC<Props> = ({ definition, nodeHistory, curre
   const nodes = autoLayoutNodes(rawNodes, edges);
   const visitedSet = new Set(nodeHistory);
   const currentSet = new Set(currentNodes);
-  const visitedEdges = new Set<string>();
-
-  for (let i = 0; i < nodeHistory.length - 1; i += 1) {
-    visitedEdges.add(`${nodeHistory[i]}::${nodeHistory[i + 1]}`);
-  }
+  const visitedEdges = getVisitedEdges(definition, edges, nodeHistory, currentNodes);
 
   const nodeById = new Map(nodes.map((n) => [n.id, n]));
   const poolNodes = nodes.filter(isParticipant);
@@ -442,6 +439,8 @@ export const WorkflowCanvas: React.FC<Props> = ({ definition, nodeHistory, curre
               return (
                 <path
                   key={edgeKey}
+                  role="img"
+                  aria-label={`Flow ${edge.from} to ${edge.to}: ${isVisitedEdge ? 'traversed' : 'not highlighted'}`}
                   d={path}
                   fill="none"
                   stroke={isDocumentationEdge ? 'var(--workflow-doc-line)' : isVisitedEdge ? '#2563eb' : isBoundaryEdge ? '#dc2626' : 'var(--workflow-edge)'}

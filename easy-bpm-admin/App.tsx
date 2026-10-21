@@ -1,3 +1,5 @@
+import { isParallelRuntimeVariable } from './utils/workflowProgress';
+import { RuntimeVariables } from './components/RuntimeVariables';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   AlertCircle,
@@ -496,11 +498,13 @@ const LoginView: React.FC<{ onLogin: (username: string, perms: string[]) => void
   );
 };
 
-const InstanceExplorerView: React.FC<{ initialInstanceId?: number | null }> = ({ initialInstanceId }) => {
+export const InstanceExplorerView: React.FC<{ initialInstanceId?: number | null }> = ({ initialInstanceId }) => {
   const [instanceIdInput, setInstanceIdInput] = useState(initialInstanceId ? String(initialInstanceId) : '');
   const [loading, setLoading] = useState(false);
   const [instance, setInstance] = useState<ProcessInstance | null>(null);
   const [variables, setVariables] = useState<ProcessVariable[]>([]);
+  const businessVariables = variables.filter(variable => !isParallelRuntimeVariable(variable.name));
+  const runtimeVariables = variables.filter(variable => isParallelRuntimeVariable(variable.name));
   const [newVarName, setNewVarName] = useState('');
   const [newVarValue, setNewVarValue] = useState('');
   const [expandedVariables, setExpandedVariables] = useState<Record<string, boolean>>({});
@@ -677,6 +681,10 @@ const InstanceExplorerView: React.FC<{ initialInstanceId?: number | null }> = ({
 
   const handleAssignVariable = async () => {
     if (!instance || !newVarName.trim()) return;
+    if (isParallelRuntimeVariable(newVarName.trim())) {
+      setActionMessage('This name is reserved for engine-managed runtime data.');
+      return;
+    }
     if (isInstanceCompleted) {
       setActionMessage('Completed process instances cannot be edited.');
       return;
@@ -697,7 +705,7 @@ const InstanceExplorerView: React.FC<{ initialInstanceId?: number | null }> = ({
   };
 
   const startEditingVariable = (variable: ProcessVariable) => {
-    if (isInstanceCompleted) return;
+    if (isInstanceCompleted || isParallelRuntimeVariable(variable.name)) return;
     setEditingVariableName(variable.name);
     setEditingVariableValue(formatVariableForEdit(variable.value));
     setExpandedVariables((current) => ({ ...current, [variable.name]: true }));
@@ -709,7 +717,7 @@ const InstanceExplorerView: React.FC<{ initialInstanceId?: number | null }> = ({
   };
 
   const saveEditedVariable = async (variableName: string) => {
-    if (!instance || isInstanceCompleted) return;
+    if (!instance || isInstanceCompleted || isParallelRuntimeVariable(variableName)) return;
 
     setSavingVariableName(variableName);
     setActionMessage(null);
@@ -1014,10 +1022,10 @@ const InstanceExplorerView: React.FC<{ initialInstanceId?: number | null }> = ({
                 </div>
               )}
               <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
-                {variables.length === 0 ? (
-                  <p className="text-sm text-slate-500">No variables found for this instance.</p>
+                {businessVariables.length === 0 ? (
+                  <p className="text-sm text-slate-500">No business variables found for this instance.</p>
                 ) : (
-                  variables.map((v) => {
+                  businessVariables.map((v) => {
                     const isComplex = isComplexVariableValue(v.value);
                     const isExpanded = expandedVariables[v.name] ?? false;
                     const isEditing = editingVariableName === v.name;
@@ -1100,6 +1108,7 @@ const InstanceExplorerView: React.FC<{ initialInstanceId?: number | null }> = ({
                   })
                 )}
               </div>
+              <RuntimeVariables variables={runtimeVariables} />
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                 <input
                   className="rounded-lg border border-slate-300 px-3 py-2 text-sm disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
