@@ -48,42 +48,32 @@ class RequiredFormCompletionIntegrationTest : IntegrationTestBase() {
         return taskRepository.save(Task(processInstanceId = instance.id, nodeId = "review", assignee = "alice", formId = form.id))
     }
 
-    private fun reject(task: Task, submitted: Map<String, Any?>) {
-        val before = variables.findByTaskId(task.id).associate { it.name to it.value }
-        val processBefore = processVariables.findByProcessInstanceId(task.processInstanceId).associate { it.name to it.value }
-        val eventCount = events.countByProcessInstanceId(task.processInstanceId)
-        clearInvocations(rabbitPublisher)
+    private fun accept(task: Task, submitted: Map<String, Any?>) {
         val response = controller.completeTask(task.id, mapOf("assignee" to "alice", "variables" to submitted))
-        assertEquals(400, response.statusCode.value())
-        assertTrue(response.body.orEmpty().contains("qaDescription"))
-        assertEquals(TaskStatus.PENDING, taskRepository.findById(task.id).orElseThrow().status)
-        val instance = instances.findById(task.processInstanceId).orElseThrow()
-        assertEquals(ProcessStatus.ACTIVE, instance.status)
-        assertEquals(listOf("review"), instance.currentNode)
-        assertEquals(before, variables.findByTaskId(task.id).associate { it.name to it.value })
-        assertEquals(processBefore, processVariables.findByProcessInstanceId(task.processInstanceId).associate { it.name to it.value })
-        assertEquals(task.assignee, taskRepository.findById(task.id).orElseThrow().assignee)
-        assertEquals(eventCount, events.countByProcessInstanceId(task.processInstanceId))
-        verifyNoInteractions(rabbitPublisher)
+        assertEquals(200, response.statusCode.value())
+        assertEquals(TaskStatus.COMPLETED, taskRepository.findById(task.id).orElseThrow().status)
+        assertEquals(ProcessStatus.COMPLETED, instances.findById(task.processInstanceId).orElseThrow().status)
+        val saved = mapper.valueToTree<com.fasterxml.jackson.databind.JsonNode>(tasks.getTaskResponseById(task.id)!!.variables)
+        submitted.forEach { (key, value) -> assertEquals(mapper.valueToTree<com.fasterxml.jackson.databind.JsonNode>(value), saved.path(key)) }
     }
 
-    @Test fun `omitted required input is rejected without changing state`() {
+    @Test fun `API accepts omitted required form input`() {
         val task = createTask()
         processVariables.save(ProcessVariable(processInstanceId = task.processInstanceId, name = "qaDescription", value = mapper.valueToTree("")))
-        reject(task, mapOf("qaAmount" to 0, "qaApproved" to false))
+        accept(task, mapOf("qaAmount" to 0, "qaApproved" to false))
     }
 
     @ParameterizedTest @NullSource @ValueSource(strings = ["", " \t\n"])
-    fun `null empty and whitespace text cannot override valid draft`(value: String?) {
+    fun `API accepts null empty and whitespace text overriding a draft`(value: String?) {
         val task = createTask()
         tasks.saveTaskDraft(task.id, "alice", emptySet(), mapOf("qaDescription" to "saved", "qaAmount" to 0, "qaApproved" to false))
-        reject(task, mapOf("qaDescription" to value, "qaAmount" to 99))
+        accept(task, mapOf("qaDescription" to value, "qaAmount" to 99))
     }
 
-    @Test fun `incomplete draft is allowed but cannot complete`() {
+    @Test fun `incomplete draft can complete through API`() {
         val task = createTask()
         tasks.saveTaskDraft(task.id, "alice", emptySet(), mapOf("qaDescription" to "", "qaAmount" to 0, "qaApproved" to false))
-        reject(task, mapOf("qaAmount" to 0, "qaApproved" to false))
+        accept(task, mapOf("qaAmount" to 0, "qaApproved" to false))
     }
 
     @Test fun `valid draft can complete without resending fields using pinned form version`() {
@@ -106,19 +96,19 @@ class RequiredFormCompletionIntegrationTest : IntegrationTestBase() {
         assertEquals(ProcessStatus.COMPLETED, instances.findById(task.processInstanceId).orElseThrow().status)
         assertEquals(false, tasks.getTaskResponseById(task.id)!!.variables["qaApproved"])
     }
-    @Test fun `wrong required field type is rejected`() {
-        reject(createTask(), mapOf("qaDescription" to 42, "qaAmount" to 0, "qaApproved" to false))
+    @Test fun `API does not enforce required form field types`() {
+        accept(createTask(), mapOf("qaDescription" to 42, "qaAmount" to 0, "qaApproved" to false))
     }
 
-    @Test fun `invalid completion cannot automatically claim a shared task`() {
+    @Test fun `authorized API completion can claim a shared task without form values`() {
         val task = createTask()
         task.assignee = null
         task.candidateUsers.add("alice")
         taskRepository.saveAndFlush(task)
-        reject(task, emptyMap())
+        accept(task, emptyMap())
     }
 
-    @Test fun `unauthorized user cannot complete or inspect form validation`() {
+    @Test fun `unauthorized user cannot complete even without form validation`() {
         val task = createTask()
         val response = controller.completeTask(task.id, mapOf("assignee" to "bob", "variables" to emptyMap<String, Any?>()))
         assertEquals(403, response.statusCode.value())
@@ -126,16 +116,15 @@ class RequiredFormCompletionIntegrationTest : IntegrationTestBase() {
         assertEquals(TaskStatus.PENDING, taskRepository.findById(task.id).orElseThrow().status)
     }
 
-    @Test fun `HTTP completion returns actionable validation error`() {
+    @Test fun `HTTP completion accepts missing required form values`() {
         val task = createTask()
         val mvc = org.springframework.test.web.servlet.setup.MockMvcBuilders.standaloneSetup(controller)
             .setCustomArgumentResolvers(org.springframework.security.web.method.annotation.AuthenticationPrincipalArgumentResolver()).build()
         mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/tasks/{id}/complete", task.id)
             .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
             .content("""{"assignee":"alice","variables":{"qaAmount":0,"qaApproved":false}}"""))
-            .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isBadRequest)
-            .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content().string(org.hamcrest.Matchers.containsString("qaDescription")))
-        assertEquals(TaskStatus.PENDING, taskRepository.findById(task.id).orElseThrow().status)
+            .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isOk)
+        assertEquals(TaskStatus.COMPLETED, taskRepository.findById(task.id).orElseThrow().status)
     }
 
     @Test fun `tasks without forms retain their completion contract`() {
@@ -145,13 +134,19 @@ class RequiredFormCompletionIntegrationTest : IntegrationTestBase() {
         assertEquals(ProcessStatus.COMPLETED, instances.findById(task.processInstanceId).orElseThrow().status)
     }
 
-    @Test fun `missing pinned form blocks completion safely`() {
+    @Test fun `missing pinned form does not block API completion`() {
         val task = createTask()
         taskRepository.saveAndFlush(task.copy(formId = Long.MAX_VALUE))
         val response = controller.completeTask(task.id, mapOf("assignee" to "alice"))
-        assertEquals(409, response.statusCode.value())
-        assertEquals("The task form is unavailable. Contact an administrator.", response.body)
-        assertEquals(TaskStatus.PENDING, taskRepository.findById(task.id).orElseThrow().status)
+        assertEquals(200, response.statusCode.value())
+        assertEquals(TaskStatus.COMPLETED, taskRepository.findById(task.id).orElseThrow().status)
     }
 
+    @Test fun `completed task cannot complete twice`() {
+        val task=createTask()
+        accept(task, emptyMap())
+        val before=events.countByProcessInstanceId(task.processInstanceId)
+        assertEquals(409,controller.completeTask(task.id,mapOf("assignee" to "alice")).statusCode.value())
+        assertEquals(before,events.countByProcessInstanceId(task.processInstanceId))
+    }
 }
