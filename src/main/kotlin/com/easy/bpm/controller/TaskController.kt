@@ -4,6 +4,7 @@ import com.easy.bpm.controller.data.TaskResponseDto
 import com.easy.bpm.controller.data.TaskSearchRequestDto
 import com.easy.bpm.enum.TaskStatus
 import com.easy.bpm.service.task.TaskService
+import com.easy.bpm.service.task.TaskCompletionIncidentException
 import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.ExampleObject
 import io.swagger.v3.oas.annotations.media.Schema
@@ -197,7 +198,7 @@ class TaskController(
         )
         @RequestBody body: Map<String, Any>,
         @AuthenticationPrincipal principal: AuthenticatedUser? = null
-    ): ResponseEntity<String> {
+    ): ResponseEntity<Any> {
         val assignee = principal?.username ?: (body["assignee"] as? String)
             ?: return ResponseEntity.badRequest().body("Missing assignee")
 
@@ -214,6 +215,13 @@ class TaskController(
             ResponseEntity.status(403).body("Forbidden")
         } catch (ex: IllegalArgumentException) {
             ResponseEntity.badRequest().body(ex.message)
+        } catch (ex: TaskCompletionIncidentException) {
+            ResponseEntity.status(409).body(mapOf(
+                "code" to "TASK_COMPLETED_WITH_INCIDENT",
+                "taskId" to id,
+                "taskStatus" to "COMPLETED",
+                "message" to "Task completed. The process has an open incident and requires administrator attention."
+            ))
         } catch (ex: IllegalStateException) {
             ResponseEntity.status(409).body(ex.message)
         }

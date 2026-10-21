@@ -247,7 +247,7 @@ class TaskControllerTest : FunSpec() {
 
             // Assert
             result.statusCode shouldBe HttpStatus.BAD_REQUEST
-            result.body?.contains("Missing assignee") shouldBe true
+            (result.body as? String)?.contains("Missing assignee") shouldBe true
         }
 
         test("should handle missing variables") {
@@ -284,7 +284,7 @@ class TaskControllerTest : FunSpec() {
 
             // Assert
             result.statusCode shouldBe HttpStatus.BAD_REQUEST
-            result.body?.contains("Task not found") shouldBe true
+            (result.body as? String)?.contains("Task not found") shouldBe true
         }
 
         test("should return 409 when service throws IllegalStateException") {
@@ -303,7 +303,7 @@ class TaskControllerTest : FunSpec() {
 
             // Assert
             result.statusCode.value() shouldBe 409
-            result.body?.contains("Task already completed") shouldBe true
+            (result.body as? String)?.contains("Task already completed") shouldBe true
         }
 
         test("should serialize complex variable values") {
