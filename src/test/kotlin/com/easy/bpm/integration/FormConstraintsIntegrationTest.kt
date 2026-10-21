@@ -46,7 +46,7 @@ class FormConstraintsIntegrationTest : IntegrationTestBase() {
         val submitted=mapper.readValue(json,Map::class.java)
         val response=controller.completeTask(task.id,mapOf("assignee" to "alice","variables" to submitted))
         assertEquals(400,response.statusCode.value())
-        assertTrue(response.body.orEmpty().contains("form field"))
+        assertTrue((response.body as? String).orEmpty().contains("form field"))
         assertEquals(TaskStatus.PENDING,taskRepository.findById(task.id).orElseThrow().status)
         assertEquals(ProcessStatus.ACTIVE,instances.findById(task.processInstanceId).orElseThrow().status)
         assertEquals(listOf("review"),instances.findById(task.processInstanceId).orElseThrow().currentNode)
