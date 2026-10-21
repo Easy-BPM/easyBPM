@@ -31,6 +31,7 @@ class ParallelJoinIntegrationTest(
     @Autowired private val instances: ProcessInstanceRepository,
     @Autowired private val taskRepository: TaskRepository,
     @Autowired private val variables: ProcessVariableRepository,
+    @Autowired private val historicVariables: com.easy.bpm.repository.variable.HistoricProcessVariableRepository,
     @Autowired private val events: ProcessInstanceEventRepository,
     @Autowired private val mapper: ObjectMapper
 ) : IntegrationTestBase() {
@@ -192,6 +193,7 @@ class ParallelJoinIntegrationTest(
         assertThat(events.findByProcessInstanceIdOrderByCreatedAtAscIdAsc(instance.id)
             .count { it.eventType == ProcessInstanceEventType.PROCESS_COMPLETED }).isZero()
         assertThat(variables.findByProcessInstanceIdAndName(instance.id, "kept")).isNotNull
+        assertThat(variables.findByProcessInstanceIdAndName(instance.id, "__pg_join_arrivals")!!.value.asInt()).isEqualTo(1)
         val second = if (first == "left") "right" else "left"
         assertThat(waiting.currentNode).contains(second)
         assertThat(taskRepository.findById(pending.getValue(second).id).orElseThrow().status).isEqualTo(TaskStatus.PENDING)
@@ -199,6 +201,10 @@ class ParallelJoinIntegrationTest(
         val completed = instances.findById(instance.id).orElseThrow()
         assertThat(completed.status).isEqualTo(ProcessStatus.COMPLETED)
         assertThat(completed.currentNode).isEmpty()
+        assertThat(variables.findByProcessInstanceId(instance.id)).isEmpty()
+        val archived = historicVariables.findByProcessInstanceId(instance.id)
+        assertThat(archived.map { it.name }).doesNotContain("__pg_join_arrivals").contains("kept")
+        assertThat(archived.single { it.name == "kept" }.value.asText()).isEqualTo("active")
         assertThat(completed.nodeHistory.count { it == "end" }).isEqualTo(1)
         assertThat(events.findByProcessInstanceIdOrderByCreatedAtAscIdAsc(instance.id)
             .count { it.eventType == ProcessInstanceEventType.PROCESS_COMPLETED }).isEqualTo(1)

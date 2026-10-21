@@ -94,5 +94,22 @@ class HistoricVariableArchiverTest : FunSpec() {
                 taskVariableRepository.deleteByTaskId(task.id)
             }
         }
+
+        listOf(false, true).forEach { hasBusiness ->
+            test("purges internal counters from runtime and history while retaining business data: $hasBusiness") {
+                val runtime = mockk<ProcessVariableRepository>(relaxed = true)
+                val historic = mockk<HistoricProcessVariableRepository>(relaxed = true)
+                val service = HistoricVariableArchiver(runtime, mockk(relaxed = true), historic, mockk(relaxed = true))
+                val counter = ProcessVariable(id = 81, processInstanceId = 900, name = "__pg_join_arrivals", value = objectMapper.valueToTree(0))
+                val business = ProcessVariable(id = 82, processInstanceId = 900, name = "amount", value = objectMapper.valueToTree(0))
+                every { runtime.findByProcessInstanceId(900) } returns if (hasBusiness) listOf(counter, business) else listOf(counter)
+                every { historic.findByProcessInstanceId(900) } returns listOf(HistoricProcessVariable(id = 80, processInstanceId = 900, name = "__pg_old_join_arrivals", value = objectMapper.valueToTree(0)))
+                service.archiveProcessInstanceVariables(900)
+                verify { runtime.deleteByProcessInstanceId(900); historic.deleteByProcessInstanceId(900) }
+                verify(exactly = 0) { historic.saveAll(match<Iterable<HistoricProcessVariable>> { rows -> rows.any { it.name.startsWith("__pg_") } }) }
+                if (hasBusiness) verify { historic.saveAll(match<Iterable<HistoricProcessVariable>> { rows -> rows.single().name == "amount" && rows.single().value.asInt() == 0 }) }
+                else verify(exactly = 0) { historic.saveAll(any<Iterable<HistoricProcessVariable>>()) }
+            }
+        }
     }
 }

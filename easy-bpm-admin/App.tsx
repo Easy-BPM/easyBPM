@@ -1,5 +1,4 @@
 import { isParallelRuntimeVariable } from './utils/workflowProgress';
-import { RuntimeVariables } from './components/RuntimeVariables';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   AlertCircle,
@@ -504,7 +503,6 @@ export const InstanceExplorerView: React.FC<{ initialInstanceId?: number | null 
   const [instance, setInstance] = useState<ProcessInstance | null>(null);
   const [variables, setVariables] = useState<ProcessVariable[]>([]);
   const businessVariables = variables.filter(variable => !isParallelRuntimeVariable(variable.name));
-  const runtimeVariables = variables.filter(variable => isParallelRuntimeVariable(variable.name));
   const [newVarName, setNewVarName] = useState('');
   const [newVarValue, setNewVarValue] = useState('');
   const [expandedVariables, setExpandedVariables] = useState<Record<string, boolean>>({});
@@ -1108,7 +1106,6 @@ export const InstanceExplorerView: React.FC<{ initialInstanceId?: number | null 
                   })
                 )}
               </div>
-              <RuntimeVariables variables={runtimeVariables} />
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                 <input
                   className="rounded-lg border border-slate-300 px-3 py-2 text-sm disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
