@@ -34,6 +34,9 @@ class AgentRuntimeFailureIntegrationTest : IntegrationTestBase() {
     @Autowired lateinit var variables: ProcessVariableRepository
     @Autowired lateinit var incidents: IncidentRepository
     @Autowired lateinit var events: ProcessInstanceEventRepository
+    @Autowired lateinit var taskController: com.easy.bpm.controller.TaskController
+    @Autowired lateinit var taskRepository: com.easy.bpm.repository.task.TaskRepository
+    @Autowired lateinit var taskService: com.easy.bpm.service.task.TaskService
     @Autowired lateinit var controller: ProcessController
     @Autowired lateinit var service: ProcessService
     @Autowired lateinit var mapper: ObjectMapper
@@ -42,12 +45,18 @@ class AgentRuntimeFailureIntegrationTest : IntegrationTestBase() {
     @BeforeEach fun capture() { logs=ListAppender();logs.start();(LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME) as Logger).addAppender(logs) }
     @AfterEach fun release() { (LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME) as Logger).detachAppender(logs);logs.stop() }
 
-    private fun deploy(endpoint: String?, boundary: Boolean=false): String {
+    private fun deploy(endpoint: String?, boundary: Boolean=false, humanBefore: Boolean=false): String {
         val key="agent_${UUID.randomUUID()}"
         val agent=mapper.createObjectNode().put("goal",marker)
         if(endpoint!=null)agent.set<com.fasterxml.jackson.databind.JsonNode>("provider",mapper.createObjectNode().put("providerId","ollama").put("modelName","llama3.2").put("endpoint",endpoint).put("promptTemplate",marker))
         agents.save(AgentProcessDefinition(key=key,version=1,definitionJson=agent.toString()))
         val json=mapper.readTree("""{"processId":"$key","variables":[{"name":"decision","initialValue":"original"}],"nodes":[{"id":"start","type":"StartEvent","next":["agent"]},{"id":"agent","type":"AgentProcessCall","config":{"agentProcessKey":"$key","waitForCompletion":true,"timeoutValue":1,"timeoutUnit":"SECONDS","outputs":[{"source":"variable","sourceValue":"decision","targetVariable":"decision"}]},"next":["end"]},{"id":"end","type":"EndEvent"}],"flows":[{"from":"start","to":"agent"},{"from":"agent","to":"end"}]}""")
+        if(humanBefore) {
+            (json["nodes"] as com.fasterxml.jackson.databind.node.ArrayNode).add(mapper.readTree("""{"id":"review","type":"UserTask","config":{"assignee":"alice"},"next":["agent"]}"""))
+            (json["nodes"][0] as com.fasterxml.jackson.databind.node.ObjectNode).set<com.fasterxml.jackson.databind.JsonNode>("next",mapper.readTree("""["review"]"""))
+            (json["flows"][0] as com.fasterxml.jackson.databind.node.ObjectNode).put("to","review")
+            (json["flows"] as com.fasterxml.jackson.databind.node.ArrayNode).add(mapper.readTree("""{"from":"review","to":"agent"}"""))
+        }
         if(boundary){
             (json["nodes"] as com.fasterxml.jackson.databind.node.ArrayNode).add(mapper.readTree("""{"id":"boundary","type":"ErrorBoundaryEvent","attachedTo":"agent","config":{"errorCode":"PROVIDER_FAILURE"},"next":["recover"]}"""))
             (json["nodes"] as com.fasterxml.jackson.databind.node.ArrayNode).add(mapper.readTree("""{"id":"recover","type":"UserTask","config":{"assignee":"alice"}}"""))
@@ -122,5 +131,60 @@ class AgentRuntimeFailureIntegrationTest : IntegrationTestBase() {
             .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.nodeId").value("agent"))
         assertEquals(1,instances.findAll().count { it.processDefinition.key==key });assertSafe()
     }
+
+    private fun humanBeforeAgent(endpoint: String, expectedCode: String? = null) {
+        val key=deploy(endpoint,humanBefore=true)
+        assertEquals(200,controller.startInstance(key).statusCode.value())
+        val instance=instances.findAll().single { it.processDefinition.key==key }
+        assertEquals(ProcessStatus.ACTIVE,instance.status)
+        assertEquals(listOf("review"),instance.currentNode)
+        assertTrue(executions.findByProcessInstanceIdOrderByCreatedAtAscIdAsc(instance.id).isEmpty())
+        val task=taskRepository.findByProcessInstanceId(instance.id).single()
+        taskService.saveTaskDraft(task.id,"alice",emptySet(),mapOf("comment" to "Saved review"))
+        val submitted=mapOf("comment" to "Human review completed","approved" to false,"amount" to 0)
+        val mvc=org.springframework.test.web.servlet.setup.MockMvcBuilders.standaloneSetup(taskController)
+            .setCustomArgumentResolvers(org.springframework.security.web.method.annotation.AuthenticationPrincipalArgumentResolver()).build()
+        val response=mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/tasks/{id}/complete",task.id)
+            .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+            .content(mapper.writeValueAsString(mapOf("assignee" to "alice","variables" to submitted)))).andReturn().response
+        assertEquals(if(expectedCode==null)200 else 409,response.status)
+        assertFalse(response.contentAsString.contains("rollback",ignoreCase=true))
+        assertEquals(com.easy.bpm.enum.TaskStatus.COMPLETED,taskRepository.findById(task.id).orElseThrow().status)
+        assertEquals("Human review completed",taskService.getTaskResponseById(task.id)!!.variables["comment"])
+        val persisted=instances.findById(instance.id).orElseThrow()
+        val execution=executions.findByProcessInstanceIdOrderByCreatedAtAscIdAsc(instance.id).single()
+        val processValues=service.getProcessVariables(instance.id).associate { it.name to it.value }
+        assertEquals("Human review completed",processValues["comment"]!!.asText())
+        assertEquals(false,processValues["approved"]!!.asBoolean());assertEquals(0,processValues["amount"]!!.asInt())
+        val timeline=events.findByProcessInstanceIdOrderByCreatedAtAscIdAsc(instance.id)
+        assertEquals(1,timeline.count { it.eventType==ProcessInstanceEventType.TASK_COMPLETED })
+        if(expectedCode!=null) {
+            val result=mapper.readTree(response.contentAsString)
+            assertEquals("TASK_COMPLETED_WITH_INCIDENT",result.path("code").asText())
+            assertEquals("COMPLETED",result.path("taskStatus").asText())
+            assertEquals(task.id,result.path("taskId").asLong())
+            assertTrue(persisted.errorMessage!!.contains(expectedCode))
+            assertEquals(ProcessStatus.FAILED,persisted.status);assertEquals("agent",persisted.errorNodeId)
+            assertEquals(AgentProcessExecutionStatus.FAILED,execution.status);assertNull(execution.outputPayload)
+            assertEquals("original",processValues["decision"]!!.asText())
+            assertEquals(1,incidents.countByProcessInstanceId(instance.id))
+            assertEquals(com.easy.bpm.model.incident.IncidentStatus.OPEN,incidents.findByProcessInstanceId(instance.id).single().status)
+            assertFalse(persisted.nodeHistory.contains("end"))
+            assertFalse(timeline.any { it.eventType==ProcessInstanceEventType.PROCESS_COMPLETED || it.eventType==ProcessInstanceEventType.AGENT_PROCESS_COMPLETED })
+        } else {
+            assertEquals(ProcessStatus.COMPLETED,persisted.status)
+            assertEquals(AgentProcessExecutionStatus.COMPLETED,execution.status)
+            assertEquals("AGENT_PROCESS_DECIDED",processValues["decision"]!!.asText())
+            assertEquals(0,incidents.countByProcessInstanceId(instance.id))
+        }
+        val before=events.countByProcessInstanceId(instance.id)
+        assertEquals(409,taskController.completeTask(task.id,mapOf("assignee" to "alice","variables" to submitted)).statusCode.value())
+        assertEquals(before,events.countByProcessInstanceId(instance.id))
+        assertEquals(1,executions.findByProcessInstanceIdOrderByCreatedAtAscIdAsc(instance.id).size)
+        assertSafe()
+    }
+    @Test fun `human completion commits before an unavailable downstream agent fails`() = humanBeforeAgent("http://127.0.0.1:1","NETWORK_ERROR")
+    @Test fun `human completion commits before a downstream agent times out`() = server(200,2500) { humanBeforeAgent(it,"TIMEOUT") }
+    @Test fun `human completion followed by successful agent finishes normally`() = server(200) { humanBeforeAgent(it) }
 
 }

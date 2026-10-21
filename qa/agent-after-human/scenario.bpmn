@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:easy="https://easybpm.local/bpmn/extensions" id="Definitions_qa_20261021_human_agent_unavailable" targetNamespace="https://easybpm.local/process/qa_20261021_human_agent_unavailable">
+  <bpmn:process id="qa_20261021_human_agent_unavailable" name="QA Human then unavailable Agent" isExecutable="true">
+    <bpmn:extensionElements>
+      <easy:variables><![CDATA[[{"name":"decision","type":"string","initialValue":"original"},{"name":"comment","type":"string","initialValue":"Review pending"}]]]></easy:variables>
+    </bpmn:extensionElements>
+    <bpmn:startEvent id="start" name="start">
+      <bpmn:extensionElements>
+        <easy:node><![CDATA[{"id":"start","type":"StartEvent","name":"start","position":{"x":50,"y":200}}]]></easy:node>
+      </bpmn:extensionElements>
+    </bpmn:startEvent>
+    <bpmn:userTask id="review" name="QA Review before unavailable agent">
+      <bpmn:extensionElements>
+        <easy:node><![CDATA[{"id":"review","type":"HumanTask","name":"QA Review before unavailable agent","position":{"x":250,"y":200},"config":{"assignee":"admin","inputs":[],"outputs":[]}}]]></easy:node>
+      </bpmn:extensionElements>
+    </bpmn:userTask>
+    <bpmn:callActivity id="agent" name="agent">
+      <bpmn:extensionElements>
+        <easy:node><![CDATA[{"id":"agent","type":"AgentProcessCall","name":"agent","position":{"x":500,"y":200},"config":{"agentProcessKey":"qa_20261021_human_agent_unavailable","waitForCompletion":true,"timeoutValue":5,"timeoutUnit":"SECONDS","inputs":[],"outputs":[{"source":"variable","sourceValue":"decision","type":"string","targetVariable":"decision"}]}}]]></easy:node>
+      </bpmn:extensionElements>
+    </bpmn:callActivity>
+    <bpmn:endEvent id="end" name="end">
+      <bpmn:extensionElements>
+        <easy:node><![CDATA[{"id":"end","type":"EndEvent","name":"end","position":{"x":750,"y":200}}]]></easy:node>
+      </bpmn:extensionElements>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="start_review" sourceRef="start" targetRef="review"/>
+    <bpmn:sequenceFlow id="review_agent" sourceRef="review" targetRef="agent"/>
+    <bpmn:sequenceFlow id="agent_end" sourceRef="agent" targetRef="end"/>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1">
+      <bpmndi:BPMNShape id="start_di" bpmnElement="start">
+        <dc:Bounds x="50" y="200" width="120" height="60"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="review_di" bpmnElement="review">
+        <dc:Bounds x="250" y="200" width="120" height="60"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="agent_di" bpmnElement="agent">
+        <dc:Bounds x="500" y="200" width="120" height="60"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_di" bpmnElement="end">
+        <dc:Bounds x="750" y="200" width="120" height="60"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="start_review_di" bpmnElement="start_review">
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="review_agent_di" bpmnElement="review_agent">
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="agent_end_di" bpmnElement="agent_end">
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

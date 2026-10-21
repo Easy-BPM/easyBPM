@@ -1159,6 +1159,7 @@ const TaskDetailView: React.FC<{ taskId: number; onBack: () => void; currentUser
   const [unclaiming, setUnclaiming] = useState(false);
   const [claimNoticeOpen, setClaimNoticeOpen] = useState(false);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [completionIncident, setCompletionIncident] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -1169,6 +1170,8 @@ const TaskDetailView: React.FC<{ taskId: number; onBack: () => void; currentUser
     setLoading(true);
     setError(null);
     setFormDef(null);
+    setCompletionIncident(false);
+    setActionMessage(null);
 
     try {
       const initialTask = await bpmService.getTaskById(taskId);
@@ -1277,7 +1280,7 @@ const TaskDetailView: React.FC<{ taskId: number; onBack: () => void; currentUser
   };
 
   const handleComplete = async () => {
-    if (!task) return;
+    if (!task || task.status === TaskStatus.COMPLETED || submitting || savingDraft || unclaiming) return;
 
     const formValidationError = validateFormData();
     if (formValidationError) {
@@ -1296,11 +1299,17 @@ const TaskDetailView: React.FC<{ taskId: number; onBack: () => void; currentUser
     setActionMessage(null);
 
     try {
-      await bpmService.completeTask(task.id, {
+      const submittedVariables = buildCompletionVariables();
+      const result = await bpmService.completeTask(task.id, {
         assignee: currentUser,
-        variables: buildCompletionVariables()
+        variables: submittedVariables
       });
-      onBack();
+      if (result.incident) {
+        setTask({ ...task, status: TaskStatus.COMPLETED, variables: submittedVariables });
+        setCompletionIncident(true);
+      } else {
+        onBack();
+      }
     } catch (submitError) {
       setError((submitError as Error).message);
     } finally {
@@ -1309,7 +1318,7 @@ const TaskDetailView: React.FC<{ taskId: number; onBack: () => void; currentUser
   };
 
   const handleSaveDraft = async () => {
-    if (!task) return;
+    if (!task || task.status === TaskStatus.COMPLETED || submitting || savingDraft || unclaiming) return;
 
     const validationError = validateVariableEntries();
     if (validationError) {
@@ -1333,7 +1342,7 @@ const TaskDetailView: React.FC<{ taskId: number; onBack: () => void; currentUser
   };
 
   const handleUnclaim = async () => {
-    if (!task) return;
+    if (!task || task.status === TaskStatus.COMPLETED || submitting || savingDraft || unclaiming) return;
 
     setUnclaiming(true);
     setError(null);
@@ -1360,7 +1369,7 @@ const TaskDetailView: React.FC<{ taskId: number; onBack: () => void; currentUser
 
   const isCompleted = task.status === TaskStatus.COMPLETED;
   const isOwner = task.assignee === currentUser;
-  const isReadOnly = isCompleted || !isOwner;
+  const isReadOnly = isCompleted || !isOwner || submitting || savingDraft || unclaiming;
 
   return (
     <div className="max-w-3xl mx-auto space-y-6 pb-20">
@@ -1398,6 +1407,13 @@ const TaskDetailView: React.FC<{ taskId: number; onBack: () => void; currentUser
         </div>
 
         <div className="p-6 space-y-5">
+          {completionIncident && (
+            <div role="status" className="p-3 rounded-lg border border-amber-200 bg-amber-50 text-amber-800 text-sm flex items-center gap-2">
+              <AlertCircle size={16} />
+              Task completed. The process has an open incident and requires administrator attention. Your submitted data is saved.
+            </div>
+          )}
+
           {error && (
             <div className="p-3 rounded-lg border border-red-200 bg-red-50 text-red-700 text-sm flex items-center gap-2">
               <AlertCircle size={16} />
@@ -1422,7 +1438,9 @@ const TaskDetailView: React.FC<{ taskId: number; onBack: () => void; currentUser
           ) : (
             <div className="space-y-3">
               <p className="text-sm text-slate-500">
-                This task has no form definition. Edit existing task variables or create new ones. All submitted variables will be available as global process variables after completion.
+                {isCompleted
+                  ? 'This task is completed. Submitted variables are shown below.'
+                  : 'This task has no form definition. Edit existing task variables or create new ones. All submitted variables will be available as global process variables after completion.'}
               </p>
               <TaskVariableEditor entries={variableEntries} onChange={setVariableEntries} disabled={isReadOnly} />
             </div>

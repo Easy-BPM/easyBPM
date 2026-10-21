@@ -1,5 +1,7 @@
 import { Task, TaskStatus, ProcessDefinition, ProcessInstance, CompleteTaskPayload, Page, Form, AuthLoginResponse, AuthSession, DocumentMetadata, TaskSearchFilter, AuthCurrentUser, AuthProviderConfig } from '../types';
 
+export type TaskCompletionResult = { incident: boolean };
+
 const API_BASE_URL = (import.meta.env.EASY_BPM_TASK_PORTAL_API_BASE_URL || 'http://localhost:8080').replace(/\/$/, '');
 const USE_MOCK = false;
 const AUTH_STORAGE_KEY = 'easybpm_portal_auth';
@@ -399,7 +401,7 @@ export const bpmService = {
     return response.json();
   },
 
-  completeTask: async (id: number, payload: CompleteTaskPayload): Promise<void> => {
+  completeTask: async (id: number, payload: CompleteTaskPayload): Promise<TaskCompletionResult> => {
     if (USE_MOCK) {
       await delay(300);
       const tIndex = MOCK_TASKS.findIndex(t => t.id === id);
@@ -408,7 +410,7 @@ export const bpmService = {
         MOCK_TASKS[tIndex].completedAt = new Date().toISOString();
         MOCK_TASKS[tIndex].variables = payload.variables;
       }
-      return;
+      return { incident: false };
     }
 
     const response = await fetchWithAuth(`${API_BASE_URL}/tasks/${id}/complete`, {
@@ -419,7 +421,24 @@ export const bpmService = {
       expireOnUnauthorized: false
     });
 
+    if (response.status === 409) {
+      const text = await response.clone().text();
+      let committed = false;
+      try {
+        const body = JSON.parse(text);
+        committed = body.code === 'TASK_COMPLETED_WITH_INCIDENT'
+          && body.taskStatus === 'COMPLETED' && body.taskId === id;
+      } catch {
+        // Support the previous server contract while frontend/backend roll out independently.
+        if (text.startsWith('Task was completed, but process execution failed and an incident was recorded:')) {
+          const taskResponse = await fetchWithAuth(`${API_BASE_URL}/tasks/${id}`);
+          if (taskResponse.ok) committed = (await taskResponse.json()).status === TaskStatus.COMPLETED;
+        }
+      }
+      if (committed) return { incident: true };
+    }
     await assertOk(response, `Complete task ${id}`);
+    return { incident: false };
   },
 
   claimTask: async (id: number): Promise<Task> => {
