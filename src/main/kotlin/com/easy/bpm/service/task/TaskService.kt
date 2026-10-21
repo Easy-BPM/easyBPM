@@ -17,9 +17,7 @@ import com.easy.bpm.repository.task.TaskRepository
 import com.easy.bpm.repository.variable.HistoricTaskVariableRepository
 import com.easy.bpm.repository.variable.ProcessVariableRepository
 import com.easy.bpm.repository.variable.TaskVariableRepository
-import com.easy.bpm.service.form.FormConstraintValidator
 import com.easy.bpm.service.form.FormService
-import com.easy.bpm.service.form.RequiredFormInputValidator
 import com.easy.bpm.service.integration.IntegrationService
 import com.easy.bpm.service.message.MessageSubscriptionService
 import com.easy.bpm.service.metrics.MetricsService
@@ -93,7 +91,6 @@ class TaskService(
         if (task.assignee != null && task.assignee != assignee) {
             throw IllegalStateException("Task is assigned to another user")
         }
-        validateRequiredFormInputs(task, variables)
         if (task.assignee == null) {
             task.assignee = assignee
         }
@@ -101,7 +98,6 @@ class TaskService(
 
         val definition = parseDefinition(instance.processDefinition.definitionJson)
         val currentNode = findNode(definition, task.nodeId)
-        validateFormConstraints(task, variables)
 
         // 1️⃣ Salvar dados do formulário como TASK VARIABLES
         persistTaskVariables(task, variables)
@@ -822,21 +818,6 @@ class TaskService(
        VARIABLE MANAGEMENT
      ========================= */
 
-    private fun validateRequiredFormInputs(task: Task, submitted: Map<String, Any?>) {
-        val formDbId = task.formId ?: return
-        // Use the version pinned when the task was created, not the latest form.
-        val form = formService.getById(formDbId)
-            ?: throw IllegalStateException("The task form is unavailable. Contact an administrator.")
-        val effectiveValues = objectMapper.createObjectNode()
-        taskVariableRepository.findByTaskId(task.id).sortedBy { it.id }.forEach {
-            effectiveValues.set<JsonNode>(it.name, it.value)
-        }
-        submitted.forEach { (name, value) ->
-            effectiveValues.set<JsonNode>(name, objectMapper.valueToTree(value))
-        }
-        RequiredFormInputValidator.validate(form.schema, effectiveValues)
-    }
-
     private fun persistTaskVariables(task: Task, variables: Map<String, Any?>) {
         variables.forEach { (key, value) ->
             val valueNode = objectMapper.valueToTree<JsonNode>(value)
@@ -858,16 +839,6 @@ class TaskService(
                 )
             }
         }
-    }
-
-    private fun validateFormConstraints(task: Task, submitted: Map<String, Any?>) {
-        val formId = task.formId ?: return
-        val form = formService.getById(formId)
-            ?: throw IllegalStateException("The task form is unavailable. Contact an administrator.")
-        val effective = objectMapper.createObjectNode()
-        taskVariableRepository.findByTaskId(task.id).sortedBy { it.id }.forEach { effective.set<JsonNode>(it.name, it.value) }
-        submitted.forEach { (name, value) -> effective.set<JsonNode>(name, objectMapper.valueToTree(value)) }
-        FormConstraintValidator.validate(form.schema, effective)
     }
 
     private fun syncNoFormTaskVariablesToProcess(

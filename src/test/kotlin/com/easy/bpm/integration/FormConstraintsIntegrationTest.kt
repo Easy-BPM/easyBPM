@@ -38,21 +38,16 @@ class FormConstraintsIntegrationTest : IntegrationTestBase() {
     }
 
     @ParameterizedTest @ValueSource(strings=["{\"code\":\"ABC\",\"quantity\":-2}","{\"code\":\"ABC\",\"quantity\":102}","{\"code\":\"ABC\",\"quantity\":1.5}","{\"code\":\"ABC\",\"quantity\":3}","{\"code\":\"abc\",\"quantity\":2}","{\"code\":\"A\",\"quantity\":2}","{\"code\":\"ABCDEF\",\"quantity\":2}","{\"code\":\"ABC\",\"quantity\":\"2\"}","{\"code\":\"ABC\",\"quantity\":2,\"choice\":1}"])
-    fun `invalid direct completion preserves state and saved draft`(json: String) {
+    fun `API completion accepts values outside form constraints`(json: String) {
         val task=create()
         tasks.saveTaskDraft(task.id,"alice",emptySet(),mapOf("code" to "SAVED","quantity" to 0,"approved" to false))
-        val before=variables.findByTaskId(task.id).associate { it.name to it.value };val count=events.countByProcessInstanceId(task.processInstanceId)
-        org.mockito.Mockito.clearInvocations(publisher)
         val submitted=mapper.readValue(json,Map::class.java)
         val response=controller.completeTask(task.id,mapOf("assignee" to "alice","variables" to submitted))
-        assertEquals(400,response.statusCode.value())
-        assertTrue((response.body as? String).orEmpty().contains("form field"))
-        assertEquals(TaskStatus.PENDING,taskRepository.findById(task.id).orElseThrow().status)
-        assertEquals(ProcessStatus.ACTIVE,instances.findById(task.processInstanceId).orElseThrow().status)
-        assertEquals(listOf("review"),instances.findById(task.processInstanceId).orElseThrow().currentNode)
-        assertEquals(before,variables.findByTaskId(task.id).associate { it.name to it.value })
-        assertEquals(count,events.countByProcessInstanceId(task.processInstanceId))
-        org.mockito.Mockito.verifyNoInteractions(publisher)
+        assertEquals(200,response.statusCode.value())
+        assertEquals(TaskStatus.COMPLETED,taskRepository.findById(task.id).orElseThrow().status)
+        assertEquals(ProcessStatus.COMPLETED,instances.findById(task.processInstanceId).orElseThrow().status)
+        val saved=mapper.valueToTree<com.fasterxml.jackson.databind.JsonNode>(tasks.getTaskResponseById(task.id)!!.variables)
+        submitted.keys.forEach { assertEquals(mapper.readTree(json).path(it.toString()),saved.path(it.toString())) }
     }
 
     @ParameterizedTest @ValueSource(ints=[0,100])
@@ -72,12 +67,12 @@ class FormConstraintsIntegrationTest : IntegrationTestBase() {
         tasks.completeTask(task.id,"alice",emptyMap())
         assertEquals(ProcessStatus.COMPLETED,instances.findById(task.processInstanceId).orElseThrow().status)
     }
-    @Test fun `invalid shared task completion rolls back automatic assignment`() {
+    @Test fun `shared API task completion ignores form constraints`() {
         val task=create();task.assignee=null;task.candidateUsers.add("alice");taskRepository.saveAndFlush(task)
         val response=controller.completeTask(task.id,mapOf("assignee" to "alice","variables" to mapOf("code" to "ABC","quantity" to -1)))
-        assertEquals(400,response.statusCode.value())
-        assertNull(taskRepository.findById(task.id).orElseThrow().assignee)
-        assertEquals(TaskStatus.PENDING,taskRepository.findById(task.id).orElseThrow().status)
+        assertEquals(200,response.statusCode.value())
+        assertEquals("alice",taskRepository.findById(task.id).orElseThrow().assignee)
+        assertEquals(TaskStatus.COMPLETED,taskRepository.findById(task.id).orElseThrow().status)
     }
 
 }

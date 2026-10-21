@@ -1248,7 +1248,7 @@ export const TaskDetailView: React.FC<{ taskId: number; onBack: () => void; curr
         continue;
       }
 
-      if (value === undefined || value === null || value === '') {
+      if (value === undefined || value === null || (typeof value === 'string' && value.trim() === '')) {
         return `${label} is required.`;
       }
 
