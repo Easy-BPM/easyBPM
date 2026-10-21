@@ -17,6 +17,9 @@ class HistoricVariableArchiver(
     private val historicProcessVariableRepository: HistoricProcessVariableRepository,
     private val historicTaskVariableRepository: HistoricTaskVariableRepository
 ) {
+    private val parallelCounterPattern = Regex("^__pg_.+_arrivals$")
+    private fun isParallelCounter(name: String) = parallelCounterPattern.matches(name)
+
     @Transactional
     fun archiveTaskVariables(task: Task): Int {
         val variables = taskVariableRepository.findByTaskId(task.id)
@@ -42,7 +45,7 @@ class HistoricVariableArchiver(
     fun archiveProcessInstanceVariables(processInstanceId: Long): ArchivedVariableCounts {
         val processVariables = processVariableRepository.findByProcessInstanceId(processInstanceId)
         val existingHistoricProcessVariables = historicProcessVariableRepository.findByProcessInstanceId(processInstanceId)
-        val runtimeHistoricProcessVariables = processVariables.map { variable ->
+        val runtimeHistoricProcessVariables = processVariables.filterNot { isParallelCounter(it.name) }.map { variable ->
             HistoricProcessVariable(
                 id = variable.id,
                 processInstanceId = variable.processInstanceId,
@@ -50,14 +53,16 @@ class HistoricVariableArchiver(
                 value = variable.value
             )
         }
-        val mergedProcessVariables = (existingHistoricProcessVariables + runtimeHistoricProcessVariables)
+        val mergedProcessVariables = (existingHistoricProcessVariables.filterNot { isParallelCounter(it.name) } + runtimeHistoricProcessVariables)
             .associateBy { it.name }
             .values
 
-        if (mergedProcessVariables.isNotEmpty()) {
+        if (existingHistoricProcessVariables.isNotEmpty() || mergedProcessVariables.isNotEmpty()) {
             historicProcessVariableRepository.deleteByProcessInstanceId(processInstanceId)
             historicProcessVariableRepository.flush()
-            historicProcessVariableRepository.saveAll(mergedProcessVariables)
+            if (mergedProcessVariables.isNotEmpty()) {
+                historicProcessVariableRepository.saveAll(mergedProcessVariables)
+            }
         }
 
         if (processVariables.isNotEmpty()) {
