@@ -16,6 +16,7 @@ const typeToTag = (type: string): string => ({
   HumanTask: 'userTask',
   UserTask: 'userTask',
   ServiceTask: 'serviceTask',
+  BusinessRuleTask: 'businessRuleTask',
   APITask: 'serviceTask',
   AiTask: 'serviceTask',
   CodeTask: 'serviceTask',
@@ -40,6 +41,7 @@ const tagToType = (tag: string): string => ({
   endEvent: 'EndEvent',
   userTask: 'HumanTask',
   serviceTask: 'ServiceTask',
+  businessRuleTask: 'BusinessRuleTask',
   callActivity: 'CallActivity',
   exclusiveGateway: 'ExclusiveGateway',
   parallelGateway: 'ParallelGateway',
@@ -51,7 +53,7 @@ const tagToType = (tag: string): string => ({
 }[tag] || 'Task');
 
 const extension = (tag: string, value: unknown, indent = '      ') =>
-  `${indent}<easy:${tag}><![CDATA[${JSON.stringify(value)}]]></easy:${tag}>\n`;
+  `${indent}<easy:${tag}><![CDATA[${JSON.stringify(value).replace(/]]>/g, "]]\\u003e")}]]></easy:${tag}>\n`;
 
 const getExtensionJson = (element: Element, localName: string): any | undefined => {
   const child = element.getElementsByTagNameNS(EASY_NS, localName)[0];
@@ -63,6 +65,12 @@ const getExtensionJson = (element: Element, localName: string): any | undefined 
   }
 };
 
+const preservedExtensions = (element: Element, names: string[]): string[] =>
+  Array.from(element.children).filter(child => child.namespaceURI === BPMN_NS && child.localName === 'extensionElements')
+    .flatMap(extension => Array.from(extension.children))
+    .filter(child => !(child.namespaceURI === EASY_NS && names.includes(child.localName)))
+    .map(child => new XMLSerializer().serializeToString(child));
+
 export const processDefinitionToBpmnXml = (definition: any): string => {
   const processId = definition.processId || definition.id;
   const processName = definition.processName || definition.name || processId;
@@ -73,10 +81,11 @@ export const processDefinitionToBpmnXml = (definition: any): string => {
   xml += `<bpmn:definitions xmlns:bpmn="${BPMN_NS}" xmlns:bpmndi="${BPMNDI_NS}" xmlns:dc="${DC_NS}" xmlns:di="${DI_NS}" xmlns:easy="${EASY_NS}" id="Definitions_${escapeXml(processId)}" targetNamespace="https://easybpm.local/process/${escapeXml(processId)}">\n`;
   xml += `  <bpmn:process id="${escapeXml(processId)}" name="${escapeXml(processName)}" isExecutable="true">\n`;
 
-  if ((definition.variables?.length || 0) > 0 || definition.metadata) {
+  if ((definition.variables?.length || 0) > 0 || definition.metadata || definition.preservedExtensionXml?.length) {
     xml += `    <bpmn:extensionElements>\n`;
     if (definition.variables?.length) xml += extension('variables', definition.variables, '      ');
     if (definition.metadata) xml += extension('metadata', definition.metadata, '      ');
+    for (const raw of definition.preservedExtensionXml || []) xml += `      ${raw}\n`;
     xml += `    </bpmn:extensionElements>\n`;
   }
 
@@ -85,7 +94,9 @@ export const processDefinitionToBpmnXml = (definition: any): string => {
     const attached = tag === 'boundaryEvent' && node.attachedTo ? ` attachedToRef="${escapeXml(node.attachedTo)}"` : '';
     xml += `    <bpmn:${tag} id="${escapeXml(node.id)}" name="${escapeXml(node.name || node.id)}"${attached}>\n`;
     xml += `      <bpmn:extensionElements>\n`;
-    xml += extension('node', node, '        ');
+    const { preservedExtensionXml, ...nodeData } = node;
+    xml += extension('node', nodeData, '        ');
+    for (const raw of preservedExtensionXml || []) xml += `        ${raw}\n`;
     xml += `      </bpmn:extensionElements>\n`;
     if (node.type === 'TimerEvent' || node.type === 'TimerBoundaryEvent') xml += `      <bpmn:timerEventDefinition/>\n`;
     if (['MessageStartEvent', 'MessageIntermediateCatchEvent', 'MessageIntermediateThrowEvent', 'MessageBoundaryEvent'].includes(node.type)) xml += `      <bpmn:messageEventDefinition/>\n`;
@@ -155,6 +166,7 @@ export const bpmnXmlToProcessDefinition = (xml: string): any => {
     .filter((element) => element.namespaceURI === BPMN_NS && element.localName !== 'sequenceFlow' && element.localName !== 'extensionElements')
     .map((element) => ({
       ...(getExtensionJson(element, 'node') || {}),
+      preservedExtensionXml: preservedExtensions(element, ['node']),
       id: getExtensionJson(element, 'node')?.id || element.getAttribute('id'),
       name: getExtensionJson(element, 'node')?.name || element.getAttribute('name') || element.getAttribute('id'),
       type: getExtensionJson(element, 'node')?.type || tagToType(element.localName),
@@ -174,6 +186,7 @@ export const bpmnXmlToProcessDefinition = (xml: string): any => {
     processId: process.getAttribute('id') || `process_${Date.now()}`,
     processName: process.getAttribute('name') || '',
     metadata: getExtensionJson(process, 'metadata'),
+    preservedExtensionXml: preservedExtensions(process, ['metadata', 'variables']),
     variables: getExtensionJson(process, 'variables') || [],
     nodes,
     flows

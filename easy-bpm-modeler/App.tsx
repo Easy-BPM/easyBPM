@@ -14,6 +14,10 @@ import { Canvas } from './components/Canvas';
 import { PropertiesPanel } from './components/PropertiesPanel';
 import { FormModeler } from './components/FormModeler';
 import { FormLibrary } from './components/FormLibrary';
+import { DecisionModeler } from './components/DecisionModeler';
+import { decisionService } from './services/decisionService';
+import type { DecisionDefinition } from './decisionTypes';
+import { decisionMappingErrors } from './components/BusinessRuleTaskEditor';
 import { WelcomeScreen, WorkspaceResource, ProcessTemplateDefinition } from './components/WelcomeScreen';
 import { AgentBoardModeler } from './components/AgentBoardModeler';
 import { ModelerNavbar } from './components/ModelerNavbar';
@@ -21,6 +25,7 @@ import { EasyBpmLogoMark } from './components/EasyBpmLogoMark';
 import { ThemeMode, ThemeToggle } from './components/ThemeToggle';
 import { BpmnNode, BpmnEdge, ProcessVariable, NodeType, AppView, ValidationIssue, ValidationSummary, FormDefinition, Position } from './types';
 import { generateId, snapToGrid } from './utils/geometry';
+import { validateSla } from './utils/sla';
 import { validateId } from './utils/validation';
 import { Toaster, toast } from 'sonner';
 import { AgentProcessDefinitionSummary, AvailableCredential, isAuthRequiredError, processService, fetchWithAuth } from './services/processService';
@@ -34,7 +39,7 @@ import { saveTextFile } from './services/desktopBridge';
 const BOUNDARY_TYPES: NodeType[] = ['error-boundary', 'message-boundary', 'timer-boundary'];
 const START_TYPES: NodeType[] = ['start', 'message-start'];
 const END_TYPES: NodeType[] = ['end'];
-const TASK_TYPES: NodeType[] = ['user-task', 'service-task', 'api-task', 'code-task', 'ai-task', 'agent-process-call'];
+const TASK_TYPES: NodeType[] = ['user-task', 'service-task', 'business-rule-task', 'api-task', 'code-task', 'ai-task', 'agent-process-call'];
 const CONTAINER_TYPES: NodeType[] = ['pool'];
 const VISUAL_NODE_TYPES: NodeType[] = ['pool', 'documentation'];
 const FORM_KEY_PATTERN = /^[A-Za-z][A-Za-z0-9_-]*$/;
@@ -47,7 +52,7 @@ const safeString = (value: any): string => {
   return String(value);
 };
 
-type EditorMode = 'welcome' | 'process-editor' | 'form-editor' | 'agent-process-editor';
+type EditorMode = 'welcome' | 'process-editor' | 'form-editor' | 'agent-process-editor' | 'decision-editor';
 
 const App: React.FC = () => {
    const isDesktop = isDesktopModeler();
@@ -64,6 +69,7 @@ const App: React.FC = () => {
    const [isLoadingWorkspaceResources, setIsLoadingWorkspaceResources] = useState(false);
    const [workspaceResourceError, setWorkspaceResourceError] = useState<string | null>(null);
    const [initialAgentDefinition, setInitialAgentDefinition] = useState<unknown | undefined>(undefined);
+   const [initialDecisionDefinition, setInitialDecisionDefinition] = useState<DecisionDefinition | undefined>(undefined);
 
    // Process editor state
    const [nodes, setNodes] = useState<BpmnNode[]>([]);
@@ -71,6 +77,7 @@ const App: React.FC = () => {
    const [variablesRaw, setVariablesRaw] = useState<ProcessVariable[]>([]);
    const [processId, setProcessId] = useState<string>(`process_${Date.now()}`);
    const [processName, setProcessName] = useState<string>('');
+   const [preservedProcess, setPreservedProcess] = useState<Record<string, any>>({});
    const [selectedNodeUids, setSelectedNodeUids] = useState<string[]>([]);
    const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
    const [isDeployingProcess, setIsDeployingProcess] = useState(false);
@@ -157,17 +164,19 @@ const App: React.FC = () => {
      setIsLoadingWorkspaceResources(true);
      setWorkspaceResourceError(null);
      try {
-       const [processesResult, formsResult, agentsResult, credentialsResult] = await Promise.allSettled([
+       const [processesResult, formsResult, agentsResult, credentialsResult, decisionsResult] = await Promise.allSettled([
          processService.listLatestProcesses(),
          formService.listLatest(),
          featureFlags.agenticOrchestration ? processService.listAgentProcesses() : Promise.resolve([]),
-         processService.listAvailableCredentials()
+         processService.listAvailableCredentials(),
+         decisionService.list()
        ]);
       const loadResults = [
         { label: 'processes', result: processesResult },
         { label: 'forms', result: formsResult },
         { label: 'agents', result: agentsResult },
-        { label: 'secrets', result: credentialsResult }
+        { label: 'secrets', result: credentialsResult },
+        { label: 'decisions', result: decisionsResult }
       ];
       const loadErrors = loadResults
         .filter((item): item is { label: string; result: PromiseRejectedResult } => item.result.status === 'rejected')
@@ -213,7 +222,11 @@ const App: React.FC = () => {
          payload: parseAgentDefinition(agent)
        }));
 
-       setWorkspaceResources([...processResources, ...formResources, ...agentResources]);
+       const decisionResources: WorkspaceResource[] = (decisionsResult.status === 'fulfilled' ? decisionsResult.value : []).map(decision => ({
+         id: String(decision.id), kind: 'decision', name: decision.name, key: decision.key,
+         version: decision.version, updatedAt: decision.createdAt, payload: decision
+       }));
+       setWorkspaceResources([...processResources, ...formResources, ...agentResources, ...decisionResources]);
        setAvailableCredentials(credentials);
        if (loadErrors.length > 0) {
          setWorkspaceResourceError(loadErrors.join(' '));
@@ -289,6 +302,8 @@ const App: React.FC = () => {
       });
     };
 
+    nodes.forEach(node => validateSla(node.data.sla, node.type).forEach(message =>
+      addIssue('error', `Node ${node.id}: ${message}`, { nodeUid: node.uid, nodeId: node.id })));
     const executableNodes = nodes.filter(node => !VISUAL_NODE_TYPES.includes(node.type));
 
     if (executableNodes.length === 0) {
@@ -432,6 +447,9 @@ const App: React.FC = () => {
         addIssue('error', `Task node ${node.id} can have only one outgoing flow. Use a gateway to split the process.`, { nodeUid: node.uid, nodeId: node.id });
       }
 
+      if (node.type === 'business-rule-task') {
+        for (const message of decisionMappingErrors(node.data)) addIssue('error', `Business rule task ${node.id}: ${message}`, { nodeUid: node.uid, nodeId: node.id });
+      }
       if (node.type === 'timer-event') {
         const timeout = Number(node.data.timeoutSeconds);
         if (!Number.isFinite(timeout) || timeout <= 0) {
@@ -647,6 +665,7 @@ const App: React.FC = () => {
       'end': 'EndEvent', 
       'user-task': 'HumanTask',
       'service-task': 'ServiceTask',
+      'business-rule-task': 'BusinessRuleTask',
       'api-task': 'APITask',
       'ai-task': 'AiTask',
       'agent-process-call': 'AgentProcessCall',
@@ -674,6 +693,7 @@ const App: React.FC = () => {
         .filter(Boolean);
 
       const base: any = {
+        ...node.data.preservedDefinition,
         id: node.id,
         name: node.data.label,
         type: typeMapping[node.type] || node.type,
@@ -685,6 +705,8 @@ const App: React.FC = () => {
 
        if (node.type === 'user-task') {
          base.config = {
+           ...node.data.preservedConfig,
+           sla: node.data.sla,
            formId: node.data.formId,
            assignee: node.data.assignee,
             candidateGroups: node.data.candidateGroups,
@@ -774,6 +796,12 @@ const App: React.FC = () => {
          };
        }
 
+       if (node.type === 'business-rule-task') {
+         base.config = { ...node.data.preservedConfig, decisionKey: node.data.decisionKey || '',
+           ...(node.data.decisionVersion ? { decisionVersion: node.data.decisionVersion } : {}),
+           inputs: node.data.decisionInputs || [], outputs: node.data.decisionOutputs || [] };
+         if (!node.data.decisionVersion) delete base.config.decisionVersion;
+       }
        if (node.type === 'call-activity') {
          base.config = {
            processKey: node.data.callActivityProcessKey || '',
@@ -908,9 +936,11 @@ const App: React.FC = () => {
     });
 
     return {
+      ...preservedProcess,
       processId: processId,
       processName: processName,
       metadata: {
+        ...preservedProcess.metadata,
         exportedAt: new Date().toISOString(),
          version: "1.0"
        },
@@ -923,6 +953,7 @@ const App: React.FC = () => {
       flows: edges
       .filter(e => executableNodeUids.has(e.source) && executableNodeUids.has(e.target))
       .map(e => ({
+        id: e.id,
         from: executableExportNodes.find(n => n.uid === e.source)?.id, 
         to: executableExportNodes.find(n => n.uid === e.target)?.id, 
         condition: e.condition || null,
@@ -933,7 +964,7 @@ const App: React.FC = () => {
 
   const currentProcessXml = useMemo(
     () => processDefinitionToBpmnXml(buildExportObject()),
-    [nodes, edges, variables, processId, processName]
+    [nodes, edges, variables, processId, processName, preservedProcess]
   );
 
   useEffect(() => {
@@ -1017,6 +1048,7 @@ const App: React.FC = () => {
   // Navigation handlers
   const handleCreateProcess = () => {
     // Reset process editor state
+    setPreservedProcess({});
     setNodes([]);
     setEdges([]);
     setVariablesRaw([]);
@@ -1040,6 +1072,7 @@ const App: React.FC = () => {
   };
 
   const resetProcessDefinition = () => {
+    setPreservedProcess({});
     setNodes([]);
     setEdges([]);
     setVariables([]);
@@ -1085,6 +1118,7 @@ const App: React.FC = () => {
       'HumanTask': 'user-task',
       'UserTask': 'user-task',
       'ServiceTask': 'service-task',
+      'BusinessRuleTask': 'business-rule-task',
       'APITask': 'api-task',
       'AgentProcessCall': 'agent-process-call',
       'ExclusiveGateway': 'gateway',
@@ -1140,11 +1174,22 @@ const App: React.FC = () => {
         height,
         data: {
           label: node.name || node.id,
+          preservedDefinition: node,
           inputVariables: [],
           outputVariables: [],
         }
       };
 
+       if (node.config) {
+         newNode.data.preservedConfig = node.config;
+         newNode.data.sla = node.config.sla;
+       }
+       if (type === 'business-rule-task' && node.config) {
+         newNode.data.decisionKey = node.config.decisionKey || '';
+         newNode.data.decisionVersion = node.config.decisionVersion;
+         newNode.data.decisionInputs = node.config.inputs || [];
+         newNode.data.decisionOutputs = node.config.outputs || [];
+       }
        if (type === 'user-task' && node.config) {
          newNode.data.formId = node.config.formId;
          newNode.data.assignee = node.config.assignee;
@@ -1308,7 +1353,7 @@ const App: React.FC = () => {
 
     // 3. Import Edges (Flows)
     const importedEdges: BpmnEdge[] = (data.flows || []).map((flow: any) => ({
-      id: `edge_${Math.random().toString(36).substr(2, 9)}`,
+      id: flow.id || `edge_${Math.random().toString(36).substr(2, 9)}`,
       source: idToUidMap.get(flow.from) || '',
       target: idToUidMap.get(flow.to) || '',
       condition: flow.condition,
@@ -1321,6 +1366,7 @@ const App: React.FC = () => {
 
     // Update State
     setProcessId(data.processId || `process_${Date.now()}`);
+    setPreservedProcess(data);
     setProcessName(data.processName || data.name || '');
     setVariables(importedVariables);
     setNodes(importedNodes);
@@ -1384,6 +1430,13 @@ const App: React.FC = () => {
 
   const handleOpenWorkspaceResource = async (resource: WorkspaceResource) => {
     try {
+      if (resource.kind === 'decision') {
+        const definition = resource.payload as DecisionDefinition | undefined;
+        if (!definition?.dmnXml) throw new Error('The selected decision has no stored definition.');
+        setInitialDecisionDefinition(definition);
+        setEditorMode('decision-editor');
+        return;
+      }
       if (resource.kind === 'process') {
         const definition = await processService.getProcessDefinition(Number(resource.id));
         const source = definition.definitionXml || definition.definitionJson || '';
@@ -1544,6 +1597,9 @@ const App: React.FC = () => {
   }
 
   // Render based on editor mode
+  if (editorMode === 'decision-editor') {
+    return <>{connectionDialog}<DecisionModeler initialDefinition={initialDecisionDefinition} theme={theme} onToggleTheme={toggleTheme} onBack={handleBackToWelcome} onConnect={() => setIsConnectionDialogOpen(true)} /></>;
+  }
   if (editorMode === 'welcome') {
     return (
       <div className="h-screen overflow-hidden">
@@ -1552,6 +1608,7 @@ const App: React.FC = () => {
         <WelcomeScreen
           onCreateProcess={handleCreateProcess}
           onCreateForm={handleCreateForm}
+          onCreateDecision={() => { setInitialDecisionDefinition(undefined); setEditorMode('decision-editor'); }}
           onLoadProcessTemplate={handleLoadProcessTemplate}
           onCreateAgentProcess={handleCreateAgentProcess}
           isAgenticOrchestrationEnabled={featureFlags.agenticOrchestration}

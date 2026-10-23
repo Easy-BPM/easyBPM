@@ -22,15 +22,24 @@ object TaskSearchSpecification {
     fun build(
         filters: List<TaskSearchFilterDto>,
         visibleTo: TaskVisibility? = null,
-        objectMapper: ObjectMapper
+        objectMapper: ObjectMapper,
+        asOf: java.time.Instant = java.time.Instant.now()
     ): Specification<Task> {
+        val dueFilters = filters.filter { it.field.lowercase() in setOf("duedate", "due_date") }
+        val lower = dueFilters.filter { it.operator == TaskFilterOperator.GREATER_THAN_OR_EQUAL }.map {
+            try { java.time.OffsetDateTime.parse(it.value.toString()).toInstant() } catch (_: Exception) { throw IllegalArgumentException("dueDate requires an offset-qualified timestamp") }
+        }.maxOrNull()
+        val upper = dueFilters.filter { it.operator == TaskFilterOperator.LESS_THAN_OR_EQUAL }.map {
+            try { java.time.OffsetDateTime.parse(it.value.toString()).toInstant() } catch (_: Exception) { throw IllegalArgumentException("dueDate requires an offset-qualified timestamp") }
+        }.minOrNull()
+        require(lower == null || upper == null || lower <= upper) { "Due date range is reversed" }
         return Specification { root, query, cb ->
             val criteriaQuery = query ?: throw IllegalStateException("Task search requires a criteria query")
             criteriaQuery.distinct(true)
             val predicates = mutableListOf<Predicate>()
             visibleTo?.let { predicates += visibilityPredicate(root, cb, it) }
             filters.forEach { filter ->
-                predicates += filterPredicate(root, criteriaQuery, cb, filter, objectMapper)
+                predicates += filterPredicate(root, criteriaQuery, cb, filter, objectMapper, asOf)
             }
             cb.and(*predicates.toTypedArray())
         }
@@ -65,9 +74,28 @@ object TaskSearchSpecification {
         query: CriteriaQuery<*>,
         cb: CriteriaBuilder,
         filter: TaskSearchFilterDto,
-        objectMapper: ObjectMapper
+        objectMapper: ObjectMapper,
+        asOf: java.time.Instant
     ): Predicate {
         return when (filter.field.trim().lowercase()) {
+            "duedate", "due_date" -> comparablePredicate(root.get("dueDate"), cb, filter) {
+                try { java.time.OffsetDateTime.parse(it.toString()).toInstant() } catch (_: Exception) { throw IllegalArgumentException("dueDate requires an offset-qualified timestamp") }
+            }
+            "slastatus", "sla_status" -> {
+                require(filter.operator in setOf(TaskFilterOperator.EQUALS, TaskFilterOperator.NOT_EQUALS, TaskFilterOperator.IN, TaskFilterOperator.NOT_IN)) { "Invalid SLA status operator" }
+                val due = root.get<java.time.Instant>("dueDate")
+                val risk = root.get<java.time.Instant>("slaRiskAt")
+                val completed = cb.equal(root.get<TaskStatus>("status"), TaskStatus.COMPLETED)
+                val expression = cb.selectCase<String>()
+                    .`when`(cb.isNull(due), cb.nullLiteral(String::class.java))
+                    .`when`(completed, "COMPLETED")
+                    .`when`(cb.lessThanOrEqualTo(due, asOf), "OVERDUE")
+                    .`when`(cb.and(cb.isNotNull(risk), cb.lessThanOrEqualTo(risk, asOf)), "AT_RISK")
+                    .otherwise("ON_TRACK")
+                val values = filterValues(filter).map { SlaStatus.valueOf(it.toString().uppercase()).name }
+                val matches = expression.`in`(values)
+                if (filter.operator in setOf(TaskFilterOperator.NOT_EQUALS, TaskFilterOperator.NOT_IN)) cb.not(matches) else matches
+            }
             "state", "status" -> enumPredicate(root.get("status"), cb, filter, TaskStatus::valueOf)
             "assignee" -> assigneePredicate(root, cb, filter)
             "candidateuser", "candidate_user" -> collectionPredicate(root.get("candidateUsers"), cb, filter)

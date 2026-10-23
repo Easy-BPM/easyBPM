@@ -89,6 +89,10 @@ export interface Form {
 
 // Entity: com.easy.bpm.model.task.Task
 export interface Task {
+  dueDate?: string | null;
+  slaStatus?: SlaStatus | null;
+  slaTimeZone?: string | null;
+  completedWithinSla?: boolean | null;
   id: number;
   title: string;
   processInstanceId: number;
@@ -190,3 +194,7 @@ export interface Page<T> {
   size: number;
   number: number;
 }
+
+export type SlaStatus = 'ON_TRACK' | 'AT_RISK' | 'OVERDUE' | 'COMPLETED';
+export interface SlaSummary { onTrack: number; atRisk: number; overdue: number; completed: number; withoutSla: number; asOf: string; timeZone: string }
+export interface SlaEvent { id: number | string; taskId: number; actionId: string | null; eventType: string; scheduledAt: string | null; occurredAt: string; outcome: string; message: string | null; incidentId: number | null }

@@ -58,7 +58,9 @@ class TaskService(
     private val agentProcessCallHandler: AgentProcessCallHandler,
     private val timelineService: ProcessInstanceTimelineService,
     private val failureHandler: ProcessFailureHandler,
-    private val historicVariableArchiver: HistoricVariableArchiver
+    private val historicVariableArchiver: HistoricVariableArchiver,
+    private val executionEngine: com.easy.bpm.service.process.ProcessExecutionEngine,
+    private val slaService: TaskSlaService? = null
 ) {
 
     private val taskSortableFields = setOf(
@@ -70,7 +72,7 @@ class TaskService(
         "status",
         "createdAt",
         "completedAt",
-        "formId"
+        "formId", "dueDate"
     )
 
     /* =========================
@@ -168,6 +170,11 @@ class TaskService(
             )
             throw TaskCompletionIncidentException(taskCompletionIncidentMessage(errorMessage), ex)
         }
+        // The shared engine records its own recoverable failure; keep that committed outcome.
+        if (instance.status == ProcessStatus.FAILED) {
+            val errorMessage = instance.errorMessage ?: "Process continuation failed"
+            throw TaskCompletionIncidentException(taskCompletionIncidentMessage(errorMessage), IllegalStateException(errorMessage))
+        }
     }
 
     /* =========================
@@ -210,10 +217,10 @@ class TaskService(
         return result
     }
 
-    fun searchTasks(filters: List<TaskSearchFilterDto>, pageable: Pageable): Page<Task> {
+    fun searchTasks(filters: List<TaskSearchFilterDto>, pageable: Pageable, asOf: java.time.Instant = java.time.Instant.now()): Page<Task> {
         val startTime = System.currentTimeMillis()
         val result = taskRepository.findAll(
-            TaskSearchSpecification.build(filters, objectMapper = objectMapper),
+            TaskSearchSpecification.build(filters, objectMapper = objectMapper, asOf = asOf),
             sanitizeTaskPageable(pageable)
         )
         val duration = System.currentTimeMillis() - startTime
@@ -225,14 +232,16 @@ class TaskService(
         username: String,
         groups: Set<String>,
         filters: List<TaskSearchFilterDto>,
-        pageable: Pageable
+        pageable: Pageable,
+        asOf: java.time.Instant = java.time.Instant.now()
     ): Page<Task> {
         val startTime = System.currentTimeMillis()
         val result = taskRepository.findAll(
             TaskSearchSpecification.build(
                 filters = filters,
                 visibleTo = TaskVisibility(username, groups),
-                objectMapper = objectMapper
+                objectMapper = objectMapper,
+                asOf = asOf
             ),
             sanitizeTaskPageable(pageable)
         )
@@ -242,12 +251,13 @@ class TaskService(
     }
 
     private fun sanitizeTaskPageable(pageable: Pageable): Pageable {
-        val sanitizedOrders = pageable.sort
+        val requestedOrders = pageable.sort
             .filter { it.property in taskSortableFields }
             .toList()
+        val sanitizedOrders = if (requestedOrders.any { it.property == "dueDate" }) listOf(Sort.Order.asc("dueDateMissing")) + requestedOrders else requestedOrders
 
         val effectiveSort = if (sanitizedOrders.isNotEmpty()) {
-            Sort.by(sanitizedOrders)
+            Sort.by(sanitizedOrders + if (sanitizedOrders.none { it.property == "id" }) listOf(Sort.Order.asc("id")) else emptyList())
         } else {
             Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id"))
         }
@@ -284,7 +294,8 @@ class TaskService(
     }
 
     fun searchTaskResponses(filters: List<TaskSearchFilterDto>, pageable: Pageable): Page<TaskResponseDto> {
-        return searchTasks(filters, pageable).map { toResponseDto(it) }
+        val now = java.time.Instant.now()
+        return searchTasks(filters, pageable, now).map { toResponseDto(it, now) }
     }
 
     fun searchVisibleTaskResponses(username: String, groups: Set<String>, assignee: String?, status: TaskStatus?, pageable: Pageable): Page<TaskResponseDto> {
@@ -297,7 +308,8 @@ class TaskService(
         filters: List<TaskSearchFilterDto>,
         pageable: Pageable
     ): Page<TaskResponseDto> {
-        return searchVisibleTasks(username, groups, filters, pageable).map { toResponseDto(it) }
+        val now = java.time.Instant.now()
+        return searchVisibleTasks(username, groups, filters, pageable, now).map { toResponseDto(it, now) }
     }
 
     private fun buildLegacyFilters(assignee: String?, status: TaskStatus?): List<TaskSearchFilterDto> =
@@ -317,6 +329,7 @@ class TaskService(
 
         if (task.assignee == null) {
             task.assignee = username
+            task.assignmentVersion++
             taskRepository.save(task)
             timelineService.record(
                 processInstanceId = task.processInstanceId,
@@ -343,6 +356,7 @@ class TaskService(
         }
 
         task.assignee = null
+        task.assignmentVersion++
         return toResponseDto(taskRepository.save(task))
     }
 
@@ -353,6 +367,7 @@ class TaskService(
 
         if (task.assignee == null) {
             task.assignee = username
+            task.assignmentVersion++
         } else if (task.assignee != username) {
             throw IllegalStateException("Task is assigned to another user")
         }
@@ -365,6 +380,7 @@ class TaskService(
     fun reassignTask(taskId: Long, assignee: String?): TaskResponseDto {
         val task = getActiveTaskForUpdate(taskId)
         task.assignee = assignee?.trim()?.takeIf { it.isNotEmpty() }
+        task.assignmentVersion++
         return toResponseDto(taskRepository.save(task))
     }
 
@@ -391,6 +407,7 @@ class TaskService(
         val nodeType = NodeType.fromString(node.get("type").asText())
         when (nodeType) {
             NodeType.UserTask -> handleUserTask(instance, node)
+            NodeType.BusinessRuleTask -> executionEngine.executeNodes(listOf(node.get("id").asText()), instance, definition)
             NodeType.APITask -> handleAPITask(instance, node, definition)
             NodeType.ServiceTask -> handleServiceTaskNode(instance, node, definition)
             NodeType.AgentProcessCall -> handleAgentProcessCall(instance, node, definition)
@@ -449,6 +466,10 @@ class TaskService(
                 formId = form?.id
             )
         )
+        try { slaService?.configure(task, node) } catch (ex: IllegalArgumentException) {
+            taskRepository.delete(task)
+            throw ex
+        }
         timelineService.record(
             processInstanceId = instance.id,
             nodeId = task.nodeId,
@@ -748,11 +769,15 @@ class TaskService(
         task.assignee = assignee
         task.status = TaskStatus.COMPLETED
         task.completedAt = LocalDateTime.now()
+        task.dueDate?.let { due ->
+            task.slaCompletedAt = java.time.Instant.now()
+            task.completedWithinSla = !task.slaCompletedAt!!.isAfter(due)
+        }
         taskRepository.save(task)
         historicVariableArchiver.archiveTaskVariables(task)
     }
 
-    private fun toResponseDto(task: Task): TaskResponseDto {
+    private fun toResponseDto(task: Task, asOf: java.time.Instant = java.time.Instant.now()): TaskResponseDto {
         val taskVariables = taskVariableRepository.findByTaskId(task.id)
         val historicTaskVariables = if (taskVariables.isEmpty() && task.status == TaskStatus.COMPLETED) {
             historicTaskVariableRepository.findByTaskId(task.id)
@@ -781,7 +806,11 @@ class TaskService(
             completedAt = task.completedAt,
             formDbId = task.formId,
             formId = formId,
-            variables = variables
+            variables = variables,
+            dueDate = task.dueDate,
+            slaStatus = SlaPolicy.status(task.dueDate, task.slaRiskAt, task.status == TaskStatus.COMPLETED, asOf),
+            slaTimeZone = task.slaTimeZone,
+            completedWithinSla = task.completedWithinSla
         )
     }
 

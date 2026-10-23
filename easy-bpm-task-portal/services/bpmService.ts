@@ -1,4 +1,4 @@
-import { Task, TaskStatus, ProcessDefinition, ProcessInstance, CompleteTaskPayload, Page, Form, AuthLoginResponse, AuthSession, DocumentMetadata, TaskSearchFilter, AuthCurrentUser, AuthProviderConfig } from '../types';
+import { Task, TaskStatus, ProcessDefinition, ProcessInstance, CompleteTaskPayload, Page, Form, AuthLoginResponse, AuthSession, DocumentMetadata, TaskSearchFilter, AuthCurrentUser, AuthProviderConfig, SlaSummary, SlaEvent } from '../types';
 
 export type TaskCompletionResult = { incident: boolean };
 
@@ -356,13 +356,13 @@ export const bpmService = {
     };
   },
 
-  getTasks: async (filters: TaskSearchFilter[] = []): Promise<Task[]> => {
+  getTasks: async (filters: TaskSearchFilter[] = [], sort = 'createdAt,desc'): Promise<Task[]> => {
     if (USE_MOCK) {
       await delay(200);
       return [...MOCK_TASKS];
     }
 
-    const params = new URLSearchParams({ page: '0', size: '100' });
+    const params = new URLSearchParams({ page: '0', size: '100', sort });
 
     const response = await fetchWithAuth(`${API_BASE_URL}/tasks/search?${params.toString()}`, {
       method: 'POST',
@@ -374,6 +374,22 @@ export const bpmService = {
     return taskPage.content;
   },
 
+  getTasksPage: async (filters: TaskSearchFilter[], page = 0, sort = 'createdAt,desc'): Promise<Page<Task>> => {
+    const params = new URLSearchParams({ page: String(page), size: '25', sort });
+    const response = await fetchWithAuth(`${API_BASE_URL}/tasks/search?${params}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ filters }) });
+    await assertOk(response, 'Get tasks');
+    return response.json();
+  },
+  getSlaSummary: async (filters: TaskSearchFilter[]): Promise<SlaSummary> => {
+    const response = await fetchWithAuth(`${API_BASE_URL}/tasks/sla/summary`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ filters }) });
+    await assertOk(response, 'Get SLA counters');
+    return response.json();
+  },
+  getSlaEvents: async (id: number, page = 0): Promise<Page<SlaEvent>> => {
+    const response = await fetchWithAuth(`${API_BASE_URL}/tasks/${id}/sla/events?page=${page}&size=20`);
+    await assertOk(response, 'Get SLA history');
+    return response.json();
+  },
   getTaskById: async (id: number): Promise<Task> => {
     if (USE_MOCK) {
       await delay(100);

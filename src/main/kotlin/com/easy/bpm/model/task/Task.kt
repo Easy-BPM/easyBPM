@@ -34,6 +34,17 @@ data class Task(
     val createdAt: LocalDateTime = LocalDateTime.now(),
     var completedAt: LocalDateTime? = null,
 
-    val formId: Long? = null
+    val formId: Long? = null,
+    var dueDate: java.time.Instant? = null,
+    var slaRiskAt: java.time.Instant? = null,
+    var slaTimeZone: String? = null,
+    @Column(columnDefinition = "TEXT")
+    var slaPolicy: String? = null,
+    var slaCompletedAt: java.time.Instant? = null,
+    var completedWithinSla: Boolean? = null,
+    @Column(nullable = false)
+    var assignmentVersion: Long = 0,
+    @org.hibernate.annotations.Formula("case when due_date is null then 1 else 0 end")
+    val dueDateMissing: Int = 0
 )
 

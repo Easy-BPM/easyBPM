@@ -43,6 +43,9 @@ logging:
     org.hibernate.SQL: DEBUG
 
 easybpm:
+  sla:
+    # Clock-controlled SLA tests invoke poll/process explicitly, without background races.
+    initial-delay-ms: 86400000
   security:
     enabled: false
     # Use a 24-hour expiry during tests to prevent JWT expiry across slow CI runs

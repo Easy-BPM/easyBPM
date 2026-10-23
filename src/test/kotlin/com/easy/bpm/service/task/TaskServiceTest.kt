@@ -75,7 +75,8 @@ class TaskServiceTest : FunSpec() {
         mockAgentProcessCallHandler,
         mockTimelineService,
         mockFailureHandler,
-        mockHistoricVariableArchiver
+        mockHistoricVariableArchiver,
+        mockk<com.easy.bpm.service.process.ProcessExecutionEngine>(relaxed = true)
     )
 
     beforeEach {
@@ -202,7 +203,8 @@ class TaskServiceTest : FunSpec() {
                 mockAgentProcessCallHandler,
                 mockTimelineService,
                 mockFailureHandler,
-                mockHistoricVariableArchiver
+                mockHistoricVariableArchiver,
+                mockk<com.easy.bpm.service.process.ProcessExecutionEngine>(relaxed = true)
             )
             val definitionJson = unitTestBpmnXml(
                 "no-form",
@@ -287,7 +289,8 @@ class TaskServiceTest : FunSpec() {
                 mockAgentProcessCallHandler,
                 mockTimelineService,
                 mockFailureHandler,
-                mockHistoricVariableArchiver
+                mockHistoricVariableArchiver,
+                mockk<com.easy.bpm.service.process.ProcessExecutionEngine>(relaxed = true)
             )
             val definitionJson = unitTestBpmnXml(
                 "routing-failure",
