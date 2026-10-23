@@ -59,18 +59,18 @@ try {
     await page.getByRole('button', { name: 'Run saved tests', exact: true }).click(); await page.getByText('Adult applicant: FAIL', { exact: true }).waitFor();
     unavailable = true; await page.getByRole('button', { name: 'Validate', exact: true }).click(); assert.match(await page.getByRole('alert').innerText(), /Backend unavailable/);
     const roundtrip = await page.evaluate(() => {
-      const table = structuredClone(window.examples[0].table); table.name = 'Eligibility & safety'; table.rules[0].description = 'Adults < 100';
+      const table = structuredClone(window.examples[0].table); table.name = 'Eligibility & safety'; table.description = 'Business & <docs>'; table.inputs[0].description = ''; table.outputs[0].description = 'Output docs'; table.rules[0].description = 'Adults < 100';
       table.xmlIds = { definitions: 'DefinitionOriginal', table: 'TableOriginal', inputExpressions: { age: 'ExpressionOriginal' }, inputEntries: { adult: ['ConditionOriginal'] }, outputEntries: { adult: ['OutputOriginal'] } };
       const xml = window.dmn.decisionToDmnXml(table); const parsed = window.dmn.dmnXmlToDecision(xml); const again = window.dmn.dmnXmlToDecision(window.dmn.decisionToDmnXml(parsed));
       const prefixed = xml.replace(/<(\/)?(definitions|decision|decisionTable|input|inputExpression|output|rule|inputEntry|outputEntry|text|description)(?=[\s>])/g, '<$1dmn:$2').replace('xmlns=', 'xmlns:dmn=');
       const prefixParsed = window.dmn.dmnXmlToDecision(prefixed);
-      const unsupported = [xml.replace('<output id=', '<outputValues/><output id='), xml.replace('hitPolicy="UNIQUE"', 'hitPolicy="UNIQUE" aggregation="SUM"'), xml.replace('<inputExpression ', '<inputExpression expressionLanguage="javascript" '), xml.replace('<text>age</text>', '<text>age</text><text>ignored</text>')];
+      const unsupported = [xml.replace('<description>Adults &lt; 100</description>', '<description>A</description><description>B</description>'), xml.replace('<output id=', '<outputValues/><output id='), xml.replace('hitPolicy="UNIQUE"', 'hitPolicy="UNIQUE" aggregation="SUM"'), xml.replace('<inputExpression ', '<inputExpression expressionLanguage="javascript" '), xml.replace('<text>age</text>', '<text>age</text><text>ignored</text>')];
       const rejected = unsupported.map(value => { try { window.dmn.dmnXmlToDecision(value); return false; } catch { return true; } });
       const config = { decisionKey: 'eligibility', decisionVersion: 1, inputs: [{ targetName: 'age', type: 'number', source: 'static', value: 21 }], outputs: [{ sourceName: 'eligible', target: 'variable', value: 'approved', type: 'boolean' }] };
       const bpmnXml = window.bpmn.processDefinitionToBpmnXml({ processId: 'rules', nodes: [{ id: 'decide', type: 'BusinessRuleTask', config }], flows: [] });
       return { table, parsed, again, prefixParsed, rejected, bpmnXml, config, decoded: window.bpmn.bpmnXmlToProcessDefinition(bpmnXml).nodes[0].config };
     });
-    assert.deepEqual(roundtrip.parsed, roundtrip.table); assert.deepEqual(roundtrip.again, roundtrip.table); assert.deepEqual(roundtrip.prefixParsed, roundtrip.table); assert.deepEqual(roundtrip.rejected, [true, true, true, true]); assert.match(roundtrip.bpmnXml, /bpmn:businessRuleTask/); assert.deepEqual(roundtrip.decoded, roundtrip.config);
+    assert.deepEqual(roundtrip.parsed, roundtrip.table); assert.deepEqual(roundtrip.again, roundtrip.table); assert.deepEqual(roundtrip.prefixParsed, roundtrip.table); assert.deepEqual(roundtrip.rejected, [true, true, true, true, true]); assert.match(roundtrip.bpmnXml, /bpmn:businessRuleTask/); assert.deepEqual(roundtrip.decoded, roundtrip.config);
     assert.deepEqual(await page.evaluate(() => window.dmn.newDecision()), {key:'',name:'',hitPolicy:'UNIQUE',inputs:[],outputs:[],rules:[]});
     await page.getByRole('button', {name:'New decision',exact:true}).click(); assert.equal(await page.getByLabel('Rule 1 ID', {exact:true}).count(), 0); assert.equal(await page.getByLabel('Decision name', {exact:true}).inputValue(), '');
     unavailable = false;

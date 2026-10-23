@@ -42,6 +42,26 @@ class DecisionIntegrationTest : IntegrationTestBase() {
         assertEquals(false, (newResults.single() as Map<*, *>)["passed"])
         assertThrows(DecisionException::class.java) { service.resolve(key, 99) }
     }
+    @Test fun `metadata only deployments remain visible in version diff`() {
+        val key = "metadata_${UUID.randomUUID().toString().replace("-", "")}"
+        val source = xml(key)
+        service.deploy(source)
+        service.deploy(source.replace("<dmn:decisionTable", "<dmn:description>Business docs</dmn:description><dmn:decisionTable"))
+        val changes = service.diff(key, 1, 2)["changes"] as List<*>
+        assertTrue(changes.any { (it as Map<*, *>)["path"] == "description" })
+    }
+    @Test fun `saved cases compare nested numbers by exact semantic value`() {
+        val key = "numeric_${UUID.randomUUID().toString().replace("-", "")}"
+        val source = """<definitions xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/"><decision id="$key"><decisionTable><input id="i"><inputExpression typeRef="number"><text>age</text></inputExpression></input><output id="o" name="result" typeRef="Any"/><rule id="r"><inputEntry><text>-</text></inputEntry><outputEntry><text>{"nested":[1,1.0,9007199254740993,0.1000000000000000001]}</text></outputEntry></rule></decisionTable></decision></definitions>"""
+        service.deploy(source)
+        val reader = mapper.readerFor(Any::class.java).with(com.fasterxml.jackson.databind.DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)
+        service.saveTest(key, "equivalent", mapOf("age" to 21), reader.readValue<Any>("""{"result":{"nested":[1.0,1,9007199254740993.0,0.1000000000000000001]}}"""))
+        service.saveTest(key, "precision differs", mapOf("age" to 21), reader.readValue<Any>("""{"result":{"nested":[1,1,9007199254740993,0.1000000000000000002]}}"""))
+        service.saveTest(key, "string differs", mapOf("age" to 21), reader.readValue<Any>("""{"result":{"nested":["1",1,9007199254740993,0.1000000000000000001]}}"""))
+        val results = service.runTests(key, 1)["results"] as List<*>
+        assertEquals(listOf(true, false, false), results.map { (it as Map<*, *>)["passed"] })
+        assertTrue(((results.first() as Map<*, *>)["differences"] as List<*>).isEmpty())
+    }
     @Test fun `audits are typed redacted and meters record success and failure`() {
         val key = "audit_${UUID.randomUUID().toString().replace("-", "")}"; val definition = service.deploy(xml(key))
         val secret = "DMN_SECRET_CANARY_123"

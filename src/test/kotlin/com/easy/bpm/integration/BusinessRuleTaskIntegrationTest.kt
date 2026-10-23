@@ -55,6 +55,42 @@ class BusinessRuleTaskIntegrationTest : IntegrationTestBase() {
         assertEquals("false", jdbc.queryForObject("select value::text from process_variable where process_instance_id=? and name='approved'", String::class.java, newer.id))
     }
 
+    @Test fun `nested output persists siblings and next decision reads updated path`() {
+        val key = "nested_${UUID.randomUUID().toString().replace("-", "")}"
+        decisions.deploy(dmn(key, true))
+        val nextKey = "read_${UUID.randomUUID().toString().replace("-", "")}"
+        decisions.deploy(dmn(nextKey, true).replace("typeRef=\"number\"", "typeRef=\"boolean\"").replace("&gt;= 18", "true"))
+        var source = bpmn(key).replace("\"value\":\"approved\"", "\"value\":\"customer.approved\"")
+        val nextTask = bpmn(nextKey).substringAfter("<businessRuleTask").substringBefore("</businessRuleTask>")
+            .replace("id=\"rules\"", "id=\"readBack\"").replace("customer.age", "customer.approved")
+            .replace("\"type\":\"number\"", "\"type\":\"boolean\"")
+        source = source.replace("<userTask id=\"review\"/>", "<businessRuleTask$nextTask</businessRuleTask><userTask id=\"review\"/>")
+            .replace("targetRef=\"review\"", "targetRef=\"readBack\"")
+            .replace("</process>", "<sequenceFlow id=\"f3\" sourceRef=\"readBack\" targetRef=\"review\"/></process>")
+        val process = processes.deployProcess(source)
+        val instance = start(process.id, mapOf("customer" to mapOf("age" to 21, "approved" to false, "name" to "Ana")))
+        assertEquals(listOf("review"), instances.findById(instance.id).orElseThrow().currentNode)
+        val customer = mapper.readTree(jdbc.queryForObject("select value::text from process_variable where process_instance_id=? and name='customer'", String::class.java, instance.id))
+        assertTrue(customer["approved"].asBoolean())
+        assertEquals(21, customer["age"].asInt())
+        assertEquals("Ana", customer["name"].asText())
+        assertEquals("true", jdbc.queryForObject("select value::text from process_variable where process_instance_id=? and name='approved'", String::class.java, instance.id))
+        assertEquals(0L, jdbc.queryForObject("select count(*) from process_variable where process_instance_id=? and name='customer.approved'", Long::class.java, instance.id))
+    }
+    @Test fun `conflicting or nonobject output paths persist incident without partial roots`() {
+        val key = "conflict_${UUID.randomUUID().toString().replace("-", "")}"
+        decisions.deploy(dmn(key, true))
+        val originalMapping = """{"sourceName":"approved","target":"variable","value":"approved","type":"boolean"}"""
+        listOf(listOf("untouched", "customer", "customer.approved"), listOf("untouched", "customer.approved", "customer"), listOf("untouched", "scalar.child")).forEach { targets ->
+            val mappings = targets.joinToString(",") { """{"sourceName":"approved","target":"variable","value":"$it","type":"boolean"}""" }
+            val process = processes.deployProcess(bpmn(key).replace(originalMapping, mappings))
+            val instance = start(process.id, mapOf("customer" to mapOf("age" to 21, "approved" to false), "scalar" to 1))
+            assertEquals(ProcessStatus.FAILED, instances.findById(instance.id).orElseThrow().status)
+            assertEquals(0L, jdbc.queryForObject("select count(*) from process_variable where process_instance_id=? and name='untouched'", Long::class.java, instance.id))
+            assertEquals("false", jdbc.queryForObject("select value->>'approved' from process_variable where process_instance_id=? and name='customer'", String::class.java, instance.id))
+            assertEquals(1L, jdbc.queryForObject("select count(*) from decision_execution where process_instance_id=? and status='FAILED'", Long::class.java, instance.id))
+        }
+    }
     @Test fun `first synchronous mapping failure persists failed instance audit incident and no output`() {
         val key = "failure_${UUID.randomUUID().toString().replace("-", "")}"
         decisions.deploy(dmn(key, true))

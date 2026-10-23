@@ -79,6 +79,42 @@ class ProcessBusinessRuleTaskHandlerTest {
         verify { decisions.evaluateDefinition(definition, mapOf("age" to 21), 42, "rules") }
     }
 
+    @Test fun `nested outputs merge siblings without mutating snapshot`() {
+        setup(mapOf("approved" to true))
+        val original = mapOf("age" to 21, "customer" to mapOf("age" to 21, "approved" to false))
+        every { variables.getProcessVariablesAsMap(42) } returns original
+        val target = """[{"sourceName":"approved","value":"customer.approved","type":"boolean"},{"sourceName":"approved","value":"customer.flags.eligible","type":"boolean"}]"""
+        handler.execute(instance, node(target))
+        val expected = mapOf("customer" to mapOf("age" to 21, "approved" to true, "flags" to mapOf("eligible" to true)))
+        verify { variables.assignProcessVariables(42, expected) }
+        assertEquals(false, (original["customer"] as Map<*, *>)["approved"])
+    }
+    @Test fun `absent and null nested parents are created but later failure never mutates inputs`() {
+        listOf(emptyMap<String, Any?>(), mapOf("customer" to null)).forEach { root ->
+            setup(mapOf("approved" to true))
+            every { variables.getProcessVariablesAsMap(42) } returns (root + ("age" to 21))
+            handler.execute(instance, node("""[{"sourceName":"approved","value":"customer.flags.eligible","type":"boolean"}]"""))
+        }
+        verify(exactly = 2) { variables.assignProcessVariables(42, mapOf("customer" to mapOf("flags" to mapOf("eligible" to true)))) }
+        clearMocks(variables, answers = false)
+        setup(mapOf("approved" to true))
+        val original = mapOf("age" to 21, "customer" to mapOf("approved" to false), "scalar" to 1)
+        every { variables.getProcessVariablesAsMap(42) } returns original
+        assertThrows(IllegalArgumentException::class.java) { handler.execute(instance, node("""[{"sourceName":"approved","value":"customer.approved","type":"boolean"},{"sourceName":"approved","value":"scalar.child","type":"boolean"}]""")) }
+        verify(exactly = 0) { variables.assignProcessVariables(any(), any()) }
+        assertEquals(false, (original["customer"] as Map<*, *>)["approved"])
+    }
+    @Test fun `overlapping targets and scalar parents reject every write`() {
+        listOf(listOf("customer", "customer.approved"), listOf("customer.approved", "customer"), listOf("customer.approved", "customer.approved")).forEach { targets ->
+            setup(mapOf("approved" to true))
+            val mappings = targets.joinToString(",", "[", "]") { """{"sourceName":"approved","value":"$it","type":"boolean"}""" }
+            assertThrows(IllegalArgumentException::class.java) { handler.execute(instance, node(mappings)) }
+        }
+        setup(mapOf("approved" to true))
+        every { variables.getProcessVariablesAsMap(42) } returns mapOf("age" to 21, "customer" to false)
+        assertThrows(IllegalArgumentException::class.java) { handler.execute(instance, node("""[{"sourceName":"approved","value":"customer.approved","type":"boolean"}]""")) }
+        verify(exactly = 0) { variables.assignProcessVariables(any(), any()) }
+    }
     @Test fun `output named result is mapped as ordinary output`() {
         setup(mapOf("result" to true))
         handler.execute(instance, node("""[{"sourceName":"result","value":"approved","target":"variable","type":"boolean"}]"""))

@@ -46,7 +46,7 @@ Publishing creates a new immutable `PUBLISHED` version of a decision key, includ
 
 A BPMN task can specify an exact positive `decisionVersion`. If omitted, the engine selects the latest published version when that instance/task first executes and durably pins it. A retry or later visit to the same task in that instance uses the pinned version. A different instance, or a task that has never executed, can select a later deployment. Publishing a new version never changes an existing pin.
 
-Use version comparison before rollout to inspect changed policy, inputs, outputs, and ordered rule cells. Run saved test cases against the candidate version. Saved cases contain a name, explicit JSON inputs, and expected outputs; a test run reports expected/actual differences. Test-case content is deliberate author data and is not protected by execution audit redaction.
+Use version comparison before rollout to inspect changed policy, inputs, outputs, and ordered rule cells. Run saved test cases against the candidate version. Saved cases contain a name, explicit JSON inputs, and expected outputs; a test run reports expected/actual differences. Numeric expected and actual values compare by exact numeric value, including inside objects and arrays: `1` and `1.0` are equivalent, while the string `"1"` is different. Array order and object keys must still match. Test-case content is deliberate author data and is not protected by execution audit redaction.
 
 ## Map process variables
 
@@ -72,6 +72,8 @@ Add a Business Rule Task from the BPMN palette. Set its decision key and optiona
 Static mapping values are actual JSON values on the wire: `250`, `true`, `{"tier":1}`, or the plain string `"gold"`. Do not send the string `"250"` for a numeric mapping. The Modeler converts its editing fields into these typed values.
 
 A named COLLECT output maps to an ordered array of that column's values. Its mapping type checks every array element. To store the complete decision result, use the reserved selector `sourceName: "$result"` and `type: "json"`. An ordinary output named `result` remains a named column. A named mapping cannot read from a no-match UNIQUE/FIRST null result; this creates an incident rather than leaving stale variables. All mappings are checked before any output variables are changed.
+
+Output targets use the same dotted object-path syntax as input paths. Writing `customer.approved` updates the `customer` object and preserves its other properties; a later task reading that path sees the new value. Missing or null intermediate objects are created. Scalar or array intermediate values cause a mapping failure. Duplicate targets and overlapping parent/child targets (for example `customer` together with `customer.approved`) are rejected in either order. Every path is prepared before persistence, so any such failure leaves all output variables unchanged.
 
 Missing decisions or versions, invalid/missing input values, type errors, ambiguous UNIQUE evaluation, and invalid output mappings create a `DECISION_TASK` incident and a failed decision execution. In Admin, inspect decision history and the incident, correct input data with the existing process variable editor, then select the incident's Retry action. It invokes the admin-only `POST /incidents/{id}/retry` endpoint and reruns the failed task with its existing decision-version pin.
 

@@ -21,7 +21,8 @@ class DecisionService(
     private val evaluator: DecisionEvaluator,
     private val mapper: ObjectMapper,
     private val jdbc: JdbcTemplate,
-    private val meters: MeterRegistry
+    private val meters: MeterRegistry,
+    private val expressions: DecisionExpressions
 ) {
     fun validate(xml: String) = evaluator.validate(xml)
     fun test(xml: String, inputs: Map<String, Any?>): EvaluationResult = evaluator.evaluate(evaluator.requireValid(xml), bounded(inputs))
@@ -95,8 +96,10 @@ class DecisionService(
             val expected = mapper.readTree(case.expectedOutputsJson)
             var actual: Any? = null; var error: String? = null
             try { actual = evaluator.evaluate(table, readMap(case.inputsJson), definition.version).outputs } catch (e: DecisionException) { error = e.code }
-            val actualTree = mapper.valueToTree<com.fasterxml.jackson.databind.JsonNode>(actual)
-            val passed = error == null && expected == actualTree
+            val expectedValue = mapper.readerFor(Any::class.java)
+                .with(com.fasterxml.jackson.databind.DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)
+                .readValue<Any?>(case.expectedOutputsJson)
+            val passed = error == null && expressions.equal(expectedValue, actual)
             mapOf("testCaseId" to case.id, "name" to case.name, "passed" to passed, "expectedOutputs" to expected, "actualOutputs" to actual, "error" to error,
                 "differences" to if (passed) emptyList<Any>() else listOf(mapOf("path" to "outputs", "expected" to expected, "actual" to actual)))
         }

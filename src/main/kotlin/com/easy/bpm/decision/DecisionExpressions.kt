@@ -67,14 +67,14 @@ class DecisionExpressions(mapper: ObjectMapper) {
         if (depth > 16) throw DecisionException("LIMIT", "Expression nesting exceeds 16")
         if (text.isBlank()) throw DecisionException("INCOMPLETE_RULE", "Rule cells cannot be empty")
         if (text == "-") return { true }
-        if (text.startsWith("not(") && text.endsWith(")")) {
-            val nested = parse(text.substring(4, text.length - 1).trim(), type, depth + 1)
-            return { !nested(it) }
-        }
         val alternatives = split(text)
         if (alternatives.size > 1) {
             val predicates = alternatives.map { parse(it.trim(), type, depth + 1) }
             return { v -> predicates.any { it(v) } }
+        }
+        if (text.startsWith("not(") && text.endsWith(")")) {
+            val nested = parse(text.substring(4, text.length - 1).trim(), type, depth + 1)
+            return { !nested(it) }
         }
         if (text.first() in "[(" && text.last() in "])" && ".." in text) {
             ordered(type)

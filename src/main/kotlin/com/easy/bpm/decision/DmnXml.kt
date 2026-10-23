@@ -41,6 +41,7 @@ class DmnXml {
                     val attribute = e.attributes.item(j)
                     require(attribute.namespaceURI == XMLConstants.XMLNS_ATTRIBUTE_NS_URI || attribute.nodeName in attributes.getValue(e.localName)) { "Unsupported DMN attribute" }
                 }
+                require(e.children("description").size <= 1) { "At most one description is supported" }
                 if (e.hasAttribute("id")) require(e.getAttribute("id").isNotBlank() && ids.add(e.getAttribute("id"))) { "Duplicate or empty DMN identifier" }
                 (0 until e.childNodes.length).mapNotNull { e.childNodes.item(it) as? Element }.forEach { child -> require(child.localName in children.getValue(e.localName)) { "Unsupported DMN element structure" } }
                 if (e.localName in setOf("inputExpression", "inputEntry", "outputEntry")) require(e.children("text").size == 1) { "Exactly one expression text is required" }
@@ -53,13 +54,13 @@ class DmnXml {
             val t = tables.single()
             val inputs = t.children("input").map { i ->
                 val expression = i.children("inputExpression").singleOrNull() ?: error("Input expression required")
-                DecisionInput(i.getAttribute("id"), i.getAttribute("label"), expression.children("text").singleOrNull()?.textContent.orEmpty(), type(expression.getAttribute("typeRef")))
+                DecisionInput(i.getAttribute("id"), i.getAttribute("label"), expression.children("text").singleOrNull()?.textContent.orEmpty(), type(expression.getAttribute("typeRef")), i.children("description").singleOrNull()?.textContent)
             }
-            val outputs = t.children("output").map { DecisionOutput(it.getAttribute("id"), it.getAttribute("name"), type(it.getAttribute("typeRef"))) }
+            val outputs = t.children("output").map { DecisionOutput(it.getAttribute("id"), it.getAttribute("name"), type(it.getAttribute("typeRef")), it.children("description").singleOrNull()?.textContent) }
             val rules = t.children("rule").map { r -> DecisionRule(r.getAttribute("id"), r.children("description").firstOrNull()?.textContent.orEmpty(),
                 r.children("inputEntry").map { it.children("text").singleOrNull()?.textContent.orEmpty() },
                 r.children("outputEntry").map { it.children("text").singleOrNull()?.textContent.orEmpty() }) }
-            return DecisionTable(d.getAttribute("id"), d.getAttribute("name").ifBlank { d.getAttribute("id") }, t.getAttribute("hitPolicy").ifBlank { "UNIQUE" }, inputs, outputs, rules)
+            return DecisionTable(d.getAttribute("id"), d.getAttribute("name").ifBlank { d.getAttribute("id") }, t.getAttribute("hitPolicy").ifBlank { "UNIQUE" }, inputs, outputs, rules, d.children("description").singleOrNull()?.textContent)
         } catch (e: DecisionException) { throw e } catch (e: Exception) {
             throw DecisionException("INVALID_DMN", e.message?.takeIf { e is IllegalArgumentException || e is IllegalStateException }?.take(180) ?: "Invalid or unsupported DMN XML")
         }

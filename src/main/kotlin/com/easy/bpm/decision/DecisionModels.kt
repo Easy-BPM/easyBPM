@@ -3,10 +3,10 @@ package com.easy.bpm.decision
 import jakarta.persistence.*
 import java.time.Instant
 
-data class DecisionInput(val id: String, val label: String = "", val expression: String, val type: String)
-data class DecisionOutput(val id: String, val name: String, val type: String)
+data class DecisionInput(val id: String, val label: String = "", val expression: String, val type: String, val description: String? = null)
+data class DecisionOutput(val id: String, val name: String, val type: String, val description: String? = null)
 data class DecisionRule(val id: String, val description: String = "", val inputEntries: List<String>, val outputEntries: List<String>)
-data class DecisionTable(val key: String, val name: String, val hitPolicy: String = "UNIQUE", val inputs: List<DecisionInput>, val outputs: List<DecisionOutput>, val rules: List<DecisionRule>)
+data class DecisionTable(val key: String, val name: String, val hitPolicy: String = "UNIQUE", val inputs: List<DecisionInput>, val outputs: List<DecisionOutput>, val rules: List<DecisionRule>, val description: String? = null)
 data class DecisionIssue(val severity: String, val code: String, val message: String, val ruleId: String? = null, val columnId: String? = null)
 data class DecisionValidation(val valid: Boolean, val issues: List<DecisionIssue>, val table: DecisionTable? = null)
 data class ConditionExplanation(val inputId: String, val expression: String, val matched: Boolean)

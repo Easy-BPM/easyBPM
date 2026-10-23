@@ -44,6 +44,25 @@ class DecisionEvaluatorTest {
         assertThrows(DecisionException::class.java) { expressions.predicate("> \"a\"", "string") }
         assertThrows(DecisionException::class.java) { expressions.literal("1 2", "number") }
     }
+    @Test fun `negation composes with top level alternatives and intervals`() {
+        listOf("not(1),not(2)", "1,not(2)", "not(not(1),2)", "not([2..3]),[1..2)").forEach {
+            assertTrue(expressions.predicate(it, "number")(1), it)
+        }
+        assertFalse(expressions.predicate("not(1,2)", "number")(1))
+        assertFalse(expressions.predicate("not(not(1),2)", "number")(2))
+        listOf("[1..2]" to listOf(true, true), "[1..2)" to listOf(true, false), "(1..2]" to listOf(false, true), "(1..2)" to listOf(false, false)).forEach { (cell, expected) ->
+            assertEquals(expected, listOf(1, 2).map(expressions.predicate(cell, "number")), cell)
+        }
+    }
+    @Test fun `DMN descriptions survive parsed metadata and duplicates fail`() {
+        val xml = """<definitions xmlns="https://www.omg.org/spec/DMN/20191111/MODEL/"><decision id="descriptions"><description>Business &amp; docs</description><decisionTable><input id="i"><description></description><inputExpression typeRef="number"><text>age</text></inputExpression></input><output id="o" name="approved" typeRef="boolean"><description>Output docs</description></output><rule id="r"><description>Rule docs</description><inputEntry><text>-</text></inputEntry><outputEntry><text>true</text></outputEntry></rule></decisionTable></decision></definitions>"""
+        val table = DmnXml().parse(xml)
+        assertEquals("Business & docs", table.description)
+        assertEquals("", table.inputs.single().description)
+        assertEquals("Output docs", table.outputs.single().description)
+        assertEquals("Rule docs", table.rules.single().description)
+        assertThrows(DecisionException::class.java) { DmnXml().parse(xml.replace("<description>Rule docs</description>", "<description>A</description><description>B</description>")) }
+    }
     @Test fun `high precision decimals retain distinct values`() {
         val a = expressions.literal("0.1000000000000000001", "number")
         val b = expressions.literal("0.1000000000000000002", "number")

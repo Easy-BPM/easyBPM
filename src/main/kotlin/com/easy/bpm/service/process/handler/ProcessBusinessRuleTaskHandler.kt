@@ -49,7 +49,8 @@ class ProcessBusinessRuleTaskHandler(
             config.path("outputs").forEach { mapping ->
                 val source = mapping.path("sourceName").asText()
                 val target = mapping.path("value").asText()
-                require(target.isNotBlank() && !outputs.containsKey(target)) { "INVALID_OUTPUT_MAPPING" }
+                require(target.matches(Regex("[A-Za-z_][A-Za-z0-9_]*(\\.[A-Za-z_][A-Za-z0-9_]*)*"))) { "INVALID_VARIABLE_PATH" }
+                require(outputs.keys.none { it == target || it.startsWith("$target.") || target.startsWith("$it.") }) { "INVALID_OUTPUT_MAPPING" }
                 val value = if (source == "\$result") result.outputs else if (result.outputs is List<*>) {
                     result.outputs.map { row ->
                         require(row is Map<*, *> && row.containsKey(source)) { "MISSING_DECISION_OUTPUT" }
@@ -63,7 +64,13 @@ class ProcessBusinessRuleTaskHandler(
                 if (source == "\$result" || result.outputs !is List<*>) checkType(value, mapping.path("type").asText())
                 outputs[target] = value
             }
-            if (outputs.isNotEmpty()) variables.assignProcessVariables(instance.id, outputs)
+            val roots = linkedMapOf<String, Any?>()
+            outputs.forEach { (path, value) ->
+                val segments = path.split('.')
+                val root = segments.first()
+                roots[root] = writePath(roots.getOrDefault(root, processVariables[root]), segments.drop(1), value)
+            }
+            if (roots.isNotEmpty()) variables.assignProcessVariables(instance.id, roots)
             decisions.recordTaskSuccess(definition, inputs, result, instance.id, nodeId)
         } catch (ex: Exception) {
             // One runtime audit covers evaluation and mapping together; codes never contain supplied values.
@@ -73,6 +80,19 @@ class ProcessBusinessRuleTaskHandler(
             decisions.recordFailure(definition, key, instance.id, nodeId, code, (System.nanoTime() - started) / 1_000_000, inputs, evaluated)
             throw IllegalArgumentException("Decision task '$nodeId' for '$key' failed (${definition?.version ?: "unresolved"}); inspect decision execution history")
         }
+    }
+
+    private fun writePath(current: Any?, segments: List<String>, value: Any?): Any? {
+        if (segments.isEmpty()) return value
+        require(current == null || current is Map<*, *>) { "INVALID_VARIABLE_PATH" }
+        val updated = linkedMapOf<String, Any?>()
+        (current as? Map<*, *>)?.forEach { (key, child) ->
+            require(key is String) { "INVALID_VARIABLE_PATH" }
+            updated[key] = child
+        }
+        val key = segments.first()
+        updated[key] = writePath(updated[key], segments.drop(1), value)
+        return updated
     }
 
     private fun readPath(root: Map<String, Any?>, path: String): Any? {
