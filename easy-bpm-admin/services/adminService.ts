@@ -1,4 +1,5 @@
 import {
+  DecisionDefinition, DecisionDiff, DecisionExecution,
   AdminGroup,
   ApiClient,
   ApiClientAudit,
@@ -36,8 +37,15 @@ import {
   UpdateAdminSecretPayload,
   CreateApiClientPayload,
   UpdateApiClientPayload,
-  VariableAssignmentPayload
+  VariableAssignmentPayload, SlaSummary, SlaEvent, SlaMetricRow, SlaTaskFilter
 } from '../types';
+
+const assertSlaResponse = async (response: Response, operation: string) => {
+  if (response.ok) return;
+  let detail = response.statusText;
+  try { const body = await response.json(); detail = body.message || body.error || detail; } catch { /* Keep the HTTP error. */ }
+  throw new Error(`${operation} failed (${response.status}): ${detail}`);
+};
 
 const API_BASE_URL = ((import.meta.env.EASY_BPM_ADMIN_API_BASE_URL as string | undefined) ?? 'http://localhost:8080').replace(/\/$/, '');
 const USE_MOCK = false;
@@ -72,7 +80,7 @@ const groupLegacyIncidents = (incidents: Incident[], filters: IncidentGroupFilte
   const grouped = [...groups.entries()].map(([signature, entries]): IncidentGroup => {
     const newest = [...entries].sort((left, right) => new Date(right.lastOccurredAt).getTime() - new Date(left.lastOccurredAt).getTime())[0];
     const occurrenceCount = entries.reduce((total, incident) => total + (incident.occurrenceCount || 1), 0);
-    const retryStatus: IncidentRetryStatus = newest.source === 'WORKER' && newest.status === 'OPEN' ? 'RETRY_ELIGIBLE' : 'NOT_ELIGIBLE';
+    const retryStatus: IncidentRetryStatus = ['WORKER', 'DECISION_TASK'].includes(newest.source) && newest.status === 'OPEN' ? 'RETRY_ELIGIBLE' : 'NOT_ELIGIBLE';
     return {
       signature,
       representativeIncidentId: newest.id,
@@ -255,6 +263,28 @@ const buildSessionFromMe = (token: string, me: AuthCurrentUser, idToken?: string
 });
 
 export const adminService = {
+  async getDecisions(): Promise<DecisionDefinition[]> {
+    const response = await fetchWithAuth(`${API_BASE_URL}/decisions`);
+    await assertSlaResponse(response, 'Load decisions'); return response.json();
+  },
+  async getDecisionVersions(key: string): Promise<DecisionDefinition[]> {
+    const response = await fetchWithAuth(`${API_BASE_URL}/decisions/${encodeURIComponent(key)}/versions`);
+    await assertSlaResponse(response, 'Load decision versions'); return response.json();
+  },
+  async getDecisionDiff(key: string, fromVersion: number, toVersion: number): Promise<DecisionDiff> {
+    const response = await fetchWithAuth(`${API_BASE_URL}/decisions/${encodeURIComponent(key)}/diff?fromVersion=${fromVersion}&toVersion=${toVersion}`);
+    await assertSlaResponse(response, 'Compare decision versions'); return response.json();
+  },
+  async getDecisionExecutions(filters: { key?: string; version?: string; processInstanceId?: string; nodeId?: string; status?: string; page?: number }): Promise<Page<DecisionExecution>> {
+    const params = new URLSearchParams({ page: String(filters.page || 0), size: '20' });
+    for (const key of ['key', 'version', 'processInstanceId', 'nodeId', 'status'] as const) if (filters[key]?.trim()) params.set(key, filters[key]!.trim());
+    const response = await fetchWithAuth(`${API_BASE_URL}/decision-executions?${params}`);
+    await assertSlaResponse(response, 'Load decision executions'); return response.json();
+  },
+  async getDecisionExecution(id: number): Promise<DecisionExecution> {
+    const response = await fetchWithAuth(`${API_BASE_URL}/decision-executions/${id}`);
+    await assertSlaResponse(response, 'Load decision execution'); return response.json();
+  },
   getSession: (): AuthSession | null => readSession(),
 
   clearSession: (): void => {
@@ -470,6 +500,31 @@ export const adminService = {
     const path = hasFilters ? '/tasks/search' : '/tasks';
     const res = await fetchWithAuth(`${API_BASE_URL}${path}?${params.toString()}`);
     if (!res.ok) throw new Error(`Failed to fetch tasks: ${res.statusText}`);
+    return res.json();
+  },
+
+  searchSlaTasks: async (filters: SlaTaskFilter[], page = 0, sort = 'dueDate,asc'): Promise<Page<BpmTask>> => {
+    const params = new URLSearchParams({ page: String(page), size: '20', sort });
+    const res = await fetchWithAuth(`${API_BASE_URL}/tasks/search?${params}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ filters }) });
+    await assertSlaResponse(res, 'Load SLA tasks');
+    return res.json();
+  },
+  getSlaSummary: async (filters: SlaTaskFilter[]): Promise<SlaSummary> => {
+    const res = await fetchWithAuth(`${API_BASE_URL}/tasks/sla/summary`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ filters }) });
+    await assertSlaResponse(res, 'Load SLA counters');
+    return res.json();
+  },
+  getSlaMetrics: async (groupBy: string, page = 0, dueDateFrom = '', dueDateTo = ''): Promise<Page<SlaMetricRow>> => {
+    const params = new URLSearchParams({ groupBy, page: String(page), size: '20' });
+    if (dueDateFrom) params.set('dueDateFrom', dueDateFrom);
+    if (dueDateTo) params.set('dueDateTo', dueDateTo);
+    const res = await fetchWithAuth(`${API_BASE_URL}/admin/sla/metrics?${params}`);
+    await assertSlaResponse(res, 'Load SLA metrics');
+    return res.json();
+  },
+  getSlaEvents: async (taskId: number, page = 0): Promise<Page<SlaEvent>> => {
+    const res = await fetchWithAuth(`${API_BASE_URL}/tasks/${taskId}/sla/events?page=${page}&size=20`);
+    await assertSlaResponse(res, 'Load SLA history');
     return res.json();
   },
 
@@ -697,7 +752,7 @@ export const adminService = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ requestedBy })
     });
-    if (!res.ok) throw new Error(`Failed to retry incident: ${res.statusText}`);
+    await assertSlaResponse(res, 'Retry incident');
     return res.json();
   },
 

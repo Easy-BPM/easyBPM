@@ -41,7 +41,8 @@ class ProcessExecutionEngineTest : FunSpec() {
             codeTaskHandler,
             callActivityHandler,
             timelineService,
-            lifecycleManager
+            lifecycleManager,
+            mockk<ProcessBusinessRuleTaskHandler>(relaxed = true)
         )
         val objectMapper = ObjectMapper()
 

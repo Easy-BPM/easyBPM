@@ -18,6 +18,10 @@ data class TaskResponseDto(
     val completedAt: LocalDateTime?,
     val formDbId: Long?,
     val formId: String? = null,
-    val variables: Map<String, Any?>
+    val variables: Map<String, Any?>,
+    val dueDate: java.time.Instant? = null,
+    val slaStatus: com.easy.bpm.service.task.SlaStatus? = null,
+    val slaTimeZone: String? = null,
+    val completedWithinSla: Boolean? = null
 )
 

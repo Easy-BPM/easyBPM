@@ -12,6 +12,9 @@
     "desktop:build": "npm run build:desktop && electron-builder",
     "preview": "vite preview",
     "lint": "tsc --noEmit",
+    "test:sla": "node --experimental-strip-types --test utils/sla.test.ts",
+    "test:sla:ui": "node tests/sla-ui.mjs",
+    "test:dmn:ui": "node tests/dmn-ui.mjs",
     "test:form-preview:ui": "node tests/form-preview-ui.mjs"
   },
   "dependencies": {

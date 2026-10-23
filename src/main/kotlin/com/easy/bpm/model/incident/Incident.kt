@@ -99,6 +99,8 @@ enum class IncidentSeverity {
 }
 
 enum class IncidentSource {
+    DECISION_TASK,
+    SLA,
     PROCESS_ENGINE,
     WORKER,
     CODE_TASK,

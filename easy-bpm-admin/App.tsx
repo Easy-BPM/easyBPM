@@ -1,3 +1,5 @@
+import { SlaDashboard } from './components/SlaDashboard';
+import { DecisionOperations } from './components/DecisionOperations';
 import { isParallelRuntimeVariable } from './utils/workflowProgress';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
@@ -322,6 +324,8 @@ const App: React.FC = () => {
         );
       case 'workflows':
         return <WorkflowCatalogView />;
+      case 'decisions':
+        return <DecisionOperations permissions={permissions} onInspectInstance={id => { setSelectedInstanceId(id); setCurrentView('instances'); }} />;
       case 'code-tasks':
         return <CodeTaskExecutionListPage />;
       case 'maintenance':
@@ -330,6 +334,8 @@ const App: React.FC = () => {
         return <SecurityAdminView permissions={permissions} />;
       case 'secrets':
         return <SecretsAdminView permissions={permissions} />;
+      case 'sla':
+        return <SlaDashboard onInspectInstance={id => { setSelectedInstanceId(id); setCurrentView('instances'); }} />;
       case 'task-resources':
         return <TaskResourcesView />;
       default:

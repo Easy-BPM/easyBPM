@@ -166,7 +166,8 @@ class ProcessServiceTest : FunSpec() {
         mockCodeTaskHandler,
         mockCallActivityHandler,
         mockTimelineService,
-        lifecycleManager
+        lifecycleManager,
+        mockk<ProcessBusinessRuleTaskHandler>(relaxed = true)
     )
     val mockDeploymentService = mockk<ProcessDeploymentService>()
     val mockInstanceStarter = mockk<ProcessInstanceStarter>()

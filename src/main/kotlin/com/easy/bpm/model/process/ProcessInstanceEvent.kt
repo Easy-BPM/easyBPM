@@ -50,6 +50,7 @@ data class ProcessInstanceEvent(
 )
 
 enum class ProcessInstanceEventType {
+    SLA,
     PROCESS_STARTED,
     NODE_ENTERED,
     TASK_CREATED,

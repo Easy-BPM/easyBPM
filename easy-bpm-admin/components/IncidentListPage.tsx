@@ -6,7 +6,7 @@ import { IncidentEvent, IncidentGroup, IncidentRetryStatus, IncidentSource, Inci
 interface IncidentListPageProps { currentUser: string; onOpenInstance: (instanceId: number) => void; }
 type OperationalView = 'needs-attention' | 'retry-eligible' | 'retry-failed' | 'acknowledged-by-me' | 'recurring';
 
-const sourceOptions: Array<IncidentSource | ''> = ['', 'PROCESS_ENGINE', 'WORKER', 'CODE_TASK', 'AI_TASK', 'MESSAGE'];
+const sourceOptions: Array<IncidentSource | ''> = ['', 'PROCESS_ENGINE', 'WORKER', 'CODE_TASK', 'AI_TASK', 'MESSAGE', 'DECISION_TASK'];
 const retryStatusLabel: Record<IncidentRetryStatus, string> = {
   NOT_ELIGIBLE: 'Manual recovery', RETRY_ELIGIBLE: 'Retry eligible', RETRY_REQUESTED: 'Retry requested', RETRYING: 'Retrying', RETRY_SUCCEEDED: 'Retry succeeded', RETRY_FAILED: 'Retry failed', RETRY_EXHAUSTED: 'Retry exhausted'
 };

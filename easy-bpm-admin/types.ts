@@ -117,6 +117,10 @@ export interface ProcessVariable {
 export type TaskStatus = 'PENDING' | 'COMPLETED';
 
 export interface BpmTask {
+  dueDate?: string | null;
+  slaStatus?: SlaStatus | null;
+  slaTimeZone?: string | null;
+  completedWithinSla?: boolean | null;
   id: number;
   title?: string | null;
   name: string;
@@ -136,7 +140,7 @@ export interface BpmTask {
 
 export type IncidentStatus = 'OPEN' | 'ACKNOWLEDGED' | 'RESOLVED';
 export type IncidentSeverity = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
-export type IncidentSource = 'PROCESS_ENGINE' | 'WORKER' | 'CODE_TASK' | 'AI_TASK' | 'MESSAGE';
+export type IncidentSource = 'PROCESS_ENGINE' | 'WORKER' | 'CODE_TASK' | 'AI_TASK' | 'MESSAGE' | 'DECISION_TASK';
 export type IncidentRetryStatus = 'NOT_ELIGIBLE' | 'RETRY_ELIGIBLE' | 'RETRY_REQUESTED' | 'RETRYING' | 'RETRY_SUCCEEDED' | 'RETRY_FAILED' | 'RETRY_EXHAUSTED';
 export type IncidentResolutionAction = 'RESOLVED_MANUALLY' | 'VARIABLE_FIXED' | 'RETRIED_SUCCESSFULLY' | 'IGNORED_KNOWN_ISSUE' | 'INSTANCE_CANCELLED';
 export type IncidentEventType = 'CREATED' | 'OCCURRED_AGAIN' | 'ACKNOWLEDGED' | 'RESOLVED' | 'REOPENED' | 'RETRY_REQUESTED';
@@ -417,4 +421,24 @@ export interface UpdateAdminSecretPayload {
   credentialType?: string;
   token?: string;
   description?: string;
+}
+
+export type SlaStatus = 'ON_TRACK' | 'AT_RISK' | 'OVERDUE' | 'COMPLETED';
+export interface SlaSummary { onTrack: number; atRisk: number; overdue: number; completed: number; withoutSla: number; asOf: string; timeZone: string }
+export interface SlaEvent { id: number | string; taskId: number; actionId: string | null; eventType: string; scheduledAt: string | null; occurredAt: string; outcome: string; message: string | null; incidentId: number | null }
+
+export interface SlaMetricRow {
+  key: string; label: string;
+  onTrack: number; atRisk: number; overdue: number; completed: number; withoutSla: number;
+  totalSlaCompleted: number; completedWithinSlaCount: number; completedWithinSlaRate: number | null;
+  successfulEscalations: number; failedEscalations: number;
+  alertToCompletionSampleCount: number; alertToCompletionAverageSeconds: number | null;
+}
+export interface SlaTaskFilter { field: string; operator: string; value?: string | number; values?: string[] }
+export interface DecisionDefinition { id: number; key: string; name: string; version: number; state: string; dmnXml: string; createdAt: string }
+export interface DecisionDiff { decisionKey: string; fromVersion: number; toVersion: number; changes: { path: string; before: unknown; after: unknown }[] }
+export interface DecisionExecution {
+  id: number; decisionKey: string; decisionVersion: number; processInstanceId?: number | null; nodeId?: string | null;
+  status: string; durationMs: number; matchedRuleIds: string[]; inputs: unknown; outputs: unknown; errorCode?: string | null; executedAt: string;
+  explanations: { ruleId: string; matched: boolean; conditions: { inputId: string; expression: string; matched: boolean }[] }[];
 }

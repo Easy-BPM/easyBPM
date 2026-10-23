@@ -90,6 +90,8 @@ class SecurityConfig(
                     AppPermissions.ACCESS_BPM_MODELER
                 )
                 it.requestMatchers("/ai/credentials/**").hasAnyAuthority(AppPermissions.ACCESS_BPM_ADMIN, AppPermissions.ACCESS_BPM_MODELER)
+                it.requestMatchers("/decision-executions", "/decision-executions/**").hasAuthority(AppPermissions.ACCESS_BPM_ADMIN)
+                it.requestMatchers("/decisions", "/decisions/**").hasAnyAuthority(AppPermissions.ACCESS_BPM_ADMIN, AppPermissions.ACCESS_BPM_MODELER)
                 it.requestMatchers("/code-tasks/**").hasAnyAuthority(AppPermissions.ACCESS_BPM_ADMIN, AppPermissions.ACCESS_BPM_MODELER)
                 it.requestMatchers(HttpMethod.POST, "/agent-processes/simulate").hasAnyAuthority(
                     AppPermissions.ACCESS_BPM_ADMIN,
@@ -108,7 +110,7 @@ class SecurityConfig(
                     AppPermissions.ACCESS_BPM_ADMIN, AppPermissions.ACCESS_PROCESS_PORTAL,
                     ApiScopes.authority(ApiScopes.TASKS_READ)
                 )
-                it.requestMatchers(HttpMethod.POST, "/tasks/search").hasAnyAuthority(
+                it.requestMatchers(HttpMethod.POST, "/tasks/search", "/tasks/sla/summary").hasAnyAuthority(
                     AppPermissions.ACCESS_BPM_ADMIN, AppPermissions.ACCESS_PROCESS_PORTAL,
                     ApiScopes.authority(ApiScopes.TASKS_READ)
                 )

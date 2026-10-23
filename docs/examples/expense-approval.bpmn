@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  xmlns:easy="https://easybpm.local/bpmn/extensions"
+                  id="expense_process_definitions" targetNamespace="https://easybpm.example/processes">
+  <bpmn:process id="expenseDecisionProcess" name="Expense decision example" isExecutable="true">
+    <bpmn:extensionElements>
+      <easy:variables><![CDATA[[{"name":"amount","type":"number","initialValue":250},{"name":"approval","type":"string","initialValue":""},{"name":"requiresReview","type":"boolean","initialValue":false}]]]></easy:variables>
+    </bpmn:extensionElements>
+    <bpmn:startEvent id="start" name="Expense received" />
+    <bpmn:businessRuleTask id="decideExpense" name="Decide expense approval">
+      <bpmn:extensionElements>
+        <easy:node><![CDATA[{"id":"decideExpense","name":"Decide expense approval","type":"BusinessRuleTask","config":{"decisionKey":"expenseApproval","inputs":[{"targetName":"amount","source":"variable","value":"amount","type":"number"}],"outputs":[{"sourceName":"approval","target":"variable","value":"approval","type":"string"},{"sourceName":"requiresReview","target":"variable","value":"requiresReview","type":"boolean"}]}}]]></easy:node>
+      </bpmn:extensionElements>
+    </bpmn:businessRuleTask>
+    <bpmn:endEvent id="end" name="Decision recorded" />
+    <bpmn:sequenceFlow id="startToDecision" sourceRef="start" targetRef="decideExpense" />
+    <bpmn:sequenceFlow id="decisionToEnd" sourceRef="decideExpense" targetRef="end" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="expenseDiagram">
+    <bpmndi:BPMNPlane id="expensePlane" bpmnElement="expenseDecisionProcess">
+      <bpmndi:BPMNShape id="startShape" bpmnElement="start"><dc:Bounds x="100" y="120" width="36" height="36" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="decisionShape" bpmnElement="decideExpense"><dc:Bounds x="220" y="95" width="180" height="86" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="endShape" bpmnElement="end"><dc:Bounds x="480" y="120" width="36" height="36" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="startDecisionEdge" bpmnElement="startToDecision"><di:waypoint x="136" y="138" /><di:waypoint x="220" y="138" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="decisionEndEdge" bpmnElement="decisionToEnd"><di:waypoint x="400" y="138" /><di:waypoint x="480" y="138" /></bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
