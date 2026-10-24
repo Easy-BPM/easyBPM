@@ -1,4 +1,3 @@
-import { SlaDashboard } from './components/SlaDashboard';
 import { DecisionOperations } from './components/DecisionOperations';
 import { isParallelRuntimeVariable } from './utils/workflowProgress';
 import React, { useEffect, useMemo, useState } from 'react';
@@ -334,8 +333,6 @@ const App: React.FC = () => {
         return <SecurityAdminView permissions={permissions} />;
       case 'secrets':
         return <SecretsAdminView permissions={permissions} />;
-      case 'sla':
-        return <SlaDashboard onInspectInstance={id => { setSelectedInstanceId(id); setCurrentView('instances'); }} />;
       case 'task-resources':
         return <TaskResourcesView />;
       default:
