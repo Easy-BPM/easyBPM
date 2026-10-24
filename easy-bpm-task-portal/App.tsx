@@ -286,6 +286,7 @@ const LoginView: React.FC<{ onLogin: (username: string) => void; theme: ThemeMod
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [oidcEnabled, setOidcEnabled] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
   const autoLoginStarted = React.useRef(false);
 
   useEffect(() => {
@@ -321,10 +322,11 @@ const LoginView: React.FC<{ onLogin: (username: string) => void; theme: ThemeMod
 
     setLoading(true);
     try {
+      setLoginError(null);
       const session = await bpmService.login(username.trim(), password);
       onLogin(session.username);
     } catch {
-      console.error('Local sign-in failed.');
+      setLoginError('Unable to sign in. Check your username and password and try again.');
     } finally {
       setLoading(false);
     }
@@ -370,6 +372,7 @@ const LoginView: React.FC<{ onLogin: (username: string) => void; theme: ThemeMod
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            {loginError && <p role="alert" className="text-sm text-red-600">{loginError}</p>}
             <div>
               <label className="mb-1.5 block text-sm font-medium text-[var(--app-text-soft)]">Username</label>
               <div className="relative">

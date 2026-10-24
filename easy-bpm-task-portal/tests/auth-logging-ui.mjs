@@ -67,6 +67,7 @@ try{
       assert.equal(await page.evaluate(markers=>{const session=JSON.parse(localStorage.getItem('easybpm_portal_auth'));return session?.token===markers.token&&session.username===markers.username&&session.groups[0]==='QA';},markers),true,'Successful login must preserve the session contract');
     }else{
       await page.getByRole('button',{name:'Sign In',exact:true}).waitFor();
+      if(mode!=='oidc-error')await page.getByRole('alert').filter({hasText:'Unable to sign in.'}).waitFor();
       await page.waitForFunction(()=>!document.querySelector('button[type=submit]').disabled);
       assert.equal(await page.evaluate(()=>localStorage.getItem('easybpm_portal_auth')===null),true,'Failed login must not create a session');
     }
