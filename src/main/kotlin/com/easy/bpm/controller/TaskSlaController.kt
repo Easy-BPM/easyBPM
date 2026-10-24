@@ -14,8 +14,11 @@ import org.springframework.http.HttpStatus
 class TaskSlaController(private val queries: TaskSlaQueryService, private val tasks: TaskService) {
     @PostMapping("/tasks/sla/summary")
     @PreAuthorize("hasAnyAuthority('ACCESS_BPM_ADMIN','ACCESS_PROCESS_PORTAL','SCOPE_tasks:read')")
-    fun summary(@RequestBody request: TaskSearchRequestDto, @AuthenticationPrincipal principal: AuthenticatedUser?) =
-        queries.summary(request.filters, principal?.let { if (it.permissionCodes.contains("ACCESS_BPM_ADMIN")) null else TaskVisibility(it.username, it.groups) } ?: throw ResponseStatusException(HttpStatus.UNAUTHORIZED))
+    fun summary(@RequestBody request: TaskSearchRequestDto, @AuthenticationPrincipal principal: AuthenticatedUser?): SlaSummary {
+        val user = principal ?: throw ResponseStatusException(HttpStatus.UNAUTHORIZED)
+        val visibility = if (user.permissionCodes.contains("ACCESS_BPM_ADMIN")) null else TaskVisibility(user.username, user.groups)
+        return queries.summary(request.filters, visibility)
+    }
 
     @GetMapping("/tasks/{id}/sla/events")
     fun events(@PathVariable id: Long, pageable: Pageable, @AuthenticationPrincipal principal: AuthenticatedUser?): org.springframework.data.domain.Page<SlaEventDto> {

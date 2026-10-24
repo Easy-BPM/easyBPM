@@ -1,5 +1,6 @@
 package com.easy.bpm.security
 
+import io.jsonwebtoken.JwtException
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
@@ -31,7 +32,13 @@ class JwtAuthenticationFilter(
         }
 
         val jwt = authHeader.substring(7)
-        val username = jwtService.extractUsername(jwt)
+        val username = try {
+            jwtService.extractUsername(jwt)
+        } catch (_: JwtException) {
+            null
+        } catch (_: IllegalArgumentException) {
+            null
+        }
 
         if (username != null && SecurityContextHolder.getContext().authentication == null && jwtService.isTokenValid(jwt)) {
             val userDetails = userDetailsService.loadUserByUsername(username)
