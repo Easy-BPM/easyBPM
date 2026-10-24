@@ -508,6 +508,8 @@ export const InboxView: React.FC<{ onSelectTask: (id: number) => void; currentUs
   const [sort, setSort] = useState('createdAt,desc');
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
+  const [totalTasks, setTotalTasks] = useState(0);
+  const [pageSize, setPageSize] = useState(25);
   const [summary, setSummary] = useState<SlaSummary | null>(null);
 
   useEffect(() => {
@@ -520,7 +522,7 @@ export const InboxView: React.FC<{ onSelectTask: (id: number) => void; currentUs
       const filters = [...buildQuickFilters(), ...activeFilters.map(toSearchFilter)];
       const results = await Promise.allSettled([bpmService.getTasksPage(filters, page, sort), bpmService.getSlaSummary(filters)]);
       if (!cancelled) {
-        if (results[0].status === 'fulfilled') { setTasks(results[0].value.content); setTotalPages(results[0].value.totalPages); setError(null); }
+        if (results[0].status === 'fulfilled') { setTasks(results[0].value.content); setTotalPages(results[0].value.totalPages); setTotalTasks(results[0].value.totalElements); setPageSize(results[0].value.size); if (page > 0 && page >= results[0].value.totalPages) setPage(Math.max(0, results[0].value.totalPages - 1)); setError(null); }
         else setError(results[0].reason.message || 'Tasks could not refresh. Retry when connected.');
         if (results[1].status === 'fulfilled') setSummary(results[1].value);
         else setError(results[1].reason.message || 'SLA counters could not refresh.');
@@ -651,15 +653,15 @@ export const InboxView: React.FC<{ onSelectTask: (id: number) => void; currentUs
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="inbox-layout">
+      <div className="inbox-heading">
         <div>
           <h2 className="text-2xl font-bold text-slate-800">Task Inbox</h2>
           <p className="text-slate-500 text-sm mt-1">Open tasks, forms, and variable outputs</p>
         </div>
 
-        <div className="flex flex-wrap gap-2">
-          <div className="flex bg-slate-200 p-1 rounded-lg self-start">
+        <div className="inbox-view-actions">
+          <div className="inbox-view-tabs">
             {(['assigned', 'all', 'completed'] as const).map((current) => (
               <button
                 key={current}
@@ -681,10 +683,39 @@ export const InboxView: React.FC<{ onSelectTask: (id: number) => void; currentUs
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-3 items-center text-sm">
-        <label>Sort <select aria-label="Sort" className="border rounded p-2" value={sort} onChange={e => { setPage(0); setSort(e.target.value); }}><option value="createdAt,desc">Newest first</option><option value="dueDate,asc">Deadline: earliest first</option><option value="dueDate,desc">Deadline: latest first</option></select></label>
-        <button disabled={page === 0} onClick={() => setPage(p => p - 1)}>Previous page</button><span>Page {page + 1} of {Math.max(1, totalPages)}</span><button disabled={page + 1 >= totalPages} onClick={() => setPage(p => p + 1)}>Next page</button>
-        {summary && <div aria-label="SLA counters">On track: {summary.onTrack} · At risk: {summary.atRisk} · Overdue: {summary.overdue} · Completed: {summary.completed} · No SLA: {summary.withoutSla}</div>}
+      {summary && (
+        <section className="inbox-sla-grid" aria-label="SLA counters">
+          {[
+            { label: 'On track', value: summary.onTrack, tone: 'success', Icon: CheckCircle2 },
+            { label: 'At risk', value: summary.atRisk, tone: 'warning', Icon: Clock },
+            { label: 'Overdue', value: summary.overdue, tone: 'danger', Icon: AlertCircle },
+            { label: 'Completed', value: summary.completed, tone: 'accent', Icon: CheckCircle2 },
+            { label: 'No SLA', value: summary.withoutSla, tone: 'neutral', Icon: Inbox },
+          ].map(({ label, value, tone, Icon }) => (
+            <div key={label} className={`inbox-sla-card inbox-sla-${tone}`}>
+              <div className="inbox-sla-label"><Icon size={16} aria-hidden="true" /><span>{label}</span></div>
+              <strong className="inbox-sla-value">{value.toLocaleString()}</strong>
+            </div>
+          ))}
+        </section>
+      )}
+      <div className="inbox-toolbar">
+        <label className="inbox-sort">
+          <span>Sort by</span>
+          <select aria-label="Sort" value={sort} onChange={e => { setPage(0); setSort(e.target.value); }}>
+            <option value="createdAt,desc">Newest first</option>
+            <option value="dueDate,asc">Deadline: earliest first</option>
+            <option value="dueDate,desc">Deadline: latest first</option>
+          </select>
+        </label>
+        <div className="inbox-page-controls">
+          <span className="inbox-result-count">{tasks.length === 0 ? '0 tasks' : `${page * pageSize + 1}–${Math.min(page * pageSize + tasks.length, totalTasks)} of ${totalTasks.toLocaleString()} tasks`}</span>
+          <nav className="inbox-pagination" aria-label="Task pages">
+            <button type="button" aria-label="Previous page" disabled={loading || page === 0} onClick={() => setPage(p => p - 1)}><ChevronLeft size={16} aria-hidden="true" /></button>
+            <span aria-live="polite">Page <strong>{page + 1}</strong> of <strong>{Math.max(1, totalPages)}</strong></span>
+            <button type="button" aria-label="Next page" disabled={loading || page + 1 >= totalPages} onClick={() => setPage(p => p + 1)}><ChevronRight size={16} aria-hidden="true" /></button>
+          </nav>
+        </div>
       </div>
       {(activeFilters.length > 0 || error) && (
         <div className="space-y-3">

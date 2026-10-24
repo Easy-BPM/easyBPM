@@ -381,3 +381,38 @@
 .task-portal-app.login-shell .login-card button {
   border-radius: 0 !important;
 }
+
+/* Task inbox summary and navigation share the portal theme tokens. */
+.task-portal-app .inbox-sla-grid { display:flex; flex-wrap:wrap; align-items:center; gap:10px 24px; }
+.task-portal-app .inbox-sla-card { display:flex; align-items:center; gap:8px; background:transparent; border:0; padding:0; min-width:0; }
+.task-portal-app .inbox-sla-success { --sla-tone:var(--app-success); }
+.task-portal-app .inbox-sla-warning { --sla-tone:var(--app-warning); }
+.task-portal-app .inbox-sla-danger { --sla-tone:var(--app-danger); }
+.task-portal-app .inbox-sla-accent { --sla-tone:var(--app-accent); }
+.task-portal-app .inbox-sla-neutral { --sla-tone:var(--app-text-muted); }
+.task-portal-app .inbox-sla-label { display:flex; align-items:center; gap:6px; color:var(--app-text-muted); font-size:12px; font-weight:400; }
+.task-portal-app .inbox-sla-label svg { width:14px; height:14px; color:var(--app-text-muted); flex-shrink:0; }
+.task-portal-app .inbox-sla-danger .inbox-sla-label svg { color:var(--app-danger); }
+.task-portal-app .inbox-sla-value { color:var(--app-text-soft); font-size:13px; font-weight:600; line-height:1.5; font-variant-numeric:tabular-nums; }
+.task-portal-app .inbox-toolbar { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:16px; border-bottom:1px solid var(--app-border); padding:0 0 16px; }
+.task-portal-app .inbox-sort { display:flex; flex-wrap:wrap; align-items:center; gap:10px; color:var(--app-text-muted); font-size:12px; }
+.task-portal-app .inbox-sort select { min-height:38px; max-width:100%; border:1px solid var(--app-input-border); background:var(--app-input-bg); color:var(--app-input-text); padding:8px 32px 8px 12px; font:inherit; font-size:13px; }
+.task-portal-app .inbox-page-controls { display:flex; flex-wrap:wrap; align-items:center; gap:20px; }
+.task-portal-app .inbox-result-count { color:var(--app-text-muted); font-size:12px; }
+.task-portal-app .inbox-pagination { display:flex; align-items:center; gap:14px; font-size:12px; color:var(--app-text-soft); white-space:nowrap; }
+.task-portal-app .inbox-pagination strong { color:var(--app-text); font-weight:600; }
+.task-portal-app .inbox-pagination button { width:34px; height:34px; display:inline-flex; align-items:center; justify-content:center; border:1px solid var(--app-border); background:var(--app-surface); color:var(--app-text); cursor:pointer; }
+.task-portal-app .inbox-pagination button:hover:not(:disabled) { border-color:var(--app-accent); color:var(--app-accent); }
+.task-portal-app .inbox-pagination button:disabled { opacity:.4; cursor:not-allowed; }
+.task-portal-app .inbox-toolbar :is(button,select):focus-visible { outline:2px solid var(--app-accent); outline-offset:3px; }
+
+@media(max-width:540px) { .task-portal-app .inbox-sla-grid { gap:10px 18px; } .task-portal-app .inbox-page-controls { width:100%; justify-content:space-between; gap:12px; } }
+.task-portal-app .inbox-layout { display:flex; flex-direction:column; gap:24px; }
+.task-portal-app .inbox-heading { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:16px; }
+.task-portal-app .inbox-heading h2 { margin:0; font-size:24px; line-height:1.25; }
+.task-portal-app .inbox-heading p { margin:6px 0 0; font-size:13px; }
+.task-portal-app .inbox-view-actions { display:flex; align-items:center; flex-wrap:wrap; gap:8px; }
+.task-portal-app .inbox-view-tabs { display:flex; padding:4px; background:var(--app-surface-muted); }
+.task-portal-app .inbox-view-tabs button { border:0; background:transparent; color:var(--app-text-muted); padding:8px 14px; font-size:13px; cursor:pointer; }
+.task-portal-app .inbox-view-tabs button.bg-white { background:var(--app-surface); color:var(--app-accent); }
+.task-portal-app .inbox-view-actions > button { display:inline-flex; align-items:center; gap:8px; border:1px solid var(--app-border); padding:10px 14px; background:var(--app-surface); color:var(--app-text); font-size:13px; cursor:pointer; }

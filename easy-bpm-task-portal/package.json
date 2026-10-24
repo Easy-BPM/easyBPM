@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "test:form-constraints:ui": "node tests/form-constraints-ui.mjs",
-    "test:auth-logging:ui": "node tests/auth-logging-ui.mjs"
+    "test:auth-logging:ui": "node tests/auth-logging-ui.mjs",
+    "test:inbox:ui": "node tests/inbox-ui.mjs"
   },
   "dependencies": {
     "lucide-react": "^0.556.0",

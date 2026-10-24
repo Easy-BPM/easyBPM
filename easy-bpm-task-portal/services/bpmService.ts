@@ -378,7 +378,14 @@ export const bpmService = {
     const params = new URLSearchParams({ page: String(page), size: '25', sort });
     const response = await fetchWithAuth(`${API_BASE_URL}/tasks/search?${params}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ filters }) });
     await assertOk(response, 'Get tasks');
-    return response.json();
+    const payload = await response.json();
+    const content: Task[] = Array.isArray(payload.content) ? payload.content : [];
+    const metadata = payload.page ?? payload;
+    const size = Math.max(1, Math.trunc(finiteNumber(metadata.size, 25)));
+    const number = Math.max(0, Math.trunc(finiteNumber(metadata.number, page)));
+    const totalElements = Math.max(0, Math.trunc(finiteNumber(metadata.totalElements, number * size + content.length)));
+    const totalPages = Math.max(0, Math.trunc(finiteNumber(metadata.totalPages, Math.ceil(totalElements / size))));
+    return { content, size, number, totalElements, totalPages };
   },
   getSlaSummary: async (filters: TaskSearchFilter[]): Promise<SlaSummary> => {
     const response = await fetchWithAuth(`${API_BASE_URL}/tasks/sla/summary`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ filters }) });
