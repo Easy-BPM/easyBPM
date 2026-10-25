@@ -1,7 +1,7 @@
 {
   "name": "easy-bpm-admin",
   "private": true,
-  "version": "0.1.4-beta.2",
+  "version": "0.1.5-beta.2",
   "type": "module",
   "scripts": {
     "dev": "vite",

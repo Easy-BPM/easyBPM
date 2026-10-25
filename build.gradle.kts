@@ -17,7 +17,7 @@ extra["rabbit-amqp-client.version"] = "5.34.0"
 extra["tomcat.version"] = "10.1.60"
 
 group = "com.easy"
-version = "0.1.4-beta.2"
+version = "0.1.5-beta.2"
 
 java {
 	toolchain {
