@@ -15,16 +15,26 @@ class ServiceTaskOutputMapper(
 
     fun applyOutputMappings(instance: ProcessInstance, node: JsonNode, outputs: Map<String, String>) {
         val responseJson = parseResponseJson(outputs)
-        val nodeConfig = node.get("properties") ?: node.get("config")
+        val nodeConfig = node.get("properties") ?: node.get("service") ?: node.get("config")
         val outputMappings = nodeConfig?.get("outputs")
 
         if (outputMappings != null && outputMappings.isArray) {
-            outputMappings.forEach { mapping ->
-                val target = mapping.get("target")?.asText()
-                if (target == "variable") {
-                    applyVariableMapping(instance, responseJson, mapping)
+            // Resolve every mapping before the first write so invalid literals cannot partially apply.
+            val mapped = outputMappings.filter { it.path("target").asText("variable") == "variable" }.mapNotNull { mapping ->
+                val target = mapping.get("targetVariable")?.asText()?.takeIf { it.isNotBlank() }
+                    ?: mapping.get("value")?.asText()?.takeIf { it.isNotBlank() }
+                    ?: return@mapNotNull null
+                val value = if (mapping.path("source").asText() == "static") {
+                    staticValue(mapping)
+                } else {
+                    val source = mapping.get("sourceName")?.asText()?.takeIf { it.isNotBlank() }
+                        ?: mapping.get("sourceValue")?.asText()?.takeIf { it.isNotBlank() }
+                        ?: return@mapNotNull null
+                    variableManager.extractValueByPath(responseJson, source)
                 }
+                target to value
             }
+            mapped.forEach { (target, value) -> variableManager.upsertProcessVariable(instance.id, target, value) }
         }
     }
 
@@ -40,18 +50,22 @@ class ServiceTaskOutputMapper(
             objectMapper.valueToTree(outputs)
         }
 
-    private fun applyVariableMapping(instance: ProcessInstance, responseJson: JsonNode, mapping: JsonNode) {
-        val sourceName = mapping.get("sourceName")?.asText()
-        val targetVarName = mapping.get("value")?.asText()
-
-        if (!sourceName.isNullOrBlank() && !targetVarName.isNullOrBlank()) {
-            try {
-                val value = variableManager.extractValueByPath(responseJson, sourceName)
-                variableManager.upsertProcessVariable(instance.id, targetVarName, value)
-                logger.info("Applied output mapping: $sourceName -> $targetVarName")
-            } catch (e: Exception) {
-                logger.warn("Failed to apply output mapping for $sourceName: ${e.message}")
-            }
-        }
+    private fun staticValue(mapping: JsonNode): JsonNode {
+        val raw = mapping.get("sourceValue") ?: throw IllegalArgumentException("API static output is missing its literal")
+        val type = mapping.path("type").asText("string")
+        if (raw.isNull) return objectMapper.nullNode()
+        if (type == "string") return objectMapper.nodeFactory.textNode(if (raw.isTextual) raw.asText() else raw.toString())
+        val parsed = if (raw.isTextual) {
+            try { objectMapper.readTree(raw.asText()) ?: objectMapper.nullNode() }
+            catch (_: Exception) { throw IllegalArgumentException("API static output has an invalid literal") }
+        } else raw
+        require(when (type) {
+            "number" -> parsed.isNumber
+            "integer" -> parsed.isNumber && parsed.decimalValue().stripTrailingZeros().scale() <= 0
+            "boolean" -> parsed.isBoolean
+            "json" -> true
+            else -> false
+        }) { "API static output literal does not match its declared type" }
+        return parsed
     }
 }

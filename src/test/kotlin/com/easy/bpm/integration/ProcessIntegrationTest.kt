@@ -11,7 +11,6 @@ import com.easy.bpm.repository.variable.HistoricProcessVariableRepository
 import com.easy.bpm.repository.variable.HistoricTaskVariableRepository
 import com.easy.bpm.repository.variable.ProcessVariableRepository
 import com.easy.bpm.repository.variable.TaskVariableRepository
-import com.easy.bpm.service.integration.IntegrationService
 import com.easy.bpm.service.agent.AgentProcessService
 import com.easy.bpm.service.process.ProcessService
 import com.easy.bpm.service.task.TaskService
@@ -91,10 +90,6 @@ class ProcessIntegrationTest(
 
     @MockBean
     private lateinit var rabbitPublisher: RabbitPublisher
-
-    // TaskService executes APITask nodes synchronously via IntegrationService; mock to keep tests offline.
-    @MockBean
-    private lateinit var integrationService: IntegrationService
 
     @Test
     fun `start user task process should create task variable and complete process`() {
@@ -562,8 +557,13 @@ class ProcessIntegrationTest(
         val userTask = taskRepository.findAll().first { it.processInstanceId == processInstance.id }
         taskService.completeTask(userTask.id, "tester", mapOf("orderId" to "ORD-900"))
 
+        val waitingInstance = processInstanceRepository.findById(processInstance.id).orElseThrow()
+        assertThat(waitingInstance.status).isEqualTo(ProcessStatus.ACTIVE)
+        assertThat(waitingInstance.currentNode).containsExactly("api-task_notify-warehouse")
+        processService.handleServiceTaskCompleted(processInstance.id,"api-task_notify-warehouse",mapOf("__response" to """{"status":"NOTIFIED"}"""))
         val updatedInstance = processInstanceRepository.findById(processInstance.id).orElseThrow()
         assertThat(updatedInstance.status).isEqualTo(ProcessStatus.COMPLETED)
+        assertThat(processVariableValue(processInstance.id,"orderStatus")?.asText()).isEqualTo("NOTIFIED")
         assertThat(updatedInstance.currentNode).isEmpty()
         assertThat(updatedInstance.nodeHistory).contains("api-task_notify-warehouse", "end_api")
     }

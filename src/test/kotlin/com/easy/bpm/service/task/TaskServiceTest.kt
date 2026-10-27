@@ -14,7 +14,6 @@ import com.easy.bpm.repository.variable.HistoricTaskVariableRepository
 import com.easy.bpm.repository.variable.ProcessVariableRepository
 import com.easy.bpm.repository.variable.TaskVariableRepository
 import com.easy.bpm.service.form.FormService
-import com.easy.bpm.service.integration.IntegrationService
 import com.easy.bpm.service.message.MessageSubscriptionService
 import com.easy.bpm.service.metrics.MetricsService
 import com.easy.bpm.service.process.GatewayRoutingException
@@ -47,7 +46,6 @@ class TaskServiceTest : FunSpec() {
     val mockProcessVariableRepository = mockk<ProcessVariableRepository>()
     val mockTaskVariableRepository = mockk<TaskVariableRepository>()
     val mockHistoricTaskVariableRepository = mockk<HistoricTaskVariableRepository>()
-    val mockIntegrationService = mockk<IntegrationService>()
     val mockFormService = mockk<FormService>()
     val mockObjectMapper = mockk<ObjectMapper>()
     val mockRabbitPublisher = mockk<com.easy.bpm.messaging.RabbitPublisher>(relaxed = true)
@@ -65,7 +63,6 @@ class TaskServiceTest : FunSpec() {
         mockProcessVariableRepository,
         mockTaskVariableRepository,
         mockHistoricTaskVariableRepository,
-        mockIntegrationService,
         mockFormService,
         mockObjectMapper,
         mockRabbitPublisher,
@@ -193,7 +190,6 @@ class TaskServiceTest : FunSpec() {
                 mockProcessVariableRepository,
                 mockTaskVariableRepository,
                 mockHistoricTaskVariableRepository,
-                mockIntegrationService,
                 mockFormService,
                 realObjectMapper,
                 mockRabbitPublisher,
@@ -279,7 +275,6 @@ class TaskServiceTest : FunSpec() {
                 mockProcessVariableRepository,
                 mockTaskVariableRepository,
                 mockHistoricTaskVariableRepository,
-                mockIntegrationService,
                 mockFormService,
                 realObjectMapper,
                 mockRabbitPublisher,
