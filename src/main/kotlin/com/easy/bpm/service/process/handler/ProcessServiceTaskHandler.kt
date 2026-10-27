@@ -7,6 +7,7 @@ import com.easy.bpm.repository.process.ProcessInstanceRepository
 import com.easy.bpm.repository.variable.ProcessVariableRepository
 import com.easy.bpm.service.process.ProcessInstanceTimelineService
 import com.easy.bpm.service.process.ProcessVariableManager
+import com.easy.bpm.service.process.ApiTaskRequestResolver
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.ObjectNode
@@ -27,7 +28,9 @@ class ProcessServiceTaskHandler(
             ?: node.get("service")
             ?: throw IllegalArgumentException("APITask ${node.get("id").asText()} missing properties/service")
 
-        rabbitPublisher.publishServiceTaskRequest(instance.id, node.get("id").asText(), config)
+        val variables = processVariableRepository.findByProcessInstanceId(instance.id).associate { it.name to it.value }
+        val resolved = ApiTaskRequestResolver.resolve(config, variables)
+        rabbitPublisher.publishServiceTaskRequest(instance.id, node.get("id").asText(), resolved)
         timelineService.record(
             processInstanceId = instance.id,
             nodeId = node.get("id").asText(),

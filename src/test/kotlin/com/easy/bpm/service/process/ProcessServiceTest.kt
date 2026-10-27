@@ -114,7 +114,8 @@ class ProcessServiceTest : FunSpec() {
         navigator,
         serviceTaskOutputMapper,
         failureHandler,
-        mockTimelineService
+        mockTimelineService,
+        variableManager
     )
     val messageReceivedHandler = ProcessMessageReceivedHandler(
         mockProcessInstanceRepository,

@@ -16,7 +16,7 @@ class ProcessWorkerCallbackService(
 ) {
     @Transactional
     fun handleServiceTaskCompleted(processInstanceId: Long, nodeId: String, outputs: Map<String, String>) {
-        val result = workerCallbackHandler.handleCompleted(processInstanceId, nodeId, outputs)
+        val result = workerCallbackHandler.handleCompleted(processInstanceId, nodeId, outputs) ?: return
         continueFromWorkerCallback(result, nodeId)
     }
 
@@ -34,7 +34,7 @@ class ProcessWorkerCallbackService(
             errorMessage = errorMessage ?: "Service task failed",
             incidentSource = incidentSource,
             externalReferenceId = externalReferenceId
-        )
+        ) ?: return
         continueFromWorkerCallback(result, nodeId)
     }
 

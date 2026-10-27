@@ -18,7 +18,6 @@ import com.easy.bpm.repository.variable.HistoricTaskVariableRepository
 import com.easy.bpm.repository.variable.ProcessVariableRepository
 import com.easy.bpm.repository.variable.TaskVariableRepository
 import com.easy.bpm.service.form.FormService
-import com.easy.bpm.service.integration.IntegrationService
 import com.easy.bpm.service.message.MessageSubscriptionService
 import com.easy.bpm.service.metrics.MetricsService
 import com.easy.bpm.service.process.ProcessTokenState
@@ -47,7 +46,6 @@ class TaskService(
     private val processVariableRepository: ProcessVariableRepository,
     private val taskVariableRepository: TaskVariableRepository,
     private val historicTaskVariableRepository: HistoricTaskVariableRepository,
-    private val integrationService: IntegrationService,
     private val formService: FormService,
     private val objectMapper: ObjectMapper
         ,
@@ -524,21 +522,9 @@ class TaskService(
         executeNextSteps(nextNodeIds, instance, definition)
     }
 
-    private fun handleAPITask(
-        instance: ProcessInstance,
-        node: JsonNode,
-        definition: JsonNode
-    ) {
-        val config = node.get("properties")
-            ?: throw IllegalArgumentException("APITask ${node.get("id").asText()} missing properties")
-
-        integrationService.executeIntegration(instance, node.get("id").asText(), config)
-
-        val nextNodeIds = getNextNodes(node, definition, instance)
-
-        advanceProcess(instance, nextNodeIds, definition, node.get("id").asText())
-
-        executeNextSteps(nextNodeIds, instance, definition)
+    private fun handleAPITask(instance: ProcessInstance, node: JsonNode, definition: JsonNode) {
+        // API tasks always use the shared asynchronous engine, including after human work.
+        executionEngine.executeNodes(listOf(node.get("id").asText()), instance, definition)
     }
 
     private fun handleServiceTaskNode(
