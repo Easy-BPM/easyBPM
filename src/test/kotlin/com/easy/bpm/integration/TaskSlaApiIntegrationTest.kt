@@ -46,6 +46,7 @@ class TaskSlaApiIntegrationTest : IntegrationTestBase() {
         }!!
         val body="""{"filters":[{"field":"processInstanceId","operator":"EQUALS","value":${task.processInstanceId}}]}"""
         mvc.perform(post("/tasks/sla/summary").contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isUnauthorized)
+        mvc.perform(post("/tasks/sla/summary").with(user(AuthenticatedUser(null,"no-permissions","",true,emptySet(),emptySet()))).contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isForbidden)
         mvc.perform(post("/tasks/sla/summary").with(user(identity("administrator",admin=true))).contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isOk).andExpect(jsonPath("$.overdue").value(1))
         mvc.perform(post("/tasks/sla/summary").with(user(identity(owner))).contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isOk).andExpect(jsonPath("$.overdue").value(1))
         mvc.perform(post("/tasks/sla/summary").with(user(identity("outsider"))).contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isOk).andExpect(jsonPath("$.overdue").value(0))
